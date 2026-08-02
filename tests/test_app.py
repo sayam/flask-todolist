@@ -214,3 +214,41 @@ def test_cannot_assign_todo_to_other_users_category(app, client, other_client, c
     assert resp.status_code == 404
     with app.app_context():
         assert Todo.query.filter_by(title="แอบใช้หมวดคนอื่น").count() == 0
+
+
+# --- ปุ่ม Delete ใช้ formaction ในฟอร์มเดียวกับ Save ---
+
+def test_delete_button_uses_formaction(app, client):
+    """Save กับ Delete อยู่ฟอร์มเดียวกัน ปุ่ม Delete จึงต้องมี formaction
+    ชี้ไป route ลบ ไม่งั้นกดแล้วจะไปบันทึกแทน"""
+    _add(client, "งานที่จะลบ")
+    todo_id = _first_todo_id(app, "งานที่จะลบ")
+    body = client.get("/").data
+    assert f'formaction="/delete/{todo_id}"'.encode() in body
+
+
+def test_delete_works_with_full_edit_form_payload(app, client, category_id):
+    """จำลองสิ่งที่ browser ส่งจริงตอนกด Delete — มันส่งทุก field ในฟอร์ม
+    ไปที่ formaction ไม่ใช่แค่ csrf token"""
+    _add(client, "งานที่จะลบ", category_id=category_id)
+    todo_id = _first_todo_id(app, "งานที่จะลบ")
+
+    resp = client.post(
+        f"/delete/{todo_id}",
+        data={
+            "title": "งานที่จะลบ",
+            "category_id": str(category_id),
+            "due_date": "2026-09-01T09:00",
+        },
+        follow_redirects=True,
+    )
+    assert resp.status_code == 200
+    with app.app_context():
+        assert db.session.get(Todo, todo_id) is None
+
+
+def test_delete_button_skips_html_validation(client):
+    """formnovalidate: ถ้าผู้ใช้ลบชื่องานจนว่างแล้วกด Delete
+    browser ต้องไม่บล็อกด้วย required ของช่อง title"""
+    _add(client, "งานที่จะลบ")
+    assert b"formnovalidate" in client.get("/").data

@@ -77,13 +77,17 @@
              aria-label="{{ _('Mark as not done') if todo.done else _('Mark as done') }}">
     </form>
 
-    {# แถวรายการใช้ aria-label แทน label ที่มองเห็น เพราะถ้าใส่ label ทุกแถวจะรกจนอ่านยาก #}
+    {# แถวรายการใช้ aria-label แทน label ที่มองเห็น เพราะถ้าใส่ label ทุกแถวจะรกจนอ่านยาก
+
+       Save กับ Delete อยู่ในฟอร์มเดียวกัน โดย Delete ใช้ formaction ยิงไปคนละ route
+       ถ้าแยกเป็นสองฟอร์มจะจัดให้ปุ่มทั้งคู่อยู่บรรทัดเดียวกันแล้วให้ dropdown หมวด
+       ตกลงบรรทัดล่างไม่ได้ (ฟอร์มเป็นคนละ flex container กัน)
+       route /delete ใช้แค่ id จาก URL กับ csrf token ค่าอื่นในฟอร์มถูกมองข้าม #}
     <form class="task-edit" action="{{ url_for('main.edit', todo_id=todo.id) }}" method="post">
       {{ csrf_field() }}
       <input class="task-title" type="text" name="title" value="{{ todo.title }}"
              aria-label="{{ _('Task name') }}" required
              style="{{ 'text-decoration: line-through;' if todo.done else '' }}">
-      {{ category_select(todo.category_id, aria=_('Category'), css_class='task-category') }}
       <input class="task-due" type="datetime-local" name="due_date" aria-label="{{ _('Due') }}"
              value="{{ todo.due_local.strftime('%Y-%m-%dT%H:%M') if todo.due_date else '' }}">
 
@@ -99,12 +103,16 @@
       </strong>
 
       <button type="submit">{{ _('Save') }}</button>
-    </form>
+      {# formnovalidate: ไม่งั้นถ้าผู้ใช้ลบชื่องานจนว่างแล้วกด Delete
+         browser จะบล็อกด้วย validation ของช่อง title ทั้งที่กำลังจะลบทิ้งอยู่แล้ว #}
+      <button type="submit" formnovalidate
+              formaction="{{ url_for('main.delete', todo_id=todo.id) }}"
+              onclick="return confirm({{ _('Delete “%(title)s”?', title=todo.title)|tojson }})">
+        {{ _('Delete') }}
+      </button>
 
-    <form action="{{ url_for('main.delete', todo_id=todo.id) }}" method="post"
-          onsubmit="return confirm({{ _('Delete “%(title)s”?', title=todo.title)|tojson }})">
-      {{ csrf_field() }}
-      <button type="submit">{{ _('Delete') }}</button>
+      {# หมวดอยู่บรรทัดล่างเพื่อให้มีที่พอแสดงชื่อยาว ๆ ได้ครบ #}
+      {{ category_select(todo.category_id, aria=_('Category'), css_class='task-category') }}
     </form>
   </li>
   {% else %}
