@@ -110,6 +110,16 @@ button:focus-visible {
   outline-offset: 1px;
 }
 
+/* ช่องที่แก้ไม่ได้ (เช่น username ในหน้า settings) ต้องดูต่างจากช่องปกติ
+ * ตั้งแต่แรกเห็น ไม่ใช่ต้องไปอ่านคำอธิบายใต้ช่องก่อน
+ * ใช้สีพื้นหลังของหน้าแทนสีพื้นผิว ช่องจึงกลืนไปกับหน้าและดูไม่ใช่ที่ให้กรอก */
+input:disabled,
+select:disabled {
+  background: var(--bg);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
 button {
   cursor: pointer;
 }
