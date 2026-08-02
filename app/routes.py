@@ -64,6 +64,20 @@ def add():
     return redirect(url_for("main.index"))
 
 
+@bp.route("/edit/<int:todo_id>", methods=["POST"])
+@login_required
+def edit(todo_id):
+    todo = _owned_todo(todo_id)
+    title = request.form.get("title", "").strip()
+    if not title:
+        flash("ชื่องานว่างไม่ได้")
+        return redirect(url_for("main.index"))
+    todo.title = title
+    todo.category_id = _resolve_category_id(request.form.get("category_id"))
+    db.session.commit()
+    return redirect(url_for("main.index"))
+
+
 @bp.route("/toggle/<int:todo_id>", methods=["POST"])
 @login_required
 def toggle(todo_id):

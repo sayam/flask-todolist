@@ -1,17 +1,23 @@
 {% extends "base.html" %}
 {% block title %}Todolist{% endblock %}
 
+{% macro category_select(selected_id) %}
+  <select name="category_id">
+    <option value="">— ไม่มีหมวด —</option>
+    {% for category in categories %}
+    <option value="{{ category.id }}" {{ 'selected' if category.id == selected_id else '' }}>
+      {{ category.name }}
+    </option>
+    {% endfor %}
+  </select>
+{% endmacro %}
+
 {% block content %}
 <h1>Todolist</h1>
 
 <form action="{{ url_for('main.add') }}" method="post">
   <input type="text" name="title" placeholder="งานใหม่" required>
-  <select name="category_id">
-    <option value="">— ไม่มีหมวด —</option>
-    {% for category in categories %}
-    <option value="{{ category.id }}">{{ category.name }}</option>
-    {% endfor %}
-  </select>
+  {{ category_select(None) }}
   <button type="submit">เพิ่ม</button>
 </form>
 
@@ -22,8 +28,12 @@
       <input type="checkbox" onchange="this.form.submit()" {{ 'checked' if todo.done else '' }}>
     </form>
 
-    <span style="{{ 'text-decoration: line-through;' if todo.done else '' }}">{{ todo.title }}</span>
-    {% if todo.category %}<small>[{{ todo.category.name }}]</small>{% endif %}
+    <form action="{{ url_for('main.edit', todo_id=todo.id) }}" method="post" style="display:inline">
+      <input type="text" name="title" value="{{ todo.title }}"
+             style="{{ 'text-decoration: line-through;' if todo.done else '' }}" required>
+      {{ category_select(todo.category_id) }}
+      <button type="submit">บันทึก</button>
+    </form>
 
     <form action="{{ url_for('main.delete', todo_id=todo.id) }}" method="post" style="display:inline"
           onsubmit="return confirm('ลบ ' + {{ todo.title|tojson }} + ' ใช่ไหม?')">

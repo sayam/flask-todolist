@@ -57,6 +57,7 @@ class Todo(db.Model):
     title = db.Column(db.String(200), nullable=False)
     done = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=_utcnow)
+    updated_at = db.Column(db.DateTime, default=_utcnow, onupdate=_utcnow)
     user_id = db.Column(
         db.Integer, db.ForeignKey("user.id"), nullable=False, index=True
     )

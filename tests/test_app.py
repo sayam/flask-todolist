@@ -65,6 +65,39 @@ def test_clear_completed(app, client):
         assert [t.title for t in Todo.query.all()] == ["ล้างจาน"]
 
 
+# --- แก้ไขงาน ---
+
+def test_edit_todo_title(app, client):
+    _add(client, "ชื่อเดิม")
+    todo_id = _first_todo_id(app, "ชื่อเดิม")
+    resp = client.post(
+        f"/edit/{todo_id}", data={"title": "ชื่อใหม่"}, follow_redirects=True
+    )
+    assert resp.status_code == 200
+    assert "ชื่อใหม่".encode() in resp.data
+    assert "ชื่อเดิม".encode() not in resp.data
+
+
+def test_edit_rejects_blank_title(app, client):
+    _add(client, "ชื่อเดิม")
+    todo_id = _first_todo_id(app, "ชื่อเดิม")
+    client.post(f"/edit/{todo_id}", data={"title": "  "}, follow_redirects=True)
+    with app.app_context():
+        assert db.session.get(Todo, todo_id).title == "ชื่อเดิม"
+
+
+def test_edit_sets_category(app, client, category_id):
+    _add(client, "งานไม่มีหมวด")
+    todo_id = _first_todo_id(app, "งานไม่มีหมวด")
+    client.post(
+        f"/edit/{todo_id}",
+        data={"title": "งานไม่มีหมวด", "category_id": str(category_id)},
+        follow_redirects=True,
+    )
+    with app.app_context():
+        assert db.session.get(Todo, todo_id).category_id == category_id
+
+
 # --- หมวดงาน ---
 
 def test_add_category(app, client):
@@ -143,6 +176,16 @@ def test_cannot_delete_other_users_todo(app, client, other_client):
     assert other_client.post(f"/delete/{todo_id}").status_code == 404
     with app.app_context():
         assert db.session.get(Todo, todo_id) is not None
+
+
+def test_cannot_edit_other_users_todo(app, client, other_client):
+    _add(client, "งานของ tester")
+    todo_id = _first_todo_id(app, "งานของ tester")
+
+    resp = other_client.post(f"/edit/{todo_id}", data={"title": "โดนแก้"})
+    assert resp.status_code == 404
+    with app.app_context():
+        assert db.session.get(Todo, todo_id).title == "งานของ tester"
 
 
 def test_clear_completed_only_touches_own_todos(app, client, other_client):
