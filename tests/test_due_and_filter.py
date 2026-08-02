@@ -3,6 +3,8 @@
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
+import pytest
+
 from app import db
 from app.models import Todo
 
@@ -138,6 +140,10 @@ def test_overdue_false_for_later_today(app, client):
     assert _prop(app, "งานอีกเดี๋ยว", "is_overdue") is False
 
 
+@pytest.mark.skipif(
+    LATER_TODAY.date() != TODAY,
+    reason="รันใกล้เที่ยงคืนเกินไป — อีก 30 นาทีข้ามไปเป็นวันพรุ่งนี้แล้ว",
+)
 def test_is_due_today_for_later_today(app, client):
     _add(client, "งานอีกเดี๋ยว", due=LATER_TODAY)
     assert _prop(app, "งานอีกเดี๋ยว", "is_due_today") is True

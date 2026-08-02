@@ -14,6 +14,7 @@
 - รองรับ 2 ภาษา — English (ค่าเริ่มต้น) และไทย สลับได้จากเมนู จำภาษาที่เลือกไว้ให้
 - โหมดสว่าง/มืด/อัตโนมัติ — อัตโนมัติสลับตามเวลาดวงอาทิตย์ขึ้น-ตกของเขตเวลาที่ตั้งไว้
   (ตารางเวลาครบทุกเขตเวลาฝังมากับแอป ไม่ต้องต่อเน็ตหรือใช้ JS)
+- ธีมเป็น plugin — เพิ่มธีมใหม่แค่วางไดเรกทอรี ไม่ต้องแก้โค้ดหลัก มากับ System และ Ocean
 - หน้า Settings รวมโปรไฟล์ (ชื่อ-นามสกุล), ภาษา, ธีม, โหมด และเขตเวลาไว้ที่เดียว
 - ลบหมวดได้เฉพาะตอนไม่มีงานอยู่ในหมวดนั้นแล้ว
 - กำหนดส่งเก็บเป็น UTC แล้วแสดงตามเขตเวลาที่ผู้ใช้ตั้งไว้
@@ -70,8 +71,8 @@ pipenv run flask run --debug
 pipenv run pytest -v
 ```
 
-192 tests ครอบคลุมงาน/หมวด, การแยกข้อมูลระหว่าง user, CSRF, rate limit,
-การตรวจ `SECRET_KEY`, การเลือกภาษา, ธีม/โหมด, เขตเวลา, settings และ CLI
+212 tests ครอบคลุมงาน/หมวด, การแยกข้อมูลระหว่าง user, CSRF, rate limit,
+การตรวจ `SECRET_KEY`, การเลือกภาษา, ธีม/โหมด, ระบบ plugin, เขตเวลา, settings และ CLI
 
 ## คำสั่ง CLI
 
@@ -125,7 +126,10 @@ app/
   auth.py        login/logout (blueprint `auth`)
   cli.py         คำสั่ง flask CLI
   templates/     Jinja2 (ทุกหน้า extend base.html)
-  static/        โลโก้ SVG 2 ขนาด + style.css
+  static/        โลโก้ SVG 2 ขนาด + base.css (เลย์เอาต์ ไม่มีสี)
+  plugins/       registry + plugin (ตอนนี้มีชนิด theme)
+    themes/system/  ธีมหลัก ลบไม่ได้
+    themes/ocean/   ตัวอย่างธีมเพิ่มเติม
   translations/  คำแปล gettext (en, th)
   i18n.py        ตรรกะเลือกภาษาของแต่ละ request
   theme.py       ตรรกะเลือกชุดสีและโหมดของแต่ละ request

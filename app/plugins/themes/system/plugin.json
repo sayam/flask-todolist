@@ -1,0 +1,8 @@
+{
+  "type": "theme",
+  "name": "System",
+  "version": "1.0.0",
+  "core": true,
+  "stylesheet": "theme.css",
+  "description": "ชุดสีเริ่มต้นที่มากับระบบ ลบไม่ได้"
+}

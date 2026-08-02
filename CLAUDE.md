@@ -23,6 +23,8 @@
 - `app/cli.py` — custom flask CLI commands
 - `app/tz.py` — แปลงเวลา UTC ↔ เวลาท้องถิ่นของผู้ใช้
 - `app/theme.py` — เลือกชุดสีและโหมด, `app/sun_data.py` — ตารางดวงอาทิตย์ (generate)
+- `app/plugins/` — registry ของ plugin + ตัว plugin เอง (ดูหัวข้อ "สถาปัตยกรรม plugin")
+- `app/static/base.css` — เลย์เอาต์ของ core **ห้ามมีสีดิบ** สีมาจากธีมทั้งหมด
 - `scripts/` — สคริปต์ที่รันมือ ไม่ได้ถูกเรียกตอนแอปทำงาน
 - `app/templates/` — Jinja2 templates (ทุกหน้า extend `base.html`)
 - `app/static/` — `logo.svg` (120px ใช้หน้า login) และ `logo-small.svg` (32px ใช้บน header + favicon)
@@ -156,21 +158,46 @@ session มาก่อนโปรไฟล์เพื่อให้กดส
   จึงไม่มีข้อมูลว่าจะใช้ภาษาไหน — `select_locale()` กันไว้ด้วย `has_request_context()`
   ถ้าเรียกแปลนอก request จะได้ภาษาเริ่มต้นแทนที่จะ RuntimeError (`tests/test_i18n.py` ดักไว้)
 
+## สถาปัตยกรรม plugin
+
+เป้าหมายระยะยาวคือให้ todolist เป็น core + plugin แบบ Moodle ตอนนี้ทำแล้ว
+เฉพาะชนิด `theme` แต่ registry ออกแบบให้เพิ่มชนิดอื่นได้โดยไม่ต้องรื้อ
+
+**สัญญาที่ห้ามผิด**
+- core **ห้าม hardcode ชื่อ plugin ตัวใดตัวหนึ่ง** — รู้แค่วิธีค้นหา
+  (`tests/test_plugins.py` grep หาชื่อธีมที่ไม่ใช่ core ในโค้ด core ทั้งหมด)
+- plugin หนึ่งตัว = หนึ่งไดเรกทอรีใต้ `app/plugins/<ชนิด>/<ไอดี>/` + `plugin.json`
+  ชื่อไดเรกทอรีคือไอดี
+- **เพิ่ม plugin = วางไดเรกทอรี ลบ plugin = ลบไดเรกทอรี** ไม่ต้องแก้ core
+  และไม่ต้อง restart (registry อ่านดิสก์ทุกครั้ง แอปเล็กพอที่จะไม่ต้อง cache)
+- ถอน plugin ที่มีคนใช้อยู่แล้วระบบต้องไม่พัง — ค่าที่เก็บไว้ใน `User.theme`
+  ไม่ถูกลบ แค่ไม่ผ่าน `theme_is_supported()` จึงตกกลับไปใช้ธีม core
+- ธีม `system` เป็น core (`"core": true` ใน manifest) **ต้องมีเสมอ**
+  ถ้าหายแอปจะไม่ start (`plugins.check_installation()` เรียกใน `create_app`)
+- plugin ที่ต้องเก็บข้อมูลเพิ่มต้องดูแล table ของตัวเอง ห้ามแก้ table ของ core
+
+### ธีมเป็น plugin
+- สีทั้งหมดอยู่ใน `app/plugins/themes/<id>/theme.css` ส่วนเลย์เอาต์อยู่ใน
+  `app/static/base.css` ของ core ซึ่งอ้าง `var(--...)` อย่างเดียว
+  **เพิ่มธีมใหม่ = ก๊อป `theme.css` ไปเปลี่ยนค่าสี ไม่ต้องเขียน CSS เลย์เอาต์ซ้ำ**
+- ทุกธีมต้องกำหนดตัวแปรชุดเดียวกันครบทั้งโหมดสว่างและมืด ไม่งั้นจะมีสีตกค้าง
+  จากธีมก่อนหน้า — มีเทสต์เทียบตัวแปรข้ามธีม
+- หน้าเว็บโหลด `base.css` ก่อนแล้วค่อยโหลดธีม ลำดับนี้สำคัญ ธีมถึงจะทับสีได้
+- `/plugin/themes/<id>/style.css` เป็น route ของ core ที่เสิร์ฟไฟล์ของ plugin
+  ตรวจไอดีกับรายการที่ค้นเจอจริงก่อนเสมอ จึง traverse ออกนอกไดเรกทอรีไม่ได้
+
 ## ธีมกับโหมด (สว่าง/มืด/อัตโนมัติ)
 
 แยกสองแกน อย่าเอามาปนกัน:
-- **theme** = ชื่อชุดสี ประกาศใน `config.THEMES` ตอนนี้มีชุดเดียวชื่อ `system`
+- **theme** = ชุดสี มาจาก plugin (ดูข้างบน) ค่าเริ่มต้นคือ `system`
 - **mode** = ระดับความสว่าง `light` / `dark` / `auto` ค่าเริ่มต้นคือ `auto`
 
-- `User.theme` เก็บชื่อชุดสี ส่วน `User.mode` เก็บระดับความสว่าง
+- `User.theme` เก็บไอดีธีม ส่วน `User.mode` เก็บระดับความสว่าง
   **`auto` เก็บเป็นสตริง `'auto'` ไม่ใช่ NULL** (ต่างจาก `locale`/`timezone_name`
   ที่ NULL แปลว่ายังไม่เลือก) เพราะ auto เป็นตัวเลือกจริงที่ผู้ใช้ตั้งใจเลือก
 - ลำดับเหมือนภาษา: `?mode=` → session → `User.mode` → `auto` (ดู `app/theme.py`)
 - **โหมด "ตามระบบ" (`prefers-color-scheme`) ถูกตัดทิ้งแล้ว** server ตัดสินโหมด
   มาให้เสมอและส่งเป็น `data-theme="light|dark"` บน `<html>`
-  CSS จึงมีบล็อกธีมมืดที่เดียว ไม่ต้อง `@media` และไม่มีการประกาศสีซ้ำอีก
-- `app/static/style.css` สีทั้งหมดอยู่ใน CSS custom property
-  **ห้ามใส่สีดิบนอกบล็อกนิยามธีม** — `tests/test_theme.py` ดักไว้
 
 ### ตารางดวงอาทิตย์ (โหมด auto)
 - `app/sun_data.py` เก็บเวลาขึ้น-ตกรายเดือนของ **ทุกชื่อที่ zoneinfo รู้จัก (598)**

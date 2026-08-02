@@ -43,8 +43,8 @@
   <p>
     <label for="theme">{{ _('Theme') }}</label><br>
     <select id="theme" name="theme">
-      {% for value, label in themes.items() %}
-      <option value="{{ value }}" {{ 'selected' if value == current_theme else '' }}>{{ label }}</option>
+      {% for theme_id, plugin in themes.items() %}
+      <option value="{{ theme_id }}" {{ 'selected' if theme_id == current_theme else '' }}>{{ plugin.name }}</option>
       {% endfor %}
     </select>
   </p>

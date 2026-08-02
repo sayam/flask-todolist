@@ -1,0 +1,34 @@
+/* ธีม Ocean — ตัวอย่างธีมที่เพิ่มเข้ามาทีหลัง
+ *
+ * ไฟล์นี้กำหนด "เฉพาะสี" เท่านั้น ส่วนเลย์เอาต์อยู่ใน app/static/base.css
+ * ของ core ซึ่งอ้างถึงตัวแปรพวกนี้ทั้งหมด
+ *
+ * ต้องกำหนดตัวแปรให้ครบทั้งโหมดสว่างและมืด ไม่งั้นจะมีสีตกค้างจากธีมก่อนหน้า
+ * (tests/test_plugins.py ดักไว้)
+ */
+
+:root {
+  color-scheme: light;
+  --bg: #f2f7fb;
+  --surface: #ffffff;
+  --fg: #10202e;
+  --muted: #4a6b82;
+  --border: #c5d8e6;
+  --accent: #1668a8;
+  --accent-fg: #ffffff;
+  --danger: #c02626;
+  --overdue: #c02626;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0d1620;
+  --surface: #16232f;
+  --fg: #e2edf5;
+  --muted: #93aabc;
+  --border: #26384a;
+  --accent: #4cb3f5;
+  --accent-fg: #06121c;
+  --danger: #ff7b7b;
+  --overdue: #ff9090;
+}

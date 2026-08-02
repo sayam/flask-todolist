@@ -3,7 +3,7 @@
 import pathlib
 import re
 
-CSS_PATH = pathlib.Path(__file__).resolve().parent.parent / "app" / "static" / "style.css"
+BASE_CSS = pathlib.Path(__file__).resolve().parent.parent / "app" / "static" / "base.css"
 
 
 def _data_theme(resp):
@@ -13,11 +13,11 @@ def _data_theme(resp):
 
 # --- stylesheet ---
 
-def test_stylesheet_is_linked_and_served(anon_client):
-    assert b"style.css" in anon_client.get("/login").data
-    resp = anon_client.get("/static/style.css")
+def test_base_stylesheet_is_linked_and_served(anon_client):
+    assert b"base.css" in anon_client.get("/login").data
+    resp = anon_client.get("/static/base.css")
     assert resp.status_code == 200
-    assert b"--bg" in resp.data
+    assert b"var(--bg)" in resp.data
 
 
 def _declarations(block):
@@ -42,34 +42,12 @@ def _block_after(css, selector):
     return css[start : i - 1]
 
 
-def test_light_and_dark_define_the_same_variables():
-    """ธีมมืดต้องกำหนดครบทุกตัวแปรที่ธีมสว่างกำหนด ไม่งั้นจะมีสีตกค้าง"""
-    css = CSS_PATH.read_text()
-    light = _declarations(_block_after(css, ":root {"))
-    dark = _declarations(_block_after(css, ':root[data-theme="dark"]'))
-    assert set(light) == set(dark), (
-        f"ตัวแปรไม่ครบ: มีแต่ในสว่าง {set(light) - set(dark)}, "
-        f"มีแต่ในมืด {set(dark) - set(light)}"
-    )
-
-
-def test_no_raw_colours_outside_theme_blocks():
-    """สีดิบต้องอยู่แค่ในบล็อกนิยามธีม ที่เหลือต้องอ้าง var()
-    ไม่งั้นสีนั้นจะไม่เปลี่ยนตามธีม"""
-    css = CSS_PATH.read_text()
-    outside = css
-    for sel in (":root", ':root[data-theme="dark"]'):
-        outside = outside.replace(_block_after(css, sel), "", 1)
-    leaked = re.findall(r"#[0-9a-fA-F]{3,8}\b", outside)
-    assert not leaked, f"พบสีดิบนอกบล็อกธีม: {leaked}"
-
-
 # --- หน้า login จัดกึ่งกลาง ---
 
 def test_login_form_is_centered(anon_client):
     resp = anon_client.get("/login")
     assert b'class="auth"' in resp.data
-    css = CSS_PATH.read_text()
+    css = BASE_CSS.read_text()
     auth = _block_after(css, ".auth {")
     assert "justify-content: center" in auth
     assert "align-items: center" in auth
@@ -82,7 +60,7 @@ def test_quiet_buttons_beat_the_accent_rule():
     ถ้าเขียนกฎสีอ่อนโดยไม่ระบุ [type="submit"] ด้วย มันจะแพ้และไม่มีผลอะไรเลย
     โดยไม่มี error ให้เห็น
     """
-    css = CSS_PATH.read_text()
+    css = BASE_CSS.read_text()
     for selector in ('nav button[type="submit"]', 'li button[type="submit"]'):
         assert selector in css, f"ขาด {selector} — จะแพ้ specificity ให้ button[type=submit]"
 
@@ -90,7 +68,7 @@ def test_quiet_buttons_beat_the_accent_rule():
 def test_task_row_is_a_flex_row():
     """แถวรายการต้องคุมการตัดบรรทัดเอง ไม่ปล่อยให้ browser ตัดตรงไหนก็ได้
     จนปุ่ม Delete หลุดไปอยู่บรรทัดของตัวเอง"""
-    css = CSS_PATH.read_text()
+    css = BASE_CSS.read_text()
     task = _block_after(css, ".task {")
     assert "display: flex" in task
     assert "flex-wrap: wrap" in task

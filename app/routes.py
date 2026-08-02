@@ -1,10 +1,20 @@
 from datetime import date, datetime
 
-from flask import Blueprint, abort, flash, redirect, render_template, request, session, url_for
+from flask import (
+    Blueprint,
+    abort,
+    flash,
+    redirect,
+    render_template,
+    request,
+    send_from_directory,
+    session,
+    url_for,
+)
 from flask_babel import gettext as _, ngettext
 from flask_login import current_user, login_required
 
-from app import db, tz
+from app import db, plugins, tz
 from app.filters import (
     DEFAULT_UPCOMING,
     STATUS_FILTERS,
@@ -406,3 +416,16 @@ def save_preferences():
 
     flash(_("Settings saved"))
     return redirect(url_for("main.settings"))
+
+
+@bp.route("/plugin/themes/<theme_id>/style.css")
+def theme_stylesheet(theme_id):
+    """เสิร์ฟ stylesheet ของธีม
+
+    ไม่ต้อง login เพราะหน้า login ก็ต้องใช้ และเป็นไฟล์สาธารณะอยู่แล้ว
+    theme_id ถูกตรวจกับรายการที่ค้นเจอจริงก่อน จึงไม่มีทาง traverse ออกนอก
+    """
+    theme = plugins.get_theme(theme_id)
+    if theme is None or not theme.stylesheet:
+        abort(404)
+    return send_from_directory(theme.directory, theme.stylesheet, mimetype="text/css")

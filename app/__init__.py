@@ -9,6 +9,7 @@ from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 
+from app import plugins
 from config import Config, check_secret_key
 
 db = SQLAlchemy()
@@ -34,6 +35,8 @@ def create_app(config_class=Config):
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_object(config_class)
     check_secret_key(app.config.get("SECRET_KEY"))
+    # ให้พังตั้งแต่ตอน start ถ้าโครงสร้าง plugin ไม่ถูกต้อง
+    plugins.check_installation()
 
     os.makedirs(app.instance_path, exist_ok=True)
 
@@ -52,12 +55,19 @@ def create_app(config_class=Config):
     def inject_i18n():
         from flask_babel import get_locale
 
-        from app.theme import MODES, resolve_mode, select_mode, select_theme
+        from app.theme import (
+            MODES,
+            resolve_mode,
+            select_mode,
+            select_theme,
+            themes as select_themes,
+        )
 
         return {
             "current_locale": str(get_locale() or app.config["BABEL_DEFAULT_LOCALE"]),
             "languages": app.config["LANGUAGES"],
-            "themes": app.config["THEMES"],
+            # ธีมมาจากการค้นหา plugin ทุก request จะได้เห็นตัวที่เพิ่งวางลงไป
+            "themes": select_themes(),
             "current_theme": select_theme(),
             # โหมดที่ผู้ใช้เลือก (อาจเป็น auto) กับโหมดที่ตัดสินแล้วว่าจะแสดงอะไร
             "current_mode": select_mode(),

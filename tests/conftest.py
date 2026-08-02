@@ -2,7 +2,7 @@ import pytest
 
 from app import create_app, db, limiter
 from app.models import Category, User
-from config import DEFAULT_LANGUAGE, LANGUAGES, THEMES
+from config import DEFAULT_LANGUAGE, LANGUAGES
 
 PASSWORD = "password123"
 
@@ -24,7 +24,6 @@ class TestConfig:
     LOGIN_RATE_LIMIT = "5 per minute"
     # ใช้ค่าเดียวกับ Config จริง เทสต์จะได้เจอภาษาเริ่มต้นแบบเดียวกับผู้ใช้จริง
     LANGUAGES = LANGUAGES
-    THEMES = THEMES
     BABEL_DEFAULT_LOCALE = DEFAULT_LANGUAGE
     BABEL_DEFAULT_TIMEZONE = "Asia/Bangkok"
 

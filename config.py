@@ -11,11 +11,8 @@ LANGUAGES = {
 }
 DEFAULT_LANGUAGE = "en"
 
-# ชุดสีที่รองรับ: รหัส -> ชื่อที่แสดง ตอนนี้มีชุดเดียว เผื่อเพิ่มทีหลัง
-# ทุกชุดรองรับโหมด light/dark/auto เหมือนกันหมด
-THEMES = {
-    "system": "System",
-}
+# ชุดสีมาจากการค้นหา plugin ไม่ได้ประกาศไว้ที่นี่ (ดู app/plugins/)
+# core จึงไม่รู้จักธีมตัวไหนเป็นการเฉพาะ เพิ่มธีม = วางไดเรกทอรี ไม่ต้องแก้ไฟล์นี้
 
 
 class Config:
@@ -36,7 +33,6 @@ class Config:
     RATELIMIT_STORAGE_URI = os.environ.get("RATELIMIT_STORAGE_URI", "memory://")
 
     LANGUAGES = LANGUAGES
-    THEMES = THEMES
     BABEL_DEFAULT_LOCALE = DEFAULT_LANGUAGE
     BABEL_DEFAULT_TIMEZONE = os.environ.get("BABEL_DEFAULT_TIMEZONE", "Asia/Bangkok")
 

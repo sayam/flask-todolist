@@ -12,16 +12,16 @@
 ลำดับความสำคัญเหมือนภาษา: `?mode=` → session → `User.mode` → ค่าเริ่มต้น
 """
 
-from flask import current_app, has_request_context, request, session
+from flask import has_request_context, request, session
 from flask_login import current_user
 
-from app import tz
+from app import plugins, tz
 from app.sun_data import ALWAYS_DARK, ALWAYS_LIGHT, SUN_TIMES
 
 THEME_SESSION_KEY = "theme"
 MODE_SESSION_KEY = "mode"
 
-DEFAULT_THEME = "system"
+DEFAULT_THEME = plugins.CORE_THEME
 AUTO = "auto"
 LIGHT = "light"
 DARK = "dark"
@@ -30,8 +30,8 @@ DEFAULT_MODE = AUTO
 
 
 def themes():
-    """ชื่อชุดสีที่รองรับ: รหัส -> ชื่อที่แสดง"""
-    return current_app.config["THEMES"]
+    """ชุดสีที่ติดตั้งอยู่: ไอดี -> Plugin — มาจากการค้นหาไดเรกทอรี ไม่ใช่ config"""
+    return plugins.themes()
 
 
 def theme_is_supported(value):

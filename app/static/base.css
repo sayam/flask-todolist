@@ -1,40 +1,9 @@
-/* ธีมสว่าง/มืด
+/* base.css — เลย์เอาต์และโครงสร้างของ core
  *
- * ค่าสีทั้งหมดอยู่ใน custom property ชุดเดียว แล้วสลับค่าตามโหมด
- * ตัวที่เหลือในไฟล์อ้างถึงตัวแปร ไม่มีสีดิบ ๆ กระจายอยู่
- *
- * โหมดถูกตัดสินฝั่ง server แล้วส่งมาเป็น data-theme="light|dark" บน <html>
- * (auto = ดูจากเวลาดวงอาทิตย์ขึ้น-ตกของ timezone ผู้ใช้ ดู app/theme.py)
- * จึงไม่ต้องมี @media prefers-color-scheme และไม่มีการประกาศสีซ้ำสองที่อีก
+ * **ห้ามมีสีดิบในไฟล์นี้** ทุกสีต้องอ้าง var(--...) ที่ธีมเป็นคนกำหนด
+ * ธีมอยู่ใน app/plugins/themes/<id>/theme.css และถูกโหลดต่อจากไฟล์นี้
+ * (tests/test_plugins.py ดักว่าไฟล์นี้ต้องไม่มีสีดิบ)
  */
-
-:root {
-  color-scheme: light;
-  --bg: #fbfbf9;
-  --surface: #ffffff;
-  --fg: #1b1b19;
-  --muted: #5e5e57;
-  --border: #d7d7d0;
-  --accent: #0f766e;
-  --accent-fg: #ffffff;
-  --danger: #b00020;
-  --overdue: #b00020;
-}
-
-/* โหมดมืด — server ใส่ data-theme="dark" มาให้ตอนผู้ใช้เลือก dark
- * หรือตอน auto ตัดสินว่าเป็นเวลากลางคืนตามดวงอาทิตย์ของ timezone นั้น */
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --bg: #16181a;
-  --surface: #1f2225;
-  --fg: #e8e8e3;
-  --muted: #a3a49e;
-  --border: #34383c;
-  --accent: #2dd4bf;
-  --accent-fg: #10201e;
-  --danger: #ff6b6b;
-  --overdue: #ff8080;
-}
 
 body {
   margin: 0 auto;

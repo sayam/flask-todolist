@@ -1,0 +1,34 @@
+/* ธีม System — ชุดสีเริ่มต้นที่มากับระบบ
+ *
+ * ไฟล์นี้กำหนด "เฉพาะสี" เท่านั้น ส่วนเลย์เอาต์อยู่ใน app/static/base.css
+ * ของ core ซึ่งอ้างถึงตัวแปรพวกนี้ทั้งหมด ธีมใหม่จึงแค่ก๊อปไฟล์นี้ไปเปลี่ยนค่า
+ *
+ * ต้องกำหนดตัวแปรให้ครบทั้งโหมดสว่างและมืด ไม่งั้นจะมีสีตกค้างจากธีมก่อนหน้า
+ * (tests/test_plugins.py ดักไว้)
+ */
+
+:root {
+color-scheme: light;
+  --bg: #fbfbf9;
+  --surface: #ffffff;
+  --fg: #1b1b19;
+  --muted: #5e5e57;
+  --border: #d7d7d0;
+  --accent: #0f766e;
+  --accent-fg: #ffffff;
+  --danger: #b00020;
+  --overdue: #b00020;
+}
+
+:root[data-theme="dark"] {
+color-scheme: dark;
+  --bg: #16181a;
+  --surface: #1f2225;
+  --fg: #e8e8e3;
+  --muted: #a3a49e;
+  --border: #34383c;
+  --accent: #2dd4bf;
+  --accent-fg: #10201e;
+  --danger: #ff6b6b;
+  --overdue: #ff8080;
+}
