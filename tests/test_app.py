@@ -17,7 +17,7 @@ def _first_todo_id(app, title):
 def test_index_empty(client):
     resp = client.get("/")
     assert resp.status_code == 200
-    assert "ยังไม่มีงาน".encode() in resp.data
+    assert b"No tasks yet" in resp.data
 
 
 def test_add_todo(client):
@@ -29,7 +29,7 @@ def test_add_todo(client):
 def test_add_rejects_blank_title(app, client):
     resp = client.post("/add", data={"title": "   "}, follow_redirects=True)
     assert resp.status_code == 200
-    assert "กรุณาใส่ชื่องาน".encode() in resp.data
+    assert b"Please enter a task name" in resp.data
     with app.app_context():
         assert Todo.query.count() == 0
 

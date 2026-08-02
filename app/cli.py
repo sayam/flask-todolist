@@ -2,25 +2,43 @@ import click
 
 from app import db
 from app.models import Category, User
+from config import DEFAULT_LANGUAGE, LANGUAGES
 
-# หมวดตั้งต้นที่สร้างให้ user ใหม่ ปรับ/ลบทีหลังได้จากหน้า /categories
-DEFAULT_CATEGORIES = [
-    "งานส่วนตัว",
-    "งาน delivery",
-    "งานตอบจดหมาย",
-    "งาน Admin/Troubleshoot/Fix",
-]
+# หมวดตั้งต้นที่สร้างให้ user ใหม่ แยกตามภาษาที่เลือกตอนสร้าง
+# ตัวนี้เป็นข้อมูลของผู้ใช้ ไม่ใช่ข้อความ UI จึงไม่ได้ผ่าน gettext —
+# สร้างแล้วผู้ใช้แก้ชื่อเองได้ และจะไม่เปลี่ยนตามภาษาที่เลือกทีหลัง
+DEFAULT_CATEGORIES = {
+    "en": [
+        "Personal",
+        "Delivery",
+        "Correspondence",
+        "Admin/Troubleshoot/Fix",
+    ],
+    "th": [
+        "งานส่วนตัว",
+        "งาน delivery",
+        "งานตอบจดหมาย",
+        "งาน Admin/Troubleshoot/Fix",
+    ],
+}
 
 
 def register_cli(app):
     @app.cli.command("create-user")
     @click.argument("username")
     @click.option(
+        "--lang",
+        type=click.Choice(sorted(LANGUAGES)),
+        default=DEFAULT_LANGUAGE,
+        show_default=True,
+        help="ภาษาเริ่มต้นของ user และภาษาของหมวดตั้งต้น",
+    )
+    @click.option(
         "--no-categories",
         is_flag=True,
         help="ไม่ต้องสร้างหมวดตั้งต้นให้",
     )
-    def create_user(username, no_categories):
+    def create_user(username, lang, no_categories):
         """สร้าง user ใหม่ (ถามรหัสผ่านแบบไม่โชว์บนจอ)"""
         username = username.strip()
         if User.query.filter_by(username=username).first():
@@ -32,19 +50,20 @@ def register_cli(app):
         if len(password) < 8:
             raise click.ClickException("รหัสผ่านต้องยาวอย่างน้อย 8 ตัวอักษร")
 
-        user = User(username=username)
+        user = User(username=username, locale=lang)
         user.set_password(password)
         db.session.add(user)
         db.session.flush()  # ต้องได้ user.id ก่อนผูกหมวด
 
+        categories = DEFAULT_CATEGORIES[lang]
         if not no_categories:
-            for name in DEFAULT_CATEGORIES:
+            for name in categories:
                 db.session.add(Category(name=name, user_id=user.id))
 
         db.session.commit()
-        click.echo(f"สร้าง user {username!r} เรียบร้อย (id={user.id})")
+        click.echo(f"สร้าง user {username!r} เรียบร้อย (id={user.id}, ภาษา={lang})")
         if not no_categories:
-            click.echo(f"สร้างหมวดตั้งต้น {len(DEFAULT_CATEGORIES)} หมวด")
+            click.echo(f"สร้างหมวดตั้งต้น {len(categories)} หมวด: {', '.join(categories)}")
 
     @app.cli.command("delete-user")
     @click.argument("username")
@@ -78,4 +97,4 @@ def register_cli(app):
             click.echo("ยังไม่มี user — สร้างด้วย `flask create-user <ชื่อ>`")
             return
         for user in users:
-            click.echo(f"{user.id}\t{user.username}")
+            click.echo(f"{user.id}\t{user.username}\t{user.locale or '-'}")

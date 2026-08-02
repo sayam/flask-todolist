@@ -11,6 +11,7 @@ flask-migrate = "*"
 flask-login = "*"
 flask-wtf = "*"
 flask-limiter = "*"
+flask-babel = "*"
 
 [dev-packages]
 pytest = "*"

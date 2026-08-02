@@ -1,7 +1,17 @@
-from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
+from flask import (
+    Blueprint,
+    current_app,
+    flash,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
+from flask_babel import gettext as _
 from flask_login import current_user, login_required, login_user, logout_user
 
-from app import limiter
+from app import db, limiter
+from app.i18n import SESSION_KEY, is_supported
 from app.models import User
 
 bp = Blueprint("auth", __name__)
@@ -24,12 +34,24 @@ def login():
         user = User.query.filter_by(username=username).first()
         # ไม่แยกว่า user ผิดหรือรหัสผิด กัน username enumeration
         if user is None or not user.check_password(password):
-            flash("ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง")
+            flash(_("Incorrect username or password"))
             return render_template("login.html"), 401
         login_user(user)
+        # ภาษาที่เลือกไว้ก่อน login ถือว่าเป็นความตั้งใจล่าสุด เก็บลงโปรไฟล์เลย
+        chosen = session_language()
+        if chosen and chosen != user.locale:
+            user.locale = chosen
+            db.session.commit()
         return redirect(url_for("main.index"))
 
     return render_template("login.html")
+
+
+def session_language():
+    from flask import session
+
+    value = session.get(SESSION_KEY)
+    return value if is_supported(value) else None
 
 
 @bp.route("/logout", methods=["POST"])

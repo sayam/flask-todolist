@@ -27,7 +27,7 @@ def test_blocked_response_shows_message(ratelimit_app):
         client.post("/login", data=WRONG)
     resp = client.post("/login", data=WRONG)
     assert resp.status_code == 429
-    assert "ถี่เกินไป".encode() in resp.data
+    assert b"Too many sign-in attempts" in resp.data
 
 
 def test_correct_password_does_not_burn_quota(ratelimit_app):

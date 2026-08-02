@@ -79,7 +79,7 @@ def test_add_rejects_malformed_due_date(app, client):
         data={"title": "งานวันที่พัง", "due_date": "31/12/2026"},
         follow_redirects=True,
     )
-    assert "รูปแบบวันที่ไม่ถูกต้อง".encode() in resp.data
+    assert b"Invalid date format" in resp.data
     with app.app_context():
         assert Todo.query.filter_by(title="งานวันที่พัง").count() == 0
 
@@ -161,7 +161,7 @@ def test_done_task_is_not_overdue(app, client):
 def test_overdue_shown_in_page(client):
     _add(client, "งานค้าง", due=YESTERDAY)
     resp = client.get("/")
-    assert "เลยกำหนด".encode() in resp.data
+    assert b"Overdue" in resp.data
 
 
 # --- เรียงลำดับ ---

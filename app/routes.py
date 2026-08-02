@@ -1,9 +1,11 @@
 from datetime import date, datetime
 
-from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+from flask import Blueprint, abort, flash, redirect, render_template, request, session, url_for
+from flask_babel import gettext as _
 from flask_login import current_user, login_required
 
 from app import db
+from app.i18n import SESSION_KEY, is_supported
 from app.models import Category, Todo
 
 bp = Blueprint("main", __name__)
@@ -105,12 +107,12 @@ def index():
 def add():
     title = request.form.get("title", "").strip()
     if not title:
-        flash("กรุณาใส่ชื่องาน")
+        flash(_("Please enter a task name"))
         return redirect(url_for("main.index"))
     try:
         due_date = _parse_due_date(request.form.get("due_date"))
     except ValueError:
-        flash("รูปแบบวันที่ไม่ถูกต้อง")
+        flash(_("Invalid date format"))
         return redirect(url_for("main.index"))
     db.session.add(
         Todo(
@@ -130,12 +132,12 @@ def edit(todo_id):
     todo = _owned_todo(todo_id)
     title = request.form.get("title", "").strip()
     if not title:
-        flash("ชื่องานว่างไม่ได้")
+        flash(_("Task name cannot be empty"))
         return redirect(url_for("main.index"))
     try:
         due_date = _parse_due_date(request.form.get("due_date"))
     except ValueError:
-        flash("รูปแบบวันที่ไม่ถูกต้อง")
+        flash(_("Invalid date format"))
         return redirect(url_for("main.index"))
     todo.title = title
     todo.category_id = _resolve_category_id(request.form.get("category_id"))
@@ -185,9 +187,9 @@ def categories():
 def add_category():
     name = request.form.get("name", "").strip()
     if not name:
-        flash("กรุณาใส่ชื่อหมวด")
+        flash(_("Please enter a category name"))
     elif Category.query.filter_by(user_id=current_user.id, name=name).first():
-        flash(f"มีหมวด “{name}” อยู่แล้ว")
+        flash(_("Category “%(name)s” already exists", name=name))
     else:
         db.session.add(Category(name=name, user_id=current_user.id))
         db.session.commit()
@@ -200,13 +202,13 @@ def edit_category(category_id):
     category = _owned_category(category_id)
     name = request.form.get("name", "").strip()
     if not name:
-        flash("ชื่อหมวดว่างไม่ได้")
+        flash(_("Category name cannot be empty"))
     elif (
         Category.query.filter_by(user_id=current_user.id, name=name)
         .filter(Category.id != category.id)
         .first()
     ):
-        flash(f"มีหมวด “{name}” อยู่แล้ว")
+        flash(_("Category “%(name)s” already exists", name=name))
     else:
         category.name = name
         db.session.commit()
@@ -222,3 +224,26 @@ def delete_category(category_id):
     db.session.delete(category)
     db.session.commit()
     return redirect(url_for("main.categories"))
+
+
+@bp.route("/lang/<code>")
+def set_language(code):
+    """สลับภาษา แล้วกลับไปหน้าเดิม
+
+    ใช้ GET เพราะเป็นลิงก์ในเมนู และเปลี่ยนแค่การแสดงผล ไม่ได้แก้ข้อมูลงาน
+    ไม่ต้อง login เพราะหน้า login เองก็ต้องสลับภาษาได้
+    """
+    if not is_supported(code):
+        abort(404)
+
+    session[SESSION_KEY] = code
+    if current_user.is_authenticated:
+        current_user.locale = code
+        db.session.commit()
+
+    # กลับไปหน้าเดิม แต่รับเฉพาะ path ภายในเว็บเรา ไม่งั้นจะเป็น open redirect
+    target = request.referrer or ""
+    path = target.split(request.host_url, 1)[-1] if target.startswith(request.host_url) else ""
+    if path and not path.startswith("//"):
+        return redirect("/" + path.lstrip("/"))
+    return redirect(url_for("main.index"))

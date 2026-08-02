@@ -17,7 +17,7 @@ def test_create_user_seeds_default_categories(app):
     with app.app_context():
         user = User.query.filter_by(username="somchai").one()
         names = {c.name for c in user.categories}
-        assert names == set(DEFAULT_CATEGORIES)
+        assert names == set(DEFAULT_CATEGORIES["en"])
 
 
 def test_create_user_rejects_short_password(app):

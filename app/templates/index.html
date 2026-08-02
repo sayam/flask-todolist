@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Todolist{% endblock %}
+{% block title %}{{ _('Todolist') }}{% endblock %}
 
 {% macro csrf_field() %}
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -9,7 +9,7 @@
   <select name="category_id"
           {% if field_id %}id="{{ field_id }}"{% endif %}
           {% if aria %}aria-label="{{ aria }}"{% endif %}>
-    <option value="">— ไม่มีหมวด —</option>
+    <option value="">— {{ _('No category') }} —</option>
     {% for category in categories %}
     <option value="{{ category.id }}" {{ 'selected' if category.id == selected_id else '' }}>
       {{ category.name }}
@@ -19,30 +19,30 @@
 {% endmacro %}
 
 {% block content %}
-<h2>เพิ่มงานใหม่</h2>
+<h2>{{ _('Add a task') }}</h2>
 
 <form action="{{ url_for('main.add') }}" method="post">
   {{ csrf_field() }}
   <p>
-    <label for="new-title">ชื่องาน</label><br>
-    <input id="new-title" type="text" name="title" placeholder="เช่น ส่งของให้ลูกค้า" required>
+    <label for="new-title">{{ _('Task name') }}</label><br>
+    <input id="new-title" type="text" name="title" placeholder="{{ _('e.g. Deliver order to customer') }}" required>
   </p>
   <p>
-    <label for="new-category">หมวดงาน</label><br>
+    <label for="new-category">{{ _('Category') }}</label><br>
     {{ category_select(None, field_id='new-category') }}
   </p>
   <p>
-    <label for="new-due">กำหนดส่ง <small>(ไม่ใส่ก็ได้)</small></label><br>
+    <label for="new-due">{{ _('Due') }} <small>({{ _('optional') }})</small></label><br>
     <input id="new-due" type="datetime-local" name="due_date">
   </p>
-  <button type="submit">เพิ่ม</button>
+  <button type="submit">{{ _('Add') }}</button>
 </form>
 
 <hr>
 
 <p>
-  แสดง:
-  {% for value, label in [('all', 'ทั้งหมด'), ('active', 'ยังไม่เสร็จ'), ('completed', 'เสร็จแล้ว')] %}
+  {{ _('Show') }}:
+  {% for value, label in [('all', _('All')), ('active', _('Active')), ('completed', _('Completed'))] %}
     {%- if status == value %}
       <strong>{{ label }}</strong>
     {%- else %}
@@ -53,10 +53,10 @@
 </p>
 
 <p>
-  หมวด:
-  {% if not category_arg %}<strong>ทั้งหมด</strong>{% else %}<a href="{{ url_for('main.index', status=status) }}">ทั้งหมด</a>{% endif %}
+  {{ _('Category') }}:
+  {% if not category_arg %}<strong>{{ _('All') }}</strong>{% else %}<a href="{{ url_for('main.index', status=status) }}">{{ _('All') }}</a>{% endif %}
   |
-  {% if category_arg == 'none' %}<strong>ไม่มีหมวด</strong>{% else %}<a href="{{ url_for('main.index', status=status, category='none') }}">ไม่มีหมวด</a>{% endif %}
+  {% if category_arg == 'none' %}<strong>{{ _('No category') }}</strong>{% else %}<a href="{{ url_for('main.index', status=status, category='none') }}">{{ _('No category') }}</a>{% endif %}
   {% for category in categories %}
   |
   {% if selected_category == category.id %}
@@ -73,42 +73,42 @@
     <form action="{{ url_for('main.toggle', todo_id=todo.id) }}" method="post" style="display:inline">
       {{ csrf_field() }}
       <input type="checkbox" onchange="this.form.submit()" {{ 'checked' if todo.done else '' }}
-             aria-label="{{ 'ทำเครื่องหมายว่ายังไม่เสร็จ' if todo.done else 'ทำเครื่องหมายว่าเสร็จแล้ว' }}">
+             aria-label="{{ _('Mark as not done') if todo.done else _('Mark as done') }}">
     </form>
 
     {# แถวรายการใช้ aria-label แทน label ที่มองเห็น เพราะถ้าใส่ label ทุกแถวจะรกจนอ่านยาก #}
     <form action="{{ url_for('main.edit', todo_id=todo.id) }}" method="post" style="display:inline">
       {{ csrf_field() }}
-      <input type="text" name="title" value="{{ todo.title }}" aria-label="ชื่องาน" required
+      <input type="text" name="title" value="{{ todo.title }}" aria-label="{{ _('Task name') }}" required
              style="{{ 'text-decoration: line-through;' if todo.done else '' }}">
-      {{ category_select(todo.category_id, aria='หมวดงาน') }}
-      <input type="datetime-local" name="due_date" aria-label="กำหนดส่ง"
+      {{ category_select(todo.category_id, aria=_('Category')) }}
+      <input type="datetime-local" name="due_date" aria-label="{{ _('Due') }}"
              value="{{ todo.due_date.strftime('%Y-%m-%dT%H:%M') if todo.due_date else '' }}">
-      <button type="submit">บันทึก</button>
+      <button type="submit">{{ _('Save') }}</button>
     </form>
 
     {% if todo.due_date %}
       {% if todo.is_overdue %}
-        <strong style="color:#b00">เลยกำหนดแล้ว</strong>
+        <strong style="color:#b00">{{ _('Overdue') }}</strong>
       {% elif todo.is_due_today %}
-        <strong>ครบกำหนดวันนี้ {{ todo.due_date.strftime('%H:%M') }}</strong>
+        <strong>{{ _('Due today at %(time)s', time=todo.due_date.strftime('%H:%M')) }}</strong>
       {% endif %}
     {% endif %}
 
     <form action="{{ url_for('main.delete', todo_id=todo.id) }}" method="post" style="display:inline"
-          onsubmit="return confirm('ลบ ' + {{ todo.title|tojson }} + ' ใช่ไหม?')">
+          onsubmit="return confirm({{ _('Delete “%(title)s”?', title=todo.title)|tojson }})">
       {{ csrf_field() }}
-      <button type="submit">ลบ</button>
+      <button type="submit">{{ _('Delete') }}</button>
     </form>
   </li>
   {% else %}
-  <li>{{ 'ยังไม่มีงาน' if status == 'all' and not category_arg else 'ไม่มีงานที่ตรงกับตัวกรอง' }}</li>
+  <li>{{ _('No tasks yet') if status == 'all' and not category_arg else _('No tasks match this filter') }}</li>
   {% endfor %}
 </ul>
 
 <form action="{{ url_for('main.clear_completed') }}" method="post"
-      onsubmit="return confirm('ลบงานที่เสร็จแล้วทั้งหมดใช่ไหม? กู้คืนไม่ได้')">
+      onsubmit="return confirm({{ _('Delete all completed tasks? This cannot be undone.')|tojson }})">
   {{ csrf_field() }}
-  <button type="submit">ลบงานที่เสร็จแล้วทั้งหมด</button>
+  <button type="submit">{{ _('Clear completed') }}</button>
 </form>
 {% endblock %}

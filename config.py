@@ -3,6 +3,14 @@ import os
 # คีย์ที่สั้นกว่านี้เดาได้เร็วเกินไป — session และ CSRF token เซ็นด้วยคีย์นี้ทั้งคู่
 MIN_SECRET_KEY_LENGTH = 32
 
+# ภาษาที่รองรับ: รหัส -> ชื่อที่แสดงในตัวเลือกภาษา (เขียนด้วยภาษานั้นเอง)
+# เพิ่มภาษาใหม่ = เพิ่มบรรทัดที่นี่ แล้ว `pybabel init -l <รหัส>`
+LANGUAGES = {
+    "en": "English",
+    "th": "ไทย",
+}
+DEFAULT_LANGUAGE = "en"
+
 
 class Config:
     # ไม่มีค่า default โดยตั้งใจ — ไม่ตั้งแล้วต้องแอปพังตั้งแต่ตอน start
@@ -20,6 +28,10 @@ class Config:
     # memory:// เก็บใน process เดียว พอสำหรับ dev/single worker
     # ถ้ารันหลาย worker ต้องเปลี่ยนเป็น redis:// ไม่งั้นแต่ละ worker นับแยกกัน
     RATELIMIT_STORAGE_URI = os.environ.get("RATELIMIT_STORAGE_URI", "memory://")
+
+    LANGUAGES = LANGUAGES
+    BABEL_DEFAULT_LOCALE = DEFAULT_LANGUAGE
+    BABEL_DEFAULT_TIMEZONE = os.environ.get("BABEL_DEFAULT_TIMEZONE", "Asia/Bangkok")
 
 
 def check_secret_key(secret_key):

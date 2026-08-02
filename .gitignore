@@ -5,3 +5,6 @@ instance/
 .env
 *.db
 .pytest_cache/
+
+# messages.pot เป็นไฟล์กลางที่ regenerate ได้จากโค้ด ไม่ต้อง commit
+messages.pot

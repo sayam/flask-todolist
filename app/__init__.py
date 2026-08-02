@@ -1,6 +1,7 @@
 import os
 
 from flask import Flask, render_template
+from flask_babel import Babel, lazy_gettext as _l
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_login import LoginManager
@@ -13,10 +14,13 @@ from config import Config, check_secret_key
 db = SQLAlchemy()
 migrate = Migrate()
 csrf = CSRFProtect()
+babel = Babel()
 limiter = Limiter(key_func=get_remote_address)
 login_manager = LoginManager()
 login_manager.login_view = "auth.login"
-login_manager.login_message = "กรุณาเข้าสู่ระบบก่อน"
+# lazy_gettext เพราะข้อความนี้ถูกกำหนดตอน import ซึ่งยังไม่มี request
+# ให้แปลตอนเอาไปแสดงจริง ไม่ใช่ตอนประกาศ
+login_manager.login_message = _l("Please sign in first")
 
 
 @login_manager.user_loader
@@ -40,6 +44,18 @@ def create_app(config_class=Config):
     csrf.init_app(app)
     limiter.init_app(app)
     login_manager.init_app(app)
+
+    from app.i18n import select_locale
+    babel.init_app(app, locale_selector=select_locale)
+
+    @app.context_processor
+    def inject_i18n():
+        from flask_babel import get_locale
+
+        return {
+            "current_locale": str(get_locale() or app.config["BABEL_DEFAULT_LOCALE"]),
+            "languages": app.config["LANGUAGES"],
+        }
 
     @app.errorhandler(429)
     def too_many_requests(error):

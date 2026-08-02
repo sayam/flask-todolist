@@ -1,17 +1,20 @@
 {% extends "base.html" %}
-{% block title %}หมวดงาน{% endblock %}
+{% block title %}{{ _('Categories') }}{% endblock %}
 
 {% macro csrf_field() %}
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 {% endmacro %}
 
 {% block content %}
-<h1>หมวดงาน</h1>
+<h2>{{ _('Categories') }}</h2>
 
 <form action="{{ url_for('main.add_category') }}" method="post">
   {{ csrf_field() }}
-  <input type="text" name="name" placeholder="หมวดใหม่" required>
-  <button type="submit">เพิ่มหมวด</button>
+  <p>
+    <label for="new-category-name">{{ _('Category name') }}</label><br>
+    <input id="new-category-name" type="text" name="name" placeholder="{{ _('e.g. Personal') }}" required>
+  </p>
+  <button type="submit">{{ _('Add category') }}</button>
 </form>
 
 <ul>
@@ -19,18 +22,18 @@
   <li>
     <form action="{{ url_for('main.edit_category', category_id=category.id) }}" method="post" style="display:inline">
       {{ csrf_field() }}
-      <input type="text" name="name" value="{{ category.name }}" required>
-      <button type="submit">บันทึก</button>
+      <input type="text" name="name" value="{{ category.name }}" aria-label="{{ _('Category name') }}" required>
+      <button type="submit">{{ _('Save') }}</button>
     </form>
-    <span>({{ category.todos | length }} งาน)</span>
+    <span>({{ ngettext('%(num)d task', '%(num)d tasks', category.todos | length) }})</span>
     <form action="{{ url_for('main.delete_category', category_id=category.id) }}" method="post" style="display:inline"
-          onsubmit="return confirm('ลบหมวด ' + {{ category.name|tojson }} + ' ใช่ไหม? งานในหมวดนี้จะกลายเป็นไม่มีหมวด')">
+          onsubmit="return confirm({{ _('Delete category “%(name)s”? Tasks in it will become uncategorised.', name=category.name)|tojson }})">
       {{ csrf_field() }}
-      <button type="submit">ลบ</button>
+      <button type="submit">{{ _('Delete') }}</button>
     </form>
   </li>
   {% else %}
-  <li>ยังไม่มีหมวด</li>
+  <li>{{ _('No categories yet') }}</li>
   {% endfor %}
 </ul>
 {% endblock %}

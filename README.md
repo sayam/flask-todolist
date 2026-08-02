@@ -11,6 +11,7 @@
 - กำหนดส่งระบุได้ถึงระดับเวลา — เรียงงานที่ใกล้ครบกำหนดขึ้นก่อน และไฮไลต์งานที่เลยกำหนด
 - กรองตามสถานะ (ทั้งหมด / ยังไม่เสร็จ / เสร็จแล้ว) และตามหมวด ใช้ร่วมกันได้
 - ข้อมูลแยกตาม user ใครเห็นแต่ของตัวเอง
+- รองรับ 2 ภาษา — English (ค่าเริ่มต้น) และไทย สลับได้จากเมนู จำภาษาที่เลือกไว้ให้
 
 ## Stack
 
@@ -19,6 +20,7 @@
 - Flask-Login — session
 - Flask-WTF — CSRF
 - Flask-Limiter — จำกัดจำนวนครั้งที่หน้า login
+- Flask-Babel — แปลภาษา (gettext)
 - pipenv — จัดการ dependency
 
 ## ติดตั้ง
@@ -63,14 +65,14 @@ pipenv run flask run --debug
 pipenv run pytest -v
 ```
 
-79 tests ครอบคลุมงาน/หมวด, การแยกข้อมูลระหว่าง user, CSRF, rate limit,
-การตรวจ `SECRET_KEY` และ CLI
+96 tests ครอบคลุมงาน/หมวด, การแยกข้อมูลระหว่าง user, CSRF, rate limit,
+การตรวจ `SECRET_KEY`, การเลือกภาษา และ CLI
 
 ## คำสั่ง CLI
 
 | คำสั่ง | ทำอะไร |
 |---|---|
-| `flask create-user <ชื่อ>` | สร้าง user ใหม่ พร้อมหมวดตั้งต้น |
+| `flask create-user <ชื่อ> [--lang en\|th]` | สร้าง user ใหม่ พร้อมหมวดตั้งต้นตามภาษา |
 | `flask list-users` | ดูรายชื่อ user |
 | `flask delete-user <ชื่อ>` | ลบ user พร้อมหมวดและงานทั้งหมด |
 | `flask db migrate -m "..."` | สร้าง migration หลังแก้ model |
@@ -93,6 +95,22 @@ pipenv run pytest -v
 - ใช้ Flask dev server ถ้าจะเอาขึ้นจริงต้องมี WSGI server (gunicorn ฯลฯ)
 - กำหนดส่งเก็บเป็นเวลาท้องถิ่นของเครื่องที่รัน server ถ้าผู้ใช้อยู่คนละ timezone ค่าจะเพี้ยน
 
+## แปลภาษา
+
+ข้อความในโค้ดเป็นภาษาอังกฤษ ส่วนคำแปลอยู่ใน `app/translations/`
+แก้คำแปลแล้วต้อง compile ใหม่:
+
+```bash
+pipenv run pybabel compile -d app/translations
+```
+
+เพิ่มข้อความใหม่ในโค้ด แล้วอัปเดต catalog:
+
+```bash
+pipenv run pybabel extract -F babel.cfg -k _l -k _ -k ngettext:1,2 -o messages.pot .
+pipenv run pybabel update -i messages.pot -d app/translations
+```
+
 ## โครงสร้าง
 
 ```
@@ -104,6 +122,8 @@ app/
   cli.py         คำสั่ง flask CLI
   templates/     Jinja2 (ทุกหน้า extend base.html)
   static/        โลโก้ SVG 2 ขนาด
+  translations/  คำแปล gettext (en, th)
+  i18n.py        ตรรกะเลือกภาษาของแต่ละ request
 migrations/      alembic
 tests/
 ```

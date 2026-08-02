@@ -2,6 +2,7 @@ import pytest
 
 from app import create_app, db, limiter
 from app.models import Category, User
+from config import DEFAULT_LANGUAGE, LANGUAGES
 
 PASSWORD = "password123"
 
@@ -21,6 +22,10 @@ class TestConfig:
     # ระบุให้ตรงกับ Config จริง ไม่งั้น flask-limiter เตือนว่าไม่ได้เลือก storage
     RATELIMIT_STORAGE_URI = "memory://"
     LOGIN_RATE_LIMIT = "5 per minute"
+    # ใช้ค่าเดียวกับ Config จริง เทสต์จะได้เจอภาษาเริ่มต้นแบบเดียวกับผู้ใช้จริง
+    LANGUAGES = LANGUAGES
+    BABEL_DEFAULT_LOCALE = DEFAULT_LANGUAGE
+    BABEL_DEFAULT_TIMEZONE = "Asia/Bangkok"
 
 
 class CsrfTestConfig(TestConfig):

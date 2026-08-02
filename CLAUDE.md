@@ -96,6 +96,36 @@ POST ที่ทั้งไม่มี token และไม่ได้ logi
 - `_parse_due_date()` raise `ValueError` ถ้ารูปแบบผิด — route ต้อง catch แล้ว flash
   (browser ส่งมาถูกเสมอ แต่คนยิง POST ตรง ๆ ส่งอะไรมาก็ได้)
 
+## หลายภาษา (i18n)
+- ใช้ Flask-Babel (gettext) ภาษาที่รองรับประกาศใน `config.LANGUAGES` ค่าเริ่มต้นคือ `en`
+- **ข้อความในโค้ดต้องเป็นภาษาอังกฤษเสมอ** เพราะ msgid คือภาษาอังกฤษ
+  ภาษาไทยอยู่ใน `app/translations/th/LC_MESSAGES/messages.po` — ห้ามเขียนไทยลงโค้ดตรง ๆ
+- ใช้ `gettext as _` ในไฟล์ `.py` และ `{{ _('...') }}` ใน template
+  ใช้ `lazy_gettext` เฉพาะข้อความที่ประกาศตอน import (ยังไม่มี request) เช่น `login_message`
+- นับจำนวนใช้ `ngettext` — ไทยมี `nplurals=1` มี `msgstr[0]` อย่างเดียว
+- ส่งค่าเข้าข้อความใช้ named placeholder `%(name)s` ไม่ใช่ f-string
+  ไม่งั้น pybabel ดึง msgid ไม่ได้และผู้แปลสลับลำดับคำไม่ได้
+
+### workflow เวลาเพิ่ม/แก้ข้อความ
+```
+pipenv run pybabel extract -F babel.cfg -k _l -k _ -k ngettext:1,2 -o messages.pot .
+pipenv run pybabel update -i messages.pot -d app/translations
+# แก้คำแปลใน app/translations/*/LC_MESSAGES/messages.po
+pipenv run pybabel compile -d app/translations
+```
+- **ไฟล์ `.mo` ถูก commit ลง git ด้วย** เพื่อให้ clone แล้วรันได้เลย
+  แก้ `.po` แล้วต้อง compile ใหม่ ไม่งั้นคำแปลจะไม่เปลี่ยน — `tests/test_i18n.py` ดักไว้
+- เพิ่มภาษาใหม่: เติมใน `config.LANGUAGES` แล้ว `pybabel init -i messages.pot -d app/translations -l <รหัส>`
+
+### ลำดับการเลือกภาษา (ดู `app/i18n.py`)
+`?lang=` → session → `User.locale` → `Accept-Language` → `en`
+session มาก่อนโปรไฟล์เพื่อให้กดสลับแล้วเห็นผลทันที และการกดสลับจะบันทึกลงโปรไฟล์ให้ด้วย
+
+### สิ่งที่ไม่ได้แปล
+- ชื่องานและชื่อหมวดเป็นข้อมูลของผู้ใช้ ไม่ผ่าน gettext
+- หมวดตั้งต้นสร้างตาม `--lang` ของ `flask create-user` แล้วคงที่ ไม่เปลี่ยนตามภาษาที่เลือกทีหลัง
+- ข้อความของ CLI ยังเป็นภาษาไทย เพราะเป็นเครื่องมือของผู้ดูแลระบบ ไม่ใช่ UI ของผู้ใช้
+
 ## Rate limit
 - จำกัดเฉพาะ `POST /login` GET ไม่โดน
 - `deduct_when` หักโควตาเฉพาะตอนได้ 401 — login ถูกไม่กินโควตา

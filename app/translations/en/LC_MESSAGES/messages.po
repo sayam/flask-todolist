@@ -1,0 +1,215 @@
+# English translations for PROJECT.
+# Copyright (C) 2026 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-08-02 16:44+0700\n"
+"PO-Revision-Date: 2026-08-02 16:44+0700\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: en\n"
+"Language-Team: en <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: app/__init__.py:23
+msgid "Please sign in first"
+msgstr ""
+
+#: app/auth.py:37
+msgid "Incorrect username or password"
+msgstr ""
+
+#: app/routes.py:110
+msgid "Please enter a task name"
+msgstr ""
+
+#: app/routes.py:115 app/routes.py:140
+msgid "Invalid date format"
+msgstr ""
+
+#: app/routes.py:135
+msgid "Task name cannot be empty"
+msgstr ""
+
+#: app/routes.py:190
+msgid "Please enter a category name"
+msgstr ""
+
+#: app/routes.py:192 app/routes.py:211
+#, python-format
+msgid "Category “%(name)s” already exists"
+msgstr ""
+
+#: app/routes.py:205
+msgid "Category name cannot be empty"
+msgstr ""
+
+#: app/templates/base.html:6 app/templates/base.html:15
+#: app/templates/index.html:2 app/templates/login.html:6
+#: app/templates/login.html:7
+msgid "Todolist"
+msgstr ""
+
+#: app/templates/base.html:19
+msgid "Tasks"
+msgstr ""
+
+#: app/templates/base.html:20 app/templates/categories.html:2
+#: app/templates/categories.html:9
+msgid "Categories"
+msgstr ""
+
+#: app/templates/base.html:24
+msgid "Sign out"
+msgstr ""
+
+#: app/templates/base.html:27
+msgid "Language"
+msgstr ""
+
+#: app/templates/categories.html:14 app/templates/categories.html:25
+msgid "Category name"
+msgstr ""
+
+#: app/templates/categories.html:15
+msgid "e.g. Personal"
+msgstr ""
+
+#: app/templates/categories.html:17
+msgid "Add category"
+msgstr ""
+
+#: app/templates/categories.html:26 app/templates/index.html:87
+msgid "Save"
+msgstr ""
+
+#: app/templates/categories.html:28
+#, python-format
+msgid "%(num)d task"
+msgid_plural "%(num)d tasks"
+msgstr[0] ""
+msgstr[1] ""
+
+#: app/templates/categories.html:30
+#, python-format
+msgid "Delete category “%(name)s”? Tasks in it will become uncategorised."
+msgstr ""
+
+#: app/templates/categories.html:32 app/templates/index.html:101
+msgid "Delete"
+msgstr ""
+
+#: app/templates/categories.html:36
+msgid "No categories yet"
+msgstr ""
+
+#: app/templates/index.html:12 app/templates/index.html:59
+msgid "No category"
+msgstr ""
+
+#: app/templates/index.html:22
+msgid "Add a task"
+msgstr ""
+
+#: app/templates/index.html:27 app/templates/index.html:82
+msgid "Task name"
+msgstr ""
+
+#: app/templates/index.html:28
+msgid "e.g. Deliver order to customer"
+msgstr ""
+
+#: app/templates/index.html:31 app/templates/index.html:56
+#: app/templates/index.html:84
+msgid "Category"
+msgstr ""
+
+#: app/templates/index.html:35 app/templates/index.html:85
+msgid "Due"
+msgstr ""
+
+#: app/templates/index.html:35
+msgid "optional"
+msgstr ""
+
+#: app/templates/index.html:38
+msgid "Add"
+msgstr ""
+
+#: app/templates/index.html:44
+msgid "Show"
+msgstr ""
+
+#: app/templates/index.html:45 app/templates/index.html:57
+msgid "All"
+msgstr ""
+
+#: app/templates/index.html:45
+msgid "Active"
+msgstr ""
+
+#: app/templates/index.html:45
+msgid "Completed"
+msgstr ""
+
+#: app/templates/index.html:76
+msgid "Mark as not done"
+msgstr ""
+
+#: app/templates/index.html:76
+msgid "Mark as done"
+msgstr ""
+
+#: app/templates/index.html:92
+msgid "Overdue"
+msgstr ""
+
+#: app/templates/index.html:94
+#, python-format
+msgid "Due today at %(time)s"
+msgstr ""
+
+#: app/templates/index.html:99
+#, python-format
+msgid "Delete “%(title)s”?"
+msgstr ""
+
+#: app/templates/index.html:105
+msgid "No tasks yet"
+msgstr ""
+
+#: app/templates/index.html:105
+msgid "No tasks match this filter"
+msgstr ""
+
+#: app/templates/index.html:110
+msgid "Delete all completed tasks? This cannot be undone."
+msgstr ""
+
+#: app/templates/index.html:112
+msgid "Clear completed"
+msgstr ""
+
+#: app/templates/login.html:2 app/templates/login.html:34
+msgid "Sign in"
+msgstr ""
+
+#: app/templates/login.html:21
+msgid "Too many sign-in attempts — please wait and try again."
+msgstr ""
+
+#: app/templates/login.html:27
+msgid "Username"
+msgstr ""
+
+#: app/templates/login.html:31
+msgid "Password"
+msgstr ""
+

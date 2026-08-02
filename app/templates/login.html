@@ -1,26 +1,36 @@
 {% extends "base.html" %}
-{% block title %}เข้าสู่ระบบ{% endblock %}
+{% block title %}{{ _('Sign in') }}{% endblock %}
 
 {% block content %}
 <div style="text-align:center; margin-top:3em">
-  <img src="{{ url_for('static', filename='logo.svg') }}" alt="Todolist" width="120" height="120">
-  <h1>Todolist</h1>
+  <img src="{{ url_for('static', filename='logo.svg') }}" alt="{{ _('Todolist') }}" width="120" height="120">
+  <h1>{{ _('Todolist') }}</h1>
+  <p>
+    {% for code, name in languages.items() %}
+      {%- if code == current_locale %}
+        <strong>{{ name }}</strong>
+      {%- else %}
+        <a href="{{ url_for('main.set_language', code=code) }}" hreflang="{{ code }}">{{ name }}</a>
+      {%- endif %}
+      {{- ' | ' if not loop.last else '' }}
+    {% endfor %}
+  </p>
 </div>
 
 {% if rate_limited %}
-<p><strong>พยายามเข้าสู่ระบบถี่เกินไป — รอสักครู่แล้วลองใหม่ ({{ rate_limited }})</strong></p>
+<p><strong>{{ _('Too many sign-in attempts — please wait and try again.') }} ({{ rate_limited }})</strong></p>
 {% endif %}
 
 <form action="{{ url_for('auth.login') }}" method="post">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <p>
-    <label for="username">ชื่อผู้ใช้</label><br>
+    <label for="username">{{ _('Username') }}</label><br>
     <input id="username" type="text" name="username" autocomplete="username" required autofocus>
   </p>
   <p>
-    <label for="password">รหัสผ่าน</label><br>
+    <label for="password">{{ _('Password') }}</label><br>
     <input id="password" type="password" name="password" autocomplete="current-password" required>
   </p>
-  <button type="submit">เข้าสู่ระบบ</button>
+  <button type="submit">{{ _('Sign in') }}</button>
 </form>
 {% endblock %}

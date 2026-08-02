@@ -15,6 +15,8 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, default=_utcnow)
+    # ภาษาที่ผู้ใช้เลือกไว้ NULL = ยังไม่เคยเลือก ให้ไปดู Accept-Language แทน
+    locale = db.Column(db.String(8), nullable=True)
 
     categories = db.relationship(
         "Category", back_populates="user", cascade="all, delete-orphan"
