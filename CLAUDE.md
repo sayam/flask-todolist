@@ -38,8 +38,13 @@
   `tests/test_csrf.py` ที่เปิดใช้จริงผ่าน fixture `csrf_app` — ห้ามลบไฟล์นั้นทิ้ง
   ไม่งั้นจะไม่มีอะไรจับได้เวลา `csrf.init_app()` หลุด
 
+## Environment
+- ต้องมี `.env` ที่มี `SECRET_KEY` ไม่งั้นแอปจะไม่ start (ดู `.env.example`)
+- `SECRET_KEY` **ไม่มีค่า default โดยตั้งใจ** และต้องยาว ≥ 32 ตัว — ตรวจใน `check_secret_key()`
+  ห้ามใส่ default กลับเข้าไปเพื่อความสะดวก มีเทสต์ใน `tests/test_config.py` ดักไว้
+- เปลี่ยน `SECRET_KEY` แล้ว session และ CSRF token เดิมใช้ไม่ได้ ทุกคนต้อง login ใหม่
+- `.env` ถูก gitignore — `.env.example` เป็นตัวที่ commit
+
 ## ยังไม่ได้ทำ
 - หน้า login ไม่รองรับ `?next=` โดยตั้งใจ (กัน open redirect) login เสร็จเด้งไปหน้าแรกเสมอ
-- `SECRET_KEY` ยัง default เป็น `dev-secret-change-me` — ถ้าเอาขึ้นจริงต้องตั้งผ่าน env
-  เพราะทั้ง session และ CSRF token เซ็นด้วยคีย์นี้
 - ไม่มี rate limit ที่หน้า login

@@ -6,7 +6,7 @@ from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 
-from config import Config
+from config import Config, check_secret_key
 
 db = SQLAlchemy()
 migrate = Migrate()
@@ -26,6 +26,7 @@ def load_user(user_id):
 def create_app(config_class=Config):
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_object(config_class)
+    check_secret_key(app.config.get("SECRET_KEY"))
 
     os.makedirs(app.instance_path, exist_ok=True)
 

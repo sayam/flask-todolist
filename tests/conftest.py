@@ -7,7 +7,8 @@ PASSWORD = "password123"
 
 
 class TestConfig:
-    SECRET_KEY = "test"
+    # ต้องยาวพอผ่าน check_secret_key() ค่าคงที่ได้ เพราะไม่ใช่คีย์จริง
+    SECRET_KEY = "test-secret-key-for-pytest-only-not-a-real-key"
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     TESTING = True
