@@ -15,6 +15,15 @@ flask-babel = "*"
 
 [dev-packages]
 pytest = "*"
+ruff = "*"
+mypy = "*"
+pytest-cov = "*"
+diff-cover = "*"
+xenon = "*"
+interrogate = "*"
+pip-audit = "*"
+cyclonedx-bom = "*"
+pre-commit = "*"
 
 [requires]
 python_version = "3.13"
