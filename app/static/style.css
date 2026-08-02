@@ -120,9 +120,11 @@ button[type="submit"] {
   border-color: transparent;
 }
 
-/* ปุ่มในแถวรายการและในเมนูให้ดูเบากว่าปุ่มหลัก */
-nav button,
-li button {
+/* ปุ่มในแถวรายการและในเมนูให้ดูเบากว่าปุ่มหลัก
+ * ต้องระบุ [type="submit"] ด้วย ไม่งั้นแพ้ specificity ให้กฎข้างบน
+ * (button[type=submit] = 0,1,1 ส่วน nav button = 0,0,2) */
+nav button[type="submit"],
+li button[type="submit"] {
   background: var(--surface);
   color: var(--fg);
   border-color: var(--border);
@@ -144,6 +146,53 @@ li {
 
 li:last-child {
   border-bottom: 0;
+}
+
+/* แถวรายการงาน
+ * เดิมเป็น block ที่มี <form style="display:inline"> เรียงต่อกัน พอรวมกันเกิน
+ * ความกว้าง browser จะตัดบรรทัดตรงไหนก็ได้ ปุ่ม Delete เลยหลุดไปอยู่บรรทัดเดียว
+ * เปลี่ยนเป็น flex ที่กำหนดความกว้างแต่ละช่องไว้ การตัดบรรทัดจึงเกิดเป็นกลุ่ม
+ * ตามที่ตั้งใจ ไม่ใช่หลุดทีละชิ้น */
+.task {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.task-edit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1 1 20rem;
+  min-width: 0;
+}
+
+.task-title {
+  flex: 1 1 10rem;
+  min-width: 7rem;
+}
+
+.task-category {
+  flex: 0 1 9rem;
+  min-width: 6rem;
+}
+
+/* datetime-local ของ Chrome กว้างประมาณนี้ ถ้าแคบกว่านี้ตัวเลขจะโดนตัด */
+.task-due {
+  flex: 0 0 auto;
+  width: 13.5rem;
+}
+
+/* ป้ายสถานะอยู่ติดกับช่องกำหนดส่ง ไม่ใช่ท้ายแถว */
+.task-flag {
+  white-space: nowrap;
+}
+
+.task-toggle {
+  display: flex;
+  align-items: center;
 }
 
 small {

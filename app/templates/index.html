@@ -5,8 +5,9 @@
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 {% endmacro %}
 
-{% macro category_select(selected_id, field_id='', aria='') %}
+{% macro category_select(selected_id, field_id='', aria='', css_class='') %}
   <select name="category_id"
+          {% if css_class %}class="{{ css_class }}"{% endif %}
           {% if field_id %}id="{{ field_id }}"{% endif %}
           {% if aria %}aria-label="{{ aria }}"{% endif %}>
     <option value="">— {{ _('No category') }} —</option>
@@ -69,33 +70,36 @@
 
 <ul>
   {% for todo in todos %}
-  <li>
-    <form action="{{ url_for('main.toggle', todo_id=todo.id) }}" method="post" style="display:inline">
+  <li class="task">
+    <form class="task-toggle" action="{{ url_for('main.toggle', todo_id=todo.id) }}" method="post">
       {{ csrf_field() }}
       <input type="checkbox" onchange="this.form.submit()" {{ 'checked' if todo.done else '' }}
              aria-label="{{ _('Mark as not done') if todo.done else _('Mark as done') }}">
     </form>
 
     {# แถวรายการใช้ aria-label แทน label ที่มองเห็น เพราะถ้าใส่ label ทุกแถวจะรกจนอ่านยาก #}
-    <form action="{{ url_for('main.edit', todo_id=todo.id) }}" method="post" style="display:inline">
+    <form class="task-edit" action="{{ url_for('main.edit', todo_id=todo.id) }}" method="post">
       {{ csrf_field() }}
-      <input type="text" name="title" value="{{ todo.title }}" aria-label="{{ _('Task name') }}" required
+      <input class="task-title" type="text" name="title" value="{{ todo.title }}"
+             aria-label="{{ _('Task name') }}" required
              style="{{ 'text-decoration: line-through;' if todo.done else '' }}">
-      {{ category_select(todo.category_id, aria=_('Category')) }}
-      <input type="datetime-local" name="due_date" aria-label="{{ _('Due') }}"
+      {{ category_select(todo.category_id, aria=_('Category'), css_class='task-category') }}
+      <input class="task-due" type="datetime-local" name="due_date" aria-label="{{ _('Due') }}"
              value="{{ todo.due_local.strftime('%Y-%m-%dT%H:%M') if todo.due_date else '' }}">
+
+      {# ป้ายสถานะวางไว้ติดช่องกำหนดส่งเพื่อให้อ่านคู่กัน เป็นแค่ข้อความ ไม่ใช่ field #}
+      {% if todo.due_date %}
+        {% if todo.is_overdue %}
+          <strong class="task-flag overdue">{{ _('Overdue') }}</strong>
+        {% elif todo.is_due_today %}
+          <strong class="task-flag">{{ _('Due today at %(time)s', time=todo.due_local.strftime('%H:%M')) }}</strong>
+        {% endif %}
+      {% endif %}
+
       <button type="submit">{{ _('Save') }}</button>
     </form>
 
-    {% if todo.due_date %}
-      {% if todo.is_overdue %}
-        <strong class="overdue">{{ _('Overdue') }}</strong>
-      {% elif todo.is_due_today %}
-        <strong>{{ _('Due today at %(time)s', time=todo.due_local.strftime('%H:%M')) }}</strong>
-      {% endif %}
-    {% endif %}
-
-    <form action="{{ url_for('main.delete', todo_id=todo.id) }}" method="post" style="display:inline"
+    <form action="{{ url_for('main.delete', todo_id=todo.id) }}" method="post"
           onsubmit="return confirm({{ _('Delete “%(title)s”?', title=todo.title)|tojson }})">
       {{ csrf_field() }}
       <button type="submit">{{ _('Delete') }}</button>

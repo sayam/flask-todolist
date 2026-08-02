@@ -181,3 +181,38 @@ def test_login_form_is_centered(anon_client):
     auth = _block_after(css, ".auth {")
     assert "justify-content: center" in auth
     assert "align-items: center" in auth
+
+
+def test_quiet_buttons_beat_the_accent_rule():
+    """ปุ่มใน nav และในแถวรายการต้องเป็นสีอ่อน
+
+    กฎ button[type="submit"] มี specificity 0,1,1 ส่วน `nav button` มีแค่ 0,0,2
+    ถ้าเขียนกฎสีอ่อนโดยไม่ระบุ [type="submit"] ด้วย มันจะแพ้และไม่มีผลอะไรเลย
+    โดยไม่มี error ให้เห็น
+    """
+    css = CSS_PATH.read_text()
+    for selector in ('nav button[type="submit"]', 'li button[type="submit"]'):
+        assert selector in css, f"ขาด {selector} — จะแพ้ specificity ให้ button[type=submit]"
+
+
+def test_task_row_is_a_flex_row():
+    """แถวรายการต้องคุมการตัดบรรทัดเอง ไม่ปล่อยให้ browser ตัดตรงไหนก็ได้
+    จนปุ่ม Delete หลุดไปอยู่บรรทัดของตัวเอง"""
+    css = CSS_PATH.read_text()
+    task = _block_after(css, ".task {")
+    assert "display: flex" in task
+    assert "flex-wrap: wrap" in task
+    assert "gap:" in task
+
+
+def test_task_row_markup_uses_layout_classes(client):
+    """CSS จะทำงานได้ก็ต่อเมื่อ template ใส่ class ให้ครบ"""
+    client.post(
+        "/add",
+        data={"title": "งานสำหรับตรวจ layout", "due_date": "2026-09-01T09:00"},
+        follow_redirects=True,
+    )
+    body = client.get("/").data
+    for css_class in (b'class="task"', b'class="task-edit"', b'class="task-title"',
+                      b'class="task-category"', b'class="task-due"'):
+        assert css_class in body, f"ไม่พบ {css_class!r} ใน HTML"
