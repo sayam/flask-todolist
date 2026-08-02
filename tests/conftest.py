@@ -2,12 +2,19 @@ import pytest
 
 from app import create_app, db, limiter
 from app.models import Category, User
-from config import DEFAULT_LANGUAGE, LANGUAGES
+from config import Config
 
 PASSWORD = "password123"
 
 
-class TestConfig:
+class TestConfig(Config):
+    """สืบทอดจาก Config จริงแล้ว override เฉพาะที่ต่าง
+
+    เคยประกาศแยกเป็น class เปล่า แล้วคีย์ใหม่ใน Config ทำเทสต์พังทั้งชุด
+    มาแล้ว 4 รอบ (LANGUAGES, RATELIMIT_STORAGE_URI, THEMES, LOG_LEVEL)
+    — สืบทอดแล้วคีย์ใหม่ไหลมาเองโดยไม่ต้องแก้ไฟล์นี้
+    """
+
     # ต้องยาวพอผ่าน check_secret_key() ค่าคงที่ได้ เพราะไม่ใช่คีย์จริง
     SECRET_KEY = "test-secret-key-for-pytest-only-not-a-real-key"
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
@@ -19,12 +26,7 @@ class TestConfig:
     # ปิด rate limit ด้วย ไม่งั้น fixture ที่ login ซ้ำ ๆ จะโดนกันเอง
     # ตัว rate limit มีเทสต์แยกใน test_ratelimit.py
     RATELIMIT_ENABLED = False
-    # ระบุให้ตรงกับ Config จริง ไม่งั้น flask-limiter เตือนว่าไม่ได้เลือก storage
-    RATELIMIT_STORAGE_URI = "memory://"
     LOGIN_RATE_LIMIT = "5 per minute"
-    # ใช้ค่าเดียวกับ Config จริง เทสต์จะได้เจอภาษาเริ่มต้นแบบเดียวกับผู้ใช้จริง
-    LANGUAGES = LANGUAGES
-    BABEL_DEFAULT_LOCALE = DEFAULT_LANGUAGE
     BABEL_DEFAULT_TIMEZONE = "Asia/Bangkok"
 
 

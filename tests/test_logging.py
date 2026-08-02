@@ -1,0 +1,145 @@
+"""structured logging + correlation ID
+
+รูปแบบ log ถูกตัดสินครั้งเดียวที่นี่เพื่อให้ Phase 7 ต่อ SIEM ได้โดยไม่ต้อง
+ไล่แก้จุดที่เขียน log — เทสต์ชุดนี้จึงล็อก contract ของ field ไว้
+"""
+
+import json
+import logging
+import sys
+import uuid
+
+import pytest
+
+from app.logging_setup import REQUEST_ID_HEADER, JsonFormatter
+
+
+@pytest.fixture
+def logged(app, caplog):
+    """จับ log record แล้วคืนเป็น dict ที่ผ่าน formatter จริง"""
+
+    def parse():
+        formatter = JsonFormatter()
+        return [
+            json.loads(formatter.format(record))
+            for record in caplog.records
+            if getattr(record, "event", None) == "http_request"
+        ]
+
+    caplog.set_level(logging.INFO)
+    return parse
+
+
+# --- รูปแบบ JSON ---
+
+
+def test_log_line_is_valid_json(app, anon_client, logged):
+    anon_client.get("/login")
+    lines = logged()
+    assert lines, "ทุก request ต้องมี log อย่างน้อยหนึ่งบรรทัด"
+
+
+def test_log_has_the_agreed_fields(app, anon_client, logged):
+    anon_client.get("/login")
+    entry = logged()[0]
+    for field in (
+        "timestamp",
+        "level",
+        "logger",
+        "message",
+        "event",
+        "request_id",
+        "method",
+        "path",
+        "status",
+        "duration_ms",
+    ):
+        assert field in entry, f"log ขาด field {field}"
+
+
+def test_log_records_the_status_and_path(app, anon_client, logged):
+    anon_client.get("/login")
+    entry = logged()[0]
+    assert entry["path"] == "/login"
+    assert entry["status"] == 200
+    assert entry["method"] == "GET"
+
+
+def test_thai_text_is_not_escaped():
+    """ensure_ascii=False — ไม่งั้น log ไทยอ่านไม่ออกใน SIEM"""
+    record = logging.LogRecord("t", logging.INFO, "", 0, "งานทดสอบ", None, None)
+    assert "งานทดสอบ" in JsonFormatter().format(record)
+
+
+def _boom():
+    raise ValueError("พังโดยตั้งใจ")
+
+
+def test_exception_is_serialised():
+    """traceback ต้องลงไปใน log ไม่งั้นตอนเกิดเหตุจริงจะเหลือแค่ 'boom'"""
+    try:
+        _boom()
+    except ValueError:
+        record = logging.LogRecord("t", logging.ERROR, "", 0, "boom", None, sys.exc_info())
+    entry = json.loads(JsonFormatter().format(record))
+    assert "ValueError" in entry["exception"]
+    assert "พังโดยตั้งใจ" in entry["exception"]
+
+
+# --- correlation ID ---
+
+
+def test_response_carries_a_request_id(client):
+    value = client.get("/login").headers[REQUEST_ID_HEADER]
+    uuid.UUID(value)  # ต้อง parse ได้ ไม่งั้นถือว่าไม่ใช่ id ที่ใช้ correlate ได้
+
+
+def test_each_request_gets_a_new_id(client):
+    first = client.get("/login").headers[REQUEST_ID_HEADER]
+    second = client.get("/login").headers[REQUEST_ID_HEADER]
+    assert first != second
+
+
+def test_incoming_request_id_is_reused(client):
+    """proxy ใส่ id มาแล้ว ต้องใช้ตัวเดิมเพื่อ trace ข้ามชั้นได้ (Phase 5)"""
+    incoming = str(uuid.uuid4())
+    resp = client.get("/login", headers={REQUEST_ID_HEADER: incoming})
+    assert resp.headers[REQUEST_ID_HEADER] == incoming
+
+
+def test_bogus_incoming_id_is_replaced(client):
+    """ค่ามั่วจากภายนอกต้องไม่หลุดลง log — เป็นช่องให้ inject/ปลอมแปลง"""
+    resp = client.get("/login", headers={REQUEST_ID_HEADER: "'; DROP TABLE--"})
+    value = resp.headers[REQUEST_ID_HEADER]
+    assert value != "'; DROP TABLE--"
+    uuid.UUID(value)
+
+
+def test_log_id_matches_response_header(app, anon_client, logged):
+    resp = anon_client.get("/login")
+    assert logged()[0]["request_id"] == resp.headers[REQUEST_ID_HEADER]
+
+
+# --- actor และ PII ---
+
+
+def test_actor_is_none_when_anonymous(app, anon_client, logged):
+    anon_client.get("/login")
+    assert logged()[0]["actor"] is None
+
+
+def test_actor_is_the_username_once_logged_in(app, client, logged):
+    client.get("/")
+    assert logged()[0]["actor"] == "tester"
+
+
+def test_log_uses_username_not_real_name(app, client, logged):
+    """ลด PII ใน log — ชื่อจริงไม่ควรไหลเข้าไป (ดู ROADMAP Phase 2)"""
+    client.post(
+        "/settings/profile",
+        data={"first_name": "สยาม", "last_name": "ศรีผัว"},
+        follow_redirects=True,
+    )
+    dumped = json.dumps(logged(), ensure_ascii=False)
+    assert "สยาม" not in dumped
+    assert "ศรีผัว" not in dumped
