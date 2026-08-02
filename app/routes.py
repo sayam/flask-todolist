@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
@@ -35,15 +35,21 @@ def _resolve_category_id(raw):
 
 
 def _parse_due_date(raw):
-    """แปลงค่าจาก <input type="date"> เป็น date
+    """แปลงค่าจาก <input type="datetime-local"> เป็น datetime (naive, เวลาท้องถิ่น)
 
     คืน None ถ้าเว้นว่าง และ raise ValueError ถ้ารูปแบบใช้ไม่ได้
     (browser ส่งมาถูกเสมอ แต่คนยิง POST ตรง ๆ ส่งอะไรมาก็ได้)
+
+    รับ "YYYY-MM-DD" เปล่า ๆ ด้วย โดยถือว่าเป็นเที่ยงคืนของวันนั้น —
+    เผื่อ client เก่าหรือคนยิง API ที่ยังส่งแค่วัน
     """
     raw = (raw or "").strip()
     if not raw:
         return None
-    return date.fromisoformat(raw)
+    parsed = datetime.fromisoformat(raw)
+    if parsed.tzinfo is not None:
+        raise ValueError("ไม่รับ timezone offset — ใช้เวลาท้องถิ่นเท่านั้น")
+    return parsed
 
 
 @bp.route("/")

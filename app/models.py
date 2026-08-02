@@ -58,9 +58,10 @@ class Todo(db.Model):
     done = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=_utcnow)
     updated_at = db.Column(db.DateTime, default=_utcnow, onupdate=_utcnow)
-    # เก็บเป็น Date ไม่ใช่ DateTime — "ครบกำหนดวันไหน" ไม่ต้องมีเวลา
-    # และเลี่ยงปัญหา timezone ที่จะตามมาถ้าเก็บเวลาด้วย
-    due_date = db.Column(db.Date, nullable=True)
+    # เวลาท้องถิ่นแบบ naive — ตรงกับที่ <input type="datetime-local"> ส่งมา
+    # ไม่แปลงเป็น UTC เพราะจะทำให้ถูกต้องต้องรู้ timezone ของผู้ใช้แต่ละคน
+    # ต่างจาก created_at/updated_at ที่เป็น UTC เพราะเป็นเวลาของระบบ ไม่ใช่ของคน
+    due_date = db.Column(db.DateTime, nullable=True)
     user_id = db.Column(
         db.Integer, db.ForeignKey("user.id"), nullable=False, index=True
     )
@@ -76,12 +77,19 @@ class Todo(db.Model):
     def is_overdue(self):
         """เลยกำหนดแล้วหรือยัง — งานที่ทำเสร็จแล้วไม่นับว่าเลยกำหนด
 
-        เทียบกับวันที่ตามเครื่องที่รัน server (ไม่ใช่ UTC) เพราะ "วันนี้"
-        ในมุมคนใช้คือวันตามเวลาท้องถิ่น
+        เทียบกับเวลาท้องถิ่นของเครื่องที่รัน server (ไม่ใช่ UTC) ให้ตรงกับ
+        ค่าที่ผู้ใช้กรอกเข้ามา
         """
         if self.done or self.due_date is None:
             return False
-        return self.due_date < date.today()
+        return self.due_date < datetime.now()
+
+    @property
+    def is_due_today(self):
+        """ครบกำหนดภายในวันนี้ (และยังไม่เลยเวลา)"""
+        if self.done or self.due_date is None or self.is_overdue:
+            return False
+        return self.due_date.date() == date.today()
 
     def __repr__(self):
         return f"<Todo {self.id} {self.title!r} done={self.done}>"

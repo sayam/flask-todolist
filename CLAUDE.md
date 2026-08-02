@@ -22,6 +22,8 @@
 - `app/auth.py` — login/logout ผูกกับ blueprint `auth`
 - `app/cli.py` — custom flask CLI commands
 - `app/templates/` — Jinja2 templates (ทุกหน้า extend `base.html`)
+- `app/static/` — `logo.svg` (120px ใช้หน้า login) และ `logo-small.svg` (32px ใช้บน header + favicon)
+  ตัวเล็กไม่ใช่ตัวใหญ่ย่อลงมา แต่ตัดรายละเอียดออกให้เหลือแค่เครื่องหมายถูก
 - `migrations/` — alembic migration scripts (commit ลง git ด้วย)
 - `tests/` — pytest, fixture จาก `conftest.py`
 
@@ -74,9 +76,19 @@ POST ที่ทั้งไม่มี token และไม่ได้ logi
   ต้องเปลี่ยนเป็น `redis://` ไม่งั้นเพดานจริงจะกลายเป็น N เท่าของที่ตั้งไว้
 
 ## กำหนดส่งและตัวกรอง
-- `Todo.due_date` เป็น `db.Date` ไม่ใช่ `DateTime` — เลี่ยงปัญหา timezone
-- `Todo.is_overdue` เทียบกับ `date.today()` (เวลาท้องถิ่นของเครื่อง server ไม่ใช่ UTC)
-  งานที่ `done=True` ไม่นับว่าเลยกำหนด และครบกำหนด "วันนี้" ยังไม่ถือว่าเลย
+- `Todo.due_date` เป็น `db.DateTime` เก็บ **เวลาท้องถิ่นแบบ naive** ตรงกับที่
+  `<input type="datetime-local">` ส่งมา — ต่างจาก `created_at`/`updated_at` ที่เป็น UTC
+  เพราะสองตัวนั้นเป็นเวลาของระบบ ส่วน `due_date` เป็นเวลาที่คนกรอก
+  **ข้อจำกัด:** ถ้า server อยู่คนละ timezone กับผู้ใช้ ค่าจะเพี้ยน แก้ให้ถูกต้องต้องมี
+  setting timezone ต่อ user ซึ่งยังไม่ได้ทำ
+- `Todo.is_overdue` เทียบกับ `datetime.now()` และ `is_due_today` เทียบวันกับ `date.today()`
+  งานที่ `done=True` ไม่นับว่าเลยกำหนด และ `is_due_today` เป็น False ถ้าเลยกำหนดไปแล้ว
+  (ไม่ให้ขึ้นป้ายซ้อนกันสองอัน)
+- **`batch_alter_table` บน SQLite ทำข้อมูลพังตอนเปลี่ยนชนิดคอลัมน์เป็น DATETIME**
+  alembic คัดลอกข้อมูลด้วย `CAST(col AS DATETIME)` และ DATETIME มี NUMERIC affinity
+  `'2026-08-02'` จึงกลายเป็นเลข `2026` — ดูวิธีแก้ใน migration `89cd0c572bf9`
+  (อ่านค่าเก็บไว้ก่อน ปล่อยให้ batch alter ทำลาย แล้ว UPDATE เขียนกลับด้วยพารามิเตอร์ข้อความ)
+  **ทุกครั้งที่ migration แตะข้อมูลเดิม ให้สำรอง `instance/todolist.db` ก่อนรัน**
 - เรียงลำดับ: งานที่มีกำหนดส่งขึ้นก่อน (ใกล้ครบกำหนดสุดก่อน) แล้วค่อยงานไม่มีกำหนด
   เรียงตาม `created_at` ล่าสุดก่อน
 - ตัวกรองรับผ่าน query string: `?status=all|active|completed` และ `?category=<id>|none`

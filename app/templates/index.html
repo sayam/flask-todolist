@@ -5,8 +5,10 @@
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 {% endmacro %}
 
-{% macro category_select(selected_id) %}
-  <select name="category_id">
+{% macro category_select(selected_id, field_id='', aria='') %}
+  <select name="category_id"
+          {% if field_id %}id="{{ field_id }}"{% endif %}
+          {% if aria %}aria-label="{{ aria }}"{% endif %}>
     <option value="">— ไม่มีหมวด —</option>
     {% for category in categories %}
     <option value="{{ category.id }}" {{ 'selected' if category.id == selected_id else '' }}>
@@ -17,15 +19,26 @@
 {% endmacro %}
 
 {% block content %}
-<h1>Todolist</h1>
+<h2>เพิ่มงานใหม่</h2>
 
 <form action="{{ url_for('main.add') }}" method="post">
   {{ csrf_field() }}
-  <input type="text" name="title" placeholder="งานใหม่" required>
-  {{ category_select(None) }}
-  <input type="date" name="due_date" title="กำหนดส่ง (ไม่ใส่ก็ได้)">
+  <p>
+    <label for="new-title">ชื่องาน</label><br>
+    <input id="new-title" type="text" name="title" placeholder="เช่น ส่งของให้ลูกค้า" required>
+  </p>
+  <p>
+    <label for="new-category">หมวดงาน</label><br>
+    {{ category_select(None, field_id='new-category') }}
+  </p>
+  <p>
+    <label for="new-due">กำหนดส่ง <small>(ไม่ใส่ก็ได้)</small></label><br>
+    <input id="new-due" type="datetime-local" name="due_date">
+  </p>
   <button type="submit">เพิ่ม</button>
 </form>
+
+<hr>
 
 <p>
   แสดง:
@@ -59,23 +72,26 @@
   <li>
     <form action="{{ url_for('main.toggle', todo_id=todo.id) }}" method="post" style="display:inline">
       {{ csrf_field() }}
-      <input type="checkbox" onchange="this.form.submit()" {{ 'checked' if todo.done else '' }}>
+      <input type="checkbox" onchange="this.form.submit()" {{ 'checked' if todo.done else '' }}
+             aria-label="{{ 'ทำเครื่องหมายว่ายังไม่เสร็จ' if todo.done else 'ทำเครื่องหมายว่าเสร็จแล้ว' }}">
     </form>
 
+    {# แถวรายการใช้ aria-label แทน label ที่มองเห็น เพราะถ้าใส่ label ทุกแถวจะรกจนอ่านยาก #}
     <form action="{{ url_for('main.edit', todo_id=todo.id) }}" method="post" style="display:inline">
       {{ csrf_field() }}
-      <input type="text" name="title" value="{{ todo.title }}"
-             style="{{ 'text-decoration: line-through;' if todo.done else '' }}" required>
-      {{ category_select(todo.category_id) }}
-      <input type="date" name="due_date" value="{{ todo.due_date.isoformat() if todo.due_date else '' }}">
+      <input type="text" name="title" value="{{ todo.title }}" aria-label="ชื่องาน" required
+             style="{{ 'text-decoration: line-through;' if todo.done else '' }}">
+      {{ category_select(todo.category_id, aria='หมวดงาน') }}
+      <input type="datetime-local" name="due_date" aria-label="กำหนดส่ง"
+             value="{{ todo.due_date.strftime('%Y-%m-%dT%H:%M') if todo.due_date else '' }}">
       <button type="submit">บันทึก</button>
     </form>
 
     {% if todo.due_date %}
       {% if todo.is_overdue %}
-        <strong style="color:#b00">เลยกำหนด {{ (today - todo.due_date).days }} วัน</strong>
-      {% elif todo.due_date == today and not todo.done %}
-        <strong>ครบกำหนดวันนี้</strong>
+        <strong style="color:#b00">เลยกำหนดแล้ว</strong>
+      {% elif todo.is_due_today %}
+        <strong>ครบกำหนดวันนี้ {{ todo.due_date.strftime('%H:%M') }}</strong>
       {% endif %}
     {% endif %}
 

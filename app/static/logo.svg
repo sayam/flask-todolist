@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" role="img" aria-labelledby="logoTitle">
+  <title id="logoTitle">Todolist</title>
+  <rect x="4" y="4" width="112" height="112" rx="26" fill="#0f766e"/>
+
+  <!-- แถวที่ 1: ทำเสร็จแล้ว — ติ๊กถูกและมีเส้นขีดฆ่า -->
+  <circle cx="36" cy="40" r="10" fill="#ffffff"/>
+  <path d="M31.5 40.3 l3.2 3.3 l6.2 -6.6" fill="none" stroke="#0f766e"
+        stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="54" y="36.5" width="40" height="7" rx="3.5" fill="#ffffff" opacity="0.32"/>
+  <rect x="51" y="38.9" width="46" height="2.4" rx="1.2" fill="#ffffff"/>
+
+  <!-- แถวที่ 2 และ 3: ยังไม่เสร็จ -->
+  <circle cx="36" cy="66" r="10" fill="none" stroke="#ffffff" stroke-width="3.4"/>
+  <rect x="54" y="62.5" width="46" height="7" rx="3.5" fill="#ffffff"/>
+
+  <circle cx="36" cy="92" r="10" fill="none" stroke="#ffffff" stroke-width="3.4"/>
+  <rect x="54" y="88.5" width="30" height="7" rx="3.5" fill="#ffffff" opacity="0.78"/>
+</svg>

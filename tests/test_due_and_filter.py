@@ -1,20 +1,35 @@
 """เทสต์กำหนดส่ง (due_date) และตัวกรองรายการ"""
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from app import db
 from app.models import Todo
 
+NOW = datetime.now()
 TODAY = date.today()
-YESTERDAY = TODAY - timedelta(days=1)
-TOMORROW = TODAY + timedelta(days=1)
-NEXT_WEEK = TODAY + timedelta(days=7)
+# ใช้เที่ยงวันเป็นฐานเพื่อไม่ให้เทสต์พังตอนรันใกล้เที่ยงคืน
+NOON_TODAY = datetime.combine(TODAY, datetime.min.time()) + timedelta(hours=12)
+EARLIER_TODAY = NOW - timedelta(minutes=30)
+LATER_TODAY = NOW + timedelta(minutes=30)
+YESTERDAY = NOW - timedelta(days=1)
+TOMORROW = NOW + timedelta(days=1)
+NEXT_WEEK = NOW + timedelta(days=7)
+
+
+def _form_value(dt):
+    """รูปแบบเดียวกับที่ <input type="datetime-local"> ส่งมา (ไม่มีวินาที)"""
+    return dt.strftime("%Y-%m-%dT%H:%M")
+
+
+def _expected(dt):
+    """ค่าที่ควรถูกเก็บ — วินาทีและไมโครวินาทีถูกตัดทิ้งเพราะ form ไม่ได้ส่งมา"""
+    return dt.replace(second=0, microsecond=0)
 
 
 def _add(client, title, due=None, category_id=None):
     data = {"title": title}
     if due is not None:
-        data["due_date"] = due.isoformat() if hasattr(due, "isoformat") else due
+        data["due_date"] = _form_value(due) if hasattr(due, "strftime") else due
     if category_id is not None:
         data["category_id"] = str(category_id)
     return client.post("/add", data=data, follow_redirects=True)
@@ -35,7 +50,22 @@ def _titles_in_order(resp, titles):
 
 def test_add_with_due_date(app, client):
     _add(client, "ส่งรายงาน", due=TOMORROW)
-    assert _get(app, "ส่งรายงาน").due_date == TOMORROW
+    assert _get(app, "ส่งรายงาน").due_date == _expected(TOMORROW)
+
+
+def test_time_is_stored_not_just_date(app, client):
+    """จุดสำคัญของฟีเจอร์นี้ — เวลาต้องไม่ถูกปัดทิ้ง"""
+    due = NOON_TODAY.replace(hour=14, minute=45)
+    _add(client, "ประชุมบ่าย", due=due)
+    stored = _get(app, "ประชุมบ่าย").due_date
+    assert (stored.hour, stored.minute) == (14, 45)
+
+
+def test_accepts_date_only_as_midnight(app, client):
+    """คนยิง API ที่ยังส่งแค่วัน ให้ถือว่าเป็นเที่ยงคืนของวันนั้น"""
+    _add(client, "ส่งแค่วัน", due="2026-12-31")
+    stored = _get(app, "ส่งแค่วัน").due_date
+    assert stored == datetime(2026, 12, 31, 0, 0)
 
 
 def test_add_without_due_date(app, client):
@@ -60,11 +90,11 @@ def test_edit_sets_and_clears_due_date(app, client):
 
     client.post(
         f"/edit/{todo_id}",
-        data={"title": "งาน", "due_date": NEXT_WEEK.isoformat()},
+        data={"title": "งาน", "due_date": _form_value(NEXT_WEEK)},
         follow_redirects=True,
     )
     with app.app_context():
-        assert db.session.get(Todo, todo_id).due_date == NEXT_WEEK
+        assert db.session.get(Todo, todo_id).due_date == _expected(NEXT_WEEK)
 
     # ส่งค่าว่างมา = ลบกำหนดส่งทิ้ง
     client.post(
@@ -81,10 +111,32 @@ def test_overdue_true_for_past_date(app, client):
     assert _get(app, "งานเลยกำหนด").is_overdue is True
 
 
-def test_overdue_false_for_today(app, client):
-    """ครบกำหนดวันนี้ยังไม่นับว่าเลยกำหนด — ยังมีทั้งวันให้ทำ"""
-    _add(client, "งานวันนี้", due=TODAY)
-    assert _get(app, "งานวันนี้").is_overdue is False
+def test_overdue_true_for_earlier_today(app, client):
+    """พอมีเวลาแล้ว งานที่เลยเวลาไปเมื่อเช้าถือว่าเลยกำหนดทันที
+    ไม่ต้องรอข้ามวันเหมือนตอนที่เก็บแค่วัน"""
+    _add(client, "งานเมื่อเช้า", due=EARLIER_TODAY)
+    assert _get(app, "งานเมื่อเช้า").is_overdue is True
+
+
+def test_overdue_false_for_later_today(app, client):
+    _add(client, "งานอีกเดี๋ยว", due=LATER_TODAY)
+    assert _get(app, "งานอีกเดี๋ยว").is_overdue is False
+
+
+def test_is_due_today_for_later_today(app, client):
+    _add(client, "งานอีกเดี๋ยว", due=LATER_TODAY)
+    assert _get(app, "งานอีกเดี๋ยว").is_due_today is True
+
+
+def test_is_due_today_false_for_tomorrow(app, client):
+    _add(client, "งานพรุ่งนี้", due=TOMORROW)
+    assert _get(app, "งานพรุ่งนี้").is_due_today is False
+
+
+def test_is_due_today_false_when_already_overdue(app, client):
+    """เลยเวลาไปแล้วให้ขึ้นว่า 'เลยกำหนด' อย่างเดียว ไม่ซ้อนกับ 'ครบกำหนดวันนี้'"""
+    _add(client, "งานเมื่อเช้า", due=EARLIER_TODAY)
+    assert _get(app, "งานเมื่อเช้า").is_due_today is False
 
 
 def test_overdue_false_for_future(app, client):
