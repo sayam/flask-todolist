@@ -91,7 +91,7 @@ correctness) backend จริงเป็น plugin และ rate-limiter stor
 
 | จุด | ระเบิดกับ | แก้ที่ไหน |
 |---|---|---|
-| raw SQL `UPDATE user SET ...` ใน migration `296ab616c11b` — `user` เป็น reserved word | PostgreSQL/Oracle/MSSQL (fresh install ที่ replay migration) — **MySQL/MariaDB รอด** | Phase 5: baseline squash |
+| raw SQL `UPDATE user SET ...` ใน migration `296ab616c11b` — `user` เป็น reserved word | PostgreSQL/Oracle/MSSQL (fresh install ที่ replay migration) — **MySQL/MariaDB รอด** | Phase 2: rename เป็น `tdl_user` (หมดปัญหาถาวร) + Phase 5: squash ล้าง raw SQL เก่า |
 | MySQL `DATETIME` default ตัด microsecond แต่โค้ดเก็บ `datetime.now()` เต็ม precision | MySQL/MariaDB (silent truncation กระทบ ordering tie และ audit hash) | Phase 5: type variant `DATETIME(6)` + เทสต์ precision ใน CI matrix |
 | `batch_alter_table` + data fix เฉพาะ SQLite ใน migration เก่า | ไม่ระเบิด (no-op บนยี่ห้ออื่น) แต่รก | Phase 5: baseline squash ล้างทิ้งพร้อมกัน |
 | ชื่อคอลัมน์ String ระบุความยาวครบทุกตัวแล้ว | — | ทุนที่มีแล้ว (MySQL บังคับ) |
@@ -132,8 +132,11 @@ coverage gate ใน CI
 
 **เป้าหมาย:** ทุกเฟสถัดไปถูกคุ้มกันด้วย gate อัตโนมัติ ก่อนจะเริ่มเขียนโค้ดเพิ่ม
 
-- CI pipeline (GitHub Actions): pytest + coverage threshold (ตั้งจากค่าปัจจุบันแล้วห้ามต่ำลง),
-  ruff (lint + กฎ security-lite), `pip-audit` (SCA), secret scanning
+- CI pipeline (GitHub Actions) — ชุดเครื่องมือตัดสินแล้วใน `docs/STANDARDS.md` ข้อ 4:
+  pytest + coverage (branch mode + threshold + diff-cover), ruff `select=ALL`
+  + ruff format, mypy strict แบบ gradual (เริ่มที่ module ที่ pure), semgrep `p/flask`,
+  xenon (complexity gate), interrogate (docstring), gitlint (Conventional Commits),
+  `pip-audit` (SCA), secret scanning, pre-commit ฝั่งเครื่อง dev
 - SBOM: `cyclonedx-py` generate ทุก release เก็บเป็น artifact
 - ไดเรกทอรี `docs/adr/` + backfill ADR ของการตัดสินใจที่ทำไปแล้ว
   (UTC storage, msgid ภาษาอังกฤษ, CSRF ก่อน login_required, plugin architecture,
@@ -170,6 +173,11 @@ request_id ใน log
 **เป้าหมาย:** เปลี่ยนความหมายของ "ลบ" และให้ทุก write ถูกบันทึก **ก่อน** ที่จะมี
 ฟีเจอร์/สัญญาใหม่มาทับ
 
+- **ด่านแรก — "schema identity" (migration เดียวจบ, ดู STANDARDS ข้อ 1):**
+  เปลี่ยนชื่อตารางเป็น `tdl_*` (core) + กติกา `tdl_<ชนิด>_<ไอดี>_*` สำหรับ plugin,
+  ใส่ SQLAlchemy `naming_convention`, `done` → `is_done`,
+  rewrite model เป็น SQLAlchemy 2.0 typed style (`Mapped[]`) เปิดทาง mypy strict
+  → ผลพลอยได้: ฆ่า landmine reserved word `user` ถาวร ก่อนตาราง audit จะเกิด
 - **Data classification (เอกสาร + ADR):** ระบุ PII (username, first/last name),
   transactional (todo/category), audit log — retention period แยกต่อ class
   ไม่ใช้ค่าเดียวทั้งระบบ
