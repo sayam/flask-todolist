@@ -41,6 +41,4 @@ def test_config_has_no_hardcoded_fallback():
 
     source = __import__("pathlib").Path(config.__file__).read_text()
     assert "dev-secret-change-me" not in source
-    assert 'os.environ.get("SECRET_KEY")' in source, (
-        "SECRET_KEY ต้องอ่านจาก env ล้วน ๆ ห้ามมี default"
-    )
+    assert 'os.environ.get("SECRET_KEY")' in source, "SECRET_KEY ต้องอ่านจาก env ล้วน ๆ ห้ามมี default"

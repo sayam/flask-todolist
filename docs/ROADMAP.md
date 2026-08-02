@@ -114,7 +114,7 @@ migration และโค้ดใหม่ทุกตัวจากนี้�
 
 | เฟส | ชื่อ | ขนาด | ตอบหมวด |
 |---|---|---|---|
-| 0 | Process backbone | S | Maintainability |
+| 0 ✅ | Process backbone | S | Maintainability |
 | 1 | Cross-cutting inheritance | M | Security(headers), Interaction, Maintainability |
 | 2 | Data governance core | L | Audit Trail, Data Retention, PDPA |
 | 3 | Service layer + API v1 | M–L | Compatibility, Maintainability |
@@ -128,7 +128,7 @@ coverage gate ใน CI
 
 ---
 
-## Phase 0 — Process backbone
+## Phase 0 — Process backbone ✅ (เสร็จ 2026-08-03)
 
 **เป้าหมาย:** ทุกเฟสถัดไปถูกคุ้มกันด้วย gate อัตโนมัติ ก่อนจะเริ่มเขียนโค้ดเพิ่ม
 

@@ -21,9 +21,7 @@ def test_create_user_seeds_default_categories(app):
 
 
 def test_create_user_rejects_short_password(app):
-    result = app.test_cli_runner().invoke(
-        args=["create-user", "somchai"], input="sh0rt\nsh0rt\n"
-    )
+    result = app.test_cli_runner().invoke(args=["create-user", "somchai"], input="sh0rt\nsh0rt\n")
     assert result.exit_code != 0
     with app.app_context():
         assert User.query.filter_by(username="somchai").first() is None
@@ -46,9 +44,7 @@ def test_create_user_no_categories_flag(app):
 
 def test_delete_user_removes_categories_and_todos(app, user_id, category_id):
     with app.app_context():
-        db.session.add(
-            Todo(title="งานที่ต้องหายไปด้วย", user_id=user_id, category_id=category_id)
-        )
+        db.session.add(Todo(title="งานที่ต้องหายไปด้วย", user_id=user_id, category_id=category_id))
         db.session.commit()
 
     result = app.test_cli_runner().invoke(args=["delete-user", "tester", "--yes"])

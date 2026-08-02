@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 from flask import (
     Blueprint,
     current_app,
@@ -22,7 +24,7 @@ bp = Blueprint("auth", __name__)
     lambda: current_app.config["LOGIN_RATE_LIMIT"],
     methods=["POST"],
     # หักโควตาเฉพาะตอนล็อกอินไม่ผ่าน คนที่พิมพ์ถูกไม่โดนกัน
-    deduct_when=lambda response: response.status_code == 401,
+    deduct_when=lambda response: response.status_code == HTTPStatus.UNAUTHORIZED,
 )
 def login():
     if current_user.is_authenticated:

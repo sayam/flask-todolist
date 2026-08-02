@@ -1,7 +1,8 @@
-import os
+from pathlib import Path
 
 from flask import Flask, render_template
-from flask_babel import Babel, lazy_gettext as _l
+from flask_babel import Babel
+from flask_babel import lazy_gettext as _l
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_login import LoginManager
@@ -38,7 +39,7 @@ def create_app(config_class=Config):
     # ให้พังตั้งแต่ตอน start ถ้าโครงสร้าง plugin ไม่ถูกต้อง
     plugins.check_installation()
 
-    os.makedirs(app.instance_path, exist_ok=True)
+    Path(app.instance_path).mkdir(parents=True, exist_ok=True)
 
     db.init_app(app)
     # render_as_batch: SQLite ALTER TABLE ทำได้จำกัด ต้องให้ alembic สร้างตารางใหม่แทน
@@ -49,6 +50,7 @@ def create_app(config_class=Config):
     login_manager.init_app(app)
 
     from app.i18n import select_locale
+
     babel.init_app(app, locale_selector=select_locale)
 
     @app.context_processor
@@ -60,6 +62,8 @@ def create_app(config_class=Config):
             resolve_mode,
             select_mode,
             select_theme,
+        )
+        from app.theme import (
             themes as select_themes,
         )
 
@@ -80,12 +84,14 @@ def create_app(config_class=Config):
         # คืนหน้า login พร้อมข้อความ ไม่ใช่หน้า error ดิบ ๆ แต่คง status 429 ไว้
         return render_template("login.html", rate_limited=str(error.description)), 429
 
-    from app.routes import bp as main_bp
     from app.auth import bp as auth_bp
+    from app.routes import bp as main_bp
+
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
 
     from app.cli import register_cli
+
     register_cli(app)
 
     return app

@@ -1,0 +1,26 @@
+# hook ทั้งหมดเป็น local + language:system — เรียกเครื่องมือจาก venv ของ pipenv
+# เพื่อให้เวอร์ชันเดียวกับ Pipfile.lock เป๊ะ (ไม่มีเวอร์ชันที่สองใน config นี้)
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check (--fix)
+        entry: pipenv run ruff check --fix --force-exclude
+        language: system
+        types: [python]
+      - id: ruff-format
+        name: ruff format
+        entry: pipenv run ruff format --force-exclude
+        language: system
+        types: [python]
+      - id: mypy
+        name: mypy
+        entry: pipenv run mypy app scripts
+        language: system
+        pass_filenames: false
+        types: [python]
+      - id: conventional-commit
+        name: conventional commit message
+        entry: pipenv run python scripts/lint_commits.py --msg-file
+        language: system
+        stages: [commit-msg]

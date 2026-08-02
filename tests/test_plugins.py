@@ -35,15 +35,19 @@ def temp_theme():
         directory.mkdir(parents=True)
         created.append(directory)
         (directory / "plugin.json").write_text(
-            json.dumps(manifest if manifest is not None else {
-                "type": "theme", "name": theme_id.title(),
-                "version": "1.0.0", "stylesheet": "theme.css",
-            })
+            json.dumps(
+                manifest
+                if manifest is not None
+                else {
+                    "type": "theme",
+                    "name": theme_id.title(),
+                    "version": "1.0.0",
+                    "stylesheet": "theme.css",
+                }
+            )
         )
         if css is not False:
-            (directory / "theme.css").write_text(
-                css or ":root { --bg: #123456; }\n"
-            )
+            (directory / "theme.css").write_text(css or ":root { --bg: #123456; }\n")
         return directory
 
     yield make
@@ -52,6 +56,7 @@ def temp_theme():
 
 
 # --- การค้นหา plugin ---
+
 
 def test_core_theme_is_installed():
     assert plugins.core_theme().id == plugins.CORE_THEME
@@ -114,6 +119,7 @@ def test_plugin_cannot_reach_outside_its_directory():
 
 # --- core ไม่ hardcode ชื่อธีม ---
 
+
 def test_core_config_does_not_list_themes():
     """ถ้า config ยังประกาศธีมไว้ แปลว่าเพิ่มธีมต้องแก้ core"""
     config_source = (pathlib.Path(__file__).resolve().parent.parent / "config.py").read_text()
@@ -133,6 +139,7 @@ def test_core_python_does_not_name_the_extra_theme():
 
 
 # --- แต่ละธีมต้องกำหนดสีครบ ---
+
 
 def _declarations(css, selector):
     start = css.index(selector) + len(selector)
@@ -158,8 +165,7 @@ def test_every_theme_defines_the_same_variables():
             if reference is None:
                 reference = names
             assert names == reference, (
-                f"{theme.id} บล็อก {selector} ตัวแปรไม่ตรงกับธีมอื่น: "
-                f"{names ^ reference}"
+                f"{theme.id} บล็อก {selector} ตัวแปรไม่ตรงกับธีมอื่น: {names ^ reference}"
             )
 
 
@@ -167,8 +173,8 @@ def test_theme_colour_values_are_valid_hex():
     for theme in plugins.themes().values():
         css = theme.file(theme.stylesheet).read_text()
         for selector in PALETTE_BLOCKS:
-            for name, value in _declarations(css, selector).items():
-                value = value.strip()
+            for name, raw_value in _declarations(css, selector).items():
+                value = raw_value.strip()
                 if value.startswith("#"):
                     assert re.fullmatch(r"#[0-9a-fA-F]{3,8}", value), (
                         f"{theme.id} {name} = {value!r}"
@@ -182,6 +188,7 @@ def test_base_css_has_no_raw_colours():
 
 
 # --- ใช้งานผ่านเว็บ ---
+
 
 def test_stylesheet_of_each_theme_is_served(anon_client):
     for theme_id in plugins.themes():
@@ -217,8 +224,7 @@ def test_switching_theme_changes_the_stylesheet(app, client, user_id, temp_theme
     temp_theme("sunset")
     client.post(
         "/settings/preferences",
-        data={"locale": "en", "theme": "sunset", "mode": "light",
-              "timezone": "Asia/Bangkok"},
+        data={"locale": "en", "theme": "sunset", "mode": "light", "timezone": "Asia/Bangkok"},
         follow_redirects=True,
     )
     assert b"/plugin/themes/sunset/style.css" in client.get("/").data
@@ -231,8 +237,7 @@ def test_removing_a_theme_falls_back_to_core(app, client, user_id, temp_theme):
     directory = temp_theme("sunset")
     client.post(
         "/settings/preferences",
-        data={"locale": "en", "theme": "sunset", "mode": "light",
-              "timezone": "Asia/Bangkok"},
+        data={"locale": "en", "theme": "sunset", "mode": "light", "timezone": "Asia/Bangkok"},
         follow_redirects=True,
     )
     shutil.rmtree(directory)
@@ -247,8 +252,7 @@ def test_removing_a_theme_falls_back_to_core(app, client, user_id, temp_theme):
 def test_settings_rejects_a_theme_that_is_not_installed(app, client, user_id):
     resp = client.post(
         "/settings/preferences",
-        data={"locale": "en", "theme": "nope", "mode": "light",
-              "timezone": "Asia/Bangkok"},
+        data={"locale": "en", "theme": "nope", "mode": "light", "timezone": "Asia/Bangkok"},
         follow_redirects=True,
     )
     assert b"Unsupported theme" in resp.data

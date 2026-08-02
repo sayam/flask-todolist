@@ -5,13 +5,13 @@ Revises: cb0dcf2ef467
 Create Date: 2026-08-02 16:07:50.223814
 
 """
-from alembic import op
-import sqlalchemy as sa
 
+import sqlalchemy as sa
+from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = '89cd0c572bf9'
-down_revision = 'cb0dcf2ef467'
+revision = "89cd0c572bf9"
+down_revision = "cb0dcf2ef467"
 branch_labels = None
 depends_on = None
 
@@ -48,11 +48,10 @@ def upgrade():
         for row in _fetch_due_dates(conn)
     ]
 
-    with op.batch_alter_table('todo', schema=None) as batch_op:
-        batch_op.alter_column('due_date',
-               existing_type=sa.DATE(),
-               type_=sa.DateTime(),
-               existing_nullable=True)
+    with op.batch_alter_table("todo", schema=None) as batch_op:
+        batch_op.alter_column(
+            "due_date", existing_type=sa.DATE(), type_=sa.DateTime(), existing_nullable=True
+        )
 
     _restore(conn, saved)
 
@@ -62,10 +61,9 @@ def downgrade():
     # ตัดเวลาทิ้ง เหลือแค่วัน
     saved = [(row[0], str(row[1])[:10]) for row in _fetch_due_dates(conn)]
 
-    with op.batch_alter_table('todo', schema=None) as batch_op:
-        batch_op.alter_column('due_date',
-               existing_type=sa.DateTime(),
-               type_=sa.DATE(),
-               existing_nullable=True)
+    with op.batch_alter_table("todo", schema=None) as batch_op:
+        batch_op.alter_column(
+            "due_date", existing_type=sa.DateTime(), type_=sa.DATE(), existing_nullable=True
+        )
 
     _restore(conn, saved)

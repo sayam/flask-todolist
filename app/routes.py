@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import datetime
 
 from flask import (
     Blueprint,
@@ -11,30 +11,29 @@ from flask import (
     session,
     url_for,
 )
-from flask_babel import gettext as _, ngettext
+from flask_babel import gettext as _
+from flask_babel import ngettext
 from flask_login import current_user, login_required
 
 from app import db, plugins, tz
 from app.filters import (
-    DEFAULT_UPCOMING,
-    STATUS_FILTERS,
+    DAY_END,
+    DAY_START,
     UPCOMING_CHOICES,
-    WHEN_FILTERS,
     apply_when,
     normalise_status,
     normalise_when,
     normalise_within,
     parse_boundary,
 )
-from app.filters import DAY_END, DAY_START
 from app.i18n import SESSION_KEY, is_supported
+from app.models import Category, Todo
 from app.theme import (
     MODE_SESSION_KEY,
     THEME_SESSION_KEY,
     mode_is_supported,
     theme_is_supported,
 )
-from app.models import Category, Todo
 
 bp = Blueprint("main", __name__)
 
@@ -129,15 +128,14 @@ def index():
         range_from = range_to = None
         when = "all"
 
-    query = apply_when(
-        query, Todo, when, within, range_from, range_to, current_user.timezone_name
-    )
+    query = apply_when(query, Todo, when, within, range_from, range_to, current_user.timezone_name)
 
     # ติ๊กว่าจะโชว์วันเริ่มในลิสต์ไหม จำไว้ใน session จะได้ไม่ต้องติ๊กใหม่ทุกครั้ง
     # ต้องมี marker เพราะ checkbox ที่ไม่ติ๊กจะไม่ถูกส่งมาเลย แยกไม่ออกจาก
     # การกดลิงก์ตัวกรองอื่นที่ไม่ได้ส่ง show_start มาด้วย
     if request.args.get("filters_submitted"):
-        session[SHOW_START_KEY] = bool(request.args.get(SHOW_START_KEY))
+        # เทียบค่า "1" ตรง ๆ (ค่าที่ checkbox ส่ง) แทน bool() ครอบ user input
+        session[SHOW_START_KEY] = request.args.get(SHOW_START_KEY) == "1"
     show_start = bool(session.get(SHOW_START_KEY))
 
     todos = query.order_by(
@@ -148,11 +146,7 @@ def index():
         Todo.created_at.desc(),
     ).all()
 
-    categories = (
-        Category.query.filter_by(user_id=current_user.id)
-        .order_by(Category.name)
-        .all()
-    )
+    categories = Category.query.filter_by(user_id=current_user.id).order_by(Category.name).all()
     return render_template(
         "index.html",
         todos=todos,
@@ -202,11 +196,7 @@ def edit(todo_id):
     ใส่ครบในแถวเดียวแล้วอ่านไม่ออก"""
     todo = _owned_todo(todo_id)
     if request.method == "GET":
-        categories = (
-            Category.query.filter_by(user_id=current_user.id)
-            .order_by(Category.name)
-            .all()
-        )
+        categories = Category.query.filter_by(user_id=current_user.id).order_by(Category.name).all()
         return render_template("edit_todo.html", todo=todo, categories=categories)
 
     title = request.form.get("title", "").strip()
@@ -257,11 +247,7 @@ def clear_completed():
 @bp.route("/categories")
 @login_required
 def categories():
-    items = (
-        Category.query.filter_by(user_id=current_user.id)
-        .order_by(Category.name)
-        .all()
-    )
+    items = Category.query.filter_by(user_id=current_user.id).order_by(Category.name).all()
     return render_template("categories.html", categories=items)
 
 
@@ -357,6 +343,7 @@ def set_mode(value):
 
 
 # --- ตั้งค่า ---
+
 
 @bp.route("/settings")
 @login_required

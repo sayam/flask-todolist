@@ -65,6 +65,7 @@ def _titles_in_order(resp, titles):
 
 # --- due_date ---
 
+
 def test_add_with_due_date(app, client):
     _add(client, "ส่งรายงาน", due=TOMORROW)
     assert _prop(app, "ส่งรายงาน", "due_local") == _expected(TOMORROW)
@@ -113,15 +114,14 @@ def test_edit_sets_and_clears_due_date(app, client):
     with app.app_context():
         assert db.session.get(Todo, todo_id).due_local == _expected(NEXT_WEEK)
 
-    # ส่งค่าว่างมา = ลบกำหนดส่งทิ้ง
-    client.post(
-        f"/edit/{todo_id}", data={"title": "งาน", "due_date": ""}, follow_redirects=True
-    )
+    # ส่งค่าว่างมาแปลว่าลบกำหนดส่งทิ้ง
+    client.post(f"/edit/{todo_id}", data={"title": "งาน", "due_date": ""}, follow_redirects=True)
     with app.app_context():
         assert db.session.get(Todo, todo_id).due_date is None
 
 
 # --- is_overdue ---
+
 
 def test_overdue_true_for_past_date(app, client):
     _add(client, "งานเลยกำหนด", due=YESTERDAY)
@@ -187,6 +187,7 @@ def test_overdue_shown_in_page(client):
 
 # --- เรียงลำดับ ---
 
+
 def test_due_soonest_first_then_undated(client):
     """เพิ่มโดยเรียงกลับด้านกับผลที่คาดไว้ เพื่อไม่ให้เทสต์ผ่านได้
     ด้วยการเรียงตาม created_at เฉย ๆ"""
@@ -194,13 +195,12 @@ def test_due_soonest_first_then_undated(client):
     _add(client, "อีกอาทิตย์", due=NEXT_WEEK)
     _add(client, "ไม่มีกำหนด")
 
-    order = _titles_in_order(
-        client.get("/"), ["พรุ่งนี้", "อีกอาทิตย์", "ไม่มีกำหนด"]
-    )
+    order = _titles_in_order(client.get("/"), ["พรุ่งนี้", "อีกอาทิตย์", "ไม่มีกำหนด"])
     assert order == ["พรุ่งนี้", "อีกอาทิตย์", "ไม่มีกำหนด"]
 
 
 # --- ตัวกรองสถานะ ---
+
 
 def test_filter_active_hides_done(app, client):
     _add(client, "ล้างรถ")
@@ -240,6 +240,7 @@ def test_unknown_status_falls_back_to_all(app, client):
 
 
 # --- ตัวกรองหมวด ---
+
 
 def test_filter_by_category(app, client, category_id):
     _add(client, "งานในหมวด", category_id=category_id)

@@ -17,6 +17,7 @@
 
 import json
 import pathlib
+from typing import Any
 
 PLUGIN_ROOT = pathlib.Path(__file__).resolve().parent
 MANIFEST_NAME = "plugin.json"
@@ -35,56 +36,59 @@ class PluginError(RuntimeError):
 class Plugin:
     """ข้อมูลของ plugin หนึ่งตัวที่อ่านมาจาก manifest"""
 
-    def __init__(self, plugin_type, plugin_id, directory, manifest):
+    def __init__(
+        self, plugin_type: str, plugin_id: str, directory: pathlib.Path, manifest: dict[str, Any]
+    ) -> None:
         self.type = plugin_type
         self.id = plugin_id
         self.directory = directory
         self.manifest = manifest
 
     @property
-    def name(self):
+    def name(self) -> str:
         """ชื่อที่เอาไปแสดง — ไม่ผ่าน gettext เพราะเป็นข้อมูลของ plugin
         ไม่ใช่ข้อความของ core (plugin จะแปลเองต้องมี lang pack ของตัวเอง)"""
-        return self.manifest.get("name", self.id)
+        return str(self.manifest.get("name", self.id))
 
     @property
-    def version(self):
-        return self.manifest.get("version", "0")
+    def version(self) -> str:
+        return str(self.manifest.get("version", "0"))
 
     @property
-    def is_core(self):
+    def is_core(self) -> bool:
         """plugin ที่มากับระบบ ลบไม่ได้"""
         return bool(self.manifest.get("core", False))
 
     @property
-    def stylesheet(self):
-        return self.manifest.get("stylesheet")
+    def stylesheet(self) -> str | None:
+        value = self.manifest.get("stylesheet")
+        return str(value) if value is not None else None
 
-    def file(self, filename):
+    def file(self, filename: str) -> pathlib.Path:
         """path ของไฟล์ใน plugin — กันไม่ให้หลุดออกนอกไดเรกทอรีตัวเอง"""
         target = (self.directory / filename).resolve()
         if not target.is_relative_to(self.directory):
             raise PluginError(f"{self.id}: ไฟล์อยู่นอกไดเรกทอรีของ plugin")
         return target
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Plugin {self.type}/{self.id} v{self.version}>"
 
 
-def _read_manifest(directory):
+def _read_manifest(directory: pathlib.Path) -> dict[str, Any] | None:
     path = directory / MANIFEST_NAME
     try:
         manifest = json.loads(path.read_text())
     except FileNotFoundError:
         return None  # ไม่ใช่ไดเรกทอรีของ plugin ข้ามไป
     except json.JSONDecodeError as exc:
-        raise PluginError(f"{directory.name}: {MANIFEST_NAME} อ่านไม่ได้ — {exc}")
+        raise PluginError(f"{directory.name}: {MANIFEST_NAME} อ่านไม่ได้ — {exc}") from exc
     if not isinstance(manifest, dict):
         raise PluginError(f"{directory.name}: {MANIFEST_NAME} ต้องเป็น object")
     return manifest
 
 
-def discover(plugin_type):
+def discover(plugin_type: str) -> dict[str, Plugin]:
     """หา plugin ทุกตัวของชนิดนั้น เรียงตามไอดี
 
     อ่านจากดิสก์ทุกครั้งที่เรียก — แอปนี้เล็กพอที่จะไม่ต้อง cache
@@ -101,33 +105,30 @@ def discover(plugin_type):
         manifest = _read_manifest(directory)
         if manifest is None:
             continue
-        found[directory.name] = Plugin(
-            plugin_type, directory.name, directory.resolve(), manifest
-        )
+        found[directory.name] = Plugin(plugin_type, directory.name, directory.resolve(), manifest)
     return found
 
 
-def themes():
+def themes() -> dict[str, Plugin]:
     return discover(THEME_TYPE)
 
 
-def get_theme(theme_id):
+def get_theme(theme_id: str) -> Plugin | None:
     """คืน plugin ธีมตามไอดี — ไม่มีก็คืน None (ปล่อยให้ผู้เรียกตัดสินใจ)"""
     return themes().get(theme_id)
 
 
-def core_theme():
+def core_theme() -> Plugin:
     """ธีมสำรองที่ต้องมีเสมอ"""
     found = get_theme(CORE_THEME)
     if found is None:
         raise PluginError(
-            f"ไม่พบธีม core '{CORE_THEME}' — ต้องมีไดเรกทอรี "
-            f"app/plugins/{THEME_TYPE}/{CORE_THEME}/ เสมอ"
+            f"ไม่พบธีม core '{CORE_THEME}' — ต้องมีไดเรกทอรี app/plugins/{THEME_TYPE}/{CORE_THEME}/ เสมอ"
         )
     return found
 
 
-def check_installation():
+def check_installation() -> None:
     """ตรวจตอนสร้างแอปว่าโครงสร้าง plugin ใช้ได้
 
     ให้พังตั้งแต่ตอน start ดีกว่าไปพังตอน render หน้าแรก
@@ -137,6 +138,4 @@ def check_installation():
         if not plugin.stylesheet:
             raise PluginError(f"ธีม {plugin.id}: manifest ไม่ได้ระบุ stylesheet")
         if not plugin.file(plugin.stylesheet).is_file():
-            raise PluginError(
-                f"ธีม {plugin.id}: ไม่พบไฟล์ {plugin.stylesheet}"
-            )
+            raise PluginError(f"ธีม {plugin.id}: ไม่พบไฟล์ {plugin.stylesheet}")

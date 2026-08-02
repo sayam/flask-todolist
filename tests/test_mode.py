@@ -8,8 +8,8 @@
 CSS จึงได้ data-theme เป็น light หรือ dark เสมอ ไม่มี "ตามระบบ" อีกแล้ว
 """
 
-from datetime import datetime
 import re
+from datetime import datetime
 
 from app import db
 from app.models import User
@@ -40,6 +40,7 @@ def _prefs(client, **overrides):
 
 
 # --- data-theme ต้องเป็นค่าที่ใช้ได้จริงเสมอ ---
+
 
 def test_resolved_mode_is_always_concrete(anon_client):
     """ไม่มี "ตามระบบ" แล้ว CSS จึงต้องได้ light หรือ dark เสมอ ไม่ใช่ค่าว่าง"""
@@ -72,6 +73,7 @@ def test_old_theme_route_is_gone(anon_client):
 
 
 # --- จำค่าไว้ใน session และโปรไฟล์ ---
+
 
 def test_mode_persists_in_session(anon_client):
     anon_client.get("/mode/dark")
@@ -115,6 +117,7 @@ def test_mode_switch_ignores_external_referer(client):
 
 # --- settings เก็บทั้ง theme และ mode ---
 
+
 def test_settings_saves_theme_and_mode(app, client, user_id):
     _prefs(client, theme="system", mode="dark")
     with app.app_context():
@@ -131,12 +134,14 @@ def test_settings_rejects_unknown_mode(app, client, user_id):
 
 def test_settings_page_has_both_dropdowns(client):
     body = client.get("/settings").data
-    assert b'id="theme"' in body and b'id="mode"' in body
+    assert b'id="theme"' in body
+    assert b'id="mode"' in body
     for label in (b">Auto<", b">Light<", b">Dark<"):
         assert label in body.replace(b"\n", b"").replace(b"  ", b"")
 
 
 # --- ตารางดวงอาทิตย์ ---
+
 
 def test_sun_table_covers_common_zones():
     for zone in ("Asia/Bangkok", "Europe/London", "America/New_York", "Asia/Tokyo"):
@@ -150,9 +155,10 @@ def test_sun_times_are_plausible():
         for month in range(12):
             rise, set_ = row[month * 2], row[month * 2 + 1]
             if rise in (ALWAYS_DARK, ALWAYS_LIGHT):
-                assert rise == set_, f"{zone} เดือน {month+1}: ค่าพิเศษต้องเป็นคู่"
+                assert rise == set_, f"{zone} เดือน {month + 1}: ค่าพิเศษต้องเป็นคู่"
                 continue
-            assert 0 <= rise < 1440 and 0 <= set_ < 1440, f"{zone} เดือน {month+1}"
+            assert 0 <= rise < 1440, f"{zone} เดือน {month + 1}"
+            assert 0 <= set_ < 1440, f"{zone} เดือน {month + 1}"
 
 
 def test_bangkok_sunrise_is_morning():
@@ -160,7 +166,7 @@ def test_bangkok_sunrise_is_morning():
     row = SUN_TIMES["Asia/Bangkok"]
     for month in range(12):
         rise = row[month * 2]
-        assert 5 * 60 <= rise <= 7 * 60, f"เดือน {month+1} ขึ้น {rise//60}:{rise%60:02d}"
+        assert 5 * 60 <= rise <= 7 * 60, f"เดือน {month + 1} ขึ้น {rise // 60}:{rise % 60:02d}"
 
 
 def test_auto_is_light_at_noon_and_dark_at_midnight(app):
@@ -183,8 +189,7 @@ def test_auto_follows_the_users_timezone(app):
 def test_polar_night_is_dark_even_at_noon(app):
     """เขตที่ดวงอาทิตย์ไม่ขึ้นทั้งเดือน ต้องมืดแม้ตอนเที่ยง"""
     polar = [
-        zone for zone, row in SUN_TIMES.items()
-        if any(row[m * 2] == ALWAYS_DARK for m in range(12))
+        zone for zone, row in SUN_TIMES.items() if any(row[m * 2] == ALWAYS_DARK for m in range(12))
     ]
     assert polar, "ควรมีอย่างน้อยหนึ่งโซนที่มีคืนขั้วโลก"
 
@@ -285,5 +290,5 @@ def test_offset_only_zones_get_sensible_times():
     for zone in ("UTC", "Etc/GMT+5", "Etc/GMT-9"):
         for month in range(12):
             rise, set_ = SUN_TIMES[zone][month * 2], SUN_TIMES[zone][month * 2 + 1]
-            assert 5 * 60 <= rise <= 7 * 60, f"{zone} เดือน {month+1} ขึ้น {rise}"
-            assert 17 * 60 <= set_ <= 19 * 60, f"{zone} เดือน {month+1} ตก {set_}"
+            assert 5 * 60 <= rise <= 7 * 60, f"{zone} เดือน {month + 1} ขึ้น {rise}"
+            assert 17 * 60 <= set_ <= 19 * 60, f"{zone} เดือน {month + 1} ตก {set_}"

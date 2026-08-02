@@ -7,7 +7,7 @@
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from app import db, tz
+from app import db
 from app.models import Todo
 
 # TestConfig ตั้ง BABEL_DEFAULT_TIMEZONE เป็น Asia/Bangkok และ user ในเทสต์
@@ -49,12 +49,11 @@ def _prop(app, title, name):
 
 # --- #1 start_date ---
 
+
 def test_add_with_start_date(app, client):
     start = _now_local() + timedelta(days=1)
     _add(client, "งานมีวันเริ่ม", start=start)
-    assert _prop(app, "งานมีวันเริ่ม", "start_local") == start.replace(
-        second=0, microsecond=0
-    )
+    assert _prop(app, "งานมีวันเริ่ม", "start_local") == start.replace(second=0, microsecond=0)
 
 
 def test_start_date_is_optional(app, client):
@@ -77,12 +76,12 @@ def test_malformed_start_date_rejected(app, client):
 
 # --- #3 หน้าแก้งาน ---
 
+
 def test_edit_page_shows_all_fields(app, client):
     _add(client, "งานเดิม")
     todo_id = _prop(app, "งานเดิม", "id")
     body = client.get(f"/edit/{todo_id}").data
-    for field in (b'name="title"', b'name="start_date"', b'name="due_date"',
-                  b'name="category_id"'):
+    for field in (b'name="title"', b'name="start_date"', b'name="due_date"', b'name="category_id"'):
         assert field in body
 
 
@@ -114,7 +113,8 @@ def test_edit_can_clear_dates(app, client):
     )
     with app.app_context():
         todo = db.session.get(Todo, todo_id)
-        assert todo.start_date is None and todo.due_date is None
+        assert todo.start_date is None
+        assert todo.due_date is None
 
 
 def test_edit_page_of_other_users_task_is_404(app, client, other_client):
@@ -132,6 +132,7 @@ def test_edit_rejects_blank_title(app, client):
 
 
 # --- #2 ตัวกรองตามวัน ---
+
 
 def test_today_filter(app, client):
     _add(client, "วันนี้", due=_now_local().replace(hour=23, minute=0))
@@ -163,7 +164,8 @@ def test_upcoming_respects_the_chosen_window(app, client):
     assert within15 == ["อีก10นาที"], "15 นาทีต้องไม่รวมงานอีก 2 ชม."
 
     within8h = _titles(client.get("/?when=upcoming&within=480"))
-    assert "อีก10นาที" in within8h and "อีก2ชั่วโมง" in within8h
+    assert "อีก10นาที" in within8h
+    assert "อีก2ชั่วโมง" in within8h
 
 
 def test_upcoming_excludes_overdue(app, client):
@@ -193,11 +195,14 @@ def test_range_with_only_start_means_that_whole_day(app, client):
     """เลือกวันเดียว: ใส่แค่ช่องเริ่ม ต้องครอบทั้งวันนั้น 00:00-23:59"""
     day = (_now_local() + timedelta(days=3)).date()
     _add(client, "เช้าวันนั้น", due=datetime.combine(day, datetime.min.time()).replace(hour=1))
-    _add(client, "ดึกวันนั้น", due=datetime.combine(day, datetime.min.time()).replace(hour=23, minute=30))
-    _add(client, "วันถัดไป", due=datetime.combine(day + timedelta(days=1), datetime.min.time()).replace(hour=10))
+    late_night = datetime.combine(day, datetime.min.time()).replace(hour=23, minute=30)
+    _add(client, "ดึกวันนั้น", due=late_night)
+    next_day = datetime.combine(day + timedelta(days=1), datetime.min.time()).replace(hour=10)
+    _add(client, "วันถัดไป", due=next_day)
 
     titles = _titles(client.get(f"/?when=range&date_from={day.isoformat()}"))
-    assert "เช้าวันนั้น" in titles and "ดึกวันนั้น" in titles
+    assert "เช้าวันนั้น" in titles
+    assert "ดึกวันนั้น" in titles
     assert "วันถัดไป" not in titles
 
 
@@ -208,9 +213,7 @@ def test_range_accepts_times_too(app, client):
     _add(client, "เช้า", due=early)
     _add(client, "เย็น", due=late)
 
-    titles = _titles(
-        client.get(f"/?when=range&date_from={day}T08:00&date_to={day}T12:00")
-    )
+    titles = _titles(client.get(f"/?when=range&date_from={day}T08:00&date_to={day}T12:00"))
     assert titles == ["เช้า"]
 
 
@@ -252,6 +255,7 @@ def test_filter_uses_due_date_not_start_date(app, client):
 
 # --- checkbox แสดงวันเริ่ม ---
 
+
 def test_start_date_hidden_by_default(app, client):
     _add(client, "งาน", start=_now_local())
     assert b"Start:" not in client.get("/").data
@@ -278,6 +282,7 @@ def test_unticking_turns_it_off(app, client):
 
 
 # --- ลิงก์ตัวกรองต้องไม่ล้างตัวกรองอื่น ---
+
 
 def test_status_link_keeps_the_date_filter(app, client):
     resp = client.get("/?when=today&status=all")

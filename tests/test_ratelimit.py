@@ -60,16 +60,12 @@ def test_limit_is_per_ip(ratelimit_app):
     for _ in range(3):
         attacker.post("/login", data=WRONG, environ_base={"REMOTE_ADDR": "10.0.0.1"})
     assert (
-        attacker.post(
-            "/login", data=WRONG, environ_base={"REMOTE_ADDR": "10.0.0.1"}
-        ).status_code
+        attacker.post("/login", data=WRONG, environ_base={"REMOTE_ADDR": "10.0.0.1"}).status_code
         == 429
     )
 
     victim = ratelimit_app.test_client()
     assert (
-        victim.post(
-            "/login", data=RIGHT, environ_base={"REMOTE_ADDR": "10.0.0.2"}
-        ).status_code
+        victim.post("/login", data=RIGHT, environ_base={"REMOTE_ADDR": "10.0.0.2"}).status_code
         == 302
     ), "IP อื่นต้องไม่โดนหางเลข"

@@ -47,9 +47,7 @@ def test_login_page_renders_token(csrf_app):
 
 
 def test_login_without_token_rejected(csrf_app):
-    resp = csrf_app.test_client().post(
-        "/login", data={"username": "tester", "password": PASSWORD}
-    )
+    resp = csrf_app.test_client().post("/login", data={"username": "tester", "password": PASSWORD})
     assert resp.status_code == 400
 
 
@@ -66,9 +64,7 @@ def test_mutating_route_without_token_rejected(csrf_app, route):
 def test_mutating_route_with_token_succeeds(csrf_app):
     client = _login(csrf_app.test_client())
     token = _token(client.get("/").data)
-    resp = client.post(
-        "/add", data={"title": "งานที่มี token", "csrf_token": token}
-    )
+    resp = client.post("/add", data={"title": "งานที่มี token", "csrf_token": token})
     assert resp.status_code == 302
     with csrf_app.app_context():
         assert Todo.query.filter_by(title="งานที่มี token").count() == 1

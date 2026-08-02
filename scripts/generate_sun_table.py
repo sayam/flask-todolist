@@ -17,7 +17,7 @@
 import math
 import pathlib
 import sys
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from zoneinfo import ZoneInfo, available_timezones
 
 # zone.tab มาก่อนเพราะแยกพิกัดรายประเทศ (418 โซน) ส่วน zone1970.tab
@@ -105,9 +105,9 @@ def _sun_event_utc_hours(lat, lon, day, rising):
     sin_dec = 0.39782 * math.sin(math.radians(true_long))
     cos_dec = math.cos(math.asin(sin_dec))
 
-    cos_h = (
-        math.cos(math.radians(ZENITH)) - sin_dec * math.sin(math.radians(lat))
-    ) / (cos_dec * math.cos(math.radians(lat)))
+    cos_h = (math.cos(math.radians(ZENITH)) - sin_dec * math.sin(math.radians(lat))) / (
+        cos_dec * math.cos(math.radians(lat))
+    )
     if cos_h > 1:
         return None  # ดวงอาทิตย์ไม่ขึ้นเลยในวันนั้น
     if cos_h < -1:
@@ -123,9 +123,7 @@ def _sun_event_utc_hours(lat, lon, day, rising):
 
 def _local_minutes(utc_hours, day, zone):
     """ชั่วโมง UTC -> นาทีนับจากเที่ยงคืนตามเวลาท้องถิ่นของโซนนั้น"""
-    moment = datetime.combine(day, datetime.min.time(), tzinfo=timezone.utc) + timedelta(
-        hours=utc_hours
-    )
+    moment = datetime.combine(day, datetime.min.time(), tzinfo=UTC) + timedelta(hours=utc_hours)
     local = moment.astimezone(zone)
     return local.hour * 60 + local.minute
 
@@ -137,7 +135,7 @@ def month_row(lat, lon, zone, year, month):
     set_ = _sun_event_utc_hours(lat, lon, day, rising=False)
 
     if rise is None or set_ is None:
-        # ขั้วโลก: ดูมุมของดวงอาทิตย์ตอนเที่ยงว่าอยู่เหนือหรือใต้ขอบฟ้า
+        # เขตขั้วโลก — ดูมุมของดวงอาทิตย์ตอนเที่ยงว่าอยู่เหนือหรือใต้ขอบฟ้า
         declination = 23.44 * math.sin(math.radians(360 / 365 * (day.timetuple().tm_yday - 81)))
         noon_altitude = 90 - abs(lat - declination)
         return (ALWAYS_LIGHT, ALWAYS_LIGHT) if noon_altitude > 0 else (ALWAYS_DARK, ALWAYS_DARK)
@@ -161,7 +159,8 @@ def _tzfile_bytes(name):
 def _offset_hours(zone, year):
     """UTC offset เป็นชั่วโมง ใช้กับโซนที่ไม่มีความหมายทางภูมิศาสตร์"""
     moment = datetime(year, 1, 15, 12, tzinfo=zone)
-    return moment.utcoffset().total_seconds() / 3600
+    offset = moment.utcoffset()
+    return offset.total_seconds() / 3600 if offset is not None else 0.0
 
 
 def main():
@@ -181,7 +180,7 @@ def main():
 
     # 2) ชื่อที่เหลือ: ถ้าไฟล์ tzdata เหมือนโซนที่ทำไปแล้วเป๊ะ ก็คือโซนเดียวกัน
     #    (เช่น Japan = Asia/Tokyo, US/Pacific = America/Los_Angeles)
-    index = {}
+    index: dict[bytes, str] = {}
     for name in by_coordinates:
         blob = _tzfile_bytes(name)
         if blob is not None:
@@ -233,7 +232,7 @@ def main():
         f"ALWAYS_DARK = {ALWAYS_DARK}",
         f"ALWAYS_LIGHT = {ALWAYS_LIGHT}",
         "",
-        "SUN_TIMES = {",
+        "SUN_TIMES: dict[str, tuple[int, ...]] = {",
     ]
     for name in known:
         packed = ", ".join(str(v) for v in rows[name])

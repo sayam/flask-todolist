@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from flask_login import UserMixin
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -7,7 +7,7 @@ from app import db, tz
 
 
 def _utcnow():
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class User(UserMixin, db.Model):
@@ -23,17 +23,13 @@ class User(UserMixin, db.Model):
     # NULL = ยังไม่เคยเลือก ให้ใช้ค่าเริ่มต้น (auto)
     mode = db.Column(db.String(8), nullable=True)
     # timezone ของผู้ใช้ (ชื่อ IANA เช่น "Asia/Bangkok")
-    # NULL = ใช้ค่าเริ่มต้นของแอป
+    # ปล่อย NULL คือใช้ค่าเริ่มต้นของแอป
     timezone_name = db.Column(db.String(64), nullable=True)
     first_name = db.Column(db.String(80), nullable=True)
     last_name = db.Column(db.String(80), nullable=True)
 
-    categories = db.relationship(
-        "Category", back_populates="user", cascade="all, delete-orphan"
-    )
-    todos = db.relationship(
-        "Todo", back_populates="user", cascade="all, delete-orphan"
-    )
+    categories = db.relationship("Category", back_populates="user", cascade="all, delete-orphan")
+    todos = db.relationship("Todo", back_populates="user", cascade="all, delete-orphan")
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -58,17 +54,13 @@ class User(UserMixin, db.Model):
 class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False)
-    user_id = db.Column(
-        db.Integer, db.ForeignKey("user.id"), nullable=False, index=True
-    )
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
 
     user = db.relationship("User", back_populates="categories")
     todos = db.relationship("Todo", back_populates="category")
 
     # ชื่อหมวดห้ามซ้ำ แต่ซ้ำข้าม user ได้
-    __table_args__ = (
-        db.UniqueConstraint("user_id", "name", name="uq_category_user_name"),
-    )
+    __table_args__ = (db.UniqueConstraint("user_id", "name", name="uq_category_user_name"),)
 
     def __repr__(self):
         return f"<Category {self.id} {self.name!r}>"
@@ -85,9 +77,7 @@ class Todo(db.Model):
     # และผ่าน tz.to_local() ก่อนแสดง — ดู app/tz.py
     start_date = db.Column(db.DateTime, nullable=True)
     due_date = db.Column(db.DateTime, nullable=True)
-    user_id = db.Column(
-        db.Integer, db.ForeignKey("user.id"), nullable=False, index=True
-    )
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
     # ลบหมวดแล้ว todo ไม่หาย แค่กลับไปเป็น "ไม่มีหมวด"
     category_id = db.Column(
         db.Integer, db.ForeignKey("category.id", ondelete="SET NULL"), nullable=True

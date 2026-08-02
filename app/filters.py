@@ -8,10 +8,11 @@
 """
 
 from datetime import datetime, time, timedelta
+from typing import Any
 
 from app import tz
 
-# ตัวกรองสถานะ (เดิม)
+# ตัวกรองสถานะ — ชุดเดิม
 STATUS_FILTERS = ("all", "active", "completed")
 
 # ตัวกรองตามวัน
@@ -26,28 +27,33 @@ WHEN_FILTERS = (WHEN_ALL, WHEN_UPCOMING, WHEN_TODAY, WHEN_TOMORROW, WHEN_RANGE)
 UPCOMING_CHOICES = (15, 30, 45, 480)
 DEFAULT_UPCOMING = 480
 
+# ความยาวสตริง "YYYY-MM-DD" — บอกว่าผู้ใช้ส่งมาแค่วัน ไม่มีเวลา
+DATE_ONLY_LEN = 10
+
 DAY_START = time(0, 0)
 DAY_END = time(23, 59, 59, 999999)
 
 
-def normalise_status(value):
+def normalise_status(value: str | None) -> str:
     return value if value in STATUS_FILTERS else WHEN_ALL
 
 
-def normalise_when(value):
+def normalise_when(value: str | None) -> str:
     return value if value in WHEN_FILTERS else WHEN_ALL
 
 
-def normalise_within(value):
+def normalise_within(value: str | int | None) -> int:
     """นาทีของช่วง Upcoming — ค่าที่ไม่รู้จักตกไปใช้ค่าเริ่มต้น"""
+    if value is None:
+        return DEFAULT_UPCOMING
     try:
         minutes = int(value)
-    except (TypeError, ValueError):
+    except ValueError:
         return DEFAULT_UPCOMING
     return minutes if minutes in UPCOMING_CHOICES else DEFAULT_UPCOMING
 
 
-def parse_boundary(raw, fallback_time):
+def parse_boundary(raw: str | None, fallback_time: time) -> datetime | None:
     """แปลงค่าจากช่องเลือกวัน/เวลาเป็น datetime ท้องถิ่น
 
     รับทั้ง "YYYY-MM-DDTHH:MM" และ "YYYY-MM-DD" เปล่า ๆ
@@ -61,12 +67,18 @@ def parse_boundary(raw, fallback_time):
     if parsed.tzinfo is not None:
         raise ValueError("ไม่รับ timezone offset")
     # ผู้ใช้กรอกแค่วัน (ไม่มีเวลา) fromisoformat จะให้เที่ยงคืนมา
-    if len(raw) == 10:
+    if len(raw) == DATE_ONLY_LEN:
         parsed = datetime.combine(parsed.date(), fallback_time)
     return parsed
 
 
-def local_bounds(when, within_minutes, range_from, range_to, tz_name):
+def local_bounds(
+    when: str,
+    within_minutes: int,
+    range_from: datetime | None,
+    range_to: datetime | None,
+    tz_name: str | None,
+) -> tuple[datetime | None, datetime | None]:
     """คืน (เริ่ม, สิ้นสุด) เป็นเวลาท้องถิ่น — None แปลว่าไม่จำกัดด้านนั้น
 
     `range_from`/`range_to` เป็น datetime ท้องถิ่นที่ผ่าน parse_boundary มาแล้ว
@@ -97,11 +109,17 @@ def local_bounds(when, within_minutes, range_from, range_to, tz_name):
     return None, None
 
 
-def apply_when(query, model, when, within_minutes, range_from, range_to, tz_name):
+def apply_when(  # noqa: PLR0913, PLR0917 — จะยุบเป็น FilterSpec ตอน extract service (Phase 3)
+    query: Any,
+    model: Any,
+    when: str,
+    within_minutes: int,
+    range_from: datetime | None,
+    range_to: datetime | None,
+    tz_name: str | None,
+) -> Any:
     """ใส่เงื่อนไขช่วงวันลงใน query ตาม due_date"""
-    start_local, end_local = local_bounds(
-        when, within_minutes, range_from, range_to, tz_name
-    )
+    start_local, end_local = local_bounds(when, within_minutes, range_from, range_to, tz_name)
     if start_local is None and end_local is None:
         return query
 

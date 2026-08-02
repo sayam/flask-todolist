@@ -8,7 +8,10 @@
 
 ## Commands
 - รัน dev server: `pipenv run flask run --debug`
-- รัน test: `pipenv run pytest -v`
+- รัน test: `pipenv run pytest -v` (coverage gate: `pipenv run pytest --cov`)
+- lint/format: `pipenv run ruff check .` / `pipenv run ruff format .`
+- type check: `pipenv run mypy app scripts` (strict list ใน pyproject — ขยาย ห้ามหด)
+- ครั้งแรกหลัง clone: `pipenv run pre-commit install --hook-type pre-commit --hook-type commit-msg`
 - เพิ่ม dependency: `pipenv install <pkg>` (ห้ามใช้ `pip install` ตรง ๆ — Pipfile/Pipfile.lock จะไม่ sync)
 - สร้าง user: `pipenv run flask create-user <ชื่อ>` (ไม่มีหน้าสมัครสมาชิก โดยตั้งใจ)
 - ดู user: `pipenv run flask list-users`
@@ -31,6 +34,10 @@
   ตัวเล็กไม่ใช่ตัวใหญ่ย่อลงมา แต่ตัดรายละเอียดออกให้เหลือแค่เครื่องหมายถูก
 - `migrations/` — alembic migration scripts (commit ลง git ด้วย)
 - `tests/` — pytest, fixture จาก `conftest.py`
+- `pyproject.toml` — config กลางของ ruff/mypy/coverage/interrogate/pytest
+  (pytest.ini ถูกยุบเข้ามาแล้ว) threshold เป็น ratchet: ขยับขึ้นได้อย่างเดียว
+- `docs/adr/` — การตัดสินใจสำคัญทุกเรื่อง ตัดสินใจใหม่ต้องมี ADR
+- commit message เป็น Conventional Commits หัวไม่เกิน 72 ตัว (hook + CI บังคับ)
 
 ## Conventions
 - Route คืน `render_template`/`redirect` เท่านั้น ไม่คืน raw string

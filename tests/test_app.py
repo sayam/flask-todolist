@@ -67,12 +67,11 @@ def test_clear_completed(app, client):
 
 # --- แก้ไขงาน ---
 
+
 def test_edit_todo_title(app, client):
     _add(client, "ชื่อเดิม")
     todo_id = _first_todo_id(app, "ชื่อเดิม")
-    resp = client.post(
-        f"/edit/{todo_id}", data={"title": "ชื่อใหม่"}, follow_redirects=True
-    )
+    resp = client.post(f"/edit/{todo_id}", data={"title": "ชื่อใหม่"}, follow_redirects=True)
     assert resp.status_code == 200
     assert "ชื่อใหม่".encode() in resp.data
     assert "ชื่อเดิม".encode() not in resp.data
@@ -100,10 +99,9 @@ def test_edit_sets_category(app, client, category_id):
 
 # --- หมวดงาน ---
 
+
 def test_add_category(app, client):
-    resp = client.post(
-        "/categories/add", data={"name": "งาน delivery"}, follow_redirects=True
-    )
+    resp = client.post("/categories/add", data={"name": "งาน delivery"}, follow_redirects=True)
     assert resp.status_code == 200
     assert "งาน delivery".encode() in resp.data
     with app.app_context():
@@ -111,9 +109,7 @@ def test_add_category(app, client):
 
 
 def test_add_duplicate_category_rejected(app, client, category_id):
-    client.post(
-        "/categories/add", data={"name": "งานส่วนตัว"}, follow_redirects=True
-    )
+    client.post("/categories/add", data={"name": "งานส่วนตัว"}, follow_redirects=True)
     with app.app_context():
         assert Category.query.filter_by(name="งานส่วนตัว").count() == 1
 
@@ -175,6 +171,7 @@ def test_delete_button_disabled_when_category_has_tasks(client, category_id):
 
 # --- auth ---
 
+
 def test_index_requires_login(anon_client):
     resp = anon_client.get("/")
     assert resp.status_code == 302
@@ -182,9 +179,7 @@ def test_index_requires_login(anon_client):
 
 
 def test_login_with_wrong_password(app, user_id, anon_client):
-    resp = anon_client.post(
-        "/login", data={"username": "tester", "password": "ผิดแน่นอน"}
-    )
+    resp = anon_client.post("/login", data={"username": "tester", "password": "ผิดแน่นอน"})
     assert resp.status_code == 401
 
 
@@ -194,6 +189,7 @@ def test_logout(client):
 
 
 # --- แยกข้อมูลระหว่าง user ---
+
 
 def test_cannot_see_other_users_todos(app, client, other_client):
     _add(client, "ความลับของ tester")
@@ -233,9 +229,7 @@ def test_clear_completed_only_touches_own_todos(app, client, other_client):
 
     with app.app_context():
         assert db.session.get(Todo, other_id) is None
-        assert db.session.get(Todo, done_id) is not None, (
-            "clear-completed ของคนอื่นต้องไม่ลบงานเรา"
-        )
+        assert db.session.get(Todo, done_id) is not None, "clear-completed ของคนอื่นต้องไม่ลบงานเรา"
 
 
 def test_cannot_assign_todo_to_other_users_category(app, client, other_client, category_id):
@@ -249,6 +243,7 @@ def test_cannot_assign_todo_to_other_users_category(app, client, other_client, c
 
 
 # --- ปุ่มในแถวลิสต์ ---
+
 
 def test_row_has_edit_link_and_delete_button(app, client):
     """แถวลิสต์อ่านอย่างเดียว การแก้ย้ายไปหน้าแยก จึงมีลิงก์ Edit กับปุ่ม Delete"""

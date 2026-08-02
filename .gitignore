@@ -8,3 +8,9 @@ instance/
 
 # messages.pot เป็นไฟล์กลางที่ regenerate ได้จากโค้ด ไม่ต้อง commit
 messages.pot
+sbom.json
+.coverage
+coverage.xml
+.ruff_cache/
+.mypy_cache/
+htmlcov/

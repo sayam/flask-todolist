@@ -51,7 +51,7 @@ def app():
     # ไม่มี db.create_all() ใน create_app แล้ว (ใช้ Flask-Migrate) เทสต์จึงสร้างเอง
     with app.app_context():
         db.create_all()
-    yield app
+    return app
 
 
 @pytest.fixture
@@ -68,9 +68,7 @@ def other_user_id(app):
 
 def _login_as(app, username):
     client = app.test_client()
-    resp = client.post(
-        "/login", data={"username": username, "password": PASSWORD}
-    )
+    resp = client.post("/login", data={"username": username, "password": PASSWORD})
     assert resp.status_code == 302, f"login เป็น {username} ไม่สำเร็จ"
     return client
 
@@ -100,7 +98,7 @@ def csrf_app():
     with app.app_context():
         db.create_all()
         _make_user("tester")
-    yield app
+    return app
 
 
 @pytest.fixture

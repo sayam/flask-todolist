@@ -1,0 +1,105 @@
+# config กลางของเครื่องมือคุณภาพทั้งหมด (Phase 0 — ดู docs/STANDARDS.md)
+# หลักการ: เปิดทุกกฎแล้วปิดรายข้อพร้อมเหตุผล — ของที่ปิดต้อง justify ตัวเอง
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+
+# ---------------------------------------------------------------- ruff
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+# migrations ไม่ lint: โค้ดกึ่ง generate + raw SQL เก่าที่จะถูกล้างตอน Phase 5 squash
+# (กติกา dialect ของ migration คุมด้วย tests/test_migration_lint.py แทน)
+extend-exclude = ["migrations", "app/sun_data.py"]
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    # -- ผูกกับแผนเฟส --
+    "ANN",     # type annotation: เปิดพร้อม mypy strict แบบไล่ต่อ module (Phase 2)
+    # -- ขัดกับธรรมเนียมของโปรเจกต์ (มีเหตุผลบันทึกไว้) --
+    "D",       # pydocstyle: docstring เป็นภาษาไทย กติกา punctuation อังกฤษใช้ไม่ได้
+               # ปริมาณ docstring คุมด้วย interrogate แทน
+    "DTZ",     # naive-UTC เป็นดีไซน์ที่ตั้งใจและบันทึกใน CLAUDE.md (tz.py แปลงให้)
+    "RUF001", "RUF002", "RUF003",  # ข้อความไทยใช้ em-dash/curly quotes โดยตั้งใจ
+    "PLC0415", # import ใน function = ท่ามาตรฐานกัน circular import ของ Flask factory
+    "A003",    # model attribute ชื่อ id เป็นธรรมเนียม ORM
+    "RUF012",  # Flask config-class pattern ใช้ class attribute เป็น dict ตรง ๆ
+    "FBT001", "FBT002",  # boolean positional: click flags / SQLAlchemy default
+    # -- ความเห็นด้าน style ที่เลือกไม่ตาม --
+    "EM101", "EM102", "TRY003",  # ข้อความใน raise เขียน inline อ่านง่ายกว่าแยกตัวแปร
+    "TRY300",  # return ใน try อ่านตรงไปตรงมากว่า else
+    # -- ชนกับ ruff format (ตามคำแนะนำ official) --
+    "COM812", "ISC001",
+    "CPY001",  # ไม่ใช้ copyright header ต่อไฟล์ — license ประกาศระดับ repo
+
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+    "INP001",   # tests ไม่ใช่ package (pytest หาเจอผ่าน pythonpath)
+    "S101",     # assert คือหัวใจของ pytest
+    "S105", "S106",  # รหัสผ่าน dummy ในเทสต์ ไม่ใช่ secret จริง
+    "PLR2004",  # ตัวเลขดิบในเทสต์คือ expected value อ่านตรง ๆ ดีกว่าตั้งชื่อ
+    "ARG001",   # fixture ที่ inject เพื่อ side effect (เช่น user_id) แต่ไม่ได้ใช้ค่า
+]
+"scripts/**" = ["T201", "INP001", "PLR2004", "S101"]  # สคริปต์รันมือ: print คือ output,
+    # ไม่ใช่ package, ตัวเลขในสูตรดาราศาสตร์อ่านคู่กับสูตรตรง ๆ, assert เป็น sanity check
+"tests/**/*" = ["INP001"]
+"migrations/**" = ["INP001"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 12  # index() ของ routes มี branch ตัวกรองเยอะ — Phase 3 จะ extract
+
+# ---------------------------------------------------------------- mypy
+[tool.mypy]
+python_version = "3.13"
+# โหมด gradual: ทั้งแอปตรวจแบบหลวม + module ที่ประกาศแล้วต้อง strict
+# ขยาย strict list ลงล่างเรื่อย ๆ จนครบ (เป้าหมาย: ทั้งแอปภายใน Phase 2)
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+no_implicit_optional = true
+check_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = [
+    "flask_login.*", "flask_limiter.*", "flask_wtf.*",
+    "flask_babel.*", "flask_migrate.*", "flask_sqlalchemy.*",
+]
+ignore_missing_imports = true
+
+# flask_sqlalchemy แบบ legacy (db.Model) mypy มองไม่ทะลุ —
+# หายถาวรตอน rewrite เป็น SQLAlchemy 2.0 typed style (Phase 2)
+[[tool.mypy.overrides]]
+module = ["app.models"]
+disable_error_code = ["name-defined"]
+
+# strict list — module ที่ pure (ไม่พึ่ง extension ที่ไม่มี type stub)
+[[tool.mypy.overrides]]
+module = ["app.tz", "app.filters", "app.plugins", "app.sun_data"]
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_untyped_calls = true
+warn_return_any = true
+strict_equality = true
+
+# ---------------------------------------------------------------- coverage
+[tool.coverage.run]
+source = ["app"]
+branch = true
+omit = ["app/sun_data.py"]  # ตาราง generate — ไม่มี logic ให้ cover
+
+[tool.coverage.report]
+show_missing = true
+# ตั้งจากค่าที่วัดจริงตอน Phase 0 แล้วห้ามต่ำลง (ratchet ขึ้นได้อย่างเดียว)
+fail_under = 92  # วัดจริง 2026-08: 92.82% — ขยับขึ้นได้อย่างเดียว
+
+# ---------------------------------------------------------------- interrogate
+[tool.interrogate]
+paths = ["app"]
+exclude = ["app/sun_data.py"]
+ignore-init-method = true
+ignore-nested-functions = true
+# ตั้งจากค่าที่วัดจริงตอน Phase 0 (ratchet เช่นกัน)
+fail-under = 49  # วัดจริง 2026-08: 49.5% — ขยับขึ้นได้อย่างเดียว

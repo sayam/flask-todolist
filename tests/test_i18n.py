@@ -100,9 +100,7 @@ def test_flash_message_is_translated(client):
 
 def test_login_error_is_translated(app, user_id, anon_client):
     anon_client.get("/lang/th")
-    resp = anon_client.post(
-        "/login", data={"username": "tester", "password": "ผิดแน่นอน"}
-    )
+    resp = anon_client.post("/login", data={"username": "tester", "password": "ผิดแน่นอน"})
     assert "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง".encode() in resp.data
 
 
@@ -159,7 +157,7 @@ def test_thai_catalog_has_no_untranslated_or_fuzzy_entries():
     text = po.read_text()
 
     # flag เขียนรวมกันได้ เช่น "#, fuzzy, python-format" จึงต้องจับทั้งบรรทัด
-    fuzzy = re.findall(r'^#,[^\n]*\bfuzzy\b[^\n]*\nmsgid "([^"]+)"', text, re.M)
+    fuzzy = re.findall(r'^#,[^\n]*\bfuzzy\b[^\n]*\nmsgid "([^"]+)"', text, re.MULTILINE)
     assert not fuzzy, f"มี msgid ที่ยัง fuzzy อยู่: {fuzzy}"
 
     empty = re.findall(r'\nmsgid "([^"]+)"\nmsgstr ""\n', text)

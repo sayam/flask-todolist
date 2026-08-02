@@ -28,6 +28,7 @@ def _prefs(client, **overrides):
 
 # --- เข้าถึงหน้า ---
 
+
 def test_settings_requires_login(anon_client):
     assert anon_client.get("/settings").status_code == 302
 
@@ -59,6 +60,7 @@ def test_login_page_keeps_switchers(anon_client):
 
 # --- โปรไฟล์ ---
 
+
 def test_save_first_and_last_name(app, client, user_id):
     client.post(
         "/settings/profile",
@@ -77,7 +79,8 @@ def test_blank_name_stored_as_null_not_empty_string(app, client, user_id):
         follow_redirects=True,
     )
     user = _user(app, user_id)
-    assert user.first_name is None and user.last_name is None
+    assert user.first_name is None
+    assert user.last_name is None
 
 
 def test_display_name_falls_back_to_username(app, user_id):
@@ -95,9 +98,7 @@ def test_display_name_uses_full_name_when_set(app, client, user_id):
 
 
 def test_full_name_with_only_first_name(app, client, user_id):
-    client.post(
-        "/settings/profile", data={"first_name": "Somchai"}, follow_redirects=True
-    )
+    client.post("/settings/profile", data={"first_name": "Somchai"}, follow_redirects=True)
     assert _user(app, user_id).display_name == "Somchai"
 
 
@@ -107,7 +108,7 @@ def test_nav_shows_display_name(client):
         data={"first_name": "Somchai", "last_name": "Jaidee"},
         follow_redirects=True,
     )
-    assert "Somchai Jaidee".encode() in client.get("/").data
+    assert b"Somchai Jaidee" in client.get("/").data
 
 
 def test_username_is_not_editable(app, client, user_id):
@@ -121,6 +122,7 @@ def test_username_is_not_editable(app, client, user_id):
 
 
 # --- การตั้งค่าส่วนตัว ---
+
 
 def test_save_preferences_persists_all_four(app, client, user_id):
     _prefs(client, locale="th", theme="system", mode="dark", timezone="Europe/Berlin")
@@ -181,6 +183,7 @@ def test_timezone_list_includes_common_zones(client):
 
 # --- timezone มีผลกับ due_date จริง ---
 
+
 def test_due_date_stored_as_utc(app, client, user_id):
     """กรอก 09:00 ตามเวลากรุงเทพ ต้องเก็บเป็น 02:00 UTC"""
     _prefs(client, timezone="Asia/Bangkok")
@@ -229,9 +232,7 @@ def test_overdue_is_timezone_independent(app, client, user_id):
     """เลยกำหนดหรือยังเทียบใน UTC ทั้งคู่ เปลี่ยนโซนแล้วคำตอบต้องไม่พลิก"""
     past = datetime.now(BANGKOK).replace(tzinfo=None).strftime("%Y-%m-%dT%H:%M")
     _prefs(client, timezone="Asia/Bangkok")
-    client.post(
-        "/add", data={"title": "งานเมื่อกี้", "due_date": past}, follow_redirects=True
-    )
+    client.post("/add", data={"title": "งานเมื่อกี้", "due_date": past}, follow_redirects=True)
 
     def overdue():
         with app.app_context():
@@ -256,6 +257,4 @@ def test_timezone_used_on_fresh_session(app, user_id):
     )
     with app.app_context():
         # user อยู่โซน UTC ค่าที่เก็บจึงเท่ากับที่กรอกพอดี
-        assert Todo.query.filter_by(title="งานใหม่").one().due_date == datetime(
-            2026, 9, 1, 9, 0
-        )
+        assert Todo.query.filter_by(title="งานใหม่").one().due_date == datetime(2026, 9, 1, 9, 0)

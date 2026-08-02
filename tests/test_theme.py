@@ -13,6 +13,7 @@ def _data_theme(resp):
 
 # --- stylesheet ---
 
+
 def test_base_stylesheet_is_linked_and_served(anon_client):
     assert b"base.css" in anon_client.get("/login").data
     resp = anon_client.get("/static/base.css")
@@ -43,6 +44,7 @@ def _block_after(css, selector):
 
 
 # --- หน้า login จัดกึ่งกลาง ---
+
 
 def test_login_form_is_centered(anon_client):
     resp = anon_client.get("/login")
@@ -83,6 +85,10 @@ def test_task_row_markup_uses_layout_classes(client):
         follow_redirects=True,
     )
     body = client.get("/").data
-    for css_class in (b'class="task"', b'class="task-title', b'class="task-when"',
-                      b'class="task-flag'):
+    for css_class in (
+        b'class="task"',
+        b'class="task-title',
+        b'class="task-when"',
+        b'class="task-flag',
+    ):
         assert css_class in body, f"ไม่พบ {css_class!r} ใน HTML"
