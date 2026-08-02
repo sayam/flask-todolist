@@ -46,6 +46,30 @@ def register_cli(app):
         if not no_categories:
             click.echo(f"สร้างหมวดตั้งต้น {len(DEFAULT_CATEGORIES)} หมวด")
 
+    @app.cli.command("delete-user")
+    @click.argument("username")
+    @click.option("--yes", is_flag=True, help="ลบเลยไม่ต้องถาม")
+    def delete_user(username, yes):
+        """ลบ user พร้อมหมวดและงานทั้งหมดของเขา (กู้คืนไม่ได้)"""
+        user = User.query.filter_by(username=username.strip()).first()
+        if user is None:
+            raise click.ClickException(f"ไม่พบ user ชื่อ {username!r}")
+
+        todos = len(user.todos)
+        categories = len(user.categories)
+        click.echo(
+            f"จะลบ user {user.username!r} (id={user.id}) "
+            f"พร้อม {categories} หมวด และ {todos} งาน"
+        )
+        if not yes:
+            click.confirm("ยืนยันลบ?", abort=True)
+
+        # ลบผ่าน ORM เพื่อให้ cascade ทำงาน — SQLite ไม่บังคับ FK ให้
+        # ลบด้วย SQL ตรง ๆ จะเหลือ category/todo ค้างที่ชี้ไปหา user ที่ไม่มีแล้ว
+        db.session.delete(user)
+        db.session.commit()
+        click.echo(f"ลบ {username!r} เรียบร้อย")
+
     @app.cli.command("list-users")
     def list_users():
         """ดูรายชื่อ user ทั้งหมด"""
