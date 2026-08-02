@@ -11,6 +11,12 @@ LANGUAGES = {
 }
 DEFAULT_LANGUAGE = "en"
 
+# ชุดสีที่รองรับ: รหัส -> ชื่อที่แสดง ตอนนี้มีชุดเดียว เผื่อเพิ่มทีหลัง
+# ทุกชุดรองรับโหมด light/dark/auto เหมือนกันหมด
+THEMES = {
+    "system": "System",
+}
+
 
 class Config:
     # ไม่มีค่า default โดยตั้งใจ — ไม่ตั้งแล้วต้องแอปพังตั้งแต่ตอน start
@@ -30,6 +36,7 @@ class Config:
     RATELIMIT_STORAGE_URI = os.environ.get("RATELIMIT_STORAGE_URI", "memory://")
 
     LANGUAGES = LANGUAGES
+    THEMES = THEMES
     BABEL_DEFAULT_LOCALE = DEFAULT_LANGUAGE
     BABEL_DEFAULT_TIMEZONE = os.environ.get("BABEL_DEFAULT_TIMEZONE", "Asia/Bangkok")
 

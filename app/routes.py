@@ -1,14 +1,17 @@
 from datetime import date, datetime
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, session, url_for
-from flask_babel import gettext as _
+from flask_babel import gettext as _, ngettext
 from flask_login import current_user, login_required
 
 from app import db, tz
 from app.i18n import SESSION_KEY, is_supported
-from app.theme import AUTO as THEME_AUTO
-from app.theme import SESSION_KEY as THEME_SESSION_KEY
-from app.theme import is_supported as theme_is_supported
+from app.theme import (
+    MODE_SESSION_KEY,
+    THEME_SESSION_KEY,
+    mode_is_supported,
+    theme_is_supported,
+)
 from app.models import Category, Todo
 
 bp = Blueprint("main", __name__)
@@ -234,8 +237,20 @@ def edit_category(category_id):
 @login_required
 def delete_category(category_id):
     category = _owned_category(category_id)
-    # ปลดหมวดออกจาก todo ก่อน งานไม่หายไปด้วย
-    Todo.query.filter_by(category_id=category.id).update({"category_id": None})
+    # ลบได้เฉพาะหมวดที่ว่างเปล่า — งานที่ทำเสร็จแล้วก็ยังนับ
+    # เพราะมันคือประวัติที่ผู้ใช้ยังเห็นอยู่ในตัวกรอง "เสร็จแล้ว"
+    remaining = Todo.query.filter_by(category_id=category.id).count()
+    if remaining:
+        flash(
+            ngettext(
+                "Cannot delete “%(name)s” — it still has %(num)d task.",
+                "Cannot delete “%(name)s” — it still has %(num)d tasks.",
+                remaining,
+                name=category.name,
+            )
+        )
+        return redirect(url_for("main.categories"))
+
     db.session.delete(category)
     db.session.commit()
     return redirect(url_for("main.categories"))
@@ -259,18 +274,18 @@ def set_language(code):
     return redirect(_safe_referrer())
 
 
-@bp.route("/theme/<value>")
-def set_theme(value):
-    """สลับธีม แล้วกลับไปหน้าเดิม — เหมือน set_language ทุกอย่าง
+@bp.route("/mode/<value>")
+def set_mode(value):
+    """สลับโหมดสว่าง/มืด/อัตโนมัติ แล้วกลับไปหน้าเดิม
 
-    'auto' เก็บเป็น NULL ในโปรไฟล์ เพราะหมายถึง "ไม่เลือก" ไม่ใช่ธีมชื่อ auto
+    ใช้จากหน้า login ซึ่งเข้า settings ไม่ได้ จึงไม่บังคับ login
     """
-    if not theme_is_supported(value):
+    if not mode_is_supported(value):
         abort(404)
 
-    session[THEME_SESSION_KEY] = value
+    session[MODE_SESSION_KEY] = value
     if current_user.is_authenticated:
-        current_user.theme = None if value == THEME_AUTO else value
+        current_user.mode = value
         db.session.commit()
 
     return redirect(_safe_referrer())
@@ -313,19 +328,26 @@ def save_preferences():
         flash(_("Unsupported theme"))
         return redirect(url_for("main.settings"))
 
+    mode_value = request.form.get("mode")
+    if not mode_is_supported(mode_value):
+        flash(_("Unsupported mode"))
+        return redirect(url_for("main.settings"))
+
     tz_name = request.form.get("timezone")
     if not tz.is_supported(tz_name):
         flash(_("Unsupported timezone"))
         return redirect(url_for("main.settings"))
 
     current_user.locale = lang
-    current_user.theme = None if theme_value == THEME_AUTO else theme_value
+    current_user.theme = theme_value
+    current_user.mode = mode_value
     current_user.timezone_name = tz_name
     db.session.commit()
 
     # session ชนะโปรไฟล์ในลำดับการเลือก ต้องอัปเดตด้วยไม่งั้นค่าที่เพิ่งบันทึกจะไม่มีผล
     session[SESSION_KEY] = lang
     session[THEME_SESSION_KEY] = theme_value
+    session[MODE_SESSION_KEY] = mode_value
 
     flash(_("Settings saved"))
     return redirect(url_for("main.settings"))

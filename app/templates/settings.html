@@ -43,12 +43,21 @@
   <p>
     <label for="theme">{{ _('Theme') }}</label><br>
     <select id="theme" name="theme">
-      {% for value in theme_choices %}
-      <option value="{{ value }}" {{ 'selected' if value == current_theme else '' }}>
-        {{ {'auto': _('System'), 'light': _('Light'), 'dark': _('Dark')}[value] }}
+      {% for value, label in themes.items() %}
+      <option value="{{ value }}" {{ 'selected' if value == current_theme else '' }}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </p>
+  <p>
+    <label for="mode">{{ _('Mode') }}</label><br>
+    <select id="mode" name="mode">
+      {% for value in modes %}
+      <option value="{{ value }}" {{ 'selected' if value == current_mode else '' }}>
+        {{ {'light': _('Light'), 'dark': _('Dark'), 'auto': _('Auto')}[value] }}
       </option>
       {% endfor %}
     </select>
+    <br><small>{{ _('Auto follows sunrise and sunset in your timezone.') }}</small>
   </p>
   <p>
     <label for="timezone">{{ _('Timezone') }}</label><br>

@@ -1,38 +1,105 @@
-"""การเลือกธีมของแต่ละ request
+"""ธีมและโหมดของแต่ละ request
 
-ลำดับเดียวกับภาษา (ดู `app/i18n.py`):
-`?theme=` → session → `User.theme` → ตามระบบ
+แยกเป็นสองแกน:
 
-ค่าที่เป็นไปได้คือ 'light', 'dark' และ AUTO
-AUTO ไม่ใส่ `data-theme` ลง `<html>` เลย ปล่อยให้ CSS `prefers-color-scheme`
-ตัดสินตามค่าที่ OS ตั้งไว้ — จึงเป็นค่าเริ่มต้นที่ถูกต้องกว่าการบังคับ light
+* **theme** — ชื่อชุดสี ตอนนี้มีชุดเดียวชื่อ `system` เผื่อเพิ่มทีหลัง
+* **mode**  — ระดับความสว่าง: `light`, `dark`, `auto`
+
+`auto` ตัดสินจากเวลาดวงอาทิตย์ขึ้น-ตกของ timezone ที่ผู้ใช้ตั้งไว้
+โดยอ่านจากตารางใน `app/sun_data.py` ที่ generate ไว้ล่วงหน้า
+ไม่เรียก API ภายนอกและไม่ต้องพึ่ง JS
+
+ลำดับความสำคัญเหมือนภาษา: `?mode=` → session → `User.mode` → ค่าเริ่มต้น
 """
 
-from flask import has_request_context, request, session
+from flask import current_app, has_request_context, request, session
 from flask_login import current_user
 
-SESSION_KEY = "theme"
+from app import tz
+from app.sun_data import ALWAYS_DARK, ALWAYS_LIGHT, SUN_TIMES
+
+THEME_SESSION_KEY = "theme"
+MODE_SESSION_KEY = "mode"
+
+DEFAULT_THEME = "system"
 AUTO = "auto"
-THEMES = ("light", "dark")
-CHOICES = (AUTO,) + THEMES
+LIGHT = "light"
+DARK = "dark"
+MODES = (LIGHT, DARK, AUTO)
+DEFAULT_MODE = AUTO
 
 
-def is_supported(value):
-    return value in CHOICES
+def themes():
+    """ชื่อชุดสีที่รองรับ: รหัส -> ชื่อที่แสดง"""
+    return current_app.config["THEMES"]
+
+
+def theme_is_supported(value):
+    return bool(value) and value in themes()
+
+
+def mode_is_supported(value):
+    return value in MODES
 
 
 def select_theme():
-    """คืนค่าที่ผู้ใช้เลือก — AUTO แปลว่าไม่บังคับ ให้ CSS ตัดสินเอง"""
     if not has_request_context():
-        return AUTO
-
-    if is_supported(request.args.get(SESSION_KEY)):
-        return request.args[SESSION_KEY]
-
-    if is_supported(session.get(SESSION_KEY)):
-        return session[SESSION_KEY]
-
-    if current_user.is_authenticated and current_user.theme in THEMES:
+        return DEFAULT_THEME
+    if theme_is_supported(request.args.get(THEME_SESSION_KEY)):
+        return request.args[THEME_SESSION_KEY]
+    if theme_is_supported(session.get(THEME_SESSION_KEY)):
+        return session[THEME_SESSION_KEY]
+    if current_user.is_authenticated and theme_is_supported(current_user.theme):
         return current_user.theme
+    return DEFAULT_THEME
 
-    return AUTO
+
+def select_mode():
+    """โหมดที่ผู้ใช้เลือก — อาจเป็น 'auto' ซึ่งยังไม่ใช่ค่าที่เอาไปแสดงได้"""
+    if not has_request_context():
+        return DEFAULT_MODE
+    if mode_is_supported(request.args.get(MODE_SESSION_KEY)):
+        return request.args[MODE_SESSION_KEY]
+    if mode_is_supported(session.get(MODE_SESSION_KEY)):
+        return session[MODE_SESSION_KEY]
+    if current_user.is_authenticated and mode_is_supported(current_user.mode):
+        return current_user.mode
+    return DEFAULT_MODE
+
+
+def sun_mode(tz_name, now_local=None):
+    """โหมดตามดวงอาทิตย์ของ timezone หนึ่ง ๆ — คืน 'light' หรือ 'dark' เสมอ
+
+    โซนที่ไม่มีในตาราง (เช่นชื่อพ้องที่ tzdata ไม่ได้ให้พิกัดไว้) ให้ 'light'
+    ดีกว่าโยน error เพราะนี่เป็นแค่การเลือกสี
+    """
+    resolved = tz.resolve(tz_name)
+    row = SUN_TIMES.get(str(resolved.key))
+    if row is None:
+        return LIGHT
+
+    if now_local is None:
+        now_local = tz.to_local(tz.now_utc(), tz_name)
+
+    sunrise, sunset = row[(now_local.month - 1) * 2], row[(now_local.month - 1) * 2 + 1]
+    if sunrise == ALWAYS_DARK:
+        return DARK
+    if sunrise == ALWAYS_LIGHT:
+        return LIGHT
+
+    minutes = now_local.hour * 60 + now_local.minute
+    return LIGHT if sunrise <= minutes < sunset else DARK
+
+
+def resolve_mode():
+    """โหมดที่เอาไปใส่ `data-theme` ได้จริง — 'light' หรือ 'dark' เท่านั้น"""
+    mode = select_mode()
+    if mode != AUTO:
+        return mode
+
+    tz_name = (
+        current_user.timezone_name
+        if has_request_context() and current_user.is_authenticated
+        else None
+    )
+    return sun_mode(tz_name)

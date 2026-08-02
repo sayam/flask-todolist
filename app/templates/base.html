@@ -1,6 +1,7 @@
 <!doctype html>
-{# ไม่ใส่ data-theme ตอนเป็น auto เพื่อให้ prefers-color-scheme ใน CSS ตัดสินเอง #}
-<html lang="{{ current_locale }}"{% if current_theme != theme_auto %} data-theme="{{ current_theme }}"{% endif %}>
+{# server ตัดสินโหมดมาให้แล้วเสมอ (auto ถูกแปลงเป็น light/dark ตามดวงอาทิตย์)
+   CSS จึงไม่ต้องพึ่ง prefers-color-scheme อีกต่อไป #}
+<html lang="{{ current_locale }}" data-theme-name="{{ current_theme }}" data-theme="{{ resolved_mode }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -10,14 +11,14 @@
 </head>
 <body>
 
-{% macro theme_switcher() %}
-  <span>{{ _('Theme') }}:</span>
-  {% for value in theme_choices %}
-    {%- set label = {'auto': _('System'), 'light': _('Light'), 'dark': _('Dark')}[value] %}
-    {%- if value == current_theme %}
+{% macro mode_switcher() %}
+  <span>{{ _('Mode') }}:</span>
+  {% for value in modes %}
+    {%- set label = {'light': _('Light'), 'dark': _('Dark'), 'auto': _('Auto')}[value] %}
+    {%- if value == current_mode %}
       <strong>{{ label }}</strong>
     {%- else %}
-      <a href="{{ url_for('main.set_theme', value=value) }}">{{ label }}</a>
+      <a href="{{ url_for('main.set_mode', value=value) }}">{{ label }}</a>
     {%- endif %}
     {{- ' ' }}
   {% endfor %}

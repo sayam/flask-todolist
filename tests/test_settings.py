@@ -16,7 +16,12 @@ def _user(app, user_id):
 
 
 def _prefs(client, **overrides):
-    data = {"locale": "en", "theme": "auto", "timezone": "Asia/Bangkok"}
+    data = {
+        "locale": "en",
+        "theme": "system",
+        "mode": "auto",
+        "timezone": "Asia/Bangkok",
+    }
     data.update(overrides)
     return client.post("/settings/preferences", data=data, follow_redirects=True)
 
@@ -42,14 +47,14 @@ def test_language_and_theme_switchers_moved_out_of_nav(client):
     """ย้ายเข้า settings แล้ว nav ไม่ควรมีลิงก์สลับภาษา/ธีมอีก"""
     body = client.get("/").data
     assert b'href="/lang/' not in body
-    assert b'href="/theme/' not in body
+    assert b'href="/mode/' not in body
 
 
 def test_login_page_keeps_switchers(anon_client):
     """หน้า login ยังต้องสลับได้ เพราะตอนนั้นเข้า settings ไม่ได้"""
     body = anon_client.get("/login").data
     assert b'href="/lang/' in body
-    assert b'href="/theme/' in body
+    assert b'href="/mode/' in body
 
 
 # --- โปรไฟล์ ---
@@ -117,11 +122,12 @@ def test_username_is_not_editable(app, client, user_id):
 
 # --- การตั้งค่าส่วนตัว ---
 
-def test_save_preferences_persists_all_three(app, client, user_id):
-    _prefs(client, locale="th", theme="dark", timezone="Europe/Berlin")
+def test_save_preferences_persists_all_four(app, client, user_id):
+    _prefs(client, locale="th", theme="system", mode="dark", timezone="Europe/Berlin")
     user = _user(app, user_id)
-    assert (user.locale, user.theme, user.timezone_name) == (
+    assert (user.locale, user.theme, user.mode, user.timezone_name) == (
         "th",
+        "system",
         "dark",
         "Europe/Berlin",
     )
@@ -136,16 +142,17 @@ def test_saved_language_overrides_stale_session(client):
     assert "ตั้งค่า".encode() in resp.data, "ยังเป็นภาษาเดิมจาก session"
 
 
-def test_saved_theme_overrides_stale_session(client):
-    client.get("/theme/light")  # ค่าค้างใน session
-    resp = _prefs(client, theme="dark")
-    assert b'data-theme="dark"' in resp.data, "ยังเป็นธีมเดิมจาก session"
+def test_saved_mode_overrides_stale_session(client):
+    client.get("/mode/light")  # ค่าค้างใน session
+    resp = _prefs(client, mode="dark")
+    assert b'data-theme="dark"' in resp.data, "ยังเป็นโหมดเดิมจาก session"
 
 
-def test_auto_theme_stored_as_null(app, client, user_id):
-    _prefs(client, theme="dark")
-    _prefs(client, theme="auto")
-    assert _user(app, user_id).theme is None
+def test_auto_mode_is_stored_not_null(app, client, user_id):
+    """auto เป็นตัวเลือกจริง ไม่ใช่ "ไม่เลือก" """
+    _prefs(client, mode="dark")
+    _prefs(client, mode="auto")
+    assert _user(app, user_id).mode == "auto"
 
 
 def test_rejects_unsupported_language(app, client, user_id):

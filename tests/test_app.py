@@ -128,17 +128,49 @@ def test_edit_category(app, client, category_id):
         assert db.session.get(Category, category_id).name == "งานบ้าน"
 
 
-def test_delete_category_keeps_todos(app, client, category_id):
+def test_cannot_delete_category_that_has_tasks(app, client, category_id):
+    """ลบหมวดที่ยังมีงานอยู่ไม่ได้ ต้องย้ายหรือลบงานออกก่อน"""
     _add(client, "งานในหมวด", category_id=category_id)
     todo_id = _first_todo_id(app, "งานในหมวด")
 
-    client.post(f"/categories/delete/{category_id}", follow_redirects=True)
+    resp = client.post(f"/categories/delete/{category_id}", follow_redirects=True)
 
+    assert b"Cannot delete" in resp.data
+    with app.app_context():
+        assert db.session.get(Category, category_id) is not None
+        assert db.session.get(Todo, todo_id) is not None
+
+
+def test_completed_tasks_still_block_category_deletion(app, client, category_id):
+    """งานที่ทำเสร็จแล้วก็ยังนับ — มันยังอยู่ในตัวกรอง "เสร็จแล้ว" """
+    _add(client, "งานในหมวด", category_id=category_id)
+    todo_id = _first_todo_id(app, "งานในหมวด")
+    client.post(f"/toggle/{todo_id}", follow_redirects=True)
+
+    client.post(f"/categories/delete/{category_id}", follow_redirects=True)
+    with app.app_context():
+        assert db.session.get(Category, category_id) is not None
+
+
+def test_empty_category_can_be_deleted(app, client, category_id):
+    client.post(f"/categories/delete/{category_id}", follow_redirects=True)
     with app.app_context():
         assert db.session.get(Category, category_id) is None
-        todo = db.session.get(Todo, todo_id)
-        assert todo is not None, "ลบหมวดแล้วงานต้องไม่หายไปด้วย"
-        assert todo.category_id is None
+
+
+def test_category_deletable_after_its_tasks_are_removed(app, client, category_id):
+    _add(client, "งานในหมวด", category_id=category_id)
+    todo_id = _first_todo_id(app, "งานในหมวด")
+    client.post(f"/delete/{todo_id}", follow_redirects=True)
+
+    client.post(f"/categories/delete/{category_id}", follow_redirects=True)
+    with app.app_context():
+        assert db.session.get(Category, category_id) is None
+
+
+def test_delete_button_disabled_when_category_has_tasks(client, category_id):
+    _add(client, "งานในหมวด", category_id=category_id)
+    assert b"disabled" in client.get("/categories").data
 
 
 # --- auth ---

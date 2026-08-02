@@ -1,13 +1,11 @@
 /* ธีมสว่าง/มืด
  *
- * ค่าสีทั้งหมดอยู่ใน custom property ชุดเดียว แล้วสลับค่าตามธีม
+ * ค่าสีทั้งหมดอยู่ใน custom property ชุดเดียว แล้วสลับค่าตามโหมด
  * ตัวที่เหลือในไฟล์อ้างถึงตัวแปร ไม่มีสีดิบ ๆ กระจายอยู่
  *
- * ธีมมืดถูกประกาศสองที่โดยตั้งใจ:
- *   1. ใน @media prefers-color-scheme สำหรับคนที่ไม่ได้เลือกเอง (ธีม auto)
- *   2. ที่ [data-theme="dark"] สำหรับคนที่กดเลือกเอง
- * CSS ไม่มีวิธีใช้บล็อกเดียวร่วมกันได้ (media query เขียนเป็น selector ไม่ได้)
- * แก้สีตรงไหนต้องแก้ทั้งสองที่ — tests/test_theme.py ดักไว้ว่าค่าต้องตรงกัน
+ * โหมดถูกตัดสินฝั่ง server แล้วส่งมาเป็น data-theme="light|dark" บน <html>
+ * (auto = ดูจากเวลาดวงอาทิตย์ขึ้น-ตกของ timezone ผู้ใช้ ดู app/theme.py)
+ * จึงไม่ต้องมี @media prefers-color-scheme และไม่มีการประกาศสีซ้ำสองที่อีก
  */
 
 :root {
@@ -23,23 +21,8 @@
   --overdue: #b00020;
 }
 
-/* ธีมมืดตามค่าที่ OS ตั้งไว้ — ยกเว้นผู้ใช้บังคับ light ไว้เอง */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --bg: #16181a;
-    --surface: #1f2225;
-    --fg: #e8e8e3;
-    --muted: #a3a49e;
-    --border: #34383c;
-    --accent: #2dd4bf;
-    --accent-fg: #10201e;
-    --danger: #ff6b6b;
-    --overdue: #ff8080;
-  }
-}
-
-/* ผู้ใช้กดเลือกธีมมืดเอง — ต้องชนะค่าของ OS */
+/* โหมดมืด — server ใส่ data-theme="dark" มาให้ตอนผู้ใช้เลือก dark
+ * หรือตอน auto ตัดสินว่าเป็นเวลากลางคืนตามดวงอาทิตย์ของ timezone นั้น */
 :root[data-theme="dark"] {
   color-scheme: dark;
   --bg: #16181a;
@@ -174,7 +157,9 @@ li:last-child {
 }
 
 .task-toggle {
-  /* ดันลงมาให้ตรงกลางช่องกรอกบรรทัดแรก */
+  display: flex;
+  align-items: center;
+  /* ดันลงมาให้ตรงกลางช่องกรอกบรรทัดแรก ไม่ใช่กลางแถวสองบรรทัด */
   padding-top: 0.5rem;
 }
 
@@ -213,11 +198,6 @@ li:last-child {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.task-toggle {
-  display: flex;
-  align-items: center;
 }
 
 small {

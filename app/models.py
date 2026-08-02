@@ -17,9 +17,11 @@ class User(UserMixin, db.Model):
     created_at = db.Column(db.DateTime, default=_utcnow)
     # ภาษาที่ผู้ใช้เลือกไว้ NULL = ยังไม่เคยเลือก ให้ไปดู Accept-Language แทน
     locale = db.Column(db.String(8), nullable=True)
-    # ธีมที่ผู้ใช้เลือกไว้ 'light' หรือ 'dark'
-    # NULL = ตามระบบ (ปล่อยให้ prefers-color-scheme ตัดสิน)
-    theme = db.Column(db.String(8), nullable=True)
+    # ชื่อชุดสีที่เลือก (ดู config.THEMES) NULL = ใช้ชุดเริ่มต้น
+    theme = db.Column(db.String(32), nullable=True)
+    # ระดับความสว่าง 'light' / 'dark' / 'auto'
+    # NULL = ยังไม่เคยเลือก ให้ใช้ค่าเริ่มต้น (auto)
+    mode = db.Column(db.String(8), nullable=True)
     # timezone ของผู้ใช้ (ชื่อ IANA เช่น "Asia/Bangkok")
     # NULL = ใช้ค่าเริ่มต้นของแอป
     timezone_name = db.Column(db.String(64), nullable=True)

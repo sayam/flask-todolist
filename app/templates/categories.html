@@ -25,11 +25,16 @@
       <input type="text" name="name" value="{{ category.name }}" aria-label="{{ _('Category name') }}" required>
       <button type="submit">{{ _('Save') }}</button>
     </form>
-    <span>({{ ngettext('%(num)d task', '%(num)d tasks', category.todos | length) }})</span>
+    {% set task_count = category.todos | length %}
+    <span>({{ ngettext('%(num)d task', '%(num)d tasks', task_count) }})</span>
+    {# ลบได้เฉพาะหมวดว่าง — ปิดปุ่มไว้เพื่อบอกล่วงหน้า ส่วนการกันจริงอยู่ที่ route #}
     <form action="{{ url_for('main.delete_category', category_id=category.id) }}" method="post" style="display:inline"
-          onsubmit="return confirm({{ _('Delete category “%(name)s”? Tasks in it will become uncategorised.', name=category.name)|tojson }})">
+          onsubmit="return confirm({{ _('Delete category “%(name)s”?', name=category.name)|tojson }})">
       {{ csrf_field() }}
-      <button type="submit">{{ _('Delete') }}</button>
+      <button type="submit" {{ 'disabled' if task_count else '' }}
+              title="{{ _('Move or delete its tasks first') if task_count else '' }}">
+        {{ _('Delete') }}
+      </button>
     </form>
   </li>
   {% else %}

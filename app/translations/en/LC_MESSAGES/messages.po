@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-02 18:37+0700\n"
+"POT-Creation-Date: 2026-08-02 19:51+0700\n"
 "PO-Revision-Date: 2026-08-02 16:44+0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -26,92 +26,103 @@ msgstr ""
 msgid "Incorrect username or password"
 msgstr ""
 
-#: app/routes.py:125
+#: app/routes.py:128
 msgid "Please enter a task name"
 msgstr ""
 
-#: app/routes.py:130 app/routes.py:155
+#: app/routes.py:133 app/routes.py:158
 msgid "Invalid date format"
 msgstr ""
 
-#: app/routes.py:150
+#: app/routes.py:153
 msgid "Task name cannot be empty"
 msgstr ""
 
-#: app/routes.py:205
+#: app/routes.py:208
 msgid "Please enter a category name"
 msgstr ""
 
-#: app/routes.py:207 app/routes.py:226
+#: app/routes.py:210 app/routes.py:229
 #, python-format
 msgid "Category “%(name)s” already exists"
 msgstr ""
 
-#: app/routes.py:220
+#: app/routes.py:223
 msgid "Category name cannot be empty"
 msgstr ""
 
-#: app/routes.py:298
+#: app/routes.py:246
+#, python-format
+msgid "Cannot delete “%(name)s” — it still has %(num)d task."
+msgid_plural "Cannot delete “%(name)s” — it still has %(num)d tasks."
+msgstr[0] ""
+msgstr[1] ""
+
+#: app/routes.py:313
 msgid "Profile saved"
 msgstr ""
 
-#: app/routes.py:308
+#: app/routes.py:323
 msgid "Unsupported language"
 msgstr ""
 
-#: app/routes.py:313
+#: app/routes.py:328
 msgid "Unsupported theme"
 msgstr ""
 
-#: app/routes.py:318
+#: app/routes.py:333
+msgid "Unsupported mode"
+msgstr ""
+
+#: app/routes.py:338
 msgid "Unsupported timezone"
 msgstr ""
 
-#: app/routes.py:330
+#: app/routes.py:352
 msgid "Settings saved"
 msgstr ""
 
-#: app/templates/base.html:7 app/templates/base.html:43
+#: app/templates/base.html:8 app/templates/base.html:44
 #: app/templates/index.html:2 app/templates/login.html:6
 #: app/templates/login.html:7
 msgid "Todolist"
 msgstr ""
 
-#: app/templates/base.html:14 app/templates/settings.html:44
-msgid "Theme"
+#: app/templates/base.html:15 app/templates/settings.html:52
+msgid "Mode"
 msgstr ""
 
-#: app/templates/base.html:16 app/templates/settings.html:48
-msgid "System"
-msgstr ""
-
-#: app/templates/base.html:16 app/templates/settings.html:48
+#: app/templates/base.html:17 app/templates/settings.html:56
 msgid "Light"
 msgstr ""
 
-#: app/templates/base.html:16 app/templates/settings.html:48
+#: app/templates/base.html:17 app/templates/settings.html:56
 msgid "Dark"
 msgstr ""
 
-#: app/templates/base.html:27 app/templates/settings.html:36
+#: app/templates/base.html:17 app/templates/settings.html:56
+msgid "Auto"
+msgstr ""
+
+#: app/templates/base.html:28 app/templates/settings.html:36
 msgid "Language"
 msgstr ""
 
-#: app/templates/base.html:47
+#: app/templates/base.html:48
 msgid "Tasks"
 msgstr ""
 
-#: app/templates/base.html:48 app/templates/categories.html:2
+#: app/templates/base.html:49 app/templates/categories.html:2
 #: app/templates/categories.html:9
 msgid "Categories"
 msgstr ""
 
-#: app/templates/base.html:49 app/templates/settings.html:2
+#: app/templates/base.html:50 app/templates/settings.html:2
 #: app/templates/settings.html:9
 msgid "Settings"
 msgstr ""
 
-#: app/templates/base.html:53
+#: app/templates/base.html:54
 msgid "Sign out"
 msgstr ""
 
@@ -127,27 +138,31 @@ msgstr ""
 msgid "Add category"
 msgstr ""
 
-#: app/templates/categories.html:26 app/templates/index.html:101
+#: app/templates/categories.html:26 app/templates/index.html:105
 msgid "Save"
 msgstr ""
 
-#: app/templates/categories.html:28
+#: app/templates/categories.html:29
 #, python-format
 msgid "%(num)d task"
 msgid_plural "%(num)d tasks"
 msgstr[0] ""
 msgstr[1] ""
 
-#: app/templates/categories.html:30
+#: app/templates/categories.html:32
 #, python-format
-msgid "Delete category “%(name)s”? Tasks in it will become uncategorised."
+msgid "Delete category “%(name)s”?"
 msgstr ""
 
-#: app/templates/categories.html:32 app/templates/index.html:107
+#: app/templates/categories.html:35
+msgid "Move or delete its tasks first"
+msgstr ""
+
+#: app/templates/categories.html:36 app/templates/index.html:111
 msgid "Delete"
 msgstr ""
 
-#: app/templates/categories.html:36
+#: app/templates/categories.html:41
 msgid "No categories yet"
 msgstr ""
 
@@ -159,7 +174,7 @@ msgstr ""
 msgid "Add a task"
 msgstr ""
 
-#: app/templates/index.html:28 app/templates/index.html:84
+#: app/templates/index.html:28 app/templates/index.html:89
 msgid "Task name"
 msgstr ""
 
@@ -168,11 +183,11 @@ msgid "e.g. Deliver order to customer"
 msgstr ""
 
 #: app/templates/index.html:32 app/templates/index.html:57
-#: app/templates/index.html:86
+#: app/templates/index.html:115
 msgid "Category"
 msgstr ""
 
-#: app/templates/index.html:36 app/templates/index.html:87
+#: app/templates/index.html:36 app/templates/index.html:91
 msgid "Due"
 msgstr ""
 
@@ -208,32 +223,32 @@ msgstr ""
 msgid "Mark as done"
 msgstr ""
 
-#: app/templates/index.html:95
+#: app/templates/index.html:99
 msgid "Overdue"
 msgstr ""
 
-#: app/templates/index.html:97
+#: app/templates/index.html:101
 msgid "Due today"
 msgstr ""
 
-#: app/templates/index.html:105
+#: app/templates/index.html:110
 #, python-format
 msgid "Delete “%(title)s”?"
 msgstr ""
 
-#: app/templates/index.html:111
+#: app/templates/index.html:119
 msgid "No tasks yet"
 msgstr ""
 
-#: app/templates/index.html:111
+#: app/templates/index.html:119
 msgid "No tasks match this filter"
 msgstr ""
 
-#: app/templates/index.html:116
+#: app/templates/index.html:124
 msgid "Delete all completed tasks? This cannot be undone."
 msgstr ""
 
-#: app/templates/index.html:118
+#: app/templates/index.html:126
 msgid "Clear completed"
 msgstr ""
 
@@ -278,18 +293,32 @@ msgstr ""
 msgid "Preferences"
 msgstr ""
 
-#: app/templates/settings.html:54
-msgid "Timezone"
+#: app/templates/settings.html:44
+msgid "Theme"
 msgstr ""
 
 #: app/templates/settings.html:60
+msgid "Auto follows sunrise and sunset in your timezone."
+msgstr ""
+
+#: app/templates/settings.html:63
+msgid "Timezone"
+msgstr ""
+
+#: app/templates/settings.html:69
 msgid "Due dates are shown and entered in this timezone."
 msgstr ""
 
-#: app/templates/settings.html:62
+#: app/templates/settings.html:71
 msgid "Save preferences"
 msgstr ""
 
 #~ msgid "Due today at %(time)s"
+#~ msgstr ""
+
+#~ msgid "System"
+#~ msgstr ""
+
+#~ msgid "Delete category “%(name)s”? Tasks in it will become uncategorised."
 #~ msgstr ""
 
