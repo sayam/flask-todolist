@@ -47,6 +47,67 @@
   จะเป็นฐานของ auth plugin (MFA/SSO) ใน Phase 4
 - เทสต์ 211 ตัว + วัฒนธรรม mutation testing + migration ที่ทดสอบ round trip
 
+## 4. กลยุทธ์ data layer แบบ plugin
+
+ทิศทางที่กำหนด: backend ของฐานข้อมูลเป็น plugin โดย **built-in = SQLite 3,
+MySQL 8+, MariaDB 11+** ส่วนยี่ห้ออื่นเพิ่มทีหลังเป็น plugin
+เลขเวอร์ชันทั้งหมดเป็น floor ตาม security baseline — เกณฑ์จริงคือ
+"vendor ยัง support และได้รับ security patch" ณ เวลา deploy ไม่ใช่ตัวเลขตายตัว
+
+การวิเคราะห์แยกเป็น 3 ชั้นที่ธรรมชาติต่างกัน (สำคัญ — อย่าออกแบบรวมเป็นชั้นเดียว):
+
+### 4.1 Relational backends — สับเปลี่ยนกันได้จริง
+MySQL/MariaDB/PostgreSQL/Oracle/SQL Server ใช้ schema + migration ชุดเดียวกันผ่าน
+SQLAlchemy ตัว plugin ต่อยี่ห้อจึงบาง: driver + dialect quirk handler +
+compose service + healthcheck + preset ค่า connection
+
+- **Cloud-compatible ไม่ใช่ plugin แยก** — Amazon RDS/Aurora MySQL, Azure Database
+  for MySQL, Cloud SQL for MySQL คือ MySQL wire-compatible → อยู่ใน plugin
+  ตระกูล mysql ด้วย config preset (ฝั่ง PostgreSQL ก็แบบเดียวกัน) ไม่งั้นจะมี
+  plugin ซ้ำซ้อนหลายตัวที่ต่างกันแค่ connection string
+- **Purge semantics ต่างจาก theme โดยพื้นฐาน:** theme ถอนแล้ว fallback ได้
+  แต่ DB backend ที่ active ถอนไม่ได้ (ข้อมูลอยู่ในนั้น) — สัญญาของ db plugin คือ
+  ห้าม purge ตัวที่ active และต้องมี export/migrate path ก่อนถอนเสมอ
+  (หลัก no-lock-in ใช้กับ plugin ภายในของเราเองด้วย)
+
+### 4.2 Document/Graph (MongoDB, Neo4j) — ไม่ใช่บ้านทางเลือกของ core data
+ประเด็นที่ต้องตรงไปตรงมา: document/graph DB รัน SQLAlchemy model ชุดเดียวกับ
+relational ไม่ได้ ถ้าจะให้เป็น "ทางเลือกของ core data" ต้องรื้อทั้ง data access
+เป็น repository pattern ซึ่งทิ้งการลงทุนใน SQLAlchemy/Alembic ทั้งหมด — ไม่คุ้ม
+
+การจัดวางที่เข้ากับสัญญา plugin ที่มีอยู่พอดีคือ: **feature plugin ที่มี store
+ของตัวเอง** เช่น "task relationship graph" เป็น plugin ที่ใช้ Neo4j ของตัวเอง
+core data ยังอยู่ relational — ตรงกับสัญญาเดิมเป๊ะ: plugin ดูแลข้อมูลตัวเองล้วน ๆ
+purge แล้ว store ของมันหายไปด้วยโดย core ไม่กระทบ (กลไก plugin-owns-its-own-data
+ที่จะออกแบบใน Phase 4 สำหรับ MFA ใช้ซ้ำกับชั้นนี้ได้เลย)
+
+### 4.3 Cache (Redis/memcache) — interface ใน core, backend เป็น plugin
+core ประกาศ cache interface (get/set/invalidate) โดย default เป็น no-op
+(ไม่มี cache ระบบต้องยังถูกต้อง แค่ช้ากว่า — cache เป็น optimization ห้ามเป็น
+correctness) backend จริงเป็น plugin และ rate-limiter storage ใช้ backend
+เดียวกันนี้แทนที่จะถือ Redis connection แยกเอง
+
+### 4.4 Landmines ด้าน dialect ที่มีอยู่แล้วในโค้ด (สแกนจริง)
+
+| จุด | ระเบิดกับ | แก้ที่ไหน |
+|---|---|---|
+| raw SQL `UPDATE user SET ...` ใน migration `296ab616c11b` — `user` เป็น reserved word | PostgreSQL/Oracle/MSSQL (fresh install ที่ replay migration) — **MySQL/MariaDB รอด** | Phase 5: baseline squash |
+| MySQL `DATETIME` default ตัด microsecond แต่โค้ดเก็บ `datetime.now()` เต็ม precision | MySQL/MariaDB (silent truncation กระทบ ordering tie และ audit hash) | Phase 5: type variant `DATETIME(6)` + เทสต์ precision ใน CI matrix |
+| `batch_alter_table` + data fix เฉพาะ SQLite ใน migration เก่า | ไม่ระเบิด (no-op บนยี่ห้ออื่น) แต่รก | Phase 5: baseline squash ล้างทิ้งพร้อมกัน |
+| ชื่อคอลัมน์ String ระบุความยาวครบทุกตัวแล้ว | — | ทุนที่มีแล้ว (MySQL บังคับ) |
+
+**Baseline squash (Phase 5):** ณ จุดที่รองรับหลาย DB จะสร้าง migration ตั้งต้น
+ใหม่จาก model ปัจจุบันสำหรับ fresh install (สาย migration เก่าเก็บไว้ให้ DB
+ที่มีอยู่ upgrade ตามปกติ) — ตัดปัญหา raw SQL เก่าทั้งหมดในคราวเดียว
+
+### 4.5 วินัย dialect มีผลตั้งแต่วันนี้ (ต้นทุน ≈ 0 ถ้าเริ่มตอนนี้)
+migration และโค้ดใหม่ทุกตัวจากนี้ต้อง:
+1. raw SQL ใน migration ต้องอ้างตารางแบบ quoted (`"user"`) หรือใช้ SQLAlchemy
+   construct — โดยเฉพาะตาราง `user`
+2. ห้าม assume microsecond precision — อย่าเทียบ DATETIME แบบ exact ข้าม insert
+   และของที่ต้อง hash (audit) ให้ serialize เวลาเป็น ISO string ฝั่งแอปก่อน
+3. คอลัมน์ String ระบุความยาวเสมอ / ห้ามใช้ type เฉพาะ dialect โดยไม่มี variant
+
 ---
 
 ## เฟสทั้งหมด (ภาพรวม)
@@ -58,7 +119,7 @@
 | 2 | Data governance core | L | Audit Trail, Data Retention, PDPA |
 | 3 | Service layer + API v1 | M–L | Compatibility, Maintainability |
 | 4 | Identity & AuthN/AuthZ | L | Security(authn), Compatibility(SSO) |
-| 5 | Deployment parity & flexibility | M | Flexibility, Security(TLS/secrets) |
+| 5 | Deployment parity + DB/cache plugins | M–L | Flexibility, Security(TLS/secrets), Compatibility |
 | 6 | Performance validation | M | Performance Efficiency |
 | 7 | Verification & compliance closure | M–L | Security(ASVS/pentest/PDPA), Interaction(WCAG), Audit(SIEM) |
 
@@ -78,6 +139,8 @@ coverage gate ใน CI
   (UTC storage, msgid ภาษาอังกฤษ, CSRF ก่อน login_required, plugin architecture,
   404 แทน 403, ตารางดวงอาทิตย์ฝังในแอป)
 - นโยบาย: ไม่มี manual deploy ข้าม pipeline (ตอนนี้ = push เข้า main ต้องเขียวก่อน)
+- migration lint อย่างง่ายใน CI: จับ raw SQL ที่อ้างตาราง `user` แบบไม่ quote
+  (บังคับวินัย dialect ข้อ 4.5 ตั้งแต่ migration ตัวถัดไป)
 
 **ทำไมต้องก่อน:** ไม่แตะโค้ดแอปเลย (rework = 0) แต่ทุกบรรทัดหลังจากนี้ถูกตรวจฟรี
 ยิ่งช้า โค้ดที่ไม่เคยผ่าน gate ยิ่งสะสม
@@ -121,6 +184,8 @@ request_id ใน log
   ผ่าน SQLAlchemy event hooks (after_flush) — **ครอบทุก write อัตโนมัติรวม CLI**
   (actor = username หรือ `cli`), tamper-evident ด้วย hash chain (แต่ละแถวเก็บ
   hash ของแถวก่อนหน้า) + คำสั่ง verify, ไม่มี UI/route แก้ log — อ่านอย่างเดียว
+  payload ที่เข้า hash ต้อง serialize ฝั่งแอป (เวลาเป็น ISO string) ให้ผล hash
+  ไม่ขึ้นกับ precision ของ DB แต่ละยี่ห้อ (ดู 4.4)
   ซื่อสัตย์กับข้อจำกัด: immutability สมบูรณ์ต้องการ write-once storage ภายนอก
   (บันทึกใน ADR ว่า scale นี้ใช้ hash chain + สิทธิ์ระดับแอป)
 - เปิด `PRAGMA foreign_keys=ON` ต่อ connection (ปิดช่อง integrity ของ SQLite)
@@ -161,7 +226,8 @@ mutation test ยืนยันว่า write ที่ไม่ลง audit �
 - **Auth เป็น plugin ชนิดที่สอง** บน registry เดิม: `password` เป็น core plugin,
   แล้วเพิ่ม `totp` (MFA) — **จุดที่ต้องออกแบบกลไก plugin-owns-its-own-table**
   (migration แยกต่อ plugin, purge แล้ว table หายตามโดย core ไม่รู้จัก) — เป็น ADR
-  สำคัญที่ยังค้างจากงาน plugin เฟสแรก
+  สำคัญที่ยังค้างจากงาน plugin เฟสแรก — กลไกเดียวกันนี้รองรับ feature plugin
+  ที่มี store ของตัวเอง (task-graph/Neo4j, ดูข้อ 4.2) ในอนาคตด้วย
 - SSO: OIDC (identity กลางมหาวิทยาลัย) เป็น plugin, LDAP เป็นอีก plugin —
   ไม่แยก user store ใหม่ map เข้า `User` เดิม
 
@@ -172,20 +238,27 @@ login ผ่าน OIDC ได้จริงกับ IdP ทดสอบ
 
 ## Phase 5 — Deployment parity & flexibility
 
-**เป้าหมาย:** dev/staging/prod เหมือนกันจริง และไม่มี lock-in ที่ไม่มีทางออก
+**เป้าหมาย:** dev/staging/prod เหมือนกันจริง, รองรับ DB หลายยี่ห้อตามกลยุทธ์ข้อ 4
+และไม่มี lock-in ที่ไม่มีทางออก
 
-- Dockerfile (multi-stage, non-root) + compose: app (gunicorn), PostgreSQL, Redis
-- CI matrix รันเทสต์ทั้ง SQLite และ Postgres — จับ dialect quirk ที่เคยเจอ
-  (batch_alter_table, NUMERIC affinity) ให้หมดก่อนใช้จริง
-- Rate limiter → `redis://` (ปิดหนี้ `memory://` ต่อ process), ยืนยัน multi-worker
+- Dockerfile (multi-stage, non-root) + compose: app (gunicorn) + service ของ
+  backend ที่เลือก
+- **DB backend plugin ชนิดใหม่บน registry เดิม** (ADR contract: ห้าม purge ตัว
+  active, ต้องมี export path) — built-in: SQLite, MySQL 8+, MariaDB 11+
+  ยี่ห้ออื่น (PostgreSQL, Oracle, MSSQL + cloud preset) เป็น plugin ภายหลัง
+- **CI matrix: SQLite + MySQL + MariaDB** — จับ dialect quirk ให้หมด
+  (DATETIME(6) variant, เทสต์ precision, batch mode)
+- **Baseline squash migration** สำหรับ fresh install (ล้าง landmine ข้อ 4.4)
+- Cache plugin interface (ข้อ 4.3): core no-op default + Redis backend plugin
+  แล้วชี้ rate-limiter storage ไปที่เดียวกัน (ปิดหนี้ `memory://` ต่อ process)
 - TLS 1.2+/1.3 ที่ reverse proxy + เปิด HSTS ที่ค้างจาก Phase 1
-- Secrets: env → รองรับ Vault/KMS เป็น option (ไม่ hardcode — เป็นอยู่แล้ว)
-- IaC ตาม infra เป้าหมายจริงของหน่วยงาน + ADR "exit path" ต่อ managed service ทุกตัว
+- Secrets: env → รองรับ Vault/KMS เป็น option / IaC ตาม infra เป้าหมายจริง
+- ADR "exit path" ต่อ managed service ทุกตัวก่อนผูกมัด
 
 **ทำไมตรงนี้:** additive ทั้งหมด ไม่รื้อโค้ดแอป — แต่ต้องเสร็จก่อน Phase 6
 เพราะ load test บน SQLite/dev server คือตัวเลขหลอก
-**DoD:** `docker compose up` ได้ระบบครบ, เทสต์เขียวทั้งสอง DB, app รัน ≥2 replica
-โดยพฤติกรรมถูกต้อง (rate limit นับรวม, session ใช้ได้ข้าม replica)
+**DoD:** `docker compose up` เลือก backend ได้, เทสต์เขียวทั้งสาม DB ใน CI,
+app รัน ≥2 replica พฤติกรรมถูกต้อง (rate limit นับรวม, session ข้าม replica)
 
 ## Phase 6 — Performance validation
 

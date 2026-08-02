@@ -236,6 +236,13 @@ session มาก่อนโปรไฟล์เพื่อให้กดส
   ผ่าน fixture `ratelimit_app` ซึ่งต้อง `limiter.reset()` **หลัง** `create_app` เท่านั้น
   (ก่อน `init_app` ยังไม่มี storage จะ assert พัง)
 
+## วินัย dialect (มีผลทันที — เตรียมรองรับ DB หลายยี่ห้อ ดู ROADMAP ข้อ 4)
+- raw SQL ใน migration ต้อง quote ตารางที่เป็น reserved word — โดยเฉพาะ `"user"`
+  (reserved ใน PostgreSQL/Oracle/MSSQL — migration เก่า 3 จุดปล่อยไว้ จะล้างด้วย
+  baseline squash ตอน Phase 5 อย่าเพิ่มจุดใหม่)
+- ห้ามเทียบ DATETIME แบบ exact ข้าม insert — MySQL default ตัด microsecond
+- คอลัมน์ String ระบุความยาวเสมอ (MySQL บังคับ) — ตอนนี้ครบทุกคอลัมน์แล้ว
+
 ## แผนระยะยาว
 - แผนแม่บท (ISO/IEC 25010:2023 + audit/data governance) อยู่ใน `docs/ROADMAP.md`
   เรียงเป็นเฟสตามหลักลด rework — **ก่อนเริ่มฟีเจอร์ใหม่ให้เช็คว่าอยู่เฟสไหนของแผน**
