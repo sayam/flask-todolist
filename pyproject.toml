@@ -70,15 +70,16 @@ module = [
 ]
 ignore_missing_imports = true
 
-# flask_sqlalchemy แบบ legacy (db.Model) mypy มองไม่ทะลุ —
-# หายถาวรตอน rewrite เป็น SQLAlchemy 2.0 typed style (Phase 2)
+# `db.Model` ของ flask_sqlalchemy เป็น attribute แบบ dynamic mypy จึงมองไม่เห็น
+# ตัวคลาส — ปิดเฉพาะ error ตัวนี้ตัวเดียว ส่วนที่เหลือของไฟล์ยัง strict เต็ม
+# (ใช้ Base ตรง ๆ แทนไม่ได้ เพราะ routes ยังใช้ `Model.query` อยู่ — Phase 3 จะย้าย)
 [[tool.mypy.overrides]]
 module = ["app.models"]
 disable_error_code = ["name-defined"]
 
 # strict list — module ที่ pure (ไม่พึ่ง extension ที่ไม่มี type stub)
 [[tool.mypy.overrides]]
-module = ["app.tz", "app.filters", "app.plugins", "app.sun_data"]
+module = ["app.tz", "app.filters", "app.plugins", "app.sun_data", "app.models"]
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 disallow_untyped_calls = true
@@ -103,4 +104,4 @@ exclude = ["app/sun_data.py"]
 ignore-init-method = true
 ignore-nested-functions = true
 # ตั้งจากค่าที่วัดจริงตอน Phase 0 (ratchet เช่นกัน)
-fail-under = 49  # วัดจริง 2026-08: 49.5% — ขยับขึ้นได้อย่างเดียว
+fail-under = 56  # วัดจริง 2026-08 (Phase 2): 56.6% — ขยับขึ้นได้อย่างเดียว

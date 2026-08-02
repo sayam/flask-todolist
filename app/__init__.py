@@ -9,13 +9,34 @@ from flask_login import LoginManager
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
+from sqlalchemy import MetaData
+from sqlalchemy.orm import DeclarativeBase
 
 from app import plugins
 from app.logging_setup import init_logging
 from app.security_headers import init_security_headers
 from config import Config, check_secret_key
 
-db = SQLAlchemy()
+# constraint/index ที่ไม่ได้ตั้งชื่อจะได้ชื่อ auto ที่ **ต่างกันตามยี่ห้อ DB**
+# ทำให้ alembic drop/alter constraint ข้ามยี่ห้อไม่ได้ (MySQL เจ็บสุด)
+# ประกาศครั้งเดียวที่ MetaData แล้วทุก constraint ที่เกิดหลังจากนี้ได้ชื่อที่คาดเดาได้
+# ดู docs/STANDARDS.md ข้อ 1.2 — ห้ามแก้รูปแบบนี้โดยไม่มี migration รองรับ
+NAMING_CONVENTION = {
+    "ix": "ix_%(column_0_label)s",
+    "uq": "uq_%(table_name)s_%(column_0_name)s",
+    "ck": "ck_%(table_name)s_%(constraint_name)s",
+    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+    "pk": "pk_%(table_name)s",
+}
+
+
+class Base(DeclarativeBase):
+    """base ของทุก model — SQLAlchemy 2.0 typed style (`Mapped[]`)"""
+
+    metadata = MetaData(naming_convention=NAMING_CONVENTION)
+
+
+db = SQLAlchemy(model_class=Base)
 migrate = Migrate()
 csrf = CSRFProtect()
 babel = Babel()

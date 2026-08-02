@@ -3,6 +3,7 @@ from logging.config import fileConfig
 
 from alembic import context
 from flask import current_app
+from sqlalchemy import text as sa_text
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -12,6 +13,10 @@ config = context.config
 # This line sets up loggers basically.
 fileConfig(config.config_file_name)
 logger = logging.getLogger("alembic.env")
+
+# ตารางของ alembic เองก็ต้องมี prefix เหมือนตารางอื่น ไม่งั้น `alembic_version`
+# ลอยอยู่กลางฐานข้อมูลที่อาจมีแอปอื่นใช้ร่วม (ดู docs/STANDARDS.md ข้อ 1.1)
+VERSION_TABLE = "tdl_alembic_version"
 
 
 def get_engine():
@@ -62,10 +67,41 @@ def run_migrations_offline():
 
     """
     url = config.get_main_option("sqlalchemy.url")
-    context.configure(url=url, target_metadata=get_metadata(), literal_binds=True)
+    context.configure(
+        url=url,
+        target_metadata=get_metadata(),
+        literal_binds=True,
+        version_table=VERSION_TABLE,
+    )
 
     with context.begin_transaction():
         context.run_migrations()
+
+
+def _adopt_legacy_version_table(engine):
+    """เปลี่ยนชื่อ `alembic_version` เดิมเป็น `tdl_alembic_version` ถ้ายังไม่ได้เปลี่ยน
+
+    ต้องทำ **ก่อน** `context.configure()` เพราะ alembic อ่านเวอร์ชันปัจจุบัน
+    จากตารางชื่อใหม่ ถ้าไม่เจอมันจะสรุปว่าฐานข้อมูลยังว่าง แล้วไล่รัน migration
+    ตั้งแต่ตัวแรก — ซึ่งจะพังทันทีเพราะตารางมีอยู่แล้ว
+
+    **ต้องใช้ connection ของตัวเองที่ commit แล้วปิดให้เรียบร้อยก่อน** ห้ามใช้
+    connection ตัวเดียวกับที่ส่งให้ `context.configure()` — การแตะ connection นั้น
+    ก่อน configure จะเปิด transaction ค้างไว้ ทำให้ migration ทั้งชุดถูก rollback
+    ตอนปิด connection โดย **ไม่มี error และ exit code ยังเป็น 0**
+    (เจอมาแล้วตอน Phase 2: log ขึ้น "Running upgrade" ครบทุกตัวแต่ฐานข้อมูลไม่เปลี่ยน)
+
+    เป็นงานครั้งเดียว: พอเปลี่ยนชื่อแล้วรอบถัดไปจะไม่เข้าเงื่อนไขอีก
+    ฐานข้อมูลที่สร้างใหม่ก็ไม่เข้า เพราะไม่มีตารางชื่อเก่าตั้งแต่แรก
+    """
+    from sqlalchemy import inspect
+
+    # begin() commit ให้เองตอนออกจาก block และปิด connection ทันที
+    with engine.begin() as connection:
+        names = set(inspect(connection).get_table_names())
+        if "alembic_version" in names and VERSION_TABLE not in names:
+            logger.info("renaming alembic_version -> %s", VERSION_TABLE)
+            connection.execute(sa_text(f"ALTER TABLE alembic_version RENAME TO {VERSION_TABLE}"))
 
 
 def run_migrations_online():
@@ -91,9 +127,15 @@ def run_migrations_online():
         conf_args["process_revision_directives"] = process_revision_directives
 
     connectable = get_engine()
+    _adopt_legacy_version_table(connectable)
 
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=get_metadata(), **conf_args)
+        context.configure(
+            connection=connection,
+            target_metadata=get_metadata(),
+            version_table=VERSION_TABLE,
+            **conf_args,
+        )
 
         with context.begin_transaction():
             context.run_migrations()

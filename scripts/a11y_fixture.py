@@ -57,13 +57,13 @@ def main() -> None:
             ("Completed task", None, True, None),
             ("Task with no due date", None, False, None),
         ]
-        for title, due, done, category_id in rows:
+        for title, due, is_done, category_id in rows:
             db.session.add(
                 Todo(
                     title=title,
                     due_date=due,
                     start_date=now - timedelta(days=1),
-                    done=done,
+                    is_done=is_done,
                     user_id=user.id,
                     category_id=category_id,
                 )

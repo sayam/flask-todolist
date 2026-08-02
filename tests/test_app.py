@@ -39,7 +39,7 @@ def test_toggle_todo(app, client):
     todo_id = _first_todo_id(app, "งานทดสอบ")
     assert client.post(f"/toggle/{todo_id}", follow_redirects=True).status_code == 200
     with app.app_context():
-        assert db.session.get(Todo, todo_id).done is True
+        assert db.session.get(Todo, todo_id).is_done is True
 
 
 def test_delete_todo(app, client):
@@ -61,7 +61,7 @@ def test_clear_completed(app, client):
     assert "ล้างจาน".encode() in resp.data
 
     with app.app_context():
-        assert Todo.query.filter_by(done=True).count() == 0
+        assert Todo.query.filter_by(is_done=True).count() == 0
         assert [t.title for t in Todo.query.all()] == ["ล้างจาน"]
 
 

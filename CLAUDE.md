@@ -20,7 +20,7 @@
 ## Structure
 - `app/__init__.py` — app factory (`create_app`), init db/migrate/csrf/limiter/login_manager
   และ errorhandler ของ 429
-- `app/models.py` — SQLAlchemy models (`User`, `Category`, `Todo`)
+- `app/models.py` — SQLAlchemy models (`User`, `Category`, `Todo`) แบบ 2.0 typed (`Mapped[]`)
 - `app/routes.py` — view functions ของงาน/หมวด/ตั้งค่า ผูกกับ blueprint `main`
 - `app/auth.py` — login/logout ผูกกับ blueprint `auth`
 - `app/cli.py` — custom flask CLI commands
@@ -36,6 +36,7 @@
 - `app/static/` — `logo.svg` (120px ใช้หน้า login) และ `logo-small.svg` (32px ใช้บน header + favicon)
   ตัวเล็กไม่ใช่ตัวใหญ่ย่อลงมา แต่ตัดรายละเอียดออกให้เหลือแค่เครื่องหมายถูก
 - `migrations/` — alembic migration scripts (commit ลง git ด้วย)
+  `env.py` ตั้ง `version_table` เป็น `tdl_alembic_version` และเปลี่ยนชื่อตารางเวอร์ชันเก่าให้เอง
 - `tests/` — pytest, fixture จาก `conftest.py`
 - `pyproject.toml` — config กลางของ ruff/mypy/coverage/interrogate/pytest
   (pytest.ini ถูกยุบเข้ามาแล้ว) threshold เป็น ratchet: ขยับขึ้นได้อย่างเดียว
@@ -303,10 +304,29 @@ session มาก่อนโปรไฟล์เพื่อให้กดส
 - ส่งค่าเพิ่มเข้า log ผ่าน `extra={...}` มันจะถูกยกเป็น field ระดับบนสุดเอง
 - **`actor` เก็บ `username` ไม่ใช่ชื่อจริง** ลด PII — มีเทสต์ดักว่าชื่อจริงต้องไม่หลุดลง log
 
+## Schema identity (Phase 2 ด่านแรก — ดู ADR 0013)
+- **ทุกตารางขึ้นต้น `tdl_`** ตาราง core คือ `tdl_user` / `tdl_category` / `tdl_todo`
+  ตารางของ alembic คือ `tdl_alembic_version` — plugin ใช้ `tdl_<ชนิด>_<ไอดี>_*`
+  ผลพลอยได้: `user` ไม่ใช่ชื่อตารางอีกแล้ว landmine reserved word ตายถาวร
+- ชื่อ constraint/index มาจาก `NAMING_CONVENTION` ใน `app/__init__.py` ไม่ใช่ชื่อ auto
+  **แก้รูปแบบนี้ต้องมี migration รองรับ** ไม่งั้น alembic จะ drop constraint ที่ชื่อไม่ตรง
+- คอลัมน์ boolean ขึ้นต้น `is_`/`has_` — `Todo.is_done` (เดิมชื่อ `done`)
+- model เป็น SQLAlchemy 2.0 typed style ทั้งหมด (`Mapped[]` + `mapped_column`)
+  คอลัมน์ที่ nullable ต้องเป็น `Mapped[X | None]` ให้ตรงกับ DB จริง
+
+### env.py: ห้ามแตะ connection ก่อน `context.configure()`
+เคยพังมาแล้วตอน Phase 2 — โค้ดที่ `inspect()` หรือ execute บน connection ตัวเดียวกับ
+ที่ส่งให้ alembic **ทำให้ migration ทั้งชุดถูก rollback เงียบ ๆ**
+log ขึ้น "Running upgrade" ครบทุกตัว exit code เป็น 0 แต่ฐานข้อมูลไม่เปลี่ยนเลย
+งานที่ต้องแตะ DB ก่อน configure ให้ใช้ `engine.begin()` เปิด connection ของตัวเอง
+`tests/test_migrations.py` เป็นที่เดียวที่รัน migration จริง — **ห้ามลบ**
+เทสต์อื่นใช้ `db.create_all()` จึงไม่มีทางจับบั๊กชั้นนี้ได้
+
 ## วินัย dialect (มีผลทันที — เตรียมรองรับ DB หลายยี่ห้อ ดู ROADMAP ข้อ 4)
 - raw SQL ใน migration ต้อง quote ตารางที่เป็น reserved word — โดยเฉพาะ `"user"`
   (reserved ใน PostgreSQL/Oracle/MSSQL — migration เก่า 3 จุดปล่อยไว้ จะล้างด้วย
   baseline squash ตอน Phase 5 อย่าเพิ่มจุดใหม่)
+  **ตารางปัจจุบันไม่มีชื่อนี้แล้ว** หลังใส่ prefix `tdl_` — เหลือแค่ใน migration เก่า
 - ห้ามเทียบ DATETIME แบบ exact ข้าม insert — MySQL default ตัด microsecond
 - คอลัมน์ String ระบุความยาวเสมอ (MySQL บังคับ) — ตอนนี้ครบทุกคอลัมน์แล้ว
 

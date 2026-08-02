@@ -100,9 +100,9 @@ def index():
 
     query = Todo.query.filter_by(user_id=current_user.id)
     if status == "active":
-        query = query.filter_by(done=False)
+        query = query.filter_by(is_done=False)
     elif status == "completed":
-        query = query.filter_by(done=True)
+        query = query.filter_by(is_done=True)
 
     # ตัวกรองหมวด: "none" = เฉพาะงานที่ไม่มีหมวด, ตัวเลข = id ของหมวด
     category_arg = (request.args.get("category") or "").strip()
@@ -223,7 +223,7 @@ def edit(todo_id):
 @login_required
 def toggle(todo_id):
     todo = _owned_todo(todo_id)
-    todo.done = not todo.done
+    todo.is_done = not todo.is_done
     db.session.commit()
     return redirect(url_for("main.index"))
 
@@ -239,7 +239,7 @@ def delete(todo_id):
 @bp.route("/clear-completed", methods=["POST"])
 @login_required
 def clear_completed():
-    Todo.query.filter_by(user_id=current_user.id, done=True).delete()
+    Todo.query.filter_by(user_id=current_user.id, is_done=True).delete()
     db.session.commit()
     return redirect(url_for("main.index"))
 

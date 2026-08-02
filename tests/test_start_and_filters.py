@@ -234,8 +234,8 @@ def test_date_filter_combines_with_status(app, client):
     _add(client, "วันนี้ยังไม่เสร็จ", due=today)
     _add(client, "วันนี้เสร็จแล้ว", due=today)
     with app.app_context():
-        done = Todo.query.filter_by(title="วันนี้เสร็จแล้ว").one()
-        done.done = True
+        finished = Todo.query.filter_by(title="วันนี้เสร็จแล้ว").one()
+        finished.is_done = True
         db.session.commit()
 
     titles = _titles(client.get("/?when=today&status=active"))

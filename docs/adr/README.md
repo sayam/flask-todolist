@@ -18,3 +18,4 @@ ADR 0002–0008 เป็นการ backfill การตัดสินใจ
 | [0010](0010-csp-without-unsafe-inline.md) | CSP ไม่มี unsafe-inline, JS อยู่ไฟล์เดียว | accepted |
 | [0011](0011-structured-json-logging.md) | log JSON + correlation ID ต่อ request | accepted |
 | [0012](0012-accessibility-two-tier-gate.md) | a11y gate สองชั้น (โครงสร้าง + pa11y) | accepted |
+| [0013](0013-schema-identity-tdl-prefix.md) | prefix `tdl_`, naming convention, typed models | accepted |
