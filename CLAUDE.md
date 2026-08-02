@@ -34,6 +34,8 @@
 - `create_app` **ไม่เรียก** `db.create_all()` แล้ว — schema มาจาก migration เท่านั้น
   (เทสต์สร้างตารางเองใน fixture `app`)
 - แทรกค่าลง JS ใน template ต้องใช้ `|tojson` ไม่ใช่ `{{ }}` เปล่า ๆ เช่นใน `onsubmit="return confirm(...)"`
+- **ตั้งชื่องาน/หมวดในเทสต์อย่าให้ตรงกับข้อความบน UI** เช่น "ยังไม่เสร็จ"/"เสร็จแล้ว"
+  เป็น label ของลิงก์ตัวกรองที่อยู่ในหน้าเสมอ `assert ... not in resp.data` จะพังทันที
 - **ทุก `<form method="post">` ต้องมี `{{ csrf_field() }}` หรือ hidden input `csrf_token`**
   `CSRFProtect` คุมทั้งแอป ลืมใส่แล้ว form นั้นจะได้ 400 ทันที
 - เทสต์ทั่วไปปิด CSRF (`WTF_CSRF_ENABLED = False` ใน `TestConfig`) ตัว CSRF มีเทสต์แยกใน
@@ -70,6 +72,17 @@ POST ที่ทั้งไม่มี token และไม่ได้ logi
   (default `memory://`) ปรับผ่าน env ได้
 - **`memory://` นับแยกต่อ process** — ถ้าวันไหนรันหลาย worker (gunicorn ฯลฯ)
   ต้องเปลี่ยนเป็น `redis://` ไม่งั้นเพดานจริงจะกลายเป็น N เท่าของที่ตั้งไว้
+
+## กำหนดส่งและตัวกรอง
+- `Todo.due_date` เป็น `db.Date` ไม่ใช่ `DateTime` — เลี่ยงปัญหา timezone
+- `Todo.is_overdue` เทียบกับ `date.today()` (เวลาท้องถิ่นของเครื่อง server ไม่ใช่ UTC)
+  งานที่ `done=True` ไม่นับว่าเลยกำหนด และครบกำหนด "วันนี้" ยังไม่ถือว่าเลย
+- เรียงลำดับ: งานที่มีกำหนดส่งขึ้นก่อน (ใกล้ครบกำหนดสุดก่อน) แล้วค่อยงานไม่มีกำหนด
+  เรียงตาม `created_at` ล่าสุดก่อน
+- ตัวกรองรับผ่าน query string: `?status=all|active|completed` และ `?category=<id>|none`
+  ค่าที่ไม่รู้จักใน `status` จะ fallback เป็น `all` แต่ `category` ที่เป็นของคนอื่นตอบ 404
+- `_parse_due_date()` raise `ValueError` ถ้ารูปแบบผิด — route ต้อง catch แล้ว flash
+  (browser ส่งมาถูกเสมอ แต่คนยิง POST ตรง ๆ ส่งอะไรมาก็ได้)
 
 ## Rate limit
 - จำกัดเฉพาะ `POST /login` GET ไม่โดน

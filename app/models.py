@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from flask_login import UserMixin
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -58,6 +58,9 @@ class Todo(db.Model):
     done = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=_utcnow)
     updated_at = db.Column(db.DateTime, default=_utcnow, onupdate=_utcnow)
+    # เก็บเป็น Date ไม่ใช่ DateTime — "ครบกำหนดวันไหน" ไม่ต้องมีเวลา
+    # และเลี่ยงปัญหา timezone ที่จะตามมาถ้าเก็บเวลาด้วย
+    due_date = db.Column(db.Date, nullable=True)
     user_id = db.Column(
         db.Integer, db.ForeignKey("user.id"), nullable=False, index=True
     )
@@ -68,6 +71,17 @@ class Todo(db.Model):
 
     user = db.relationship("User", back_populates="todos")
     category = db.relationship("Category", back_populates="todos")
+
+    @property
+    def is_overdue(self):
+        """เลยกำหนดแล้วหรือยัง — งานที่ทำเสร็จแล้วไม่นับว่าเลยกำหนด
+
+        เทียบกับวันที่ตามเครื่องที่รัน server (ไม่ใช่ UTC) เพราะ "วันนี้"
+        ในมุมคนใช้คือวันตามเวลาท้องถิ่น
+        """
+        if self.done or self.due_date is None:
+            return False
+        return self.due_date < date.today()
 
     def __repr__(self):
         return f"<Todo {self.id} {self.title!r} done={self.done}>"

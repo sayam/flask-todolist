@@ -23,8 +23,36 @@
   {{ csrf_field() }}
   <input type="text" name="title" placeholder="งานใหม่" required>
   {{ category_select(None) }}
+  <input type="date" name="due_date" title="กำหนดส่ง (ไม่ใส่ก็ได้)">
   <button type="submit">เพิ่ม</button>
 </form>
+
+<p>
+  แสดง:
+  {% for value, label in [('all', 'ทั้งหมด'), ('active', 'ยังไม่เสร็จ'), ('completed', 'เสร็จแล้ว')] %}
+    {%- if status == value %}
+      <strong>{{ label }}</strong>
+    {%- else %}
+      <a href="{{ url_for('main.index', status=value, category=category_arg or None) }}">{{ label }}</a>
+    {%- endif %}
+    {{- ' | ' if not loop.last else '' }}
+  {% endfor %}
+</p>
+
+<p>
+  หมวด:
+  {% if not category_arg %}<strong>ทั้งหมด</strong>{% else %}<a href="{{ url_for('main.index', status=status) }}">ทั้งหมด</a>{% endif %}
+  |
+  {% if category_arg == 'none' %}<strong>ไม่มีหมวด</strong>{% else %}<a href="{{ url_for('main.index', status=status, category='none') }}">ไม่มีหมวด</a>{% endif %}
+  {% for category in categories %}
+  |
+  {% if selected_category == category.id %}
+    <strong>{{ category.name }}</strong>
+  {% else %}
+    <a href="{{ url_for('main.index', status=status, category=category.id) }}">{{ category.name }}</a>
+  {% endif %}
+  {% endfor %}
+</p>
 
 <ul>
   {% for todo in todos %}
@@ -39,8 +67,17 @@
       <input type="text" name="title" value="{{ todo.title }}"
              style="{{ 'text-decoration: line-through;' if todo.done else '' }}" required>
       {{ category_select(todo.category_id) }}
+      <input type="date" name="due_date" value="{{ todo.due_date.isoformat() if todo.due_date else '' }}">
       <button type="submit">บันทึก</button>
     </form>
+
+    {% if todo.due_date %}
+      {% if todo.is_overdue %}
+        <strong style="color:#b00">เลยกำหนด {{ (today - todo.due_date).days }} วัน</strong>
+      {% elif todo.due_date == today and not todo.done %}
+        <strong>ครบกำหนดวันนี้</strong>
+      {% endif %}
+    {% endif %}
 
     <form action="{{ url_for('main.delete', todo_id=todo.id) }}" method="post" style="display:inline"
           onsubmit="return confirm('ลบ ' + {{ todo.title|tojson }} + ' ใช่ไหม?')">
@@ -49,7 +86,7 @@
     </form>
   </li>
   {% else %}
-  <li>ยังไม่มีงาน</li>
+  <li>{{ 'ยังไม่มีงาน' if status == 'all' and not category_arg else 'ไม่มีงานที่ตรงกับตัวกรอง' }}</li>
   {% endfor %}
 </ul>
 
