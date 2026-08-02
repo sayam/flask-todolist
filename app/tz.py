@@ -17,11 +17,24 @@ from flask import current_app
 
 FALLBACK = "UTC"
 
+# ชื่อที่ `available_timezones()` คืนมาแต่ **ไม่ใช่โซนจริง** — เป็นของที่ tzdata
+# บางดิสโทรวางไว้ในไดเรกทอรีเดียวกัน ต่างดิสโทรมีไม่เท่ากัน (Ubuntu มี `localtime`
+# แต่ Gentoo ไม่มี) ถ้าไม่กรองออกจะโผล่ใน dropdown ให้ผู้ใช้เลือกทั้งที่
+# ไม่มีความหมาย และไม่มีข้อมูลในตารางดวงอาทิตย์ → โหมด auto จะเป็น light ตลอด
+#
+#   localtime  — symlink ไปโซนของเครื่องนั้น ซ้ำกับโซนจริงที่มีอยู่แล้ว
+#   posixrules — ของตกค้างจาก tzdata รุ่นเก่า ถูกถอดออกตั้งแต่ 2020b
+#   Factory    — โซนหลอกที่มีข้อความว่า "ต้องตั้งค่า timezone ก่อน"
+NOT_REAL_ZONES = frozenset({"localtime", "posixrules", "Factory"})
+
 
 @lru_cache(maxsize=1)
 def all_timezones() -> tuple[str, ...]:
-    """รายชื่อ timezone ทั้งหมดของระบบ เรียงแล้ว (cache ไว้ เพราะสแกนดิสก์)"""
-    return tuple(sorted(available_timezones()))
+    """รายชื่อ timezone ที่ให้ผู้ใช้เลือกได้ เรียงแล้ว (cache ไว้ เพราะสแกนดิสก์)
+
+    กรองชื่อที่ไม่ใช่โซนจริงออก — ดู `NOT_REAL_ZONES` ว่าทำไม
+    """
+    return tuple(sorted(available_timezones() - NOT_REAL_ZONES))
 
 
 def is_supported(name: str | None) -> bool:

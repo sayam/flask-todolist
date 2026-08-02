@@ -275,6 +275,27 @@ def test_every_selectable_timezone_has_sun_data(app):
     )
 
 
+def test_pseudo_zones_are_never_offered(monkeypatch):
+    """`available_timezones()` ของแต่ละดิสโทรไม่เท่ากัน — Ubuntu มี `localtime`
+    ติดมาด้วย ส่วน Gentoo ไม่มี ถ้าไม่กรองออกจะโผล่ใน dropdown ทั้งที่ไม่ใช่โซนจริง
+    และไม่มีข้อมูลดวงอาทิตย์ (CI บน ubuntu-latest แดงมาแล้วด้วยเหตุนี้)
+
+    เทสต์นี้จึงปลอม `available_timezones()` เอง ไม่พึ่งว่าเครื่องที่รันมีอะไร
+    """
+    from app import tz
+
+    fake = {"Asia/Bangkok", "UTC", *tz.NOT_REAL_ZONES}
+    monkeypatch.setattr(tz, "available_timezones", lambda: fake)
+    tz.all_timezones.cache_clear()
+    try:
+        assert set(tz.all_timezones()) == {"Asia/Bangkok", "UTC"}
+        for pseudo in tz.NOT_REAL_ZONES:
+            assert not tz.is_supported(pseudo), f"{pseudo} ไม่ควรผ่าน is_supported"
+    finally:
+        # ต้องล้างหลัง assert ครบ ไม่งั้นค่าปลอมค้างใน cache ไปถึงเทสต์อื่น
+        tz.all_timezones.cache_clear()
+
+
 def test_alias_zones_match_their_canonical_zone():
     """ชื่อพ้องต้องได้ตารางเดียวกับโซนจริง ไม่ใช่ค่าที่คำนวณคนละที่"""
     for alias, canonical in (
