@@ -13,6 +13,14 @@ class Config:
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
+    # นับเฉพาะ login ที่ล้มเหลว ล็อกอินถูกไม่กินโควตา
+    LOGIN_RATE_LIMIT = os.environ.get(
+        "LOGIN_RATE_LIMIT", "5 per minute; 20 per hour"
+    )
+    # memory:// เก็บใน process เดียว พอสำหรับ dev/single worker
+    # ถ้ารันหลาย worker ต้องเปลี่ยนเป็น redis:// ไม่งั้นแต่ละ worker นับแยกกัน
+    RATELIMIT_STORAGE_URI = os.environ.get("RATELIMIT_STORAGE_URI", "memory://")
+
 
 def check_secret_key(secret_key):
     """ตรวจ SECRET_KEY ตอนสร้างแอป ไม่ใช่ตอน import config

@@ -1,12 +1,19 @@
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 
+from app import limiter
 from app.models import User
 
 bp = Blueprint("auth", __name__)
 
 
 @bp.route("/login", methods=["GET", "POST"])
+@limiter.limit(
+    lambda: current_app.config["LOGIN_RATE_LIMIT"],
+    methods=["POST"],
+    # หักโควตาเฉพาะตอนล็อกอินไม่ผ่าน คนที่พิมพ์ถูกไม่โดนกัน
+    deduct_when=lambda response: response.status_code == 401,
+)
 def login():
     if current_user.is_authenticated:
         return redirect(url_for("main.index"))

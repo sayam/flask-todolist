@@ -1,6 +1,8 @@
 import os
 
-from flask import Flask
+from flask import Flask, render_template
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from flask_login import LoginManager
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
@@ -11,6 +13,7 @@ from config import Config, check_secret_key
 db = SQLAlchemy()
 migrate = Migrate()
 csrf = CSRFProtect()
+limiter = Limiter(key_func=get_remote_address)
 login_manager = LoginManager()
 login_manager.login_view = "auth.login"
 login_manager.login_message = "กรุณาเข้าสู่ระบบก่อน"
@@ -35,7 +38,13 @@ def create_app(config_class=Config):
     migrate.init_app(app, db, render_as_batch=True)
     # คุมทุก POST/PUT/PATCH/DELETE ทั้งแอป ไม่ต้องไปใส่ทีละ route
     csrf.init_app(app)
+    limiter.init_app(app)
     login_manager.init_app(app)
+
+    @app.errorhandler(429)
+    def too_many_requests(error):
+        # คืนหน้า login พร้อมข้อความ ไม่ใช่หน้า error ดิบ ๆ แต่คง status 429 ไว้
+        return render_template("login.html", rate_limited=str(error.description)), 429
 
     from app.routes import bp as main_bp
     from app.auth import bp as auth_bp

@@ -3,6 +3,10 @@
 
 {% block content %}
 <h1>เข้าสู่ระบบ</h1>
+
+{% if rate_limited %}
+<p><strong>พยายามเข้าสู่ระบบถี่เกินไป — รอสักครู่แล้วลองใหม่ ({{ rate_limited }})</strong></p>
+{% endif %}
 <form action="{{ url_for('auth.login') }}" method="post">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <p>

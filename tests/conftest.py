@@ -1,6 +1,6 @@
 import pytest
 
-from app import create_app, db
+from app import create_app, db, limiter
 from app.models import Category, User
 
 PASSWORD = "password123"
@@ -15,10 +15,21 @@ class TestConfig:
     # ปิด CSRF ในเทสต์ทั่วไปเพื่อไม่ต้องแนบ token ทุกคำขอ
     # ตัว CSRF เองมีเทสต์แยกใน test_csrf.py ที่เปิดใช้จริง
     WTF_CSRF_ENABLED = False
+    # ปิด rate limit ด้วย ไม่งั้น fixture ที่ login ซ้ำ ๆ จะโดนกันเอง
+    # ตัว rate limit มีเทสต์แยกใน test_ratelimit.py
+    RATELIMIT_ENABLED = False
+    # ระบุให้ตรงกับ Config จริง ไม่งั้น flask-limiter เตือนว่าไม่ได้เลือก storage
+    RATELIMIT_STORAGE_URI = "memory://"
+    LOGIN_RATE_LIMIT = "5 per minute"
 
 
 class CsrfTestConfig(TestConfig):
     WTF_CSRF_ENABLED = True
+
+
+class RateLimitTestConfig(TestConfig):
+    RATELIMIT_ENABLED = True
+    LOGIN_RATE_LIMIT = "3 per minute"
 
 
 def _make_user(username):
@@ -85,6 +96,24 @@ def csrf_app():
         db.create_all()
         _make_user("tester")
     yield app
+
+
+@pytest.fixture
+def ratelimit_app():
+    """แอปที่เปิด rate limit จริง (3 ครั้ง/นาที) พร้อม user 'tester'
+
+    limiter เป็น singleton ระดับโมดูล storage จึงค้างข้ามเทสต์
+    ต้อง reset ทั้งก่อนและหลัง ไม่งั้นเทสต์ที่รันทีหลังจะเริ่มด้วยโควตาที่ถูกใช้ไปแล้ว
+    (reset ได้หลัง init_app เท่านั้น ก่อนหน้านั้น storage ยังไม่ถูกสร้าง)
+    """
+    app = create_app(RateLimitTestConfig)
+    with app.app_context():
+        db.create_all()
+        _make_user("tester")
+        limiter.reset()
+    yield app
+    with app.app_context():
+        limiter.reset()
 
 
 @pytest.fixture

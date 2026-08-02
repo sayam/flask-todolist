@@ -10,6 +10,7 @@ python-dotenv = "*"
 flask-migrate = "*"
 flask-login = "*"
 flask-wtf = "*"
+flask-limiter = "*"
 
 [dev-packages]
 pytest = "*"

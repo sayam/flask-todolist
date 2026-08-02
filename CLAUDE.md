@@ -2,7 +2,8 @@
 
 ## Stack
 - Flask + Flask-SQLAlchemy, SQLite (dev), pipenv จัดการ env
-- Flask-Migrate (alembic) จัดการ schema, Flask-Login จัดการ session, Flask-WTF จัดการ CSRF
+- Flask-Migrate (alembic) จัดการ schema, Flask-Login จัดการ session, Flask-WTF จัดการ CSRF,
+  Flask-Limiter จำกัดจำนวนครั้งที่หน้า login
 - Python 3.13
 
 ## Commands
@@ -44,7 +45,19 @@
   ห้ามใส่ default กลับเข้าไปเพื่อความสะดวก มีเทสต์ใน `tests/test_config.py` ดักไว้
 - เปลี่ยน `SECRET_KEY` แล้ว session และ CSRF token เดิมใช้ไม่ได้ ทุกคนต้อง login ใหม่
 - `.env` ถูก gitignore — `.env.example` เป็นตัวที่ commit
+- `LOGIN_RATE_LIMIT` (default `5 per minute; 20 per hour`) และ `RATELIMIT_STORAGE_URI`
+  (default `memory://`) ปรับผ่าน env ได้
+- **`memory://` นับแยกต่อ process** — ถ้าวันไหนรันหลาย worker (gunicorn ฯลฯ)
+  ต้องเปลี่ยนเป็น `redis://` ไม่งั้นเพดานจริงจะกลายเป็น N เท่าของที่ตั้งไว้
+
+## Rate limit
+- จำกัดเฉพาะ `POST /login` GET ไม่โดน
+- `deduct_when` หักโควตาเฉพาะตอนได้ 401 — login ถูกไม่กินโควตา
+- โดนกันแล้วต้องได้ 429 แม้จะใส่รหัสถูก ไม่งั้นคนไล่เดารหัสจะรู้ทันทีว่าเจอรหัสที่ใช่
+- เทสต์ทั่วไปปิด rate limit (`RATELIMIT_ENABLED = False`) ตัวจริงเทสต์ใน `tests/test_ratelimit.py`
+  ผ่าน fixture `ratelimit_app` ซึ่งต้อง `limiter.reset()` **หลัง** `create_app` เท่านั้น
+  (ก่อน `init_app` ยังไม่มี storage จะ assert พัง)
 
 ## ยังไม่ได้ทำ
 - หน้า login ไม่รองรับ `?next=` โดยตั้งใจ (กัน open redirect) login เสร็จเด้งไปหน้าแรกเสมอ
-- ไม่มี rate limit ที่หน้า login
+- ยังไม่กันตาม username — คนเดารหัสที่เปลี่ยน IP ไปเรื่อย ๆ ยังไล่เดาได้
