@@ -314,3 +314,43 @@ app รัน ≥2 replica พฤติกรรมถูกต้อง (rate l
   Phase 3 แตะทุก route อีกหนึ่งครั้ง (extract service) — สองรอบนี้คือราคาที่ถูกที่สุดแล้ว
   เพราะจ่ายตอน route ยังน้อย และ audit hooks จาก Phase 2 เป็น event-based
   จึงไม่ต้องรื้อซ้ำตอน extract
+
+---
+
+## Public readiness / Badge program (ประตูปลายทาง — ไม่ใช่เฟส)
+
+**สถานะ: ยังไม่ทำ** — เงื่อนไขเปิดประตูคือ **Phase 0–7 ครบและผ่าน DoD ทุกข้อ**
+เมื่อถึงจุดนั้นจึงพิจารณาปล่อย public + ระบุ version — ก่อนหน้านั้นโฟกัสอยู่ที่
+functional/non-functional ให้ครบตามแผนเท่านั้น
+
+### เช็คลิสต์ก่อนกด public (สำรวจสถานะจริง 2026-08-03)
+
+| รายการ | สถานะตอนนี้ | หมายเหตุ |
+|---|---|---|
+| `LICENSE` | ❌ ยังไม่มี | **บังคับ** — ไม่มี license = คนอื่นไม่มีสิทธิ์ใช้ตามกฎหมาย ต้องเลือกก่อน public |
+| `SECURITY.md` (ช่องทางแจ้งช่องโหว่) | ❌ ยังไม่มี | vulnerability disclosure policy + ช่องทางติดต่อ |
+| `CONTRIBUTING.md` + Code of Conduct | ❌ ยังไม่มี | กติกา contribute (gate ทั้งหมดมีอยู่แล้ว แค่เขียนอธิบาย) |
+| `CHANGELOG.md` | ❌ ยังไม่มี | generate ได้จาก Conventional Commits ที่ enforce อยู่แล้ว |
+| README ฉบับอังกฤษ | ❌ ไทยล้วน | ผู้ชมสากลต้องอ่านได้ — ทำ bilingual |
+| ตรวจ PII ใน history | ⚠️ | email จริงอยู่ในทุก commit — ยอมรับหรือ re-author ต้องตัดสินใจก่อน public (rewrite ทีหลังไม่ได้) |
+| Secret scan ประวัติเต็มรอบสุดท้าย | มี gitleaks ใน CI | รัน full-history อีกครั้ง ณ วัน public |
+| Branch protection | ❌ (solo push ตรง main) | เปิดบังคับเมื่อมีคนนอก (ตาม ADR 0009) |
+
+### Versioning
+
+- **SemVer** เริ่มที่ **v1.0.0** — นิยาม 1.0.0 = สัญญา OpenAPI v1 (Phase 3) นิ่ง
+  และครบทุกเฟส / ก่อนหน้านั้นถ้าต้อง tag ใช้ 0.x
+- ทุก release: git tag + CHANGELOG + แนบ SBOM (มี artifact อยู่แล้วจาก CI)
+
+### Badge program — ของที่ปลดล็อคเมื่อ public
+
+| Badge | เงื่อนไข | หมายเหตุ |
+|---|---|---|
+| CI status | ได้ทันที | workflow มีแล้ว |
+| Coverage | ต่อ Codecov/Coveralls หรือแสดงจาก gate | ตัวเลขจริงมีอยู่แล้ว (ratchet ≥92) |
+| **CodeQL** | **ฟรีทันทีเมื่อ public** | ตัด ไว้ใน ADR 0009 เพราะ private ต้องจ่าย — เปิดกลับเป็นอันดับแรก |
+| OpenSSF Best Practices (bestpractices.dev) | สมัคร + ตอบ checklist | งานส่วนใหญ่ (เทสต์, SAST, SCA, disclosure policy) ทำครบตามแผนอยู่แล้ว |
+| OpenSSF Scorecard | เปิด action เมื่อ public | วัด branch protection, pinned deps, token permission ฯลฯ |
+
+> จุดยืนเดิมของโปรเจกต์: badge ต้องสะท้อนของจริงที่ตรวจได้ ไม่ใช่ติดเพื่อประดับ —
+> ทุก badge ข้างบนผูกกับ gate ที่รันจริงใน CI ทั้งหมด
