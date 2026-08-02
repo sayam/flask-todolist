@@ -15,7 +15,8 @@
 - เปลี่ยน schema: `pipenv run flask db migrate -m "..."` แล้ว `pipenv run flask db upgrade`
 
 ## Structure
-- `app/__init__.py` — app factory (`create_app`), init db/migrate/login_manager
+- `app/__init__.py` — app factory (`create_app`), init db/migrate/csrf/limiter/login_manager
+  และ errorhandler ของ 429
 - `app/models.py` — SQLAlchemy models (`User`, `Category`, `Todo`)
 - `app/routes.py` — view functions ของงาน/หมวด ผูกกับ blueprint `main`
 - `app/auth.py` — login/logout ผูกกับ blueprint `auth`
@@ -38,6 +39,26 @@
 - เทสต์ทั่วไปปิด CSRF (`WTF_CSRF_ENABLED = False` ใน `TestConfig`) ตัว CSRF มีเทสต์แยกใน
   `tests/test_csrf.py` ที่เปิดใช้จริงผ่าน fixture `csrf_app` — ห้ามลบไฟล์นั้นทิ้ง
   ไม่งั้นจะไม่มีอะไรจับได้เวลา `csrf.init_app()` หลุด
+
+## ลำดับด่านของ request (สำคัญตอนอ่าน status code)
+
+`CSRFProtect` ทำงานใน `before_request` จึง**ตัดก่อน** `@login_required` เสมอ
+POST ที่ทั้งไม่มี token และไม่ได้ login จะได้ **400 (CSRF) ไม่ใช่ 302 (ไป login)**
+
+| สถานะคำขอ | ผลลัพธ์ |
+|---|---|
+| ไม่มี token + ไม่ได้ login | 400 |
+| มี token ถูกต้อง + ไม่ได้ login | 302 → `/login` |
+| มี token + login แล้ว + ของคนอื่น | 404 |
+| POST `/login` ผิดรหัสเกินโควตา | 429 |
+
+ทั้งสองด่านยังอยู่ครบ แค่ CSRF มาก่อน — คนนอกขอ token จากหน้า `/login` ได้ก็จริง
+แต่ยิงต่อไปก็ยังติด `@login_required` อยู่ดี
+
+ผลที่ตามมาเวลาแก้บั๊ก:
+- เห็น **400** ที่ POST อย่าเพิ่งสรุปว่า "ไม่ได้ login" ให้เช็ค `csrf_token` ใน form ก่อน
+- อย่าเขียนเทสต์ที่ assert 302 สำหรับคนที่ยังไม่ login **บนแอปที่เปิด CSRF** โดยไม่แนบ token
+  (เทสต์ส่วนใหญ่ปิด CSRF ไว้ จึงได้ 302 ตามปกติ — ต่างกันตรงนี้)
 
 ## Environment
 - ต้องมี `.env` ที่มี `SECRET_KEY` ไม่งั้นแอปจะไม่ start (ดู `.env.example`)
