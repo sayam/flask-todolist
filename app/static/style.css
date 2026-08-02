@@ -1,0 +1,204 @@
+/* ธีมสว่าง/มืด
+ *
+ * ค่าสีทั้งหมดอยู่ใน custom property ชุดเดียว แล้วสลับค่าตามธีม
+ * ตัวที่เหลือในไฟล์อ้างถึงตัวแปร ไม่มีสีดิบ ๆ กระจายอยู่
+ *
+ * ธีมมืดถูกประกาศสองที่โดยตั้งใจ:
+ *   1. ใน @media prefers-color-scheme สำหรับคนที่ไม่ได้เลือกเอง (ธีม auto)
+ *   2. ที่ [data-theme="dark"] สำหรับคนที่กดเลือกเอง
+ * CSS ไม่มีวิธีใช้บล็อกเดียวร่วมกันได้ (media query เขียนเป็น selector ไม่ได้)
+ * แก้สีตรงไหนต้องแก้ทั้งสองที่ — tests/test_theme.py ดักไว้ว่าค่าต้องตรงกัน
+ */
+
+:root {
+  color-scheme: light;
+  --bg: #fbfbf9;
+  --surface: #ffffff;
+  --fg: #1b1b19;
+  --muted: #5e5e57;
+  --border: #d7d7d0;
+  --accent: #0f766e;
+  --accent-fg: #ffffff;
+  --danger: #b00020;
+  --overdue: #b00020;
+}
+
+/* ธีมมืดตามค่าที่ OS ตั้งไว้ — ยกเว้นผู้ใช้บังคับ light ไว้เอง */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #16181a;
+    --surface: #1f2225;
+    --fg: #e8e8e3;
+    --muted: #a3a49e;
+    --border: #34383c;
+    --accent: #2dd4bf;
+    --accent-fg: #10201e;
+    --danger: #ff6b6b;
+    --overdue: #ff8080;
+  }
+}
+
+/* ผู้ใช้กดเลือกธีมมืดเอง — ต้องชนะค่าของ OS */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #16181a;
+  --surface: #1f2225;
+  --fg: #e8e8e3;
+  --muted: #a3a49e;
+  --border: #34383c;
+  --accent: #2dd4bf;
+  --accent-fg: #10201e;
+  --danger: #ff6b6b;
+  --overdue: #ff8080;
+}
+
+body {
+  margin: 0 auto;
+  padding: 1.5rem 1rem 4rem;
+  max-width: 52rem;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: system-ui, -apple-system, "Noto Sans Thai", sans-serif;
+  line-height: 1.6;
+}
+
+a {
+  color: var(--accent);
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 1.5rem 0;
+}
+
+header a {
+  color: inherit;
+  text-decoration: none;
+}
+
+nav {
+  color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+nav form {
+  display: inline;
+}
+
+/* ฟอร์มและปุ่ม */
+input,
+select,
+button {
+  font: inherit;
+  color: var(--fg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.35rem 0.5rem;
+}
+
+input:focus-visible,
+select:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+button {
+  cursor: pointer;
+}
+
+button[type="submit"] {
+  background: var(--accent);
+  color: var(--accent-fg);
+  border-color: transparent;
+}
+
+/* ปุ่มในแถวรายการและในเมนูให้ดูเบากว่าปุ่มหลัก */
+nav button,
+li button {
+  background: var(--surface);
+  color: var(--fg);
+  border-color: var(--border);
+}
+
+label {
+  color: var(--muted);
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+li:last-child {
+  border-bottom: 0;
+}
+
+small {
+  color: var(--muted);
+}
+
+.overdue {
+  color: var(--overdue);
+}
+
+/* หน้า login — จัดกล่องทั้งใบไว้กลางจอ */
+.auth {
+  min-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.auth form {
+  width: 100%;
+  max-width: 20rem;
+  text-align: left;
+}
+
+.auth input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.auth button[type="submit"] {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.auth h1 {
+  margin: 0.5rem 0 0.25rem;
+}
+
+.auth .switcher {
+  color: var(--muted);
+  margin-bottom: 1.5rem;
+}
+
+.flash {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  margin: 0 0 1rem;
+}
+
+.flash li {
+  border: 0;
+  padding: 0;
+}

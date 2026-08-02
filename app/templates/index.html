@@ -89,7 +89,7 @@
 
     {% if todo.due_date %}
       {% if todo.is_overdue %}
-        <strong style="color:#b00">{{ _('Overdue') }}</strong>
+        <strong class="overdue">{{ _('Overdue') }}</strong>
       {% elif todo.is_due_today %}
         <strong>{{ _('Due today at %(time)s', time=todo.due_date.strftime('%H:%M')) }}</strong>
       {% endif %}

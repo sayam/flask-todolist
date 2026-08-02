@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-02 16:44+0700\n"
+"POT-Creation-Date: 2026-08-02 17:24+0700\n"
 "PO-Revision-Date: 2026-08-02 16:44+0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -26,53 +26,69 @@ msgstr "กรุณาเข้าสู่ระบบก่อน"
 msgid "Incorrect username or password"
 msgstr "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง"
 
-#: app/routes.py:110
+#: app/routes.py:124
 msgid "Please enter a task name"
 msgstr "กรุณาใส่ชื่องาน"
 
-#: app/routes.py:115 app/routes.py:140
+#: app/routes.py:129 app/routes.py:154
 msgid "Invalid date format"
 msgstr "รูปแบบวันที่ไม่ถูกต้อง"
 
-#: app/routes.py:135
+#: app/routes.py:149
 msgid "Task name cannot be empty"
 msgstr "ชื่องานว่างไม่ได้"
 
-#: app/routes.py:190
+#: app/routes.py:204
 msgid "Please enter a category name"
 msgstr "กรุณาใส่ชื่อหมวด"
 
-#: app/routes.py:192 app/routes.py:211
+#: app/routes.py:206 app/routes.py:225
 #, python-format
 msgid "Category “%(name)s” already exists"
 msgstr "มีหมวด “%(name)s” อยู่แล้ว"
 
-#: app/routes.py:205
+#: app/routes.py:219
 msgid "Category name cannot be empty"
 msgstr "ชื่อหมวดว่างไม่ได้"
 
-#: app/templates/base.html:6 app/templates/base.html:15
+#: app/templates/base.html:7 app/templates/base.html:43
 #: app/templates/index.html:2 app/templates/login.html:6
 #: app/templates/login.html:7
 msgid "Todolist"
 msgstr "รายการงาน"
 
-#: app/templates/base.html:19
-msgid "Tasks"
-msgstr "งาน"
+#: app/templates/base.html:14
+msgid "Theme"
+msgstr "ธีม"
 
-#: app/templates/base.html:20 app/templates/categories.html:2
-#: app/templates/categories.html:9
-msgid "Categories"
-msgstr "หมวดงาน"
+#: app/templates/base.html:16
+msgid "System"
+msgstr "ตามระบบ"
 
-#: app/templates/base.html:24
-msgid "Sign out"
-msgstr "ออกจากระบบ"
+#: app/templates/base.html:16
+msgid "Light"
+msgstr "สว่าง"
+
+#: app/templates/base.html:16
+msgid "Dark"
+msgstr "มืด"
 
 #: app/templates/base.html:27
 msgid "Language"
 msgstr "ภาษา"
+
+#: app/templates/base.html:47
+msgid "Tasks"
+msgstr "งาน"
+
+#: app/templates/base.html:48 app/templates/categories.html:2
+#: app/templates/categories.html:9
+msgid "Categories"
+msgstr "หมวดงาน"
+
+#: app/templates/base.html:52
+msgid "Sign out"
+msgstr "ออกจากระบบ"
 
 #: app/templates/categories.html:14 app/templates/categories.html:25
 msgid "Category name"
@@ -196,19 +212,20 @@ msgstr "ลบงานที่เสร็จแล้วทั้งหมด
 msgid "Clear completed"
 msgstr "ลบงานที่เสร็จแล้วทั้งหมด"
 
-#: app/templates/login.html:2 app/templates/login.html:34
+#: app/templates/login.html:2 app/templates/login.html:29
+#: tests/test_i18n.py:134
 msgid "Sign in"
 msgstr "เข้าสู่ระบบ"
 
-#: app/templates/login.html:21
+#: app/templates/login.html:16
 msgid "Too many sign-in attempts — please wait and try again."
 msgstr "พยายามเข้าสู่ระบบถี่เกินไป — รอสักครู่แล้วลองใหม่"
 
-#: app/templates/login.html:27
+#: app/templates/login.html:22
 msgid "Username"
 msgstr "ชื่อผู้ใช้"
 
-#: app/templates/login.html:31
+#: app/templates/login.html:26
 msgid "Password"
 msgstr "รหัสผ่าน"
 

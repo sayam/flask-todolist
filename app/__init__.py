@@ -52,9 +52,14 @@ def create_app(config_class=Config):
     def inject_i18n():
         from flask_babel import get_locale
 
+        from app.theme import AUTO, CHOICES, select_theme
+
         return {
             "current_locale": str(get_locale() or app.config["BABEL_DEFAULT_LOCALE"]),
             "languages": app.config["LANGUAGES"],
+            "current_theme": select_theme(),
+            "theme_choices": CHOICES,
+            "theme_auto": AUTO,
         }
 
     @app.errorhandler(429)

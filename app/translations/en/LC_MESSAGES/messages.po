@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-02 16:44+0700\n"
+"POT-Creation-Date: 2026-08-02 17:24+0700\n"
 "PO-Revision-Date: 2026-08-02 16:44+0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -26,52 +26,68 @@ msgstr ""
 msgid "Incorrect username or password"
 msgstr ""
 
-#: app/routes.py:110
+#: app/routes.py:124
 msgid "Please enter a task name"
 msgstr ""
 
-#: app/routes.py:115 app/routes.py:140
+#: app/routes.py:129 app/routes.py:154
 msgid "Invalid date format"
 msgstr ""
 
-#: app/routes.py:135
+#: app/routes.py:149
 msgid "Task name cannot be empty"
 msgstr ""
 
-#: app/routes.py:190
+#: app/routes.py:204
 msgid "Please enter a category name"
 msgstr ""
 
-#: app/routes.py:192 app/routes.py:211
+#: app/routes.py:206 app/routes.py:225
 #, python-format
 msgid "Category “%(name)s” already exists"
 msgstr ""
 
-#: app/routes.py:205
+#: app/routes.py:219
 msgid "Category name cannot be empty"
 msgstr ""
 
-#: app/templates/base.html:6 app/templates/base.html:15
+#: app/templates/base.html:7 app/templates/base.html:43
 #: app/templates/index.html:2 app/templates/login.html:6
 #: app/templates/login.html:7
 msgid "Todolist"
 msgstr ""
 
-#: app/templates/base.html:19
-msgid "Tasks"
+#: app/templates/base.html:14
+msgid "Theme"
 msgstr ""
 
-#: app/templates/base.html:20 app/templates/categories.html:2
-#: app/templates/categories.html:9
-msgid "Categories"
+#: app/templates/base.html:16
+msgid "System"
 msgstr ""
 
-#: app/templates/base.html:24
-msgid "Sign out"
+#: app/templates/base.html:16
+msgid "Light"
+msgstr ""
+
+#: app/templates/base.html:16
+msgid "Dark"
 msgstr ""
 
 #: app/templates/base.html:27
 msgid "Language"
+msgstr ""
+
+#: app/templates/base.html:47
+msgid "Tasks"
+msgstr ""
+
+#: app/templates/base.html:48 app/templates/categories.html:2
+#: app/templates/categories.html:9
+msgid "Categories"
+msgstr ""
+
+#: app/templates/base.html:52
+msgid "Sign out"
 msgstr ""
 
 #: app/templates/categories.html:14 app/templates/categories.html:25
@@ -197,19 +213,20 @@ msgstr ""
 msgid "Clear completed"
 msgstr ""
 
-#: app/templates/login.html:2 app/templates/login.html:34
+#: app/templates/login.html:2 app/templates/login.html:29
+#: tests/test_i18n.py:134
 msgid "Sign in"
 msgstr ""
 
-#: app/templates/login.html:21
+#: app/templates/login.html:16
 msgid "Too many sign-in attempts — please wait and try again."
 msgstr ""
 
-#: app/templates/login.html:27
+#: app/templates/login.html:22
 msgid "Username"
 msgstr ""
 
-#: app/templates/login.html:31
+#: app/templates/login.html:26
 msgid "Password"
 msgstr ""
 

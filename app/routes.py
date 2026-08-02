@@ -6,6 +6,9 @@ from flask_login import current_user, login_required
 
 from app import db
 from app.i18n import SESSION_KEY, is_supported
+from app.theme import AUTO as THEME_AUTO
+from app.theme import SESSION_KEY as THEME_SESSION_KEY
+from app.theme import is_supported as theme_is_supported
 from app.models import Category, Todo
 
 bp = Blueprint("main", __name__)
@@ -52,6 +55,17 @@ def _parse_due_date(raw):
     if parsed.tzinfo is not None:
         raise ValueError("ไม่รับ timezone offset — ใช้เวลาท้องถิ่นเท่านั้น")
     return parsed
+
+
+def _safe_referrer():
+    """path ของหน้าก่อนหน้า รับเฉพาะที่อยู่ในเว็บเรา ไม่งั้นเป็น open redirect"""
+    target = request.referrer or ""
+    if not target.startswith(request.host_url):
+        return url_for("main.index")
+    path = target[len(request.host_url) :]
+    if not path or path.startswith("/"):
+        return url_for("main.index")
+    return "/" + path
 
 
 @bp.route("/")
@@ -241,9 +255,21 @@ def set_language(code):
         current_user.locale = code
         db.session.commit()
 
-    # กลับไปหน้าเดิม แต่รับเฉพาะ path ภายในเว็บเรา ไม่งั้นจะเป็น open redirect
-    target = request.referrer or ""
-    path = target.split(request.host_url, 1)[-1] if target.startswith(request.host_url) else ""
-    if path and not path.startswith("//"):
-        return redirect("/" + path.lstrip("/"))
-    return redirect(url_for("main.index"))
+    return redirect(_safe_referrer())
+
+
+@bp.route("/theme/<value>")
+def set_theme(value):
+    """สลับธีม แล้วกลับไปหน้าเดิม — เหมือน set_language ทุกอย่าง
+
+    'auto' เก็บเป็น NULL ในโปรไฟล์ เพราะหมายถึง "ไม่เลือก" ไม่ใช่ธีมชื่อ auto
+    """
+    if not theme_is_supported(value):
+        abort(404)
+
+    session[THEME_SESSION_KEY] = value
+    if current_user.is_authenticated:
+        current_user.theme = None if value == THEME_AUTO else value
+        db.session.commit()
+
+    return redirect(_safe_referrer())

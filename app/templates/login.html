@@ -2,35 +2,31 @@
 {% block title %}{{ _('Sign in') }}{% endblock %}
 
 {% block content %}
-<div style="text-align:center; margin-top:3em">
+<div class="auth">
   <img src="{{ url_for('static', filename='logo.svg') }}" alt="{{ _('Todolist') }}" width="120" height="120">
   <h1>{{ _('Todolist') }}</h1>
-  <p>
-    {% for code, name in languages.items() %}
-      {%- if code == current_locale %}
-        <strong>{{ name }}</strong>
-      {%- else %}
-        <a href="{{ url_for('main.set_language', code=code) }}" hreflang="{{ code }}">{{ name }}</a>
-      {%- endif %}
-      {{- ' | ' if not loop.last else '' }}
-    {% endfor %}
+
+  <p class="switcher">
+    {{ language_switcher() }}
+    <br>
+    {{ theme_switcher() }}
   </p>
+
+  {% if rate_limited %}
+  <p><strong>{{ _('Too many sign-in attempts — please wait and try again.') }} ({{ rate_limited }})</strong></p>
+  {% endif %}
+
+  <form action="{{ url_for('auth.login') }}" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <p>
+      <label for="username">{{ _('Username') }}</label><br>
+      <input id="username" type="text" name="username" autocomplete="username" required autofocus>
+    </p>
+    <p>
+      <label for="password">{{ _('Password') }}</label><br>
+      <input id="password" type="password" name="password" autocomplete="current-password" required>
+    </p>
+    <button type="submit">{{ _('Sign in') }}</button>
+  </form>
 </div>
-
-{% if rate_limited %}
-<p><strong>{{ _('Too many sign-in attempts — please wait and try again.') }} ({{ rate_limited }})</strong></p>
-{% endif %}
-
-<form action="{{ url_for('auth.login') }}" method="post">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-  <p>
-    <label for="username">{{ _('Username') }}</label><br>
-    <input id="username" type="text" name="username" autocomplete="username" required autofocus>
-  </p>
-  <p>
-    <label for="password">{{ _('Password') }}</label><br>
-    <input id="password" type="password" name="password" autocomplete="current-password" required>
-  </p>
-  <button type="submit">{{ _('Sign in') }}</button>
-</form>
 {% endblock %}

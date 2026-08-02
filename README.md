@@ -12,6 +12,7 @@
 - กรองตามสถานะ (ทั้งหมด / ยังไม่เสร็จ / เสร็จแล้ว) และตามหมวด ใช้ร่วมกันได้
 - ข้อมูลแยกตาม user ใครเห็นแต่ของตัวเอง
 - รองรับ 2 ภาษา — English (ค่าเริ่มต้น) และไทย สลับได้จากเมนู จำภาษาที่เลือกไว้ให้
+- ธีมสว่าง/มืด — เริ่มต้นตามค่าของระบบ และสลับเองได้ จำธีมที่เลือกไว้ให้
 
 ## Stack
 
@@ -65,8 +66,8 @@ pipenv run flask run --debug
 pipenv run pytest -v
 ```
 
-98 tests ครอบคลุมงาน/หมวด, การแยกข้อมูลระหว่าง user, CSRF, rate limit,
-การตรวจ `SECRET_KEY`, การเลือกภาษา และ CLI
+116 tests ครอบคลุมงาน/หมวด, การแยกข้อมูลระหว่าง user, CSRF, rate limit,
+การตรวจ `SECRET_KEY`, การเลือกภาษา, ธีม และ CLI
 
 ## คำสั่ง CLI
 
@@ -121,9 +122,10 @@ app/
   auth.py        login/logout (blueprint `auth`)
   cli.py         คำสั่ง flask CLI
   templates/     Jinja2 (ทุกหน้า extend base.html)
-  static/        โลโก้ SVG 2 ขนาด
+  static/        โลโก้ SVG 2 ขนาด + style.css
   translations/  คำแปล gettext (en, th)
   i18n.py        ตรรกะเลือกภาษาของแต่ละ request
+  theme.py       ตรรกะเลือกธีมของแต่ละ request
 migrations/      alembic
 tests/
 ```

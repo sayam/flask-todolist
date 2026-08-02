@@ -1,15 +1,43 @@
 <!doctype html>
-<html lang="{{ current_locale }}">
+{# ไม่ใส่ data-theme ตอนเป็น auto เพื่อให้ prefers-color-scheme ใน CSS ตัดสินเอง #}
+<html lang="{{ current_locale }}"{% if current_theme != theme_auto %} data-theme="{{ current_theme }}"{% endif %}>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{{ _('Todolist') }}{% endblock %}</title>
   <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo-small.svg') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+
+{% macro theme_switcher() %}
+  <span>{{ _('Theme') }}:</span>
+  {% for value in theme_choices %}
+    {%- set label = {'auto': _('System'), 'light': _('Light'), 'dark': _('Dark')}[value] %}
+    {%- if value == current_theme %}
+      <strong>{{ label }}</strong>
+    {%- else %}
+      <a href="{{ url_for('main.set_theme', value=value) }}">{{ label }}</a>
+    {%- endif %}
+    {{- ' ' }}
+  {% endfor %}
+{% endmacro %}
+
+{% macro language_switcher() %}
+  <span>{{ _('Language') }}:</span>
+  {% for code, name in languages.items() %}
+    {%- if code == current_locale %}
+      <strong>{{ name }}</strong>
+    {%- else %}
+      <a href="{{ url_for('main.set_language', code=code) }}" hreflang="{{ code }}">{{ name }}</a>
+    {%- endif %}
+    {{- ' ' }}
+  {% endfor %}
+{% endmacro %}
+
   {% if current_user.is_authenticated %}
   <header>
-    <a href="{{ url_for('main.index') }}" style="text-decoration:none; color:inherit">
+    <a href="{{ url_for('main.index') }}">
       <img src="{{ url_for('static', filename='logo-small.svg') }}" alt="" width="28" height="28"
            style="vertical-align:middle">
       <strong style="vertical-align:middle; font-size:1.3em">{{ _('Todolist') }}</strong>
@@ -19,27 +47,19 @@
     <a href="{{ url_for('main.index') }}">{{ _('Tasks') }}</a> |
     <a href="{{ url_for('main.categories') }}">{{ _('Categories') }}</a> |
     <span>{{ current_user.username }}</span>
-    <form action="{{ url_for('auth.logout') }}" method="post" style="display:inline">
+    <form action="{{ url_for('auth.logout') }}" method="post">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit">{{ _('Sign out') }}</button>
     </form>
-    &nbsp;|&nbsp;
-    <span>{{ _('Language') }}:</span>
-    {% for code, name in languages.items() %}
-      {%- if code == current_locale %}
-        <strong>{{ name }}</strong>
-      {%- else %}
-        <a href="{{ url_for('main.set_language', code=code) }}" hreflang="{{ code }}">{{ name }}</a>
-      {%- endif %}
-      {{- ' ' }}
-    {% endfor %}
+    | {{ language_switcher() }}
+    | {{ theme_switcher() }}
   </nav>
   <hr>
   {% endif %}
 
   {% with messages = get_flashed_messages() %}
     {% if messages %}
-    <ul>
+    <ul class="flash">
       {% for message in messages %}
       <li><strong>{{ message }}</strong></li>
       {% endfor %}

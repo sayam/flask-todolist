@@ -17,6 +17,9 @@ class User(UserMixin, db.Model):
     created_at = db.Column(db.DateTime, default=_utcnow)
     # ภาษาที่ผู้ใช้เลือกไว้ NULL = ยังไม่เคยเลือก ให้ไปดู Accept-Language แทน
     locale = db.Column(db.String(8), nullable=True)
+    # ธีมที่ผู้ใช้เลือกไว้ 'light' หรือ 'dark'
+    # NULL = ตามระบบ (ปล่อยให้ prefers-color-scheme ตัดสิน)
+    theme = db.Column(db.String(8), nullable=True)
 
     categories = db.relationship(
         "Category", back_populates="user", cascade="all, delete-orphan"
