@@ -11,6 +11,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 
 from app import plugins
+from app.logging_setup import init_logging
+from app.security_headers import init_security_headers
 from config import Config, check_secret_key
 
 db = SQLAlchemy()
@@ -40,6 +42,10 @@ def create_app(config_class=Config):
     plugins.check_installation()
 
     Path(app.instance_path).mkdir(parents=True, exist_ok=True)
+
+    # ตั้ง log ก่อนอย่างอื่น จะได้เห็น log ของขั้นตอน init ที่เหลือด้วย
+    init_logging(app)
+    init_security_headers(app)
 
     db.init_app(app)
     # render_as_batch: SQLite ALTER TABLE ทำได้จำกัด ต้องให้ alembic สร้างตารางใหม่แทน

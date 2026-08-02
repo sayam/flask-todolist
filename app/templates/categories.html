@@ -20,7 +20,7 @@
 <ul>
   {% for category in categories %}
   <li>
-    <form action="{{ url_for('main.edit_category', category_id=category.id) }}" method="post" style="display:inline">
+    <form action="{{ url_for('main.edit_category', category_id=category.id) }}" method="post" class="inline">
       {{ csrf_field() }}
       <input type="text" name="name" value="{{ category.name }}" aria-label="{{ _('Category name') }}" required>
       <button type="submit">{{ _('Save') }}</button>
@@ -28,8 +28,8 @@
     {% set task_count = category.todos | length %}
     <span>({{ ngettext('%(num)d task', '%(num)d tasks', task_count) }})</span>
     {# ลบได้เฉพาะหมวดว่าง — ปิดปุ่มไว้เพื่อบอกล่วงหน้า ส่วนการกันจริงอยู่ที่ route #}
-    <form action="{{ url_for('main.delete_category', category_id=category.id) }}" method="post" style="display:inline"
-          onsubmit="return confirm({{ _('Delete category “%(name)s”?', name=category.name)|tojson }})">
+    <form action="{{ url_for('main.delete_category', category_id=category.id) }}" method="post" class="inline"
+          data-confirm="{{ _('Delete category “%(name)s”?', name=category.name) }}">
       {{ csrf_field() }}
       <button type="submit" {{ 'disabled' if task_count else '' }}
               title="{{ _('Move or delete its tasks first') if task_count else '' }}">

@@ -66,6 +66,7 @@ check_untyped_defs = true
 module = [
     "flask_login.*", "flask_limiter.*", "flask_wtf.*",
     "flask_babel.*", "flask_migrate.*", "flask_sqlalchemy.*",
+    "flask_talisman.*",
 ]
 ignore_missing_imports = true
 
@@ -93,7 +94,7 @@ omit = ["app/sun_data.py"]  # ตาราง generate — ไม่มี logic
 [tool.coverage.report]
 show_missing = true
 # ตั้งจากค่าที่วัดจริงตอน Phase 0 แล้วห้ามต่ำลง (ratchet ขึ้นได้อย่างเดียว)
-fail_under = 92  # วัดจริง 2026-08: 92.82% — ขยับขึ้นได้อย่างเดียว
+fail_under = 93  # วัดจริง 2026-08 (Phase 1): 93.20% — ขยับขึ้นได้อย่างเดียว
 
 # ---------------------------------------------------------------- interrogate
 [tool.interrogate]

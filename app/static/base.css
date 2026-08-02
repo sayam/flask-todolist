@@ -240,3 +240,26 @@ small {
   border: 0;
   padding: 0;
 }
+
+/* ฟอร์มที่ต้องอยู่บรรทัดเดียวกับข้อความรอบข้าง (แทน inline style เดิม —
+ * CSP ไม่มี unsafe-inline จึงห้ามมี style= ใน template) */
+.inline {
+  display: inline;
+}
+
+/* ทางสำรองตอน JS ไม่ทำงาน — ปุ่ม submit ของฟอร์มที่ปกติ submit ให้เองอัตโนมัติ
+ * ซ่อนก็ต่อเมื่อ app.js ติดคลาส `js` ให้ <html> ได้จริง ถ้าสคริปต์โหลดไม่ขึ้น
+ * (CSP บล็อก, network พัง, ผู้ใช้ปิด JS) ปุ่มจะยังอยู่และฟอร์มยังใช้งานได้
+ * ห้ามเปลี่ยนเป็น `display: none` เฉย ๆ — จะกลายเป็นฟอร์มที่ submit ไม่ได้เลย */
+.js .js-hidden {
+  display: none;
+}
+
+.brand-logo,
+.brand-name {
+  vertical-align: middle;
+}
+
+.brand-name {
+  font-size: 1.3em;
+}

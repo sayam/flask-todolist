@@ -123,8 +123,11 @@
   <li class="task">
     <form class="task-toggle" action="{{ url_for('main.toggle', todo_id=todo.id) }}" method="post">
       {{ csrf_field() }}
-      <input type="checkbox" onchange="this.form.submit()" {{ 'checked' if todo.done else '' }}
+      <input type="checkbox" data-auto-submit {{ 'checked' if todo.done else '' }}
              aria-label="{{ _('Mark as not done') if todo.done else _('Mark as done') }}">
+      {# ฟอร์มที่ไม่มีปุ่ม submit ใช้ไม่ได้เลยเมื่อ JS ไม่ทำงาน — ปุ่มนี้คือทางสำรอง
+         และซ่อนตัวเองทันทีที่ app.js ติดคลาส `js` ให้ <html> #}
+      <button type="submit" class="js-hidden">{{ _('Save') }}</button>
     </form>
 
     <span class="task-title {{ 'done' if todo.done else '' }}">{{ todo.title }}</span>
@@ -149,7 +152,7 @@
     <a class="button" href="{{ url_for('main.edit', todo_id=todo.id) }}">{{ _('Edit') }}</a>
 
     <form action="{{ url_for('main.delete', todo_id=todo.id) }}" method="post"
-          onsubmit="return confirm({{ _('Delete “%(title)s”?', title=todo.title)|tojson }})">
+          data-confirm="{{ _('Delete “%(title)s”?', title=todo.title) }}">
       {{ csrf_field() }}
       <button type="submit">{{ _('Delete') }}</button>
     </form>
@@ -160,7 +163,7 @@
 </ul>
 
 <form action="{{ url_for('main.clear_completed') }}" method="post"
-      onsubmit="return confirm({{ _('Delete all completed tasks? This cannot be undone.')|tojson }})">
+      data-confirm="{{ _('Delete all completed tasks? This cannot be undone.') }}">
   {{ csrf_field() }}
   <button type="submit">{{ _('Clear completed') }}</button>
 </form>

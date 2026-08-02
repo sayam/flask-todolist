@@ -10,6 +10,11 @@
   {# core ก่อน แล้วธีมทับสีทีหลัง ลำดับนี้สำคัญ #}
   <link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
   <link rel="stylesheet" href="{{ url_for('main.theme_stylesheet', theme_id=current_theme) }}">
+  {# defer: ไม่บล็อก render และ DOM พร้อมก่อนสคริปต์ทำงาน #}
+  {# ไม่ใส่ defer โดยตั้งใจ: สคริปต์ต้องติดคลาส `js` ให้ <html> ก่อน body render
+     ไม่งั้นปุ่ม fallback (.js-hidden) จะโผล่แวบหนึ่งแล้วหาย
+     ปลอดภัยเพราะสคริปต์ผูก listener ที่ document เท่านั้น ไม่แตะ element ใน body #}
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
 </head>
 <body>
 
@@ -41,9 +46,9 @@
   {% if current_user.is_authenticated %}
   <header>
     <a href="{{ url_for('main.index') }}">
-      <img src="{{ url_for('static', filename='logo-small.svg') }}" alt="" width="28" height="28"
-           style="vertical-align:middle">
-      <strong style="vertical-align:middle; font-size:1.3em">{{ _('Todolist') }}</strong>
+      <img class="brand-logo" src="{{ url_for('static', filename='logo-small.svg') }}"
+           alt="" width="28" height="28">
+      <strong class="brand-name">{{ _('Todolist') }}</strong>
     </a>
   </header>
   <nav>

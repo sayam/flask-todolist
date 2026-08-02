@@ -32,6 +32,12 @@ class Config:
     BABEL_DEFAULT_LOCALE = DEFAULT_LANGUAGE
     BABEL_DEFAULT_TIMEZONE = os.environ.get("BABEL_DEFAULT_TIMEZONE", "Asia/Bangkok")
 
+    # เปิดพร้อมกันเมื่อมี TLS จริงหน้า reverse proxy (Phase 5):
+    # บังคับ https, HSTS, และ cookie flag Secure
+    # เปิดตอนยังรัน http อยู่จะ redirect วนจน login ไม่ได้
+    HTTPS_ENABLED = os.environ.get("HTTPS_ENABLED", "") == "1"
+    LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
+
 
 def check_secret_key(secret_key):
     """ตรวจ SECRET_KEY ตอนสร้างแอป ไม่ใช่ตอน import config

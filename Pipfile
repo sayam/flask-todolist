@@ -12,6 +12,7 @@ flask-login = "*"
 flask-wtf = "*"
 flask-limiter = "*"
 flask-babel = "*"
+flask-talisman = "*"
 
 [dev-packages]
 pytest = "*"
