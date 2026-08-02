@@ -252,3 +252,38 @@ def test_explicit_mode_ignores_the_sun(app, user_id):
     client = app.test_client()
     client.post("/login", data={"username": "tester", "password": PASSWORD})
     assert _data_theme(client.get("/")) == LIGHT
+
+
+def test_every_selectable_timezone_has_sun_data(app):
+    """ทุก timezone ที่เลือกได้ในหน้า settings ต้องมีข้อมูลดวงอาทิตย์
+
+    เคยหลุดมาแล้ว: ตารางสร้างจาก zone1970.tab (312 โซน) แต่ dropdown ใช้
+    available_timezones() (598 ชื่อ) ทำให้เกือบครึ่งได้ light ตลอดเวลาเงียบ ๆ
+    """
+    from app import tz
+
+    with app.app_context():
+        missing = [z for z in tz.all_timezones() if z not in SUN_TIMES]
+    assert not missing, (
+        f"{len(missing)} timezone ไม่มีข้อมูลดวงอาทิตย์ เช่น {missing[:8]} — "
+        "รัน scripts/generate_sun_table.py ใหม่"
+    )
+
+
+def test_alias_zones_match_their_canonical_zone():
+    """ชื่อพ้องต้องได้ตารางเดียวกับโซนจริง ไม่ใช่ค่าที่คำนวณคนละที่"""
+    for alias, canonical in (
+        ("Japan", "Asia/Tokyo"),
+        ("US/Pacific", "America/Los_Angeles"),
+        ("Asia/Calcutta", "Asia/Kolkata"),
+    ):
+        assert SUN_TIMES[alias] == SUN_TIMES[canonical], alias
+
+
+def test_offset_only_zones_get_sensible_times():
+    """Etc/GMT±N ไม่มีที่ตั้งจริง ใช้เส้นศูนย์สูตร จึงควรได้ราว 06:00-18:00"""
+    for zone in ("UTC", "Etc/GMT+5", "Etc/GMT-9"):
+        for month in range(12):
+            rise, set_ = SUN_TIMES[zone][month * 2], SUN_TIMES[zone][month * 2 + 1]
+            assert 5 * 60 <= rise <= 7 * 60, f"{zone} เดือน {month+1} ขึ้น {rise}"
+            assert 17 * 60 <= set_ <= 19 * 60, f"{zone} เดือน {month+1} ตก {set_}"

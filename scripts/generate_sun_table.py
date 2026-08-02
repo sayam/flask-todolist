@@ -4,7 +4,10 @@
 
     python scripts/generate_sun_table.py
 
-พิกัดของแต่ละโซนมาจาก zone1970.tab ของ tzdata ที่ติดตั้งในเครื่อง
+พิกัดของแต่ละโซนมาจาก zone.tab ของ tzdata ที่ติดตั้งในเครื่อง
+ชื่อที่ tzdata ไม่ได้ให้พิกัดไว้จะถูกจับคู่กับโซนที่ไฟล์ tzdata เหมือนกันเป๊ะ
+และ Etc/GMT±N ที่ไม่มีความหมายทางภูมิศาสตร์ใช้เส้นศูนย์สูตรตาม offset
+ผลคือครอบคลุมทุกชื่อที่ zoneinfo รู้จัก — ไม่มีโซนไหนที่โหมด auto ใช้ไม่ได้
 ส่วนเวลาขึ้น-ตกคำนวณด้วย "Sunrise/Sunset Algorithm" ของ Almanac
 (ตัวเดียวกับที่ NOAA ใช้อธิบาย) ไม่ต้องพึ่ง library ภายนอก
 
@@ -17,10 +20,13 @@ import sys
 from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo, available_timezones
 
+# zone.tab มาก่อนเพราะแยกพิกัดรายประเทศ (418 โซน) ส่วน zone1970.tab
+# รวมโซนที่กฎเวลาเหมือนกันไว้ด้วยกันเหลือ 312 ทำให้หลายเมืองต้องยืมพิกัดคนอื่น
 ZONE_TAB_CANDIDATES = (
-    "/usr/share/zoneinfo/zone1970.tab",
     "/usr/share/zoneinfo/zone.tab",
+    "/usr/share/zoneinfo/zone1970.tab",
 )
+ZONEINFO_ROOT = pathlib.Path("/usr/share/zoneinfo")
 OUTPUT = pathlib.Path(__file__).resolve().parent.parent / "app" / "sun_data.py"
 
 # ค่าพิเศษแทนบริเวณขั้วโลกที่ดวงอาทิตย์ไม่ขึ้นหรือไม่ตกทั้งเดือน
@@ -139,22 +145,70 @@ def month_row(lat, lon, zone, year, month):
     return _local_minutes(rise, day, zone), _local_minutes(set_, day, zone)
 
 
+def _row_for(lat, lon, zone, year):
+    values = []
+    for month in range(1, 13):
+        values.extend(month_row(lat, lon, zone, year, month))
+    return values
+
+
+def _tzfile_bytes(name):
+    """เนื้อไฟล์ tzdata ของโซนนั้น — ไฟล์เหมือนกันเป๊ะ = โซนเดียวกันคนละชื่อ"""
+    path = ZONEINFO_ROOT / name
+    return path.read_bytes() if path.is_file() else None
+
+
+def _offset_hours(zone, year):
+    """UTC offset เป็นชั่วโมง ใช้กับโซนที่ไม่มีความหมายทางภูมิศาสตร์"""
+    moment = datetime(year, 1, 15, 12, tzinfo=zone)
+    return moment.utcoffset().total_seconds() / 3600
+
+
 def main():
     coords, source = load_zone_coordinates()
-    known = available_timezones()
+    known = sorted(available_timezones())
     year = 2026  # ปีอ้างอิง เวลาขึ้น-ตกแทบไม่ต่างกันระหว่างปี
 
     rows = {}
-    skipped = []
-    for name, (lat, lon) in sorted(coords.items()):
-        if name not in known:
-            skipped.append(name)
+    by_coordinates = []
+
+    # 1) โซนที่ tzdata ให้พิกัดมาตรง ๆ — แม่นที่สุด
+    for name in known:
+        if name in coords:
+            lat, lon = coords[name]
+            rows[name] = _row_for(lat, lon, ZoneInfo(name), year)
+            by_coordinates.append(name)
+
+    # 2) ชื่อที่เหลือ: ถ้าไฟล์ tzdata เหมือนโซนที่ทำไปแล้วเป๊ะ ก็คือโซนเดียวกัน
+    #    (เช่น Japan = Asia/Tokyo, US/Pacific = America/Los_Angeles)
+    index = {}
+    for name in by_coordinates:
+        blob = _tzfile_bytes(name)
+        if blob is not None:
+            index.setdefault(blob, name)
+
+    aliased = []
+    for name in known:
+        if name in rows:
+            continue
+        blob = _tzfile_bytes(name)
+        twin = index.get(blob) if blob is not None else None
+        if twin:
+            rows[name] = list(rows[twin])
+            aliased.append(name)
+
+    # 3) ที่เหลือไม่มีความหมายทางภูมิศาสตร์ (Etc/GMT±N, UTC ฯลฯ)
+    #    สมมติว่าอยู่บนเส้นศูนย์สูตรที่ลองจิจูดตรงกับ offset — ได้ขึ้น ~06:00 ตก ~18:00
+    synthetic = []
+    for name in known:
+        if name in rows:
             continue
         zone = ZoneInfo(name)
-        values = []
-        for month in range(1, 13):
-            values.extend(month_row(lat, lon, zone, year, month))
-        rows[name] = values
+        rows[name] = _row_for(0.0, _offset_hours(zone, year) * 15, zone, year)
+        synthetic.append(name)
+
+    missing = [n for n in known if n not in rows]
+    assert not missing, f"ยังมีโซนที่ไม่มีข้อมูล: {missing[:10]}"
 
     lines = [
         '"""ตารางเวลาดวงอาทิตย์ขึ้น-ตกรายเดือนของแต่ละ timezone (สร้างอัตโนมัติ)',
@@ -164,6 +218,12 @@ def main():
         "",
         f"ที่มาของพิกัด: {source}",
         f"ปีอ้างอิง: {year} คำนวณจากวันที่ 15 ของแต่ละเดือน",
+        "",
+        "ครอบคลุมทุกชื่อที่ zoneinfo รู้จัก โดย",
+        f"  {len(by_coordinates)} โซนมีพิกัดของตัวเองใน tzdata",
+        f"  {len(aliased)} โซนเป็นชื่อพ้องของโซนข้างบน (ไฟล์ tzdata เหมือนกันเป๊ะ)",
+        f"  {len(synthetic)} โซนไม่มีความหมายทางภูมิศาสตร์ (Etc/GMT±N ฯลฯ)",
+        "    ใช้เส้นศูนย์สูตรที่ลองจิจูดตรงกับ offset จึงได้ขึ้น ~06:00 ตก ~18:00",
         "",
         "แต่ละโซนเก็บเป็น tuple 24 ค่า = (ขึ้น, ตก) ของเดือน 1..12",
         "หน่วยเป็นนาทีนับจากเที่ยงคืนตามเวลาท้องถิ่นของโซนนั้น",
@@ -175,16 +235,17 @@ def main():
         "",
         "SUN_TIMES = {",
     ]
-    for name, values in rows.items():
-        packed = ", ".join(str(v) for v in values)
+    for name in known:
+        packed = ", ".join(str(v) for v in rows[name])
         lines.append(f'    "{name}": ({packed}),')
     lines.append("}")
     lines.append("")
 
     OUTPUT.write_text("\n".join(lines))
     print(f"เขียน {OUTPUT} — {len(rows)} โซน")
-    if skipped:
-        print(f"ข้าม {len(skipped)} โซนที่ zoneinfo ไม่รู้จัก: {skipped[:5]}")
+    print(f"  มีพิกัดเอง {len(by_coordinates)} / ชื่อพ้อง {len(aliased)} / สังเคราะห์ {len(synthetic)}")
+    if synthetic:
+        print(f"  ตัวอย่างที่สังเคราะห์: {synthetic[:6]}")
     return 0
 
 
