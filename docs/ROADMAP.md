@@ -185,13 +185,16 @@ coverage gate ใน CI
   ใส่ SQLAlchemy `naming_convention`, `done` → `is_done`,
   rewrite model เป็น SQLAlchemy 2.0 typed style (`Mapped[]`) เปิดทาง mypy strict
   → ผลพลอยได้: ฆ่า landmine reserved word `user` ถาวร ก่อนตาราง audit จะเกิด
-- **Data classification (เอกสาร + ADR):** ระบุ PII (username, first/last name),
-  transactional (todo/category), audit log — retention period แยกต่อ class
-  ไม่ใช้ค่าเดียวทั้งระบบ
-- **ADR ข้อขัดแย้ง PDPA vs retention (ตัดสินใจล่วงหน้า):** เสนอ default —
-  คำขอลบของ data subject ลบ/pseudonymize ตัว PII ใน user record จริง
-  แต่ audit log เก็บครบตาม retention โดยแทนที่ PII ใน log ด้วย pseudonym
-  (audit obligation ชนะเรื่องการมีอยู่ของ log, PDPA ชนะเรื่องเนื้อ PII) — รออนุมัติ
+- **Data classification ✅ (อนุมัติ 2026-08-03):** `docs/DATA-CLASSIFICATION.md`
+  แบ่ง 6 ชั้น C1 ความลับ / C2 PII / C3 เนื้อหาผู้ใช้ / C4 การตั้งค่า /
+  C5 audit / C6 log ปฏิบัติการ — retention แยกต่อชั้น: soft delete 30 วัน,
+  audit 1 ปี, log 90 วัน, credential ล้างทันทีที่ปิดบัญชี
+  มี `tests/test_data_classification.py` บังคับว่าคอลัมน์ใหม่ต้องถูกจำแนก
+- **ADR ข้อขัดแย้ง PDPA vs retention ✅ (ADR 0014):** แผนเดิมที่ว่า
+  "pseudonymize PII ใน audit ทีหลัง" **ทำไม่ได้จริงเมื่อ audit เป็น hash chain**
+  เพราะแก้แถวเก่า = chain ทั้งสายใช้ไม่ได้ → เปลี่ยนเป็น **ไม่เขียน PII ลง audit
+  ตั้งแต่แรก** (actor เป็นเลข, ค่าของ C2/C3 เก็บเป็น HMAC) คำขอลบจึงทำได้ครบ
+  โดยไม่ต้องแตะ audit สักแถว / purge audit ใช้แถว checkpoint กัน chain ขาด
 - **Temporal/soft-delete:** เพิ่ม `deleted_at` (และ valid-time ที่จำเป็น) กับข้อมูลผู้ใช้
   ทุก route เลิก hard delete (4 จุดที่สแกนพบ) → query กรอง `deleted_at IS NULL`
   ผ่าน helper กลางที่เดียว + purge job ลบจริงเมื่อพ้น retention

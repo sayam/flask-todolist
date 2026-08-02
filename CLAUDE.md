@@ -345,6 +345,10 @@ log ขึ้น "Running upgrade" ครบทุกตัว exit code เป�
 ## แผนระยะยาว
 - มาตรฐาน/เครื่องมือที่ตัดสินแล้ว (naming, prefix `tdl_`, ruff/mypy/semgrep ฯลฯ)
   อยู่ใน `docs/STANDARDS.md` — verdict ข้อ 4 บอกว่าอะไรเข้าเฟสไหน
+- **การจำแนกชั้นข้อมูลและระยะเก็บรักษาอยู่ใน `docs/DATA-CLASSIFICATION.md`**
+  เพิ่มคอลัมน์ใหม่ต้องระบุชั้นในเอกสารนั้นด้วย (`tests/test_data_classification.py` บังคับ)
+  กติกาที่มีผลกับโค้ด: **audit ห้ามเก็บค่าของ C1/C2/C3** เก็บได้แค่ชื่อคอลัมน์ + HMAC
+  และ `password_hash` ห้ามออกจากระบบทุกกรณีแม้แต่ในรูป hash (ดู ADR 0014)
 - แผนแม่บท (ISO/IEC 25010:2023 + audit/data governance) อยู่ใน `docs/ROADMAP.md`
   เรียงเป็นเฟสตามหลักลด rework — **ก่อนเริ่มฟีเจอร์ใหม่ให้เช็คว่าอยู่เฟสไหนของแผน**
 
