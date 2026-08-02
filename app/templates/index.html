@@ -25,5 +25,9 @@
     <li>ยังไม่มีงาน</li>
     {% endfor %}
   </ul>
+  <form action="{{ url_for('main.clear_completed') }}" method="post"
+        onsubmit="return confirm('ลบงานที่เสร็จแล้วทั้งหมดใช่ไหม? กู้คืนไม่ได้')">
+    <button type="submit">ลบงานที่เสร็จแล้วทั้งหมด</button>
+  </form>
 </body>
 </html>

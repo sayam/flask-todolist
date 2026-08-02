@@ -35,3 +35,10 @@ def delete(todo_id):
     db.session.delete(todo)
     db.session.commit()
     return redirect(url_for("main.index"))
+
+
+@bp.route("/clear-completed", methods=["POST"])
+def clear_completed():
+    Todo.query.filter_by(done=True).delete()
+    db.session.commit()
+    return redirect(url_for("main.index"))
