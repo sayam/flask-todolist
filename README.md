@@ -65,7 +65,7 @@ pipenv run flask run --debug
 pipenv run pytest -v
 ```
 
-96 tests ครอบคลุมงาน/หมวด, การแยกข้อมูลระหว่าง user, CSRF, rate limit,
+98 tests ครอบคลุมงาน/หมวด, การแยกข้อมูลระหว่าง user, CSRF, rate limit,
 การตรวจ `SECRET_KEY`, การเลือกภาษา และ CLI
 
 ## คำสั่ง CLI

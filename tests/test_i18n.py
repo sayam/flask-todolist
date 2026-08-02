@@ -123,3 +123,19 @@ def test_every_supported_language_renders(anon_client, app):
     """ทุกภาษาใน LANGUAGES ต้องเปิดหน้าได้ ไม่ใช่แค่ที่มี catalog"""
     for code in app.config["LANGUAGES"]:
         assert anon_client.get(f"/login?lang={code}").status_code == 200
+
+
+def test_translation_outside_request_does_not_crash(app):
+    """เรียกแปลนอก request (เช่นจาก flask CLI) ต้องได้ภาษาเริ่มต้น ไม่ใช่ระเบิด
+    เพราะตัวเลือกภาษาอ่านจาก request ซึ่งตอนนั้นไม่มี"""
+    from flask_babel import gettext
+
+    with app.app_context():
+        assert gettext("Sign in") == "Sign in"
+
+
+def test_locale_selector_outside_request_returns_default(app):
+    from app.i18n import select_locale
+
+    with app.app_context():
+        assert select_locale() == app.config["BABEL_DEFAULT_LOCALE"]

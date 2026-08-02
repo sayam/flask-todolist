@@ -11,7 +11,7 @@
 โดยไม่ต้องไปแก้โปรไฟล์
 """
 
-from flask import current_app, request, session
+from flask import current_app, has_request_context, request, session
 from flask_login import current_user
 
 SESSION_KEY = "lang"
@@ -26,6 +26,11 @@ def is_supported(code):
 
 
 def select_locale():
+    # นอก request (เช่นใน flask CLI) ไม่มีข้อมูลให้เดาภาษา ใช้ค่าเริ่มต้นไปเลย
+    # ถ้าไม่กันไว้ การเรียก gettext จาก CLI จะพังที่ request.args
+    if not has_request_context():
+        return current_app.config["BABEL_DEFAULT_LOCALE"]
+
     if is_supported(request.args.get(SESSION_KEY)):
         return request.args[SESSION_KEY]
 

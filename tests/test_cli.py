@@ -32,7 +32,7 @@ def test_create_user_rejects_short_password(app):
 def test_create_user_rejects_duplicate(app, user_id):
     result = app.test_cli_runner().invoke(args=["create-user", "tester"])
     assert result.exit_code != 0
-    assert "อยู่แล้ว" in result.output
+    assert "already exists" in result.output
 
 
 def test_create_user_no_categories_flag(app):
@@ -63,7 +63,7 @@ def test_delete_user_removes_categories_and_todos(app, user_id, category_id):
 def test_delete_user_not_found(app):
     result = app.test_cli_runner().invoke(args=["delete-user", "ไม่มีคนนี้", "--yes"])
     assert result.exit_code != 0
-    assert "ไม่พบ" in result.output
+    assert "No user named" in result.output
 
 
 def test_delete_user_aborts_without_confirmation(app, user_id):

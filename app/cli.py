@@ -1,3 +1,9 @@
+"""คำสั่ง flask CLI สำหรับผู้ดูแลระบบ
+
+ข้อความในไฟล์นี้ไม่ผ่าน gettext เพราะ CLI รันนอก request context
+ซึ่งไม่มีข้อมูลว่าจะใช้ภาษาไหน — ใช้ภาษาอังกฤษตายตัวไปเลย
+"""
+
 import click
 
 from app import db
@@ -22,6 +28,8 @@ DEFAULT_CATEGORIES = {
     ],
 }
 
+MIN_PASSWORD_LENGTH = 8
+
 
 def register_cli(app):
     @app.cli.command("create-user")
@@ -31,24 +39,26 @@ def register_cli(app):
         type=click.Choice(sorted(LANGUAGES)),
         default=DEFAULT_LANGUAGE,
         show_default=True,
-        help="ภาษาเริ่มต้นของ user และภาษาของหมวดตั้งต้น",
+        help="Interface language for the user, and the language of their starter categories.",
     )
     @click.option(
         "--no-categories",
         is_flag=True,
-        help="ไม่ต้องสร้างหมวดตั้งต้นให้",
+        help="Skip creating the starter categories.",
     )
     def create_user(username, lang, no_categories):
-        """สร้าง user ใหม่ (ถามรหัสผ่านแบบไม่โชว์บนจอ)"""
+        """Create a new user (prompts for a password without echoing it)."""
         username = username.strip()
         if User.query.filter_by(username=username).first():
-            raise click.ClickException(f"มี user ชื่อ {username!r} อยู่แล้ว")
+            raise click.ClickException(f"A user named {username!r} already exists.")
 
         password = click.prompt(
-            "รหัสผ่าน", hide_input=True, confirmation_prompt="ยืนยันรหัสผ่าน"
+            "Password", hide_input=True, confirmation_prompt="Repeat password"
         )
-        if len(password) < 8:
-            raise click.ClickException("รหัสผ่านต้องยาวอย่างน้อย 8 ตัวอักษร")
+        if len(password) < MIN_PASSWORD_LENGTH:
+            raise click.ClickException(
+                f"Password must be at least {MIN_PASSWORD_LENGTH} characters long."
+            )
 
         user = User(username=username, locale=lang)
         user.set_password(password)
@@ -61,40 +71,42 @@ def register_cli(app):
                 db.session.add(Category(name=name, user_id=user.id))
 
         db.session.commit()
-        click.echo(f"สร้าง user {username!r} เรียบร้อย (id={user.id}, ภาษา={lang})")
+        click.echo(f"Created user {username!r} (id={user.id}, language={lang}).")
         if not no_categories:
-            click.echo(f"สร้างหมวดตั้งต้น {len(categories)} หมวด: {', '.join(categories)}")
+            click.echo(
+                f"Added {len(categories)} starter categories: {', '.join(categories)}"
+            )
 
     @app.cli.command("delete-user")
     @click.argument("username")
-    @click.option("--yes", is_flag=True, help="ลบเลยไม่ต้องถาม")
+    @click.option("--yes", is_flag=True, help="Delete without asking for confirmation.")
     def delete_user(username, yes):
-        """ลบ user พร้อมหมวดและงานทั้งหมดของเขา (กู้คืนไม่ได้)"""
+        """Delete a user along with all their categories and tasks (cannot be undone)."""
         user = User.query.filter_by(username=username.strip()).first()
         if user is None:
-            raise click.ClickException(f"ไม่พบ user ชื่อ {username!r}")
+            raise click.ClickException(f"No user named {username!r}.")
 
         todos = len(user.todos)
         categories = len(user.categories)
         click.echo(
-            f"จะลบ user {user.username!r} (id={user.id}) "
-            f"พร้อม {categories} หมวด และ {todos} งาน"
+            f"About to delete user {user.username!r} (id={user.id}) "
+            f"with {categories} categories and {todos} tasks."
         )
         if not yes:
-            click.confirm("ยืนยันลบ?", abort=True)
+            click.confirm("Delete?", abort=True)
 
         # ลบผ่าน ORM เพื่อให้ cascade ทำงาน — SQLite ไม่บังคับ FK ให้
         # ลบด้วย SQL ตรง ๆ จะเหลือ category/todo ค้างที่ชี้ไปหา user ที่ไม่มีแล้ว
         db.session.delete(user)
         db.session.commit()
-        click.echo(f"ลบ {username!r} เรียบร้อย")
+        click.echo(f"Deleted {username!r}.")
 
     @app.cli.command("list-users")
     def list_users():
-        """ดูรายชื่อ user ทั้งหมด"""
+        """List all users with their id, username and language."""
         users = User.query.order_by(User.id).all()
         if not users:
-            click.echo("ยังไม่มี user — สร้างด้วย `flask create-user <ชื่อ>`")
+            click.echo("No users yet — create one with `flask create-user <name>`.")
             return
         for user in users:
             click.echo(f"{user.id}\t{user.username}\t{user.locale or '-'}")
