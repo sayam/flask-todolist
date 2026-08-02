@@ -4,7 +4,7 @@ from flask import Blueprint, abort, flash, redirect, render_template, request, s
 from flask_babel import gettext as _
 from flask_login import current_user, login_required
 
-from app import db
+from app import db, tz
 from app.i18n import SESSION_KEY, is_supported
 from app.theme import AUTO as THEME_AUTO
 from app.theme import SESSION_KEY as THEME_SESSION_KEY
@@ -40,7 +40,7 @@ def _resolve_category_id(raw):
 
 
 def _parse_due_date(raw):
-    """แปลงค่าจาก <input type="datetime-local"> เป็น datetime (naive, เวลาท้องถิ่น)
+    """แปลงค่าจาก <input type="datetime-local"> เป็น datetime แบบ naive UTC
 
     คืน None ถ้าเว้นว่าง และ raise ValueError ถ้ารูปแบบใช้ไม่ได้
     (browser ส่งมาถูกเสมอ แต่คนยิง POST ตรง ๆ ส่งอะไรมาก็ได้)
@@ -54,7 +54,8 @@ def _parse_due_date(raw):
     parsed = datetime.fromisoformat(raw)
     if parsed.tzinfo is not None:
         raise ValueError("ไม่รับ timezone offset — ใช้เวลาท้องถิ่นเท่านั้น")
-    return parsed
+    # ค่าที่ได้เป็นเวลาท้องถิ่นของผู้ใช้ แปลงเป็น UTC ก่อนส่งไปเก็บ
+    return tz.to_utc(parsed, current_user.timezone_name)
 
 
 def _safe_referrer():
@@ -273,3 +274,58 @@ def set_theme(value):
         db.session.commit()
 
     return redirect(_safe_referrer())
+
+
+# --- ตั้งค่า ---
+
+@bp.route("/settings")
+@login_required
+def settings():
+    return render_template(
+        "settings.html",
+        timezones=tz.all_timezones(),
+        current_timezone=current_user.timezone_name or tz.default_name(),
+    )
+
+
+@bp.route("/settings/profile", methods=["POST"])
+@login_required
+def save_profile():
+    """แก้ชื่อ-นามสกุล — username เป็นตัวระบุตอน login จึงแก้ที่นี่ไม่ได้"""
+    current_user.first_name = (request.form.get("first_name") or "").strip() or None
+    current_user.last_name = (request.form.get("last_name") or "").strip() or None
+    db.session.commit()
+    flash(_("Profile saved"))
+    return redirect(url_for("main.settings"))
+
+
+@bp.route("/settings/preferences", methods=["POST"])
+@login_required
+def save_preferences():
+    """ภาษา ธีม และ timezone อยู่ในฟอร์มเดียวกัน บันทึกทีเดียวจบ"""
+    lang = request.form.get("locale")
+    if not is_supported(lang):
+        flash(_("Unsupported language"))
+        return redirect(url_for("main.settings"))
+
+    theme_value = request.form.get("theme")
+    if not theme_is_supported(theme_value):
+        flash(_("Unsupported theme"))
+        return redirect(url_for("main.settings"))
+
+    tz_name = request.form.get("timezone")
+    if not tz.is_supported(tz_name):
+        flash(_("Unsupported timezone"))
+        return redirect(url_for("main.settings"))
+
+    current_user.locale = lang
+    current_user.theme = None if theme_value == THEME_AUTO else theme_value
+    current_user.timezone_name = tz_name
+    db.session.commit()
+
+    # session ชนะโปรไฟล์ในลำดับการเลือก ต้องอัปเดตด้วยไม่งั้นค่าที่เพิ่งบันทึกจะไม่มีผล
+    session[SESSION_KEY] = lang
+    session[THEME_SESSION_KEY] = theme_value
+
+    flash(_("Settings saved"))
+    return redirect(url_for("main.settings"))

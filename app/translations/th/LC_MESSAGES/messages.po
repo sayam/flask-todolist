@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-02 17:24+0700\n"
+"POT-Creation-Date: 2026-08-02 17:45+0700\n"
 "PO-Revision-Date: 2026-08-02 16:44+0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -26,30 +26,50 @@ msgstr "กรุณาเข้าสู่ระบบก่อน"
 msgid "Incorrect username or password"
 msgstr "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง"
 
-#: app/routes.py:124
+#: app/routes.py:125
 msgid "Please enter a task name"
 msgstr "กรุณาใส่ชื่องาน"
 
-#: app/routes.py:129 app/routes.py:154
+#: app/routes.py:130 app/routes.py:155
 msgid "Invalid date format"
 msgstr "รูปแบบวันที่ไม่ถูกต้อง"
 
-#: app/routes.py:149
+#: app/routes.py:150
 msgid "Task name cannot be empty"
 msgstr "ชื่องานว่างไม่ได้"
 
-#: app/routes.py:204
+#: app/routes.py:205
 msgid "Please enter a category name"
 msgstr "กรุณาใส่ชื่อหมวด"
 
-#: app/routes.py:206 app/routes.py:225
+#: app/routes.py:207 app/routes.py:226
 #, python-format
 msgid "Category “%(name)s” already exists"
 msgstr "มีหมวด “%(name)s” อยู่แล้ว"
 
-#: app/routes.py:219
+#: app/routes.py:220
 msgid "Category name cannot be empty"
 msgstr "ชื่อหมวดว่างไม่ได้"
+
+#: app/routes.py:298
+msgid "Profile saved"
+msgstr "บันทึกโปรไฟล์แล้ว"
+
+#: app/routes.py:308
+msgid "Unsupported language"
+msgstr "ไม่รองรับภาษานี้"
+
+#: app/routes.py:313
+msgid "Unsupported theme"
+msgstr "ไม่รองรับธีมนี้"
+
+#: app/routes.py:318
+msgid "Unsupported timezone"
+msgstr "ไม่รองรับ timezone นี้"
+
+#: app/routes.py:330
+msgid "Settings saved"
+msgstr "บันทึกการตั้งค่าแล้ว"
 
 #: app/templates/base.html:7 app/templates/base.html:43
 #: app/templates/index.html:2 app/templates/login.html:6
@@ -57,23 +77,23 @@ msgstr "ชื่อหมวดว่างไม่ได้"
 msgid "Todolist"
 msgstr "รายการงาน"
 
-#: app/templates/base.html:14
+#: app/templates/base.html:14 app/templates/settings.html:44
 msgid "Theme"
 msgstr "ธีม"
 
-#: app/templates/base.html:16
+#: app/templates/base.html:16 app/templates/settings.html:48
 msgid "System"
 msgstr "ตามระบบ"
 
-#: app/templates/base.html:16
+#: app/templates/base.html:16 app/templates/settings.html:48
 msgid "Light"
 msgstr "สว่าง"
 
-#: app/templates/base.html:16
+#: app/templates/base.html:16 app/templates/settings.html:48
 msgid "Dark"
 msgstr "มืด"
 
-#: app/templates/base.html:27
+#: app/templates/base.html:27 app/templates/settings.html:36
 msgid "Language"
 msgstr "ภาษา"
 
@@ -86,7 +106,12 @@ msgstr "งาน"
 msgid "Categories"
 msgstr "หมวดงาน"
 
-#: app/templates/base.html:52
+#: app/templates/base.html:49 app/templates/settings.html:2
+#: app/templates/settings.html:9
+msgid "Settings"
+msgstr "ตั้งค่า"
+
+#: app/templates/base.html:53
 msgid "Sign out"
 msgstr "ออกจากระบบ"
 
@@ -221,11 +246,47 @@ msgstr "เข้าสู่ระบบ"
 msgid "Too many sign-in attempts — please wait and try again."
 msgstr "พยายามเข้าสู่ระบบถี่เกินไป — รอสักครู่แล้วลองใหม่"
 
-#: app/templates/login.html:22
+#: app/templates/login.html:22 app/templates/settings.html:15
 msgid "Username"
 msgstr "ชื่อผู้ใช้"
 
 #: app/templates/login.html:26
 msgid "Password"
 msgstr "รหัสผ่าน"
+
+#: app/templates/settings.html:11
+msgid "Profile"
+msgstr "โปรไฟล์"
+
+#: app/templates/settings.html:17
+msgid "Used to sign in — cannot be changed here."
+msgstr "ใช้สำหรับเข้าสู่ระบบ เปลี่ยนที่นี่ไม่ได้"
+
+#: app/templates/settings.html:20
+msgid "First name"
+msgstr "ชื่อ"
+
+#: app/templates/settings.html:24
+msgid "Last name"
+msgstr "นามสกุล"
+
+#: app/templates/settings.html:27
+msgid "Save profile"
+msgstr "บันทึกโปรไฟล์"
+
+#: app/templates/settings.html:32
+msgid "Preferences"
+msgstr "การตั้งค่าส่วนตัว"
+
+#: app/templates/settings.html:54
+msgid "Timezone"
+msgstr "เขตเวลา"
+
+#: app/templates/settings.html:60
+msgid "Due dates are shown and entered in this timezone."
+msgstr "กำหนดส่งจะแสดงและกรอกตามเขตเวลานี้"
+
+#: app/templates/settings.html:62
+msgid "Save preferences"
+msgstr "บันทึกการตั้งค่า"
 

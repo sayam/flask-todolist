@@ -18,9 +18,10 @@
 - `app/__init__.py` — app factory (`create_app`), init db/migrate/csrf/limiter/login_manager
   และ errorhandler ของ 429
 - `app/models.py` — SQLAlchemy models (`User`, `Category`, `Todo`)
-- `app/routes.py` — view functions ของงาน/หมวด ผูกกับ blueprint `main`
+- `app/routes.py` — view functions ของงาน/หมวด/ตั้งค่า ผูกกับ blueprint `main`
 - `app/auth.py` — login/logout ผูกกับ blueprint `auth`
 - `app/cli.py` — custom flask CLI commands
+- `app/tz.py` — แปลงเวลา UTC ↔ เวลาท้องถิ่นของผู้ใช้
 - `app/templates/` — Jinja2 templates (ทุกหน้า extend `base.html`)
 - `app/static/` — `logo.svg` (120px ใช้หน้า login) และ `logo-small.svg` (32px ใช้บน header + favicon)
   ตัวเล็กไม่ใช่ตัวใหญ่ย่อลงมา แต่ตัดรายละเอียดออกให้เหลือแค่เครื่องหมายถูก
@@ -76,14 +77,16 @@ POST ที่ทั้งไม่มี token และไม่ได้ logi
   ต้องเปลี่ยนเป็น `redis://` ไม่งั้นเพดานจริงจะกลายเป็น N เท่าของที่ตั้งไว้
 
 ## กำหนดส่งและตัวกรอง
-- `Todo.due_date` เป็น `db.DateTime` เก็บ **เวลาท้องถิ่นแบบ naive** ตรงกับที่
-  `<input type="datetime-local">` ส่งมา — ต่างจาก `created_at`/`updated_at` ที่เป็น UTC
-  เพราะสองตัวนั้นเป็นเวลาของระบบ ส่วน `due_date` เป็นเวลาที่คนกรอก
-  **ข้อจำกัด:** ถ้า server อยู่คนละ timezone กับผู้ใช้ ค่าจะเพี้ยน แก้ให้ถูกต้องต้องมี
-  setting timezone ต่อ user ซึ่งยังไม่ได้ทำ
-- `Todo.is_overdue` เทียบกับ `datetime.now()` และ `is_due_today` เทียบวันกับ `date.today()`
+- **`Todo.due_date` ใน DB เป็น UTC แบบ naive เสมอ** เหมือน `created_at`/`updated_at`
+  ค่าที่ผู้ใช้กรอกจาก `<input type="datetime-local">` เป็นเวลาท้องถิ่นของเขา
+  ต้องผ่าน `tz.to_utc()` ก่อนเก็บ และ `tz.to_local()` ก่อนแสดง (ดู `app/tz.py`)
+  ใน template ใช้ `todo.due_local` ไม่ใช่ `todo.due_date`
+- `Todo.is_overdue` เทียบ UTC กับ UTC จึงไม่ขึ้นกับ timezone ของใคร
+  ส่วน `is_due_today` ต้องเทียบวันตามเวลาท้องถิ่นของ **เจ้าของงาน** ไม่ใช่ UTC
   งานที่ `done=True` ไม่นับว่าเลยกำหนด และ `is_due_today` เป็น False ถ้าเลยกำหนดไปแล้ว
   (ไม่ให้ขึ้นป้ายซ้อนกันสองอัน)
+- property พวก `due_local`/`is_overdue` แตะ `todo.user` จึงเรียกนอก app context ไม่ได้
+  (lazy-load ไม่ได้) เทสต์ต้องอ่านค่าใน `with app.app_context():`
 - **`batch_alter_table` บน SQLite ทำข้อมูลพังตอนเปลี่ยนชนิดคอลัมน์เป็น DATETIME**
   alembic คัดลอกข้อมูลด้วย `CAST(col AS DATETIME)` และ DATETIME มี NUMERIC affinity
   `'2026-08-02'` จึงกลายเป็นเลข `2026` — ดูวิธีแก้ใน migration `89cd0c572bf9`
@@ -115,6 +118,10 @@ pipenv run pybabel compile -d app/translations
 ```
 - **ไฟล์ `.mo` ถูก commit ลง git ด้วย** เพื่อให้ clone แล้วรันได้เลย
   แก้ `.po` แล้วต้อง compile ใหม่ ไม่งั้นคำแปลจะไม่เปลี่ยน — `tests/test_i18n.py` ดักไว้
+- **ระวัง `#, fuzzy`** — `pybabel update` จะเดาคำแปลให้จากข้อความที่คล้ายกัน
+  (เคยเดา "First name" เป็น "ชื่องาน" มาแล้ว) และ `compile` จะข้ามรายการ fuzzy ไป
+  ทำให้ตกกลับเป็นภาษาอังกฤษเงียบ ๆ ต้องแก้คำแปลแล้วลบบรรทัด `#, fuzzy` ออก
+  ตรวจแค่ `msgstr ""` ไม่พอ — มีเทสต์เช็คทั้งสองอย่าง
 - เพิ่มภาษาใหม่: เติมใน `config.LANGUAGES` แล้ว `pybabel init -i messages.pot -d app/translations -l <รหัส>`
 
 ### ลำดับการเลือกภาษา (ดู `app/i18n.py`)
@@ -139,6 +146,16 @@ session มาก่อนโปรไฟล์เพื่อให้กดส
 - `User.theme` เก็บ `'light'`/`'dark'` ส่วน "ตามระบบ" เก็บเป็น **NULL** ไม่ใช่สตริง `'auto'`
 - ลำดับเดียวกับภาษา: `?theme=` → session → `User.theme` → ตามระบบ (ดู `app/theme.py`)
 - `_safe_referrer()` ใน `routes.py` ใช้ร่วมกันทั้งสลับภาษาและสลับธีม รับเฉพาะ path ในเว็บเรา
+
+## หน้า Settings
+- `/settings` รวม โปรไฟล์ + ภาษา + ธีม + timezone ไว้ที่เดียว
+  nav มีแค่ลิงก์ Settings ส่วนหน้า login ยังมีตัวสลับภาษา/ธีมของตัวเอง
+  (route `/lang/<code>` และ `/theme/<value>` ยังอยู่ ใช้จากหน้า login)
+- **username แก้ที่หน้านี้ไม่ได้** เพราะเป็นตัวระบุตอน login (ช่องเป็น `disabled`)
+- ชื่อ/นามสกุลที่เว้นว่างเก็บเป็น **NULL ไม่ใช่ `''`** ไม่งั้น `full_name` จะมีช่องว่างเกิน
+- บันทึก preferences แล้วต้อง **อัปเดต session ด้วย** ไม่ใช่แค่เขียน DB
+  เพราะ session ชนะโปรไฟล์ในลำดับการเลือก ถ้าลืมแล้วผู้ใช้เคยกดสลับไว้ที่หน้า login
+  ค่าที่เพิ่งบันทึกจะไม่มีผลเลย — `tests/test_settings.py` ดักไว้
 
 ## Rate limit
 - จำกัดเฉพาะ `POST /login` GET ไม่โดน

@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Settings') }}{% endblock %}
+
+{% macro csrf_field() %}
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+{% endmacro %}
+
+{% block content %}
+<h2>{{ _('Settings') }}</h2>
+
+<h3>{{ _('Profile') }}</h3>
+<form action="{{ url_for('main.save_profile') }}" method="post">
+  {{ csrf_field() }}
+  <p>
+    <label for="username">{{ _('Username') }}</label><br>
+    <input id="username" type="text" value="{{ current_user.username }}" disabled>
+    <br><small>{{ _('Used to sign in — cannot be changed here.') }}</small>
+  </p>
+  <p>
+    <label for="first_name">{{ _('First name') }}</label><br>
+    <input id="first_name" type="text" name="first_name" value="{{ current_user.first_name or '' }}">
+  </p>
+  <p>
+    <label for="last_name">{{ _('Last name') }}</label><br>
+    <input id="last_name" type="text" name="last_name" value="{{ current_user.last_name or '' }}">
+  </p>
+  <button type="submit">{{ _('Save profile') }}</button>
+</form>
+
+<hr>
+
+<h3>{{ _('Preferences') }}</h3>
+<form action="{{ url_for('main.save_preferences') }}" method="post">
+  {{ csrf_field() }}
+  <p>
+    <label for="locale">{{ _('Language') }}</label><br>
+    <select id="locale" name="locale">
+      {% for code, name in languages.items() %}
+      <option value="{{ code }}" {{ 'selected' if code == current_locale else '' }}>{{ name }}</option>
+      {% endfor %}
+    </select>
+  </p>
+  <p>
+    <label for="theme">{{ _('Theme') }}</label><br>
+    <select id="theme" name="theme">
+      {% for value in theme_choices %}
+      <option value="{{ value }}" {{ 'selected' if value == current_theme else '' }}>
+        {{ {'auto': _('System'), 'light': _('Light'), 'dark': _('Dark')}[value] }}
+      </option>
+      {% endfor %}
+    </select>
+  </p>
+  <p>
+    <label for="timezone">{{ _('Timezone') }}</label><br>
+    <select id="timezone" name="timezone">
+      {% for name in timezones %}
+      <option value="{{ name }}" {{ 'selected' if name == current_timezone else '' }}>{{ name }}</option>
+      {% endfor %}
+    </select>
+    <br><small>{{ _('Due dates are shown and entered in this timezone.') }}</small>
+  </p>
+  <button type="submit">{{ _('Save preferences') }}</button>
+</form>
+{% endblock %}

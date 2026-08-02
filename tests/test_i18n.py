@@ -139,3 +139,27 @@ def test_locale_selector_outside_request_returns_default(app):
 
     with app.app_context():
         assert select_locale() == app.config["BABEL_DEFAULT_LOCALE"]
+
+
+def test_thai_catalog_has_no_untranslated_or_fuzzy_entries():
+    """กัน 2 กรณีที่ทำให้ผู้ใช้เห็นภาษาอังกฤษทั้งที่เลือกไทยไว้:
+
+    1. msgstr ว่าง = ลืมแปล
+    2. #, fuzzy = pybabel เดาคำแปลให้จากข้อความที่คล้ายกัน ซึ่งมักผิดความหมาย
+       และ compile จะข้ามไป ทำให้ตกกลับเป็น msgid เงียบ ๆ
+
+    (catalog en ไม่ต้องมีคำแปล เพราะ msgid เป็นภาษาอังกฤษอยู่แล้ว)
+    """
+    import pathlib
+    import re
+
+    po = pathlib.Path(__file__).resolve().parent.parent / (
+        "app/translations/th/LC_MESSAGES/messages.po"
+    )
+    text = po.read_text()
+
+    fuzzy = re.findall(r'#, fuzzy\nmsgid "([^"]+)"', text)
+    assert not fuzzy, f"มี msgid ที่ยัง fuzzy อยู่: {fuzzy}"
+
+    empty = re.findall(r'\nmsgid "([^"]+)"\nmsgstr ""\n', text)
+    assert not empty, f"มี msgid ที่ยังไม่ได้แปล: {empty}"

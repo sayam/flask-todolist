@@ -46,13 +46,12 @@
   <nav>
     <a href="{{ url_for('main.index') }}">{{ _('Tasks') }}</a> |
     <a href="{{ url_for('main.categories') }}">{{ _('Categories') }}</a> |
-    <span>{{ current_user.username }}</span>
+    <a href="{{ url_for('main.settings') }}">{{ _('Settings') }}</a> |
+    <span>{{ current_user.display_name }}</span>
     <form action="{{ url_for('auth.logout') }}" method="post">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit">{{ _('Sign out') }}</button>
     </form>
-    | {{ language_switcher() }}
-    | {{ theme_switcher() }}
   </nav>
   <hr>
   {% endif %}

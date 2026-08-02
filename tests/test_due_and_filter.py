@@ -1,12 +1,17 @@
 """เทสต์กำหนดส่ง (due_date) และตัวกรองรายการ"""
 
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from app import db
 from app.models import Todo
 
-NOW = datetime.now()
-TODAY = date.today()
+# TestConfig ตั้ง BABEL_DEFAULT_TIMEZONE เป็น Asia/Bangkok และ user ในเทสต์
+# ไม่ได้ตั้ง timezone เอง เวลาท้องถิ่นของเขาจึงเป็นโซนนี้
+# คำนวณจากโซนนี้ตรง ๆ เทสต์จะได้ไม่ผูกกับ timezone ของเครื่องที่รัน
+TEST_TZ = ZoneInfo("Asia/Bangkok")
+NOW = datetime.now(TEST_TZ).replace(tzinfo=None)
+TODAY = NOW.date()
 # ใช้เที่ยงวันเป็นฐานเพื่อไม่ให้เทสต์พังตอนรันใกล้เที่ยงคืน
 NOON_TODAY = datetime.combine(TODAY, datetime.min.time()) + timedelta(hours=12)
 EARLIER_TODAY = NOW - timedelta(minutes=30)
@@ -40,6 +45,16 @@ def _get(app, title):
         return Todo.query.filter_by(title=title).first()
 
 
+def _prop(app, title, name):
+    """อ่าน property ของ todo ภายใน app context
+
+    property อย่าง due_local/is_overdue แตะ todo.user ซึ่ง lazy-load ไม่ได้
+    ถ้าออกนอก context ไปแล้ว
+    """
+    with app.app_context():
+        return getattr(Todo.query.filter_by(title=title).first(), name)
+
+
 def _titles_in_order(resp, titles):
     """คืนลำดับที่ชื่อแต่ละงานปรากฏใน HTML"""
     body = resp.data
@@ -50,27 +65,27 @@ def _titles_in_order(resp, titles):
 
 def test_add_with_due_date(app, client):
     _add(client, "ส่งรายงาน", due=TOMORROW)
-    assert _get(app, "ส่งรายงาน").due_date == _expected(TOMORROW)
+    assert _prop(app, "ส่งรายงาน", "due_local") == _expected(TOMORROW)
 
 
 def test_time_is_stored_not_just_date(app, client):
     """จุดสำคัญของฟีเจอร์นี้ — เวลาต้องไม่ถูกปัดทิ้ง"""
     due = NOON_TODAY.replace(hour=14, minute=45)
     _add(client, "ประชุมบ่าย", due=due)
-    stored = _get(app, "ประชุมบ่าย").due_date
+    stored = _prop(app, "ประชุมบ่าย", "due_local")
     assert (stored.hour, stored.minute) == (14, 45)
 
 
 def test_accepts_date_only_as_midnight(app, client):
     """คนยิง API ที่ยังส่งแค่วัน ให้ถือว่าเป็นเที่ยงคืนของวันนั้น"""
     _add(client, "ส่งแค่วัน", due="2026-12-31")
-    stored = _get(app, "ส่งแค่วัน").due_date
+    stored = _prop(app, "ส่งแค่วัน", "due_local")
     assert stored == datetime(2026, 12, 31, 0, 0)
 
 
 def test_add_without_due_date(app, client):
     _add(client, "งานไม่มีกำหนด")
-    assert _get(app, "งานไม่มีกำหนด").due_date is None
+    assert _prop(app, "งานไม่มีกำหนด", "due_date") is None
 
 
 def test_add_rejects_malformed_due_date(app, client):
@@ -94,7 +109,7 @@ def test_edit_sets_and_clears_due_date(app, client):
         follow_redirects=True,
     )
     with app.app_context():
-        assert db.session.get(Todo, todo_id).due_date == _expected(NEXT_WEEK)
+        assert db.session.get(Todo, todo_id).due_local == _expected(NEXT_WEEK)
 
     # ส่งค่าว่างมา = ลบกำหนดส่งทิ้ง
     client.post(
@@ -108,45 +123,45 @@ def test_edit_sets_and_clears_due_date(app, client):
 
 def test_overdue_true_for_past_date(app, client):
     _add(client, "งานเลยกำหนด", due=YESTERDAY)
-    assert _get(app, "งานเลยกำหนด").is_overdue is True
+    assert _prop(app, "งานเลยกำหนด", "is_overdue") is True
 
 
 def test_overdue_true_for_earlier_today(app, client):
     """พอมีเวลาแล้ว งานที่เลยเวลาไปเมื่อเช้าถือว่าเลยกำหนดทันที
     ไม่ต้องรอข้ามวันเหมือนตอนที่เก็บแค่วัน"""
     _add(client, "งานเมื่อเช้า", due=EARLIER_TODAY)
-    assert _get(app, "งานเมื่อเช้า").is_overdue is True
+    assert _prop(app, "งานเมื่อเช้า", "is_overdue") is True
 
 
 def test_overdue_false_for_later_today(app, client):
     _add(client, "งานอีกเดี๋ยว", due=LATER_TODAY)
-    assert _get(app, "งานอีกเดี๋ยว").is_overdue is False
+    assert _prop(app, "งานอีกเดี๋ยว", "is_overdue") is False
 
 
 def test_is_due_today_for_later_today(app, client):
     _add(client, "งานอีกเดี๋ยว", due=LATER_TODAY)
-    assert _get(app, "งานอีกเดี๋ยว").is_due_today is True
+    assert _prop(app, "งานอีกเดี๋ยว", "is_due_today") is True
 
 
 def test_is_due_today_false_for_tomorrow(app, client):
     _add(client, "งานพรุ่งนี้", due=TOMORROW)
-    assert _get(app, "งานพรุ่งนี้").is_due_today is False
+    assert _prop(app, "งานพรุ่งนี้", "is_due_today") is False
 
 
 def test_is_due_today_false_when_already_overdue(app, client):
     """เลยเวลาไปแล้วให้ขึ้นว่า 'เลยกำหนด' อย่างเดียว ไม่ซ้อนกับ 'ครบกำหนดวันนี้'"""
     _add(client, "งานเมื่อเช้า", due=EARLIER_TODAY)
-    assert _get(app, "งานเมื่อเช้า").is_due_today is False
+    assert _prop(app, "งานเมื่อเช้า", "is_due_today") is False
 
 
 def test_overdue_false_for_future(app, client):
     _add(client, "งานอนาคต", due=TOMORROW)
-    assert _get(app, "งานอนาคต").is_overdue is False
+    assert _prop(app, "งานอนาคต", "is_overdue") is False
 
 
 def test_overdue_false_without_due_date(app, client):
     _add(client, "งานไร้กำหนด")
-    assert _get(app, "งานไร้กำหนด").is_overdue is False
+    assert _prop(app, "งานไร้กำหนด", "is_overdue") is False
 
 
 def test_done_task_is_not_overdue(app, client):
