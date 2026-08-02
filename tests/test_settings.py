@@ -219,10 +219,10 @@ def test_due_time_shown_in_user_timezone(app, client):
         data={"title": "ประชุม", "due_date": "2026-09-01T09:00"},
         follow_redirects=True,
     )
-    assert b"2026-09-01T09:00" in client.get("/").data
+    assert b"2026-09-01 09:00" in client.get("/").data
 
     _prefs(client, timezone="UTC")
-    assert b"2026-09-01T02:00" in client.get("/").data
+    assert b"2026-09-01 02:00" in client.get("/").data
 
 
 def test_overdue_is_timezone_independent(app, client, user_id):

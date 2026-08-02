@@ -143,61 +143,76 @@ li:last-child {
   border-bottom: 0;
 }
 
-/* แถวรายการงาน
- * เดิมเป็น block ที่มี <form style="display:inline"> เรียงต่อกัน พอรวมกันเกิน
- * ความกว้าง browser จะตัดบรรทัดตรงไหนก็ได้ ปุ่ม Delete เลยหลุดไปอยู่บรรทัดเดียว
- * เปลี่ยนเป็น flex ที่กำหนดความกว้างแต่ละช่องไว้ การตัดบรรทัดจึงเกิดเป็นกลุ่ม
- * ตามที่ตั้งใจ ไม่ใช่หลุดทีละชิ้น */
+/* แถวรายการงาน — อ่านอย่างเดียว การแก้ย้ายไปหน้า /edit/<id> แล้ว
+ * จึงเหลือแค่ checkbox, ข้อความ, และปุ่มสองอัน จัดด้วย flex บรรทัดเดียว */
 .task {
   display: flex;
   flex-wrap: wrap;
-  /* แถวสูงสองบรรทัดแล้ว checkbox ต้องอยู่ระดับบรรทัดแรก ไม่ใช่กลางแถว */
-  align-items: flex-start;
-  gap: 0.4rem;
+  align-items: baseline;
+  gap: 0.5rem;
 }
 
 .task-toggle {
   display: flex;
   align-items: center;
-  /* ดันลงมาให้ตรงกลางช่องกรอกบรรทัดแรก ไม่ใช่กลางแถวสองบรรทัด */
-  padding-top: 0.5rem;
+  align-self: center;
 }
 
-.task-edit {
+/* ชื่องานกินที่ที่เหลือ ดันปุ่มไปชิดขวา */
+.task-title {
+  flex: 1 1 10rem;
+  min-width: 8rem;
+}
+
+.task-title.done {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+.task-category {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.05rem 0.5rem;
+  white-space: nowrap;
+}
+
+/* คอลัมน์วันเวลา ตรึงความกว้างให้ทุกแถวตรงแนวกัน */
+.task-when {
+  flex: 0 0 12rem;
+  white-space: nowrap;
+}
+
+/* กันที่ไว้เท่ากันทุกแถวแม้แถวนั้นไม่มีป้าย ปุ่มท้ายแถวจึงตรงแนวกันหมด */
+.task-flag {
+  flex: 0 0 6rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ลิงก์ที่หน้าตาเป็นปุ่ม (Edit, Cancel) ให้เข้าชุดกับปุ่มจริงข้าง ๆ */
+a.button {
+  display: inline-block;
+  font: inherit;
+  color: var(--fg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.35rem 0.5rem;
+  text-decoration: none;
+}
+
+/* แถบตัวกรองที่ต้องกรอกค่า */
+.filters {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.4rem;
-  flex: 1 1 auto;
-  min-width: 0;
+  margin: 0.5rem 0 1rem;
 }
 
-/* บรรทัดแรกของทุกแถวมีชิ้นส่วนชุดเดียวกันเป๊ะ (ป้ายสถานะกันที่ไว้เสมอ)
- * ชื่องานจึงยืดได้โดยที่คอลัมน์ยังตรงแนวกันทุกแถว */
-.task-title {
-  flex: 1 1 auto;
-  min-width: 6rem;
-}
-
-/* flex-basis 100% ดันตัวเองลงบรรทัดใหม่ ส่วน max-width กันไม่ให้ยาวเกินจำเป็น
- * ได้ที่พอแสดงชื่อหมวดยาว ๆ ครบโดยไม่เบียดช่องอื่นบนบรรทัดแรก */
-.task-category {
-  flex: 1 0 100%;
-  max-width: 24rem;
-}
-
-/* datetime-local ของ Chrome กว้างประมาณนี้ ถ้าแคบกว่านี้ตัวเลขจะโดนตัด */
-.task-due {
-  flex: 0 0 13.5rem;
-}
-
-/* กันที่ไว้เท่ากันทุกแถวแม้แถวนั้นไม่มีป้าย ปุ่มท้ายแถวจึงตรงแนวกันหมด
- * (ราคาที่จ่ายคือช่องว่างในแถวที่ไม่มีป้าย — แลกกับตารางที่อ่านง่ายขึ้น) */
-.task-flag {
-  flex: 0 0 7rem;
+.filters label {
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 small {

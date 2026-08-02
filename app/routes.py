@@ -5,6 +5,18 @@ from flask_babel import gettext as _, ngettext
 from flask_login import current_user, login_required
 
 from app import db, tz
+from app.filters import (
+    DEFAULT_UPCOMING,
+    STATUS_FILTERS,
+    UPCOMING_CHOICES,
+    WHEN_FILTERS,
+    apply_when,
+    normalise_status,
+    normalise_when,
+    normalise_within,
+    parse_boundary,
+)
+from app.filters import DAY_END, DAY_START
 from app.i18n import SESSION_KEY, is_supported
 from app.theme import (
     MODE_SESSION_KEY,
@@ -16,7 +28,7 @@ from app.models import Category, Todo
 
 bp = Blueprint("main", __name__)
 
-STATUS_FILTERS = ("all", "active", "completed")
+SHOW_START_KEY = "show_start"
 
 
 def _owned_todo(todo_id):
@@ -75,9 +87,7 @@ def _safe_referrer():
 @bp.route("/")
 @login_required
 def index():
-    status = request.args.get("status", "all")
-    if status not in STATUS_FILTERS:
-        status = "all"
+    status = normalise_status(request.args.get("status", "all"))
 
     query = Todo.query.filter_by(user_id=current_user.id)
     if status == "active":
@@ -95,6 +105,30 @@ def index():
         query = query.filter_by(category_id=selected_category)
     else:
         category_arg = ""
+
+    # ตัวกรองตามวัน (ดูจาก due_date)
+    when = normalise_when(request.args.get("when", "all"))
+    within = normalise_within(request.args.get("within"))
+    range_from_raw = (request.args.get("date_from") or "").strip()
+    range_to_raw = (request.args.get("date_to") or "").strip()
+    try:
+        range_from = parse_boundary(range_from_raw, DAY_START)
+        range_to = parse_boundary(range_to_raw, DAY_END)
+    except ValueError:
+        flash(_("Invalid date format"))
+        range_from = range_to = None
+        when = "all"
+
+    query = apply_when(
+        query, Todo, when, within, range_from, range_to, current_user.timezone_name
+    )
+
+    # ติ๊กว่าจะโชว์วันเริ่มในลิสต์ไหม จำไว้ใน session จะได้ไม่ต้องติ๊กใหม่ทุกครั้ง
+    # ต้องมี marker เพราะ checkbox ที่ไม่ติ๊กจะไม่ถูกส่งมาเลย แยกไม่ออกจาก
+    # การกดลิงก์ตัวกรองอื่นที่ไม่ได้ส่ง show_start มาด้วย
+    if request.args.get("filters_submitted"):
+        session[SHOW_START_KEY] = bool(request.args.get(SHOW_START_KEY))
+    show_start = bool(session.get(SHOW_START_KEY))
 
     todos = query.order_by(
         # งานที่มีกำหนดส่งขึ้นก่อน เรียงจากใกล้ครบกำหนดสุด
@@ -116,7 +150,12 @@ def index():
         status=status,
         category_arg=category_arg,
         selected_category=selected_category,
-        today=date.today(),
+        when=when,
+        within=within,
+        upcoming_choices=UPCOMING_CHOICES,
+        range_from=range_from_raw,
+        range_to=range_to_raw,
+        show_start=show_start,
     )
 
 
@@ -128,6 +167,7 @@ def add():
         flash(_("Please enter a task name"))
         return redirect(url_for("main.index"))
     try:
+        start_date = _parse_due_date(request.form.get("start_date"))
         due_date = _parse_due_date(request.form.get("due_date"))
     except ValueError:
         flash(_("Invalid date format"))
@@ -137,6 +177,7 @@ def add():
             title=title,
             user_id=current_user.id,
             category_id=_resolve_category_id(request.form.get("category_id")),
+            start_date=start_date,
             due_date=due_date,
         )
     )
@@ -144,23 +185,37 @@ def add():
     return redirect(url_for("main.index"))
 
 
-@bp.route("/edit/<int:todo_id>", methods=["POST"])
+@bp.route("/edit/<int:todo_id>", methods=["GET", "POST"])
 @login_required
 def edit(todo_id):
+    """หน้าแก้งาน — แยกออกมาจากลิสต์เพราะมีทั้งชื่อ วันเริ่ม และกำหนดส่ง
+    ใส่ครบในแถวเดียวแล้วอ่านไม่ออก"""
     todo = _owned_todo(todo_id)
+    if request.method == "GET":
+        categories = (
+            Category.query.filter_by(user_id=current_user.id)
+            .order_by(Category.name)
+            .all()
+        )
+        return render_template("edit_todo.html", todo=todo, categories=categories)
+
     title = request.form.get("title", "").strip()
     if not title:
         flash(_("Task name cannot be empty"))
-        return redirect(url_for("main.index"))
+        return redirect(url_for("main.edit", todo_id=todo.id))
     try:
+        start_date = _parse_due_date(request.form.get("start_date"))
         due_date = _parse_due_date(request.form.get("due_date"))
     except ValueError:
         flash(_("Invalid date format"))
-        return redirect(url_for("main.index"))
+        return redirect(url_for("main.edit", todo_id=todo.id))
+
     todo.title = title
     todo.category_id = _resolve_category_id(request.form.get("category_id"))
+    todo.start_date = start_date
     todo.due_date = due_date
     db.session.commit()
+    flash(_("Task saved"))
     return redirect(url_for("main.index"))
 
 

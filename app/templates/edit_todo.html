@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Edit task') }}{% endblock %}
+
+{% block content %}
+<h2>{{ _('Edit task') }}</h2>
+
+<form action="{{ url_for('main.edit', todo_id=todo.id) }}" method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <p>
+    <label for="title">{{ _('Task name') }}</label><br>
+    <input id="title" type="text" name="title" value="{{ todo.title }}" required autofocus>
+  </p>
+  <p>
+    <label for="category_id">{{ _('Category') }}</label><br>
+    <select id="category_id" name="category_id">
+      <option value="">— {{ _('No category') }} —</option>
+      {% for category in categories %}
+      <option value="{{ category.id }}" {{ 'selected' if category.id == todo.category_id else '' }}>
+        {{ category.name }}
+      </option>
+      {% endfor %}
+    </select>
+  </p>
+  <p>
+    <label for="start_date">{{ _('Start') }} <small>({{ _('optional') }})</small></label><br>
+    <input id="start_date" type="datetime-local" name="start_date"
+           value="{{ todo.start_local.strftime('%Y-%m-%dT%H:%M') if todo.start_date else '' }}">
+  </p>
+  <p>
+    <label for="due_date">{{ _('Due') }} <small>({{ _('optional') }})</small></label><br>
+    <input id="due_date" type="datetime-local" name="due_date"
+           value="{{ todo.due_local.strftime('%Y-%m-%dT%H:%M') if todo.due_date else '' }}">
+  </p>
+  <button type="submit">{{ _('Save') }}</button>
+  <a class="button" href="{{ url_for('main.index') }}">{{ _('Cancel') }}</a>
+</form>
+{% endblock %}

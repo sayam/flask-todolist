@@ -83,6 +83,7 @@ class Todo(db.Model):
     # **UTC แบบ naive** เหมือน created_at/updated_at
     # เวลาที่ผู้ใช้กรอกเข้ามาเป็นเวลาท้องถิ่นของเขา ต้องผ่าน tz.to_utc() ก่อนเก็บ
     # และผ่าน tz.to_local() ก่อนแสดง — ดู app/tz.py
+    start_date = db.Column(db.DateTime, nullable=True)
     due_date = db.Column(db.DateTime, nullable=True)
     user_id = db.Column(
         db.Integer, db.ForeignKey("user.id"), nullable=False, index=True
@@ -103,6 +104,11 @@ class Todo(db.Model):
     def due_local(self):
         """กำหนดส่งในเวลาท้องถิ่นของเจ้าของงาน — ใช้ตอนแสดงผลเท่านั้น"""
         return tz.to_local(self.due_date, self._tz_name)
+
+    @property
+    def start_local(self):
+        """วันเริ่มในเวลาท้องถิ่นของเจ้าของงาน"""
+        return tz.to_local(self.start_date, self._tz_name)
 
     @property
     def is_overdue(self):

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-02 19:51+0700\n"
+"POT-Creation-Date: 2026-08-02 22:26+0700\n"
 "PO-Revision-Date: 2026-08-02 16:44+0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -26,58 +26,62 @@ msgstr "กรุณาเข้าสู่ระบบก่อน"
 msgid "Incorrect username or password"
 msgstr "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง"
 
-#: app/routes.py:128
-msgid "Please enter a task name"
-msgstr "กรุณาใส่ชื่องาน"
-
-#: app/routes.py:133 app/routes.py:158
+#: app/routes.py:118 app/routes.py:173 app/routes.py:210
 msgid "Invalid date format"
 msgstr "รูปแบบวันที่ไม่ถูกต้อง"
 
-#: app/routes.py:153
+#: app/routes.py:167
+msgid "Please enter a task name"
+msgstr "กรุณาใส่ชื่องาน"
+
+#: app/routes.py:204
 msgid "Task name cannot be empty"
 msgstr "ชื่องานว่างไม่ได้"
 
-#: app/routes.py:208
+#: app/routes.py:218
+msgid "Task saved"
+msgstr "บันทึกงานแล้ว"
+
+#: app/routes.py:263
 msgid "Please enter a category name"
 msgstr "กรุณาใส่ชื่อหมวด"
 
-#: app/routes.py:210 app/routes.py:229
+#: app/routes.py:265 app/routes.py:284
 #, python-format
 msgid "Category “%(name)s” already exists"
 msgstr "มีหมวด “%(name)s” อยู่แล้ว"
 
-#: app/routes.py:223
+#: app/routes.py:278
 msgid "Category name cannot be empty"
 msgstr "ชื่อหมวดว่างไม่ได้"
 
-#: app/routes.py:246
+#: app/routes.py:301
 #, python-format
 msgid "Cannot delete “%(name)s” — it still has %(num)d task."
 msgid_plural "Cannot delete “%(name)s” — it still has %(num)d tasks."
 msgstr[0] "ลบ “%(name)s” ไม่ได้ — ยังมีงานอยู่ %(num)d รายการ"
 
-#: app/routes.py:313
+#: app/routes.py:368
 msgid "Profile saved"
 msgstr "บันทึกโปรไฟล์แล้ว"
 
-#: app/routes.py:323
+#: app/routes.py:378
 msgid "Unsupported language"
 msgstr "ไม่รองรับภาษานี้"
 
-#: app/routes.py:328
+#: app/routes.py:383
 msgid "Unsupported theme"
 msgstr "ไม่รองรับธีมนี้"
 
-#: app/routes.py:333
+#: app/routes.py:388
 msgid "Unsupported mode"
 msgstr "ไม่รองรับโหมดนี้"
 
-#: app/routes.py:338
+#: app/routes.py:393
 msgid "Unsupported timezone"
 msgstr "ไม่รองรับ timezone นี้"
 
-#: app/routes.py:352
+#: app/routes.py:407
 msgid "Settings saved"
 msgstr "บันทึกการตั้งค่าแล้ว"
 
@@ -137,7 +141,7 @@ msgstr "เช่น งานส่วนตัว"
 msgid "Add category"
 msgstr "เพิ่มหมวด"
 
-#: app/templates/categories.html:26 app/templates/index.html:105
+#: app/templates/categories.html:26 app/templates/edit_todo.html:34
 msgid "Save"
 msgstr "บันทึก"
 
@@ -148,6 +152,7 @@ msgid_plural "%(num)d tasks"
 msgstr[0] "%(num)d งาน"
 
 #: app/templates/categories.html:32
+#, python-format
 msgid "Delete category “%(name)s”?"
 msgstr "ลบหมวด “%(name)s” ใช่ไหม?"
 
@@ -155,7 +160,7 @@ msgstr "ลบหมวด “%(name)s” ใช่ไหม?"
 msgid "Move or delete its tasks first"
 msgstr "ย้ายหรือลบงานในหมวดนี้ออกก่อน"
 
-#: app/templates/categories.html:36 app/templates/index.html:111
+#: app/templates/categories.html:36 app/templates/index.html:154
 msgid "Delete"
 msgstr "ลบ"
 
@@ -163,89 +168,165 @@ msgstr "ลบ"
 msgid "No categories yet"
 msgstr "ยังไม่มีหมวด"
 
-#: app/templates/index.html:13 app/templates/index.html:60
+#: app/templates/edit_todo.html:2 app/templates/edit_todo.html:5
+msgid "Edit task"
+msgstr "แก้ไขงาน"
+
+#: app/templates/edit_todo.html:10 app/templates/index.html:28
+msgid "Task name"
+msgstr "ชื่องาน"
+
+#: app/templates/edit_todo.html:14 app/templates/index.html:32
+#: app/templates/index.html:110
+msgid "Category"
+msgstr "หมวดงาน"
+
+#: app/templates/edit_todo.html:16 app/templates/index.html:34
+#: app/templates/index.html:113
 msgid "No category"
 msgstr "ไม่มีหมวด"
+
+#: app/templates/edit_todo.html:25 app/templates/index.html:41
+#: app/templates/index.html:136
+msgid "Start"
+msgstr "วันเริ่ม"
+
+#: app/templates/edit_todo.html:25 app/templates/edit_todo.html:30
+#: app/templates/index.html:41 app/templates/index.html:45
+msgid "optional"
+msgstr "ไม่ใส่ก็ได้"
+
+#: app/templates/edit_todo.html:30 app/templates/index.html:45
+#: app/templates/index.html:63 app/templates/index.html:141
+msgid "Due"
+msgstr "กำหนดส่ง"
+
+#: app/templates/edit_todo.html:35
+msgid "Cancel"
+msgstr "ยกเลิก"
 
 #: app/templates/index.html:23
 msgid "Add a task"
 msgstr "เพิ่มงานใหม่"
 
-#: app/templates/index.html:28 app/templates/index.html:89
-msgid "Task name"
-msgstr "ชื่องาน"
-
 #: app/templates/index.html:29
 msgid "e.g. Deliver order to customer"
 msgstr "เช่น ส่งของให้ลูกค้า"
 
-#: app/templates/index.html:32 app/templates/index.html:57
-#: app/templates/index.html:115
-msgid "Category"
-msgstr "หมวดงาน"
-
-#: app/templates/index.html:36 app/templates/index.html:91
-msgid "Due"
-msgstr "กำหนดส่ง"
-
-#: app/templates/index.html:36
-msgid "optional"
-msgstr "ไม่ใส่ก็ได้"
-
-#: app/templates/index.html:39
+#: app/templates/index.html:48
 msgid "Add"
 msgstr "เพิ่ม"
 
-#: app/templates/index.html:45
+#: app/templates/index.html:54
 msgid "Show"
 msgstr "แสดง"
 
-#: app/templates/index.html:46 app/templates/index.html:58
+#: app/templates/index.html:55 app/templates/index.html:111
 msgid "All"
 msgstr "ทั้งหมด"
 
-#: app/templates/index.html:46
+#: app/templates/index.html:55
 msgid "Active"
 msgstr "ยังไม่เสร็จ"
 
-#: app/templates/index.html:46
+#: app/templates/index.html:55
 msgid "Completed"
 msgstr "เสร็จแล้ว"
 
-#: app/templates/index.html:77
+#: app/templates/index.html:64 app/templates/index.html:81
+msgid "Any time"
+msgstr "ทุกช่วงเวลา"
+
+#: app/templates/index.html:64 app/templates/index.html:81
+msgid "Upcoming"
+msgstr "ใกล้ถึงกำหนด"
+
+#: app/templates/index.html:65 app/templates/index.html:82
+msgid "Today"
+msgstr "วันนี้"
+
+#: app/templates/index.html:65 app/templates/index.html:82
+msgid "Tomorrow"
+msgstr "พรุ่งนี้"
+
+#: app/templates/index.html:79
+msgid "Range"
+msgstr "ช่วงเวลา"
+
+#: app/templates/index.html:83
+msgid "Pick dates"
+msgstr "เลือกช่วงเอง"
+
+#: app/templates/index.html:88
+msgid "Within"
+msgstr "ภายใน"
+
+#: app/templates/index.html:92
+#, python-format
+msgid "%(num)d minute"
+msgid_plural "%(num)d minutes"
+msgstr[0] "%(num)d นาที"
+
+#: app/templates/index.html:93
+#, python-format
+msgid "%(num)d hour"
+msgid_plural "%(num)d hours"
+msgstr[0] "%(num)d ชั่วโมง"
+
+#: app/templates/index.html:98
+msgid "From"
+msgstr "ตั้งแต่"
+
+#: app/templates/index.html:100
+msgid "To"
+msgstr "ถึง"
+
+#: app/templates/index.html:104
+msgid "Show start date"
+msgstr "แสดงวันเริ่ม"
+
+#: app/templates/index.html:106
+msgid "Apply"
+msgstr "ใช้ตัวกรอง"
+
+#: app/templates/index.html:127
 msgid "Mark as not done"
 msgstr "ทำเครื่องหมายว่ายังไม่เสร็จ"
 
-#: app/templates/index.html:77
+#: app/templates/index.html:127
 msgid "Mark as done"
 msgstr "ทำเครื่องหมายว่าเสร็จแล้ว"
 
-#: app/templates/index.html:99
+#: app/templates/index.html:145
 msgid "Overdue"
 msgstr "เลยกำหนดแล้ว"
 
-#: app/templates/index.html:101
+#: app/templates/index.html:146
 msgid "Due today"
 msgstr "ครบกำหนดวันนี้"
 
-#: app/templates/index.html:110
+#: app/templates/index.html:149
+msgid "Edit"
+msgstr "แก้ไข"
+
+#: app/templates/index.html:152
 #, python-format
 msgid "Delete “%(title)s”?"
 msgstr "ลบ “%(title)s” ใช่ไหม?"
 
-#: app/templates/index.html:119
+#: app/templates/index.html:158
 msgid "No tasks yet"
 msgstr "ยังไม่มีงาน"
 
-#: app/templates/index.html:119
+#: app/templates/index.html:158
 msgid "No tasks match this filter"
 msgstr "ไม่มีงานที่ตรงกับตัวกรอง"
 
-#: app/templates/index.html:124
+#: app/templates/index.html:163
 msgid "Delete all completed tasks? This cannot be undone."
 msgstr "ลบงานที่เสร็จแล้วทั้งหมดใช่ไหม? กู้คืนไม่ได้"
 
-#: app/templates/index.html:126
+#: app/templates/index.html:165
 msgid "Clear completed"
 msgstr "ลบงานที่เสร็จแล้วทั้งหมด"
 

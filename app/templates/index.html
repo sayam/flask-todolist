@@ -5,18 +5,18 @@
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 {% endmacro %}
 
-{% macro category_select(selected_id, field_id='', aria='', css_class='') %}
-  <select name="category_id"
-          {% if css_class %}class="{{ css_class }}"{% endif %}
-          {% if field_id %}id="{{ field_id }}"{% endif %}
-          {% if aria %}aria-label="{{ aria }}"{% endif %}>
-    <option value="">— {{ _('No category') }} —</option>
-    {% for category in categories %}
-    <option value="{{ category.id }}" {{ 'selected' if category.id == selected_id else '' }}>
-      {{ category.name }}
-    </option>
-    {% endfor %}
-  </select>
+{# ลิงก์ตัวกรองต้องพาค่าตัวกรองอื่นไปด้วย ไม่งั้นกดอันหนึ่งแล้วอีกอันหาย
+   ใช้ 'KEEP' เป็นค่าเริ่มต้นเพื่อแยก "ไม่ระบุ" ออกจาก "ระบุว่า None" (= ล้างตัวกรอง)
+   ชื่อพารามิเตอร์เป็น date_from/date_to เพราะ from/to เป็น keyword ของ Python
+   ส่งเข้า url_for() ตรง ๆ ไม่ได้ #}
+{% macro filter_url(new_status='KEEP', new_category='KEEP', new_when='KEEP') %}
+  {{- url_for('main.index',
+        status=status if new_status == 'KEEP' else new_status,
+        category=(category_arg or None) if new_category == 'KEEP' else new_category,
+        when=when if new_when == 'KEEP' else new_when,
+        within=within,
+        date_from=range_from or None,
+        date_to=range_to or None) -}}
 {% endmacro %}
 
 {% block content %}
@@ -30,7 +30,16 @@
   </p>
   <p>
     <label for="new-category">{{ _('Category') }}</label><br>
-    {{ category_select(None, field_id='new-category') }}
+    <select id="new-category" name="category_id">
+      <option value="">— {{ _('No category') }} —</option>
+      {% for category in categories %}
+      <option value="{{ category.id }}">{{ category.name }}</option>
+      {% endfor %}
+    </select>
+  </p>
+  <p>
+    <label for="new-start">{{ _('Start') }} <small>({{ _('optional') }})</small></label><br>
+    <input id="new-start" type="datetime-local" name="start_date">
   </p>
   <p>
     <label for="new-due">{{ _('Due') }} <small>({{ _('optional') }})</small></label><br>
@@ -44,27 +53,68 @@
 <p>
   {{ _('Show') }}:
   {% for value, label in [('all', _('All')), ('active', _('Active')), ('completed', _('Completed'))] %}
-    {%- if status == value %}
-      <strong>{{ label }}</strong>
-    {%- else %}
-      <a href="{{ url_for('main.index', status=value, category=category_arg or None) }}">{{ label }}</a>
-    {%- endif %}
+    {%- if status == value %}<strong>{{ label }}</strong>
+    {%- else %}<a href="{{ filter_url(new_status=value) }}">{{ label }}</a>{% endif %}
     {{- ' | ' if not loop.last else '' }}
   {% endfor %}
 </p>
 
 <p>
+  {{ _('Due') }}:
+  {% for value, label in [('all', _('Any time')), ('upcoming', _('Upcoming')),
+                          ('today', _('Today')), ('tomorrow', _('Tomorrow'))] %}
+    {%- if when == value %}<strong>{{ label }}</strong>
+    {%- else %}<a href="{{ filter_url(new_when=value) }}">{{ label }}</a>{% endif %}
+    {{- ' | ' if not loop.last else '' }}
+  {% endfor %}
+</p>
+
+{# ตัวกรองที่ต้องกรอกค่า (ช่วงเวลาของ Upcoming และช่วงวันที่เลือกเอง)
+   รวมกับ checkbox แสดงวันเริ่ม เพราะทั้งหมดคุมการแสดงผลของลิสต์เหมือนกัน #}
+<form method="get" action="{{ url_for('main.index') }}" class="filters">
+  <input type="hidden" name="filters_submitted" value="1">
+  <input type="hidden" name="status" value="{{ status }}">
+  {% if category_arg %}<input type="hidden" name="category" value="{{ category_arg }}">{% endif %}
+
+  <label for="when">{{ _('Range') }}</label>
+  <select id="when" name="when">
+    {% for value, label in [('all', _('Any time')), ('upcoming', _('Upcoming')),
+                            ('today', _('Today')), ('tomorrow', _('Tomorrow')),
+                            ('range', _('Pick dates'))] %}
+    <option value="{{ value }}" {{ 'selected' if when == value else '' }}>{{ label }}</option>
+    {% endfor %}
+  </select>
+
+  <label for="within">{{ _('Within') }}</label>
+  <select id="within" name="within">
+    {% for minutes in upcoming_choices %}
+    <option value="{{ minutes }}" {{ 'selected' if within == minutes else '' }}>
+      {%- if minutes < 60 %}{{ ngettext('%(num)d minute', '%(num)d minutes', minutes) }}
+      {%- else %}{{ ngettext('%(num)d hour', '%(num)d hours', minutes // 60) }}{% endif -%}
+    </option>
+    {% endfor %}
+  </select>
+
+  <label for="from">{{ _('From') }}</label>
+  <input id="from" type="datetime-local" name="date_from" value="{{ range_from }}">
+  <label for="to">{{ _('To') }}</label>
+  <input id="to" type="datetime-local" name="date_to" value="{{ range_to }}">
+
+  <label><input type="checkbox" name="show_start" value="1" {{ 'checked' if show_start else '' }}>
+    {{ _('Show start date') }}</label>
+
+  <button type="submit">{{ _('Apply') }}</button>
+</form>
+
+<p>
   {{ _('Category') }}:
-  {% if not category_arg %}<strong>{{ _('All') }}</strong>{% else %}<a href="{{ url_for('main.index', status=status) }}">{{ _('All') }}</a>{% endif %}
+  {% if not category_arg %}<strong>{{ _('All') }}</strong>{% else %}<a href="{{ filter_url(new_category=None) }}">{{ _('All') }}</a>{% endif %}
   |
-  {% if category_arg == 'none' %}<strong>{{ _('No category') }}</strong>{% else %}<a href="{{ url_for('main.index', status=status, category='none') }}">{{ _('No category') }}</a>{% endif %}
+  {% if category_arg == 'none' %}<strong>{{ _('No category') }}</strong>{% else %}<a href="{{ filter_url(new_category='none') }}">{{ _('No category') }}</a>{% endif %}
   {% for category in categories %}
   |
-  {% if selected_category == category.id %}
-    <strong>{{ category.name }}</strong>
-  {% else %}
-    <a href="{{ url_for('main.index', status=status, category=category.id) }}">{{ category.name }}</a>
-  {% endif %}
+  {% if selected_category == category.id %}<strong>{{ category.name }}</strong>
+  {% else %}<a href="{{ filter_url(new_category=category.id) }}">{{ category.name }}</a>{% endif %}
   {% endfor %}
 </p>
 
@@ -77,46 +127,35 @@
              aria-label="{{ _('Mark as not done') if todo.done else _('Mark as done') }}">
     </form>
 
-    {# แถวรายการใช้ aria-label แทน label ที่มองเห็น เพราะถ้าใส่ label ทุกแถวจะรกจนอ่านยาก
+    <span class="task-title {{ 'done' if todo.done else '' }}">{{ todo.title }}</span>
 
-       Save กับ Delete อยู่ในฟอร์มเดียวกัน โดย Delete ใช้ formaction ยิงไปคนละ route
-       ถ้าแยกเป็นสองฟอร์มจะจัดให้ปุ่มทั้งคู่อยู่บรรทัดเดียวกันแล้วให้ dropdown หมวด
-       ตกลงบรรทัดล่างไม่ได้ (ฟอร์มเป็นคนละ flex container กัน)
-       route /delete ใช้แค่ id จาก URL กับ csrf token ค่าอื่นในฟอร์มถูกมองข้าม #}
-    <form class="task-edit" action="{{ url_for('main.edit', todo_id=todo.id) }}" method="post">
+    {% if todo.category %}<small class="task-category">{{ todo.category.name }}</small>{% endif %}
+
+    {% if show_start %}
+    <small class="task-when">
+      {{- _('Start') }}: {{ todo.start_local.strftime('%Y-%m-%d %H:%M') if todo.start_date else '—' -}}
+    </small>
+    {% endif %}
+
+    <small class="task-when">
+      {{- _('Due') }}: {{ todo.due_local.strftime('%Y-%m-%d %H:%M') if todo.due_date else '—' -}}
+    </small>
+
+    <strong class="task-flag {{ 'overdue' if todo.is_overdue else '' }}">
+      {%- if todo.is_overdue %}{{ _('Overdue') }}
+      {%- elif todo.is_due_today %}{{ _('Due today') }}{% endif -%}
+    </strong>
+
+    <a class="button" href="{{ url_for('main.edit', todo_id=todo.id) }}">{{ _('Edit') }}</a>
+
+    <form action="{{ url_for('main.delete', todo_id=todo.id) }}" method="post"
+          onsubmit="return confirm({{ _('Delete “%(title)s”?', title=todo.title)|tojson }})">
       {{ csrf_field() }}
-      <input class="task-title" type="text" name="title" value="{{ todo.title }}"
-             aria-label="{{ _('Task name') }}" required
-             style="{{ 'text-decoration: line-through;' if todo.done else '' }}">
-      <input class="task-due" type="datetime-local" name="due_date" aria-label="{{ _('Due') }}"
-             value="{{ todo.due_local.strftime('%Y-%m-%dT%H:%M') if todo.due_date else '' }}">
-
-      {# ป้ายสถานะวางไว้ติดช่องกำหนดส่งเพื่อให้อ่านคู่กัน เป็นแค่ข้อความ ไม่ใช่ field
-         ต้อง render span เสมอแม้ไม่มีป้าย ไม่งั้นความกว้างแถวจะไม่เท่ากัน
-         ไม่ต้องบอกเวลาซ้ำ เพราะช่องกำหนดส่งที่อยู่ติดกันแสดงอยู่แล้ว #}
-      <strong class="task-flag {{ 'overdue' if todo.is_overdue else '' }}">
-        {%- if todo.is_overdue -%}
-          {{ _('Overdue') }}
-        {%- elif todo.is_due_today -%}
-          {{ _('Due today') }}
-        {%- endif -%}
-      </strong>
-
-      <button type="submit">{{ _('Save') }}</button>
-      {# formnovalidate: ไม่งั้นถ้าผู้ใช้ลบชื่องานจนว่างแล้วกด Delete
-         browser จะบล็อกด้วย validation ของช่อง title ทั้งที่กำลังจะลบทิ้งอยู่แล้ว #}
-      <button type="submit" formnovalidate
-              formaction="{{ url_for('main.delete', todo_id=todo.id) }}"
-              onclick="return confirm({{ _('Delete “%(title)s”?', title=todo.title)|tojson }})">
-        {{ _('Delete') }}
-      </button>
-
-      {# หมวดอยู่บรรทัดล่างเพื่อให้มีที่พอแสดงชื่อยาว ๆ ได้ครบ #}
-      {{ category_select(todo.category_id, aria=_('Category'), css_class='task-category') }}
+      <button type="submit">{{ _('Delete') }}</button>
     </form>
   </li>
   {% else %}
-  <li>{{ _('No tasks yet') if status == 'all' and not category_arg else _('No tasks match this filter') }}</li>
+  <li>{{ _('No tasks yet') if status == 'all' and when == 'all' and not category_arg else _('No tasks match this filter') }}</li>
   {% endfor %}
 </ul>
 
