@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}หมวดงาน{% endblock %}
+
+{% block content %}
+<h1>หมวดงาน</h1>
+
+<form action="{{ url_for('main.add_category') }}" method="post">
+  <input type="text" name="name" placeholder="หมวดใหม่" required>
+  <button type="submit">เพิ่มหมวด</button>
+</form>
+
+<ul>
+  {% for category in categories %}
+  <li>
+    <form action="{{ url_for('main.edit_category', category_id=category.id) }}" method="post" style="display:inline">
+      <input type="text" name="name" value="{{ category.name }}" required>
+      <button type="submit">บันทึก</button>
+    </form>
+    <span>({{ category.todos | length }} งาน)</span>
+    <form action="{{ url_for('main.delete_category', category_id=category.id) }}" method="post" style="display:inline"
+          onsubmit="return confirm('ลบหมวด ' + {{ category.name|tojson }} + ' ใช่ไหม? งานในหมวดนี้จะกลายเป็นไม่มีหมวด')">
+      <button type="submit">ลบ</button>
+    </form>
+  </li>
+  {% else %}
+  <li>ยังไม่มีหมวด</li>
+  {% endfor %}
+</ul>
+{% endblock %}

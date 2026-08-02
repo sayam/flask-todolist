@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}เข้าสู่ระบบ{% endblock %}
+
+{% block content %}
+<h1>เข้าสู่ระบบ</h1>
+<form action="{{ url_for('auth.login') }}" method="post">
+  <p>
+    <label>ชื่อผู้ใช้<br>
+      <input type="text" name="username" autocomplete="username" required autofocus>
+    </label>
+  </p>
+  <p>
+    <label>รหัสผ่าน<br>
+      <input type="password" name="password" autocomplete="current-password" required>
+    </label>
+  </p>
+  <button type="submit">เข้าสู่ระบบ</button>
+</form>
+{% endblock %}

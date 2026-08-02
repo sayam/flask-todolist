@@ -1,33 +1,42 @@
-<!doctype html>
-<html lang="th">
-<head>
-  <meta charset="utf-8">
-  <title>Todolist</title>
-</head>
-<body>
-  <h1>Todolist</h1>
-  <form action="{{ url_for('main.add') }}" method="post">
-    <input type="text" name="title" placeholder="งานใหม่" required>
-    <button type="submit">เพิ่ม</button>
-  </form>
-  <ul>
-    {% for todo in todos %}
-    <li>
-      <form action="{{ url_for('main.toggle', todo_id=todo.id) }}" method="post" style="display:inline">
-        <input type="checkbox" onchange="this.form.submit()" {{ 'checked' if todo.done else '' }}>
-      </form>
-      <span style="{{ 'text-decoration: line-through;' if todo.done else '' }}">{{ todo.title }}</span>
-      <form action="{{ url_for('main.delete', todo_id=todo.id) }}" method="post" style="display:inline">
-        <button type="submit">ลบ</button>
-      </form>
-    </li>
-    {% else %}
-    <li>ยังไม่มีงาน</li>
+{% extends "base.html" %}
+{% block title %}Todolist{% endblock %}
+
+{% block content %}
+<h1>Todolist</h1>
+
+<form action="{{ url_for('main.add') }}" method="post">
+  <input type="text" name="title" placeholder="งานใหม่" required>
+  <select name="category_id">
+    <option value="">— ไม่มีหมวด —</option>
+    {% for category in categories %}
+    <option value="{{ category.id }}">{{ category.name }}</option>
     {% endfor %}
-  </ul>
-  <form action="{{ url_for('main.clear_completed') }}" method="post"
-        onsubmit="return confirm('ลบงานที่เสร็จแล้วทั้งหมดใช่ไหม? กู้คืนไม่ได้')">
-    <button type="submit">ลบงานที่เสร็จแล้วทั้งหมด</button>
-  </form>
-</body>
-</html>
+  </select>
+  <button type="submit">เพิ่ม</button>
+</form>
+
+<ul>
+  {% for todo in todos %}
+  <li>
+    <form action="{{ url_for('main.toggle', todo_id=todo.id) }}" method="post" style="display:inline">
+      <input type="checkbox" onchange="this.form.submit()" {{ 'checked' if todo.done else '' }}>
+    </form>
+
+    <span style="{{ 'text-decoration: line-through;' if todo.done else '' }}">{{ todo.title }}</span>
+    {% if todo.category %}<small>[{{ todo.category.name }}]</small>{% endif %}
+
+    <form action="{{ url_for('main.delete', todo_id=todo.id) }}" method="post" style="display:inline"
+          onsubmit="return confirm('ลบ ' + {{ todo.title|tojson }} + ' ใช่ไหม?')">
+      <button type="submit">ลบ</button>
+    </form>
+  </li>
+  {% else %}
+  <li>ยังไม่มีงาน</li>
+  {% endfor %}
+</ul>
+
+<form action="{{ url_for('main.clear_completed') }}" method="post"
+      onsubmit="return confirm('ลบงานที่เสร็จแล้วทั้งหมดใช่ไหม? กู้คืนไม่ได้')">
+  <button type="submit">ลบงานที่เสร็จแล้วทั้งหมด</button>
+</form>
+{% endblock %}

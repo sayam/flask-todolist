@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}Todolist{% endblock %}</title>
+</head>
+<body>
+  {% if current_user.is_authenticated %}
+  <nav>
+    <a href="{{ url_for('main.index') }}">งาน</a> |
+    <a href="{{ url_for('main.categories') }}">หมวดงาน</a> |
+    <span>{{ current_user.username }}</span>
+    <form action="{{ url_for('auth.logout') }}" method="post" style="display:inline">
+      <button type="submit">ออกจากระบบ</button>
+    </form>
+  </nav>
+  <hr>
+  {% endif %}
+
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    <ul>
+      {% for message in messages %}
+      <li><strong>{{ message }}</strong></li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</body>
+</html>
