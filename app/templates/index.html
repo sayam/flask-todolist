@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Todolist{% endblock %}
 
+{% macro csrf_field() %}
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+{% endmacro %}
+
 {% macro category_select(selected_id) %}
   <select name="category_id">
     <option value="">— ไม่มีหมวด —</option>
@@ -16,6 +20,7 @@
 <h1>Todolist</h1>
 
 <form action="{{ url_for('main.add') }}" method="post">
+  {{ csrf_field() }}
   <input type="text" name="title" placeholder="งานใหม่" required>
   {{ category_select(None) }}
   <button type="submit">เพิ่ม</button>
@@ -25,10 +30,12 @@
   {% for todo in todos %}
   <li>
     <form action="{{ url_for('main.toggle', todo_id=todo.id) }}" method="post" style="display:inline">
+      {{ csrf_field() }}
       <input type="checkbox" onchange="this.form.submit()" {{ 'checked' if todo.done else '' }}>
     </form>
 
     <form action="{{ url_for('main.edit', todo_id=todo.id) }}" method="post" style="display:inline">
+      {{ csrf_field() }}
       <input type="text" name="title" value="{{ todo.title }}"
              style="{{ 'text-decoration: line-through;' if todo.done else '' }}" required>
       {{ category_select(todo.category_id) }}
@@ -37,6 +44,7 @@
 
     <form action="{{ url_for('main.delete', todo_id=todo.id) }}" method="post" style="display:inline"
           onsubmit="return confirm('ลบ ' + {{ todo.title|tojson }} + ' ใช่ไหม?')">
+      {{ csrf_field() }}
       <button type="submit">ลบ</button>
     </form>
   </li>
@@ -47,6 +55,7 @@
 
 <form action="{{ url_for('main.clear_completed') }}" method="post"
       onsubmit="return confirm('ลบงานที่เสร็จแล้วทั้งหมดใช่ไหม? กู้คืนไม่ได้')">
+  {{ csrf_field() }}
   <button type="submit">ลบงานที่เสร็จแล้วทั้งหมด</button>
 </form>
 {% endblock %}

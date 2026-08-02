@@ -11,6 +11,13 @@ class TestConfig:
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     TESTING = True
+    # ปิด CSRF ในเทสต์ทั่วไปเพื่อไม่ต้องแนบ token ทุกคำขอ
+    # ตัว CSRF เองมีเทสต์แยกใน test_csrf.py ที่เปิดใช้จริง
+    WTF_CSRF_ENABLED = False
+
+
+class CsrfTestConfig(TestConfig):
+    WTF_CSRF_ENABLED = True
 
 
 def _make_user(username):
@@ -67,6 +74,16 @@ def other_client(app, other_user_id):
 def anon_client(app):
     """client ที่ยังไม่ได้ login"""
     return app.test_client()
+
+
+@pytest.fixture
+def csrf_app():
+    """แอปที่เปิด CSRF จริง พร้อม user 'tester' หนึ่งคน"""
+    app = create_app(CsrfTestConfig)
+    with app.app_context():
+        db.create_all()
+        _make_user("tester")
+    yield app
 
 
 @pytest.fixture

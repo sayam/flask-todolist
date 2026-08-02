@@ -2,7 +2,7 @@
 
 ## Stack
 - Flask + Flask-SQLAlchemy, SQLite (dev), pipenv จัดการ env
-- Flask-Migrate (alembic) จัดการ schema, Flask-Login จัดการ session
+- Flask-Migrate (alembic) จัดการ schema, Flask-Login จัดการ session, Flask-WTF จัดการ CSRF
 - Python 3.13
 
 ## Commands
@@ -32,7 +32,14 @@
 - `create_app` **ไม่เรียก** `db.create_all()` แล้ว — schema มาจาก migration เท่านั้น
   (เทสต์สร้างตารางเองใน fixture `app`)
 - แทรกค่าลง JS ใน template ต้องใช้ `|tojson` ไม่ใช่ `{{ }}` เปล่า ๆ เช่นใน `onsubmit="return confirm(...)"`
+- **ทุก `<form method="post">` ต้องมี `{{ csrf_field() }}` หรือ hidden input `csrf_token`**
+  `CSRFProtect` คุมทั้งแอป ลืมใส่แล้ว form นั้นจะได้ 400 ทันที
+- เทสต์ทั่วไปปิด CSRF (`WTF_CSRF_ENABLED = False` ใน `TestConfig`) ตัว CSRF มีเทสต์แยกใน
+  `tests/test_csrf.py` ที่เปิดใช้จริงผ่าน fixture `csrf_app` — ห้ามลบไฟล์นั้นทิ้ง
+  ไม่งั้นจะไม่มีอะไรจับได้เวลา `csrf.init_app()` หลุด
 
 ## ยังไม่ได้ทำ
-- CSRF protection (Flask-WTF) — form ทั้งหมดยังไม่มี token
 - หน้า login ไม่รองรับ `?next=` โดยตั้งใจ (กัน open redirect) login เสร็จเด้งไปหน้าแรกเสมอ
+- `SECRET_KEY` ยัง default เป็น `dev-secret-change-me` — ถ้าเอาขึ้นจริงต้องตั้งผ่าน env
+  เพราะทั้ง session และ CSRF token เซ็นด้วยคีย์นี้
+- ไม่มี rate limit ที่หน้า login

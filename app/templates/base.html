@@ -11,6 +11,7 @@
     <a href="{{ url_for('main.categories') }}">หมวดงาน</a> |
     <span>{{ current_user.username }}</span>
     <form action="{{ url_for('auth.logout') }}" method="post" style="display:inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit">ออกจากระบบ</button>
     </form>
   </nav>

@@ -4,6 +4,7 @@
 {% block content %}
 <h1>เข้าสู่ระบบ</h1>
 <form action="{{ url_for('auth.login') }}" method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <p>
     <label>ชื่อผู้ใช้<br>
       <input type="text" name="username" autocomplete="username" required autofocus>

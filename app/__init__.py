@@ -4,11 +4,13 @@ from flask import Flask
 from flask_login import LoginManager
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
+from flask_wtf.csrf import CSRFProtect
 
 from config import Config
 
 db = SQLAlchemy()
 migrate = Migrate()
+csrf = CSRFProtect()
 login_manager = LoginManager()
 login_manager.login_view = "auth.login"
 login_manager.login_message = "กรุณาเข้าสู่ระบบก่อน"
@@ -30,6 +32,8 @@ def create_app(config_class=Config):
     db.init_app(app)
     # render_as_batch: SQLite ALTER TABLE ทำได้จำกัด ต้องให้ alembic สร้างตารางใหม่แทน
     migrate.init_app(app, db, render_as_batch=True)
+    # คุมทุก POST/PUT/PATCH/DELETE ทั้งแอป ไม่ต้องไปใส่ทีละ route
+    csrf.init_app(app)
     login_manager.init_app(app)
 
     from app.routes import bp as main_bp
