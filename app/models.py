@@ -16,13 +16,18 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app import db, tz
+from app.soft_delete import SoftDeleteMixin
+
+# ค่าที่ใส่แทน hash เมื่อปิดบัญชี — ไม่ใช่รูปแบบ hash ที่ถูกต้อง จึงเทียบกับ
+# รหัสผ่านใดก็ไม่ผ่าน (ธรรมเนียมเดียวกับ /etc/shadow ของ unix)
+DISABLED_PASSWORD = "!"  # noqa: S105  ไม่ใช่รหัสผ่าน แต่เป็นค่าที่แปลว่า "ใช้ไม่ได้"
 
 
 def _utcnow() -> datetime:
     return datetime.now(UTC)
 
 
-class User(UserMixin, db.Model):
+class User(UserMixin, SoftDeleteMixin, db.Model):
     """บัญชีผู้ใช้ — ไม่มีหน้าสมัครสมาชิก สร้างผ่าน `flask create-user` เท่านั้น"""
 
     __tablename__ = "tdl_user"
@@ -43,6 +48,9 @@ class User(UserMixin, db.Model):
     timezone_name: Mapped[str | None] = mapped_column(String(64))
     first_name: Mapped[str | None] = mapped_column(String(80))
     last_name: Mapped[str | None] = mapped_column(String(80))
+    # เวลาที่ PII ถูกล้างจริง (แถวยังอยู่เป็น tombstone ให้ audit อ้างถึงได้)
+    # ดู docs/DATA-CLASSIFICATION.md — ต่างจาก deleted_at ที่แปลว่า 'ปิดบัญชีแล้ว'
+    purged_at: Mapped[datetime | None] = mapped_column(DateTime, default=None)
 
     categories: Mapped[list["Category"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
@@ -53,7 +61,18 @@ class User(UserMixin, db.Model):
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password: str) -> bool:
+        # เช็คก่อนส่งเข้า werkzeug เพราะค่า sentinel ไม่ใช่ hash ที่ parse ได้
+        if self.password_hash == DISABLED_PASSWORD:
+            return False
         return check_password_hash(self.password_hash, password)
+
+    def disable_password(self) -> None:
+        """ล้าง credential ทิ้ง — ชั้น C1 ไม่มีเหตุผลให้เก็บต่อเมื่อบัญชีถูกปิด
+
+        ทำทันทีที่ soft delete ไม่รอ grace 30 วัน (ดู docs/DATA-CLASSIFICATION.md)
+        กู้บัญชีคืนได้ แต่ต้องตั้งรหัสใหม่
+        """
+        self.password_hash = DISABLED_PASSWORD
 
     @property
     def full_name(self) -> str:
@@ -69,7 +88,7 @@ class User(UserMixin, db.Model):
         return f"<User {self.id} {self.username!r}>"
 
 
-class Category(db.Model):
+class Category(SoftDeleteMixin, db.Model):
     """หมวดของงาน — ลบได้เฉพาะตอนไม่มีงานอยู่เลย (ดู routes)"""
 
     __tablename__ = "tdl_category"
@@ -88,7 +107,7 @@ class Category(db.Model):
         return f"<Category {self.id} {self.name!r}>"
 
 
-class Todo(db.Model):
+class Todo(SoftDeleteMixin, db.Model):
     """งานหนึ่งรายการ — เวลาทั้งหมดเก็บเป็น naive UTC (ดู app/tz.py)"""
 
     __tablename__ = "tdl_todo"

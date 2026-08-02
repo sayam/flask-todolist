@@ -9,6 +9,7 @@ from flask.cli import with_appcontext
 
 from app import db
 from app.models import Category, User
+from app.purge import PURGE_AFTER_DAYS, preview_expired, purge_expired
 from config import DEFAULT_LANGUAGE, LANGUAGES
 
 # หมวดตั้งต้นที่สร้างให้ user ใหม่ แยกตามภาษาที่เลือกตอนสร้าง
@@ -90,11 +91,21 @@ def delete_user(username, yes):
     if not yes:
         click.confirm("Delete?", abort=True)
 
-    # ลบผ่าน ORM เพื่อให้ cascade ทำงาน — SQLite ไม่บังคับ FK ให้
-    # ลบด้วย SQL ตรง ๆ จะเหลือ category/todo ค้างที่ชี้ไปหา user ที่ไม่มีแล้ว
-    db.session.delete(user)
+    # soft delete: แถวยังอยู่แต่ถูกซ่อนทุก query จนกว่า purge job จะล้างเมื่อพ้น
+    # 30 วัน (ดู docs/DATA-CLASSIFICATION.md) — ต้องไล่ทำเองทั้งงานและหมวดด้วย
+    # เพราะ cascade ของ ORM ผูกกับการลบจริงเท่านั้น ไม่ทำงานกับการตั้ง deleted_at
+    for todo in user.todos:
+        todo.soft_delete()
+    for category in user.categories:
+        category.soft_delete()
+    user.soft_delete()
+    # credential เป็นชั้น C1 ล้างทันที ไม่รอ grace — กู้บัญชีได้แต่ต้องตั้งรหัสใหม่
+    user.disable_password()
     db.session.commit()
-    click.echo(f"Deleted {username!r}.")
+    click.echo(
+        f"Deleted {username!r} (soft delete — purged for real after "
+        f"{PURGE_AFTER_DAYS} days; run `flask purge-expired`)."
+    )
 
 
 @click.command("list-users")
@@ -109,8 +120,40 @@ def list_users():
         click.echo(f"{user.id}\t{user.username}\t{user.locale or '-'}")
 
 
+@click.command("purge-expired")
+@click.option(
+    "--days",
+    type=int,
+    default=PURGE_AFTER_DAYS,
+    show_default=True,
+    help="Purge rows soft-deleted longer ago than this.",
+)
+@click.option("--dry-run", is_flag=True, help="Report what would be purged without deleting.")
+@with_appcontext
+def purge_expired_command(days, dry_run):
+    """Permanently remove data whose retention period has passed.
+
+    This is the only command in the system that deletes real rows.
+    """
+    if dry_run:
+        # คนละฟังก์ชันกับของจริง ไม่ใช่ flag ที่ย้อน transaction ทีหลัง — ดู app/purge.py
+        result = preview_expired(days)
+        click.echo(
+            f"[dry run] would purge {result.todos} tasks, {result.categories} categories, "
+            f"{result.users_purged} users (nothing was deleted)."
+        )
+        return
+
+    result = purge_expired(days)
+    click.echo(
+        f"Purged {result.todos} tasks, {result.categories} categories "
+        f"and scrubbed {result.users_purged} users."
+    )
+
+
 def register_cli(app):
     """ผูกทุก command เข้ากับ flask CLI — ตัว command ประกาศระดับ module"""
     app.cli.add_command(create_user)
     app.cli.add_command(delete_user)
     app.cli.add_command(list_users)
+    app.cli.add_command(purge_expired_command)

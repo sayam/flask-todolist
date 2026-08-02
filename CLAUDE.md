@@ -15,6 +15,7 @@
 - เพิ่ม dependency: `pipenv install <pkg>` (ห้ามใช้ `pip install` ตรง ๆ — Pipfile/Pipfile.lock จะไม่ sync)
 - สร้าง user: `pipenv run flask create-user <ชื่อ>` (ไม่มีหน้าสมัครสมาชิก โดยตั้งใจ)
 - ดู user: `pipenv run flask list-users`
+- ล้างข้อมูลที่พ้นระยะ: `pipenv run flask purge-expired` (ดูก่อนด้วย `--dry-run`)
 - เปลี่ยน schema: `pipenv run flask db migrate -m "..."` แล้ว `pipenv run flask db upgrade`
 
 ## Structure
@@ -29,6 +30,7 @@
 - `app/plugins/` — registry ของ plugin + ตัว plugin เอง (ดูหัวข้อ "สถาปัตยกรรม plugin")
 - `app/security_headers.py` — CSP + security header (Talisman), `app/logging_setup.py` — JSON log + request id
 - `app/db_engine.py` — ค่าระดับ connection (เปิดบังคับ foreign key ของ SQLite)
+- `app/soft_delete.py` — ตัวกรอง `deleted_at IS NULL` อัตโนมัติ, `app/purge.py` — จุดเดียวที่ลบจริง
 - `app/static/base.css` — เลย์เอาต์ของ core **ห้ามมีสีดิบ** สีมาจากธีมทั้งหมด
 - `app/static/app.js` — พฤติกรรมฝั่ง client **ทั้งหมด** (ห้ามมี inline handler ที่อื่น)
 - `.pa11yci.json` — รายการหน้าที่ job `a11y` ใน CI สแกน (รวมโหมดมืด/ธีม ocean/ภาษาไทย)
@@ -322,6 +324,23 @@ log ขึ้น "Running upgrade" ครบทุกตัว exit code เป�
 งานที่ต้องแตะ DB ก่อน configure ให้ใช้ `engine.begin()` เปิด connection ของตัวเอง
 `tests/test_migrations.py` เป็นที่เดียวที่รัน migration จริง — **ห้ามลบ**
 เทสต์อื่นใช้ `db.create_all()` จึงไม่มีทางจับบั๊กชั้นนี้ได้
+
+## Soft delete และ purge (Phase 2 — ดู ADR 0014)
+- **"ลบ" ทั้งระบบแปลว่าซ่อน** ตั้ง `deleted_at` ไม่ใช่ลบแถว
+  ห้ามใช้ `db.session.delete()` หรือ `.delete()` แบบ bulk ที่ไหนอีกนอก `app/purge.py`
+- **ตัวกรองถูกเติมอัตโนมัติทุก ORM query** ผ่าน event `do_orm_execute` ใน
+  `app/soft_delete.py` ไม่ต้องใส่เอง และ**ห้ามพึ่งการใส่เอง** เพราะลืมได้
+  งานที่ต้องเห็นของที่ลบแล้วต้องขอด้วย `.execution_options(**INCLUDE_DELETED)`
+- **ข้อจำกัดที่ต้องรู้:** ถ้า object ยังอยู่ใน identity map `session.get()` จะคืนตัวนั้น
+  โดยไม่ query จึงไม่ถูกกรอง — request จริงไม่เจอเพราะได้ session ใหม่ทุกครั้ง
+  แต่ **เทสต์ต้อง `expunge_all()` ไม่ใช่ `expire_all()`**
+- `purge-expired` เป็นคำสั่งเดียวที่ลบจริง (`--dry-run` ดูก่อนได้)
+  **`--dry-run` ต้องเรียก `preview_expired()` เท่านั้น** ห้ามทำเป็น flag ที่เรียก
+  ตัวลบจริงแล้วค่อย rollback — เคยเขียนแบบนั้นแล้ว**ลบข้อมูลจริง** เพราะตัว purge
+  commit ไปก่อน savepoint จึงถูกปิดไปแล้ว
+- ผู้ใช้ที่ถูก purge **ไม่ถูกลบแถวทิ้ง** เหลือเป็น tombstone (`username` → `#deleted-<id>`)
+  ให้ audit อ้าง `actor_id` ได้ ส่วน `password_hash` ถูกล้างทันทีที่ soft delete ไม่รอ grace
+- ระยะที่อนุมัติ: soft delete 30 วัน / audit 1 ปี / log 90 วัน (ดู docs/DATA-CLASSIFICATION.md)
 
 ## Foreign key (Phase 2)
 - **SQLite ปิดการบังคับ FK เป็นค่าเริ่มต้น และเป็นค่าต่อ connection** ไม่ใช่ต่อไฟล์

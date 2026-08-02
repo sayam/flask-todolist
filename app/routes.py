@@ -231,7 +231,7 @@ def toggle(todo_id):
 @bp.route("/delete/<int:todo_id>", methods=["POST"])
 @login_required
 def delete(todo_id):
-    db.session.delete(_owned_todo(todo_id))
+    _owned_todo(todo_id).soft_delete()
     db.session.commit()
     return redirect(url_for("main.index"))
 
@@ -239,7 +239,10 @@ def delete(todo_id):
 @bp.route("/clear-completed", methods=["POST"])
 @login_required
 def clear_completed():
-    Todo.query.filter_by(user_id=current_user.id, is_done=True).delete()
+    # อัปเดตทีละแถวผ่าน ORM ไม่ใช้ bulk delete — จำนวนงานของคนเดียวมีไม่มาก
+    # และ Phase 2 ข้อ 4 ต้องให้ event hook เห็นทุกแถวที่ถูกแตะเพื่อลง audit
+    for todo in Todo.query.filter_by(user_id=current_user.id, is_done=True):
+        todo.soft_delete()
     db.session.commit()
     return redirect(url_for("main.index"))
 
@@ -302,7 +305,7 @@ def delete_category(category_id):
         )
         return redirect(url_for("main.categories"))
 
-    db.session.delete(category)
+    category.soft_delete()
     db.session.commit()
     return redirect(url_for("main.categories"))
 

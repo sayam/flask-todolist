@@ -79,7 +79,10 @@ disable_error_code = ["name-defined"]
 
 # strict list — module ที่ pure (ไม่พึ่ง extension ที่ไม่มี type stub)
 [[tool.mypy.overrides]]
-module = ["app.tz", "app.filters", "app.plugins", "app.sun_data", "app.models"]
+module = [
+    "app.tz", "app.filters", "app.plugins", "app.sun_data",
+    "app.models", "app.soft_delete", "app.purge",
+]
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 disallow_untyped_calls = true
@@ -95,7 +98,7 @@ omit = ["app/sun_data.py"]  # ตาราง generate — ไม่มี logic
 [tool.coverage.report]
 show_missing = true
 # ตั้งจากค่าที่วัดจริงตอน Phase 0 แล้วห้ามต่ำลง (ratchet ขึ้นได้อย่างเดียว)
-fail_under = 93  # วัดจริง 2026-08 (Phase 1): 93.20% — ขยับขึ้นได้อย่างเดียว
+fail_under = 93  # วัดจริง 2026-08 (Phase 2): 93.93% — ขยับขึ้นได้อย่างเดียว
 
 # ---------------------------------------------------------------- interrogate
 [tool.interrogate]
@@ -104,4 +107,4 @@ exclude = ["app/sun_data.py"]
 ignore-init-method = true
 ignore-nested-functions = true
 # ตั้งจากค่าที่วัดจริงตอน Phase 0 (ratchet เช่นกัน)
-fail-under = 57  # วัดจริง 2026-08 (Phase 2): 57.4% — ขยับขึ้นได้อย่างเดียว
+fail-under = 60  # วัดจริง 2026-08 (Phase 2): 60.2% — ขยับขึ้นได้อย่างเดียว

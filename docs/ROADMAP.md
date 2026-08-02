@@ -195,9 +195,12 @@ coverage gate ใน CI
   เพราะแก้แถวเก่า = chain ทั้งสายใช้ไม่ได้ → เปลี่ยนเป็น **ไม่เขียน PII ลง audit
   ตั้งแต่แรก** (actor เป็นเลข, ค่าของ C2/C3 เก็บเป็น HMAC) คำขอลบจึงทำได้ครบ
   โดยไม่ต้องแตะ audit สักแถว / purge audit ใช้แถว checkpoint กัน chain ขาด
-- **Temporal/soft-delete:** เพิ่ม `deleted_at` (และ valid-time ที่จำเป็น) กับข้อมูลผู้ใช้
-  ทุก route เลิก hard delete (4 จุดที่สแกนพบ) → query กรอง `deleted_at IS NULL`
-  ผ่าน helper กลางที่เดียว + purge job ลบจริงเมื่อพ้น retention
+- **Temporal/soft-delete ✅ (2026-08-03):** `deleted_at` ครบทั้งสามตาราง + `purged_at`
+  ของ user / hard delete หมดไปทั้ง 4 จุด (todo, clear-completed, category, delete-user)
+  **ตัวกรองไม่ได้ทำเป็น helper ให้เรียกเอง แต่เติมอัตโนมัติทุก ORM query** ผ่าน event
+  `do_orm_execute` (`app/soft_delete.py`) เพราะ helper ที่ต้องเรียกเองคือ helper ที่ลืมได้
+  purge job อยู่ที่ `app/purge.py` เป็นจุดเดียวในระบบที่ลบจริง มี `flask purge-expired`
+  พร้อม `--dry-run` ที่เป็นฟังก์ชันอ่านอย่างเดียวคนละตัวกับของจริง
 - **Audit trail:** ตาราง append-only แยกจาก data ปกติ, บันทึก who-what-when-where
   ผ่าน SQLAlchemy event hooks (after_flush) — **ครอบทุก write อัตโนมัติรวม CLI**
   (actor = username หรือ `cli`), tamper-evident ด้วย hash chain (แต่ละแถวเก็บ
