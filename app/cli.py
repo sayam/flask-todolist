@@ -16,15 +16,11 @@ from config import DEFAULT_LANGUAGE, LANGUAGES
 DEFAULT_CATEGORIES = {
     "en": [
         "Personal",
-        "Delivery",
-        "Correspondence",
-        "Admin/Troubleshoot/Fix",
+        "Work",
     ],
     "th": [
         "งานส่วนตัว",
-        "งาน delivery",
-        "งานตอบจดหมาย",
-        "งาน Admin/Troubleshoot/Fix",
+        "งานที่ทำงาน",
     ],
 }
 

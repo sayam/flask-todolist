@@ -87,14 +87,16 @@
       <input class="task-due" type="datetime-local" name="due_date" aria-label="{{ _('Due') }}"
              value="{{ todo.due_local.strftime('%Y-%m-%dT%H:%M') if todo.due_date else '' }}">
 
-      {# ป้ายสถานะวางไว้ติดช่องกำหนดส่งเพื่อให้อ่านคู่กัน เป็นแค่ข้อความ ไม่ใช่ field #}
-      {% if todo.due_date %}
-        {% if todo.is_overdue %}
-          <strong class="task-flag overdue">{{ _('Overdue') }}</strong>
-        {% elif todo.is_due_today %}
-          <strong class="task-flag">{{ _('Due today at %(time)s', time=todo.due_local.strftime('%H:%M')) }}</strong>
-        {% endif %}
-      {% endif %}
+      {# ป้ายสถานะวางไว้ติดช่องกำหนดส่งเพื่อให้อ่านคู่กัน เป็นแค่ข้อความ ไม่ใช่ field
+         ต้อง render span เสมอแม้ไม่มีป้าย ไม่งั้นความกว้างแถวจะไม่เท่ากัน
+         ไม่ต้องบอกเวลาซ้ำ เพราะช่องกำหนดส่งที่อยู่ติดกันแสดงอยู่แล้ว #}
+      <strong class="task-flag {{ 'overdue' if todo.is_overdue else '' }}">
+        {%- if todo.is_overdue -%}
+          {{ _('Overdue') }}
+        {%- elif todo.is_due_today -%}
+          {{ _('Due today') }}
+        {%- endif -%}
+      </strong>
 
       <button type="submit">{{ _('Save') }}</button>
     </form>

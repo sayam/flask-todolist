@@ -56,7 +56,9 @@
 body {
   margin: 0 auto;
   padding: 1.5rem 1rem 4rem;
-  max-width: 52rem;
+  /* กว้างพอให้แถวรายการงาน (ชื่อ + หมวด + กำหนดส่ง + ป้าย + 2 ปุ่ม)
+   * อยู่บรรทัดเดียวได้โดยไม่ต้องบีบช่องไหนจนอ่านไม่ออก */
+  max-width: 60rem;
   background: var(--bg);
   color: var(--fg);
   font-family: system-ui, -apple-system, "Noto Sans Thai", sans-serif;
@@ -170,34 +172,41 @@ li:last-child {
   gap: 0.4rem;
 }
 
+/* ไม่ให้ยืด ทุกช่องข้างในจึงอยู่ตำแหน่งเดิมทุกแถว และปุ่ม Delete
+ * (ที่อยู่นอกฟอร์มนี้) ตามมาติด ๆ ไม่ถูกดันไปสุดขอบ */
 .task-edit {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.4rem;
-  flex: 1 1 20rem;
+  flex: 0 1 auto;
   min-width: 0;
 }
 
+/* ตรึงความกว้างทั้งสามช่อง ไม่ให้ช่องไหนยืดตามพื้นที่เหลือ
+ * ไม่งั้นแถวที่มีป้ายสถานะจะถูกบีบจนคอลัมน์ไม่ตรงกับแถวอื่น */
 .task-title {
-  flex: 1 1 10rem;
-  min-width: 7rem;
+  flex: 0 1 12rem;
+  min-width: 6rem;
 }
 
 .task-category {
-  flex: 0 1 9rem;
+  flex: 0 0 13rem;
   min-width: 6rem;
 }
 
 /* datetime-local ของ Chrome กว้างประมาณนี้ ถ้าแคบกว่านี้ตัวเลขจะโดนตัด */
 .task-due {
-  flex: 0 0 auto;
-  width: 13.5rem;
+  flex: 0 0 13.5rem;
 }
 
-/* ป้ายสถานะอยู่ติดกับช่องกำหนดส่ง ไม่ใช่ท้ายแถว */
+/* กันที่ไว้เท่ากันทุกแถวแม้แถวนั้นไม่มีป้าย ปุ่มท้ายแถวจึงตรงแนวกันหมด
+ * (ราคาที่จ่ายคือช่องว่างในแถวที่ไม่มีป้าย — แลกกับตารางที่อ่านง่ายขึ้น) */
 .task-flag {
+  flex: 0 0 7rem;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .task-toggle {

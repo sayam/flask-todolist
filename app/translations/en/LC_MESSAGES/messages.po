@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-02 17:45+0700\n"
+"POT-Creation-Date: 2026-08-02 18:37+0700\n"
 "PO-Revision-Date: 2026-08-02 16:44+0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -127,7 +127,7 @@ msgstr ""
 msgid "Add category"
 msgstr ""
 
-#: app/templates/categories.html:26 app/templates/index.html:87
+#: app/templates/categories.html:26 app/templates/index.html:101
 msgid "Save"
 msgstr ""
 
@@ -143,7 +143,7 @@ msgstr[1] ""
 msgid "Delete category “%(name)s”? Tasks in it will become uncategorised."
 msgstr ""
 
-#: app/templates/categories.html:32 app/templates/index.html:101
+#: app/templates/categories.html:32 app/templates/index.html:107
 msgid "Delete"
 msgstr ""
 
@@ -151,90 +151,89 @@ msgstr ""
 msgid "No categories yet"
 msgstr ""
 
-#: app/templates/index.html:12 app/templates/index.html:59
+#: app/templates/index.html:13 app/templates/index.html:60
 msgid "No category"
 msgstr ""
 
-#: app/templates/index.html:22
+#: app/templates/index.html:23
 msgid "Add a task"
 msgstr ""
 
-#: app/templates/index.html:27 app/templates/index.html:82
+#: app/templates/index.html:28 app/templates/index.html:84
 msgid "Task name"
 msgstr ""
 
-#: app/templates/index.html:28
+#: app/templates/index.html:29
 msgid "e.g. Deliver order to customer"
 msgstr ""
 
-#: app/templates/index.html:31 app/templates/index.html:56
-#: app/templates/index.html:84
+#: app/templates/index.html:32 app/templates/index.html:57
+#: app/templates/index.html:86
 msgid "Category"
 msgstr ""
 
-#: app/templates/index.html:35 app/templates/index.html:85
+#: app/templates/index.html:36 app/templates/index.html:87
 msgid "Due"
 msgstr ""
 
-#: app/templates/index.html:35
+#: app/templates/index.html:36
 msgid "optional"
 msgstr ""
 
-#: app/templates/index.html:38
+#: app/templates/index.html:39
 msgid "Add"
 msgstr ""
 
-#: app/templates/index.html:44
+#: app/templates/index.html:45
 msgid "Show"
 msgstr ""
 
-#: app/templates/index.html:45 app/templates/index.html:57
+#: app/templates/index.html:46 app/templates/index.html:58
 msgid "All"
 msgstr ""
 
-#: app/templates/index.html:45
+#: app/templates/index.html:46
 msgid "Active"
 msgstr ""
 
-#: app/templates/index.html:45
+#: app/templates/index.html:46
 msgid "Completed"
 msgstr ""
 
-#: app/templates/index.html:76
+#: app/templates/index.html:77
 msgid "Mark as not done"
 msgstr ""
 
-#: app/templates/index.html:76
+#: app/templates/index.html:77
 msgid "Mark as done"
 msgstr ""
 
-#: app/templates/index.html:92
+#: app/templates/index.html:95
 msgid "Overdue"
 msgstr ""
 
-#: app/templates/index.html:94
-#, python-format
-msgid "Due today at %(time)s"
+#: app/templates/index.html:97
+msgid "Due today"
 msgstr ""
 
-#: app/templates/index.html:99
+#: app/templates/index.html:105
 #, python-format
 msgid "Delete “%(title)s”?"
 msgstr ""
 
-#: app/templates/index.html:105
+#: app/templates/index.html:111
 msgid "No tasks yet"
 msgstr ""
 
-#: app/templates/index.html:105
+#: app/templates/index.html:111
 msgid "No tasks match this filter"
 msgstr ""
 
-#: app/templates/index.html:110
+#: app/templates/index.html:116
 msgid "Delete all completed tasks? This cannot be undone."
 msgstr ""
 
-#: app/templates/index.html:112
+#: app/templates/index.html:118
 msgid "Clear completed"
 msgstr ""
 
@@ -290,4 +289,7 @@ msgstr ""
 #: app/templates/settings.html:62
 msgid "Save preferences"
 msgstr ""
+
+#~ msgid "Due today at %(time)s"
+#~ msgstr ""
 

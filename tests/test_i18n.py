@@ -158,7 +158,8 @@ def test_thai_catalog_has_no_untranslated_or_fuzzy_entries():
     )
     text = po.read_text()
 
-    fuzzy = re.findall(r'#, fuzzy\nmsgid "([^"]+)"', text)
+    # flag เขียนรวมกันได้ เช่น "#, fuzzy, python-format" จึงต้องจับทั้งบรรทัด
+    fuzzy = re.findall(r'^#,[^\n]*\bfuzzy\b[^\n]*\nmsgid "([^"]+)"', text, re.M)
     assert not fuzzy, f"มี msgid ที่ยัง fuzzy อยู่: {fuzzy}"
 
     empty = re.findall(r'\nmsgid "([^"]+)"\nmsgstr ""\n', text)
