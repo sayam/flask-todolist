@@ -117,10 +117,11 @@ jobs:
           done
           curl -sf -o /dev/null http://127.0.0.1:5099/login || { echo "แอปไม่ขึ้น"; exit 1; }
           ./node_modules/.bin/pa11y-ci --config .pa11yci.json
+        # ไม่ต้องปิด rate limit: pa11y login ใหม่ทุก URL ก็จริง แต่ `deduct_when`
+        # หักโควตาเฉพาะตอนได้ 401 — login ที่ถูกต้องไม่กินโควตาเลย
         env:
           SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
           DATABASE_URL: sqlite:////tmp/a11y.db
-          RATELIMIT_ENABLED: "0"
 
   secret-scan:
     runs-on: ubuntu-latest
