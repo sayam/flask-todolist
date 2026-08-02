@@ -115,7 +115,7 @@ migration และโค้ดใหม่ทุกตัวจากนี้�
 | เฟส | ชื่อ | ขนาด | ตอบหมวด |
 |---|---|---|---|
 | 0 ✅ | Process backbone | S | Maintainability |
-| 1 | Cross-cutting inheritance | M | Security(headers), Interaction, Maintainability |
+| 1 ✅ | Cross-cutting inheritance | M | Security(headers), Interaction, Maintainability |
 | 2 | Data governance core | L | Audit Trail, Data Retention, PDPA |
 | 3 | Service layer + API v1 | M–L | Compatibility, Maintainability |
 | 4 | Identity & AuthN/AuthZ | L | Security(authn), Compatibility(SSO) |
@@ -149,24 +149,31 @@ coverage gate ใน CI
 ยิ่งช้า โค้ดที่ไม่เคยผ่าน gate ยิ่งสะสม
 **DoD:** push ที่ทำให้เทสต์แดง/coverage ตก/มี CVE ใหม่ ถูกบล็อกอัตโนมัติ
 
-## Phase 1 — Cross-cutting inheritance
+## Phase 1 — Cross-cutting inheritance ✅ (เสร็จ 2026-08-03)
 
 **เป้าหมาย:** เก็บหนี้ที่ "ทุก template และทุก request ใหม่ต้องสืบทอด" ให้หมดตอนที่ codebase ยังเล็ก
 
-- **CSP-ready:** ย้าย inline JS ทั้ง 8 จุด (`onchange`/`onsubmit`) ไป `static/app.js`
-  แบบ event delegation, inline `style=` ไปเป็น class — แล้วเปิด security headers จริง:
-  CSP (ไม่มี `unsafe-inline`), HSTS (เปิดเมื่อมี TLS — Phase 5), `X-Content-Type-Options`,
-  `Referrer-Policy`, `frame-ancestors` + เทสต์ header ทุกหน้า
-- **WCAG 2.2 AA baseline:** ไล่เก็บ template ปัจจุบัน (มี label/aria แล้วบางส่วน)
-  + เพิ่ม automated a11y check (pa11y/axe) เข้า CI — ตั้ง pattern ให้ template ใหม่สืบทอด
-- **Structured logging + correlation ID:** log เป็น JSON (timestamp, level, request_id,
-  user_id, event) ตัดสินใจ format ครั้งเดียวตรงนี้ — SIEM มาทีหลังแค่ต่อท่อ
-  (OpenTelemetry ยังไม่ใส่ — monolith เดียว ใส่เมื่อแตก service ตามเงื่อนไขในโจทย์)
+- **CSP-ready** (ADR 0010): ย้าย inline handler และ `style=` ออกจาก template จนหมด
+  → `app/static/app.js` ตัวเดียวแบบ event delegation คุยผ่าน `data-*`
+  เปิด security header จริงด้วย Flask-Talisman: CSP `'self'` ล้วน **ไม่มี
+  `unsafe-inline`/`unsafe-eval`**, `base-uri`/`object-src`/`frame-ancestors` = `'none'`,
+  `X-Content-Type-Options`, `Referrer-Policy`, cookie `HttpOnly`+`SameSite=Lax`
+  ของที่ผูก TLS (HSTS/บังคับ https/cookie `Secure`) รวมไว้ที่ `HTTPS_ENABLED` ตัวเดียว
+  รอเปิดพร้อมกันใน Phase 5
+- **WCAG 2.2 AA baseline** (ADR 0012): gate สองชั้น — `tests/test_a11y.py` ตรวจโครงสร้าง
+  (รันทุกครั้ง ไม่ต้องมี browser) + job `a11y` ใน CI รัน pa11y-ci 4.1.1 (`htmlcs`+`axe`)
+  บน Chromium จริง 11 หน้า ครอบโหมดมืด ธีม ocean และภาษาไทย
+  **จับได้จริงตอนตั้ง:** ฟอร์มติ๊กงานเสร็จไม่มีปุ่ม submit เลย — พึ่ง JS ล้วน
+  แก้ด้วย progressive enhancement (`.js-hidden`)
+- **Structured logging + correlation ID** (ADR 0011): JSON บรรทัดละ event ออก stdout
+  ทุก request มี `request_id` (รับต่อจาก `X-Request-Id` เฉพาะที่เป็น UUID จริง)
+  `actor` เก็บ username ไม่ใช่ชื่อจริง OpenTelemetry ยังไม่ใส่ — ยังเป็น monolith เดียว
+- **แถม:** แก้ต้นเหตุที่ `TestConfig` ไม่สืบทอด `Config` (พังซ้ำมาแล้ว 4 ครั้ง)
 
 **ทำไมตรงนี้:** สามอย่างนี้ต้นทุน retrofit โตเป็นเส้นตรงตามจำนวน template/route
 ตอนนี้มี 6 template — ถูกสุดที่จะจ่ายวันนี้
-**DoD:** CSP ไม่มี `unsafe-inline`/`unsafe-eval`, a11y gate เขียวใน CI, ทุก request มี
-request_id ใน log
+**DoD:** ✅ CSP ไม่มี `unsafe-inline`/`unsafe-eval` ✅ a11y gate เขียวใน CI (11/11)
+✅ ทุก request มี request_id ใน log — เทสต์ 292 ผ่าน coverage 93.20% (ratchet 92→93)
 
 ## Phase 2 — Data governance core ★ เฟสที่แพงสุดถ้าทำช้า
 
@@ -347,10 +354,11 @@ functional/non-functional ให้ครบตามแผนเท่านั
 | Badge | เงื่อนไข | หมายเหตุ |
 |---|---|---|
 | CI status | ได้ทันที | workflow มีแล้ว |
-| Coverage | ต่อ Codecov/Coveralls หรือแสดงจาก gate | ตัวเลขจริงมีอยู่แล้ว (ratchet ≥92) |
+| Coverage | ต่อ Codecov/Coveralls หรือแสดงจาก gate | ตัวเลขจริงมีอยู่แล้ว (ratchet ≥93) |
 | **CodeQL** | **ฟรีทันทีเมื่อ public** | ตัด ไว้ใน ADR 0009 เพราะ private ต้องจ่าย — เปิดกลับเป็นอันดับแรก |
 | OpenSSF Best Practices (bestpractices.dev) | สมัคร + ตอบ checklist | งานส่วนใหญ่ (เทสต์, SAST, SCA, disclosure policy) ทำครบตามแผนอยู่แล้ว |
 | OpenSSF Scorecard | เปิด action เมื่อ public | วัด branch protection, pinned deps, token permission ฯลฯ |
+| Accessibility (WCAG 2.2 AA) | ได้ทันที | job `a11y` รัน pa11y-ci จริงทุก push แล้วตั้งแต่ Phase 1 |
 
 > จุดยืนเดิมของโปรเจกต์: badge ต้องสะท้อนของจริงที่ตรวจได้ ไม่ใช่ติดเพื่อประดับ —
 > ทุก badge ข้างบนผูกกับ gate ที่รันจริงใน CI ทั้งหมด
