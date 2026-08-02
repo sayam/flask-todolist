@@ -83,6 +83,45 @@ jobs:
           semgrep scan --config p/flask --config p/python \
             --exclude migrations --exclude .venv --metrics=off --error --quiet
 
+  a11y:
+    # WCAG 2.2 AA ด้วย browser จริง — ครอบสิ่งที่ tests/test_a11y.py ตรวจไม่ได้
+    # (contrast หลัง CSS ทำงาน, ชื่อที่ AT คำนวณได้จริง) สแกนทั้งโหมดมืด ธีม ocean
+    # และภาษาไทย เพราะ contrast/ความยาวข้อความต่างกันตามนั้น
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pipenv
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: pip install pipenv
+      - run: pipenv sync --dev
+      # pin ไว้ให้ผลซ้ำได้ — pa11y ขยับ rule เมื่อไหร่ gate จะไม่ขยับตามเงียบ ๆ
+      - run: npm install --no-save pa11y-ci@4.1.1
+      - name: เตรียมฐานข้อมูลชั่วคราว + ข้อมูลตัวอย่าง
+        run: |
+          pipenv run flask db upgrade
+          PYTHONPATH=. pipenv run python scripts/a11y_fixture.py
+        env:
+          SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
+          DATABASE_URL: sqlite:////tmp/a11y.db
+      - name: รันแอปแล้วสแกน
+        run: |
+          pipenv run flask run --port 5099 &
+          for i in $(seq 1 60); do
+            curl -sf -o /dev/null http://127.0.0.1:5099/login && break
+            sleep 1
+          done
+          curl -sf -o /dev/null http://127.0.0.1:5099/login || { echo "แอปไม่ขึ้น"; exit 1; }
+          ./node_modules/.bin/pa11y-ci --config .pa11yci.json
+        env:
+          SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
+          DATABASE_URL: sqlite:////tmp/a11y.db
+          RATELIMIT_ENABLED: "0"
+
   secret-scan:
     runs-on: ubuntu-latest
     steps:

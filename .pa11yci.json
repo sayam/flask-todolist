@@ -1,0 +1,102 @@
+{
+  "defaults": {
+    "standard": "WCAG2AA",
+    "runners": ["htmlcs", "axe"],
+    "timeout": 30000,
+    "chromeLaunchConfig": {
+      "args": ["--no-sandbox", "--disable-dev-shm-usage"]
+    }
+  },
+  "urls": [
+    { "url": "http://127.0.0.1:5099/login" },
+    { "url": "http://127.0.0.1:5099/login?mode=dark" },
+    { "url": "http://127.0.0.1:5099/login?theme=ocean&mode=dark" },
+    {
+      "url": "http://127.0.0.1:5099/",
+      "actions": [
+        "navigate to http://127.0.0.1:5099/login",
+        "set field #username to a11y",
+        "set field #password to A11yProbe!2026",
+        "click element button[type=submit]",
+        "wait for path to be /"
+      ]
+    },
+    {
+      "url": "http://127.0.0.1:5099/?mode=dark",
+      "actions": [
+        "navigate to http://127.0.0.1:5099/login",
+        "set field #username to a11y",
+        "set field #password to A11yProbe!2026",
+        "click element button[type=submit]",
+        "wait for path to be /",
+        "navigate to http://127.0.0.1:5099/?mode=dark"
+      ]
+    },
+    {
+      "url": "http://127.0.0.1:5099/?theme=ocean&mode=dark",
+      "actions": [
+        "navigate to http://127.0.0.1:5099/login",
+        "set field #username to a11y",
+        "set field #password to A11yProbe!2026",
+        "click element button[type=submit]",
+        "wait for path to be /",
+        "navigate to http://127.0.0.1:5099/?theme=ocean&mode=dark"
+      ]
+    },
+    {
+      "url": "http://127.0.0.1:5099/?lang=th",
+      "actions": [
+        "navigate to http://127.0.0.1:5099/login",
+        "set field #username to a11y",
+        "set field #password to A11yProbe!2026",
+        "click element button[type=submit]",
+        "wait for path to be /",
+        "navigate to http://127.0.0.1:5099/?lang=th"
+      ]
+    },
+    {
+      "url": "http://127.0.0.1:5099/categories",
+      "actions": [
+        "navigate to http://127.0.0.1:5099/login",
+        "set field #username to a11y",
+        "set field #password to A11yProbe!2026",
+        "click element button[type=submit]",
+        "wait for path to be /",
+        "navigate to http://127.0.0.1:5099/categories"
+      ]
+    },
+    {
+      "url": "http://127.0.0.1:5099/settings",
+      "actions": [
+        "navigate to http://127.0.0.1:5099/login",
+        "set field #username to a11y",
+        "set field #password to A11yProbe!2026",
+        "click element button[type=submit]",
+        "wait for path to be /",
+        "navigate to http://127.0.0.1:5099/settings"
+      ]
+    },
+    {
+      "url": "http://127.0.0.1:5099/settings?mode=dark",
+      "actions": [
+        "navigate to http://127.0.0.1:5099/login",
+        "set field #username to a11y",
+        "set field #password to A11yProbe!2026",
+        "click element button[type=submit]",
+        "wait for path to be /",
+        "navigate to http://127.0.0.1:5099/settings?mode=dark"
+      ]
+    },
+    {
+      "url": "http://127.0.0.1:5099/edit/1",
+      "actions": [
+        "navigate to http://127.0.0.1:5099/login",
+        "set field #username to a11y",
+        "set field #password to A11yProbe!2026",
+        "click element button[type=submit]",
+        "wait for path to be /",
+        "navigate to http://127.0.0.1:5099/edit/1"
+      ]
+    }
+  ]
+}
