@@ -104,4 +104,4 @@ exclude = ["app/sun_data.py"]
 ignore-init-method = true
 ignore-nested-functions = true
 # ตั้งจากค่าที่วัดจริงตอน Phase 0 (ratchet เช่นกัน)
-fail-under = 56  # วัดจริง 2026-08 (Phase 2): 56.6% — ขยับขึ้นได้อย่างเดียว
+fail-under = 57  # วัดจริง 2026-08 (Phase 2): 57.4% — ขยับขึ้นได้อย่างเดียว

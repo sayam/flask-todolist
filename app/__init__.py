@@ -12,7 +12,13 @@ from flask_wtf.csrf import CSRFProtect
 from sqlalchemy import MetaData
 from sqlalchemy.orm import DeclarativeBase
 
-from app import plugins
+# `db_engine` import ไว้เพื่อ **ผลข้างเคียง** — ตัวโมดูลผูก event listener ระดับ
+# Engine ที่เปิดบังคับ foreign key ของ SQLite ต้องถูก import ก่อนมี connection แรก
+# ถ้าลบบรรทัดนี้ FK จะไม่ถูกบังคับเลยโดยไม่มี error (tests/test_db_integrity.py ดักไว้)
+from app import (
+    db_engine,  # noqa: F401  — ดู app/db_engine.py
+    plugins,
+)
 from app.logging_setup import init_logging
 from app.security_headers import init_security_headers
 from config import Config, check_secret_key

@@ -28,6 +28,7 @@
 - `app/theme.py` — เลือกชุดสีและโหมด, `app/sun_data.py` — ตารางดวงอาทิตย์ (generate)
 - `app/plugins/` — registry ของ plugin + ตัว plugin เอง (ดูหัวข้อ "สถาปัตยกรรม plugin")
 - `app/security_headers.py` — CSP + security header (Talisman), `app/logging_setup.py` — JSON log + request id
+- `app/db_engine.py` — ค่าระดับ connection (เปิดบังคับ foreign key ของ SQLite)
 - `app/static/base.css` — เลย์เอาต์ของ core **ห้ามมีสีดิบ** สีมาจากธีมทั้งหมด
 - `app/static/app.js` — พฤติกรรมฝั่ง client **ทั้งหมด** (ห้ามมี inline handler ที่อื่น)
 - `.pa11yci.json` — รายการหน้าที่ job `a11y` ใน CI สแกน (รวมโหมดมืด/ธีม ocean/ภาษาไทย)
@@ -321,6 +322,17 @@ log ขึ้น "Running upgrade" ครบทุกตัว exit code เป�
 งานที่ต้องแตะ DB ก่อน configure ให้ใช้ `engine.begin()` เปิด connection ของตัวเอง
 `tests/test_migrations.py` เป็นที่เดียวที่รัน migration จริง — **ห้ามลบ**
 เทสต์อื่นใช้ `db.create_all()` จึงไม่มีทางจับบั๊กชั้นนี้ได้
+
+## Foreign key (Phase 2)
+- **SQLite ปิดการบังคับ FK เป็นค่าเริ่มต้น และเป็นค่าต่อ connection** ไม่ใช่ต่อไฟล์
+  `app/db_engine.py` ผูก listener ที่คลาส `Engine` เปิดให้ทุก connection
+- **`app/__init__.py` ต้อง import `db_engine` ไว้เสมอ** เป็น import เพื่อผลข้างเคียง
+  ลบทิ้งแล้ว FK เลิกถูกบังคับโดยไม่มี error อะไรให้เห็น
+  ผลคือลบหมวดแล้วงานจะเหลือ `category_id` ชี้ไปแถวที่ไม่มีอยู่ — ข้อมูลเสียแบบเงียบ
+- `tests/test_db_integrity.py` วัด **ผล** ของการบังคับ (insert ที่ผิดต้อง IntegrityError,
+  `ondelete="SET NULL"` ต้องทำงานจริง) ไม่ใช่แค่ค่า pragma — ห้ามลด assert เหลือแค่อ่าน pragma
+- batch migration ของ alembic กับ FK เปิดอยู่ ทดสอบแล้วว่าไป-กลับได้ข้อมูลครบ
+  และ `PRAGMA foreign_key_check` สะอาด — แต่ migration ใหม่ที่ย้ายข้อมูลควรตรวจซ้ำทุกครั้ง
 
 ## วินัย dialect (มีผลทันที — เตรียมรองรับ DB หลายยี่ห้อ ดู ROADMAP ข้อ 4)
 - raw SQL ใน migration ต้อง quote ตารางที่เป็น reserved word — โดยเฉพาะ `"user"`
