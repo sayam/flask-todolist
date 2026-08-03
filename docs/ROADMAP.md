@@ -276,6 +276,10 @@ login ผ่าน OIDC ได้จริงกับ IdP ทดสอบ
 - Cache plugin interface (ข้อ 4.3): core no-op default + Redis backend plugin
   แล้วชี้ rate-limiter storage ไปที่เดียวกัน (ปิดหนี้ `memory://` ต่อ process)
 - TLS 1.2+/1.3 ที่ reverse proxy + เปิด HSTS ที่ค้างจาก Phase 1
+- **ติดตั้งตารางเวลา `purge-expired` บน host จริง** — สคริปต์ (`scripts/purge_cron.sh`)
+  และขั้นตอน (cron/systemd timer) พร้อมแล้วใน [OPERATIONS.md](OPERATIONS.md)
+  เหลือแค่เอาไปติดตั้งตอนมี host **ระยะเก็บรักษาที่อนุมัติไว้จะเป็นจริงก็ต่อเมื่อ
+  ขั้นตอนนี้เสร็จ** — ก่อนหน้านั้นต้องรันด้วยมือ ไม่งั้นเอกสารอ้างสิ่งที่ไม่เกิดขึ้น
 - Secrets: env → รองรับ Vault/KMS เป็น option / IaC ตาม infra เป้าหมายจริง
 - ADR "exit path" ต่อ managed service ทุกตัวก่อนผูกมัด
 

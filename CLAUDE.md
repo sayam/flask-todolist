@@ -355,6 +355,11 @@ log ขึ้น "Running upgrade" ครบทุกตัว exit code เป�
 - ผู้ใช้ที่ถูก purge **ไม่ถูกลบแถวทิ้ง** เหลือเป็น tombstone (`username` → `#deleted-<id>`)
   ให้ audit อ้าง `actor_id` ได้ ส่วน `password_hash` ถูกล้างทันทีที่ soft delete ไม่รอ grace
 - ระยะที่อนุมัติ: soft delete 30 วัน / audit 1 ปี / log 90 วัน (ดู docs/DATA-CLASSIFICATION.md)
+- **ระยะพวกนั้นจะเป็นจริงก็ต่อเมื่อมีอะไรรัน `purge-expired` ตามรอบ** ตัวห่อสำหรับ
+  cron/timer อยู่ที่ `scripts/purge_cron.sh` วิธีติดตั้งอยู่ใน `docs/OPERATIONS.md`
+  **ยังไม่ได้ติดตั้งบน host ไหน** (ยังไม่มี deploy จริง — ยกไว้ที่ Phase 5)
+  ในสคริปต์ห้ามรับ exit code แบบ `if ! cmd; then status=$?` เด็ดขาด —
+  `$?` ในกิ่งนั้นเป็น 0 เสมอ งานที่ล้มเหลวจะรายงานว่าสำเร็จ ใช้ `cmd || status=$?`
 
 ## Audit trail (Phase 2 ข้อสุดท้าย — ดู ADR 0015)
 
