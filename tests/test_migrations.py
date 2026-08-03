@@ -12,9 +12,12 @@ log ขึ้น "Running upgrade" ครบทุกตัว exit code เป�
 import sqlite3
 
 import pytest
+from alembic.autogenerate import compare_metadata
+from alembic.migration import MigrationContext
 from flask_migrate import upgrade
+from sqlalchemy import create_engine
 
-from app import create_app
+from app import create_app, db
 from tests.conftest import TestConfig
 
 # ตารางของ core หลัง Phase 2 — ทุกตัวต้องมี prefix (ดู docs/STANDARDS.md ข้อ 1.1)
@@ -87,6 +90,31 @@ def test_constraints_follow_the_naming_convention(migrated):
         "ix_tdl_todo_user_id",
     ):
         assert expected in ddl, f"ไม่พบ constraint/index ชื่อ {expected}"
+
+
+def test_models_match_the_migrated_schema(migrated):
+    """model กับ schema ที่ได้จาก migration ต้องตรงกันเป๊ะ (เทียบเท่า `flask db check`)
+
+    เหตุที่ต้องมี: `SoftDeleteMixin.deleted_at` เคยไม่ประกาศ `index=True` ทั้งที่
+    migration b7e3d91c5a2f สร้าง index ไว้ ผลคือ `flask db migrate` ครั้งถัดไป
+    จะออก migration ที่ **drop index ทิ้งทั้งสามตาราง** เงียบ ๆ ทำให้ทุก SELECT
+    ในระบบ (ซึ่งมี `deleted_at IS NULL` ต่อท้ายเสมอ) เสียประสิทธิภาพ
+    ไม่มี gate ตัวไหนจับได้ เพราะเทสต์อื่นสร้างตารางจาก model ด้วย `db.create_all()`
+    จึงตรงกับ model เสมอโดยนิยาม — ต้องเทียบกับของที่ migration สร้างเท่านั้น
+    """
+
+    class MigrationConfig(TestConfig):
+        SQLALCHEMY_DATABASE_URI = f"sqlite:///{migrated}"
+
+    app = create_app(MigrationConfig)
+    engine = create_engine(f"sqlite:///{migrated}")
+    with app.app_context(), engine.connect() as conn:
+        # version_table ต้องตรงกับ env.py ไม่งั้น alembic จะรายงานว่ามันเป็นตารางส่วนเกิน
+        context = MigrationContext.configure(conn, opts={"version_table": VERSION_TABLE})
+        diff = compare_metadata(context, db.metadata)
+    engine.dispose()
+
+    assert not diff, f"model กับ migration ไม่ตรงกัน: {diff}"
 
 
 def test_legacy_version_table_is_adopted(migrated):

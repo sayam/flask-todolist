@@ -39,7 +39,9 @@ class SoftDeleteMixin:
     """model ที่สืบทอดตัวนี้จะถูกซ่อนอัตโนมัติเมื่อ `deleted_at` ไม่เป็น NULL"""
 
     # NULL = ยังอยู่ / มีค่า = ถูกลบเมื่อไหร่ (UTC naive เหมือน timestamp อื่นทั้งระบบ)
-    deleted_at: Mapped[datetime | None] = mapped_column(DateTime, default=None)
+    # `index=True` ต้องตรงกับ migration b7e3d91c5a2f ที่สร้าง index ไว้ — ถ้าไม่ประกาศตรงนี้
+    # `flask db migrate` จะมองว่า index นั้นเกินแล้วออก migration ที่ drop ทิ้งเงียบ ๆ
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime, default=None, index=True)
 
     @property
     def is_deleted(self) -> bool:
