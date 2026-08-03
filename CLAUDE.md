@@ -16,6 +16,7 @@
 - สร้าง user: `pipenv run flask create-user <ชื่อ>` (ไม่มีหน้าสมัครสมาชิก โดยตั้งใจ)
 - ดู user: `pipenv run flask list-users`
 - ล้างข้อมูลที่พ้นระยะ: `pipenv run flask purge-expired` (ดูก่อนด้วย `--dry-run`)
+- ตรวจ audit: `pipenv run flask audit-verify` / อ่าน audit: `pipenv run flask audit-log`
 - เปลี่ยน schema: `pipenv run flask db migrate -m "..."` แล้ว `pipenv run flask db upgrade`
 
 ## Structure
@@ -31,6 +32,7 @@
 - `app/security_headers.py` — CSP + security header (Talisman), `app/logging_setup.py` — JSON log + request id
 - `app/db_engine.py` — ค่าระดับ connection (เปิดบังคับ foreign key ของ SQLite)
 - `app/soft_delete.py` — ตัวกรอง `deleted_at IS NULL` อัตโนมัติ, `app/purge.py` — จุดเดียวที่ลบจริง
+- `app/audit.py` — audit trail แบบเติมได้อย่างเดียว + hash chain (ดูหัวข้อ Audit trail)
 - `app/static/base.css` — เลย์เอาต์ของ core **ห้ามมีสีดิบ** สีมาจากธีมทั้งหมด
 - `app/static/app.js` — พฤติกรรมฝั่ง client **ทั้งหมด** (ห้ามมี inline handler ที่อื่น)
 - `.pa11yci.json` — รายการหน้าที่ job `a11y` ใน CI สแกน (รวมโหมดมืด/ธีม ocean/ภาษาไทย)
@@ -341,6 +343,32 @@ log ขึ้น "Running upgrade" ครบทุกตัว exit code เป�
 - ผู้ใช้ที่ถูก purge **ไม่ถูกลบแถวทิ้ง** เหลือเป็น tombstone (`username` → `#deleted-<id>`)
   ให้ audit อ้าง `actor_id` ได้ ส่วน `password_hash` ถูกล้างทันทีที่ soft delete ไม่รอ grace
 - ระยะที่อนุมัติ: soft delete 30 วัน / audit 1 ปี / log 90 วัน (ดู docs/DATA-CLASSIFICATION.md)
+
+## Audit trail (Phase 2 ข้อสุดท้าย — ดู ADR 0015)
+
+- ตาราง `tdl_audit` **เติมได้อย่างเดียว** โค้ดอยู่ที่ `app/audit.py` ไฟล์เดียว
+- **ไม่ต้องเรียกอะไรเวลาเขียนฟีเจอร์ใหม่** — event `after_flush` ของ Session ดักทุก
+  insert/update/delete ให้เอง ครอบทั้ง route, CLI และสคริปต์
+  **ข้อจำกัด:** bulk update/delete ระดับ Core และ raw SQL ไม่ถูกดัก
+  (ตอนนี้ระบบไม่มีเหลือแล้ว — เพิ่มใหม่ต้องรู้ตัวว่ามันจะไม่ถูกบันทึก)
+- เหตุการณ์ที่ไม่ใช่การเขียน DB (login/logout) เรียก `audit.record()` เอง แล้ว commit
+- **ชื่อเหตุการณ์ตามความหมาย ไม่ใช่ตามคำสั่ง SQL** — soft delete เป็น `todo.delete`
+  (ไม่ใช่ `todo.update`), คืนค่าเป็น `todo.restore`, ลบจริงเป็น `todo.purge`
+- **ค่าที่บันทึกได้ขึ้นกับชั้นข้อมูล** ประกาศไว้ที่ `PLAIN_COLUMNS`/`SECRET_COLUMNS`/
+  `HASHED_COLUMNS` ใน `app/audit.py` — **เพิ่มคอลัมน์ใหม่ต้องมาจัดชั้นที่นี่ด้วย**
+  (`tests/test_audit.py` บังคับ) ค่าเริ่มต้นตอนรันคือ HMAC = ปิดบังไว้ก่อน
+- `actor` เก็บ **`actor_id` เป็นเลข ไม่เก็บ username** และ "ที่ไหน" เก็บ `request_id`
+  **ไม่เก็บ IP** เพราะ IP มีอายุ 90 วันตามชั้น C6 เอาไปค้นต่อใน log เอา
+- **เวลาในตารางนี้ตัดเศษวินาทีทิ้ง** ห้ามเอา microsecond กลับมา — MySQL ปัดทิ้งเอง
+  แล้ว hash ที่คำนวณใหม่จะไม่ตรง (ดู ROADMAP ข้อ 4.5)
+- ตรวจสาย: `pipenv run flask audit-verify` / อ่าน: `pipenv run flask audit-log`
+- **แก้/ลบแถว audit ผ่าน ORM ไม่ได้** ด่านอยู่ที่ `before_flush` — purge job ต้องขอ
+  สิทธิ์ด้วย `allow_purge()` แล้วคืนด้วย `finish_purge()` ทันที
+- **purge audit ตัดได้จากหัวสายเท่านั้น** (`_expired_audit` หยุดที่แถวแรกที่ยังไม่หมดอายุ)
+  ห้ามเปลี่ยนเป็น `WHERE created_at < cutoff` เฉย ๆ — นาฬิกาที่ถูกปรับย้อนหลังจะทำให้
+  เจาะรูกลางสายแล้ว verify ไม่ผ่านตลอดกาล
+- **checkpoint ต้องเขียนก่อนลบเสมอ** ไม่งั้นตอนล้างทั้งตารางมันจะหาแถวก่อนหน้าไม่เจอ
+  แล้วตั้งต้นที่ genesis — สายยัง "ผ่าน" แต่ไม่ผูกกับประวัติที่มันอ้างว่าแทนอีกต่อไป
 
 ## Foreign key (Phase 2)
 - **SQLite ปิดการบังคับ FK เป็นค่าเริ่มต้น และเป็นค่าต่อ connection** ไม่ใช่ต่อไฟล์

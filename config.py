@@ -38,6 +38,11 @@ class Config:
     HTTPS_ENABLED = os.environ.get("HTTPS_ENABLED", "") == "1"
     LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
 
+    # กุญแจปิดบังค่าของชั้น C2/C3 ใน audit (ดู app/audit.py)
+    # ไม่ตั้งก็ได้ — จะแยกสายมาจาก SECRET_KEY ให้เอง แต่ตั้งแยกจะดีกว่าเพราะ
+    # เปลี่ยน SECRET_KEY ทีหลังแล้วยังเทียบค่าเก่าใน audit ได้อยู่
+    AUDIT_HMAC_KEY = os.environ.get("AUDIT_HMAC_KEY")
+
 
 def check_secret_key(secret_key):
     """ตรวจ SECRET_KEY ตอนสร้างแอป ไม่ใช่ตอน import config

@@ -42,6 +42,8 @@ ignore = [
     "S105", "S106",  # รหัสผ่าน dummy ในเทสต์ ไม่ใช่ secret จริง
     "PLR2004",  # ตัวเลขดิบในเทสต์คือ expected value อ่านตรง ๆ ดีกว่าตั้งชื่อ
     "ARG001",   # fixture ที่ inject เพื่อ side effect (เช่น user_id) แต่ไม่ได้ใช้ค่า
+    "SLF001",   # เทสต์แตะฟังก์ชันภายในได้ — นโยบายอย่าง _column_change/_hmac ต้องพิสูจน์
+                # ทีละชั้น การทดสอบผ่านทางอ้อมอย่างเดียวไม่ได้บอกว่าชั้นไหนพัง
 ]
 "scripts/**" = ["T201", "INP001", "PLR2004", "S101"]  # สคริปต์รันมือ: print คือ output,
     # ไม่ใช่ package, ตัวเลขในสูตรดาราศาสตร์อ่านคู่กับสูตรตรง ๆ, assert เป็น sanity check
@@ -74,14 +76,14 @@ ignore_missing_imports = true
 # ตัวคลาส — ปิดเฉพาะ error ตัวนี้ตัวเดียว ส่วนที่เหลือของไฟล์ยัง strict เต็ม
 # (ใช้ Base ตรง ๆ แทนไม่ได้ เพราะ routes ยังใช้ `Model.query` อยู่ — Phase 3 จะย้าย)
 [[tool.mypy.overrides]]
-module = ["app.models"]
+module = ["app.models", "app.audit"]
 disable_error_code = ["name-defined"]
 
 # strict list — module ที่ pure (ไม่พึ่ง extension ที่ไม่มี type stub)
 [[tool.mypy.overrides]]
 module = [
     "app.tz", "app.filters", "app.plugins", "app.sun_data",
-    "app.models", "app.soft_delete", "app.purge",
+    "app.models", "app.soft_delete", "app.purge", "app.audit",
 ]
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
@@ -98,13 +100,15 @@ omit = ["app/sun_data.py"]  # ตาราง generate — ไม่มี logic
 [tool.coverage.report]
 show_missing = true
 # ตั้งจากค่าที่วัดจริงตอน Phase 0 แล้วห้ามต่ำลง (ratchet ขึ้นได้อย่างเดียว)
-fail_under = 93  # วัดจริง 2026-08 (Phase 2): 93.93% — ขยับขึ้นได้อย่างเดียว
+fail_under = 94  # วัดจริง 2026-08 (Phase 2 จบ): 94.88% — ขยับขึ้นได้อย่างเดียว
 
 # ---------------------------------------------------------------- interrogate
 [tool.interrogate]
-paths = ["app"]
+# **ไม่มีคีย์ `paths` ที่นี่** — interrogate รับ path จาก command line เท่านั้น
+# ใส่ไว้ก็ถูกเมิน (เคยใส่แล้วเข้าใจผิดว่าจำกัดขอบเขตให้แล้ว) ขอบเขตจริงคือ
+# `interrogate app` ใน .github/workflows/ci.yml — รันเปล่า ๆ จะกวาดทั้ง repo
 exclude = ["app/sun_data.py"]
 ignore-init-method = true
 ignore-nested-functions = true
 # ตั้งจากค่าที่วัดจริงตอน Phase 0 (ratchet เช่นกัน)
-fail-under = 60  # วัดจริง 2026-08 (Phase 2): 60.2% — ขยับขึ้นได้อย่างเดียว
+fail-under = 65  # วัดจริง 2026-08 (Phase 2 จบ): 65.8% — ขยับขึ้นได้อย่างเดียว

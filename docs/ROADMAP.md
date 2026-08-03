@@ -201,14 +201,17 @@ coverage gate ใน CI
   `do_orm_execute` (`app/soft_delete.py`) เพราะ helper ที่ต้องเรียกเองคือ helper ที่ลืมได้
   purge job อยู่ที่ `app/purge.py` เป็นจุดเดียวในระบบที่ลบจริง มี `flask purge-expired`
   พร้อม `--dry-run` ที่เป็นฟังก์ชันอ่านอย่างเดียวคนละตัวกับของจริง
-- **Audit trail:** ตาราง append-only แยกจาก data ปกติ, บันทึก who-what-when-where
-  ผ่าน SQLAlchemy event hooks (after_flush) — **ครอบทุก write อัตโนมัติรวม CLI**
-  (actor = username หรือ `cli`), tamper-evident ด้วย hash chain (แต่ละแถวเก็บ
-  hash ของแถวก่อนหน้า) + คำสั่ง verify, ไม่มี UI/route แก้ log — อ่านอย่างเดียว
-  payload ที่เข้า hash ต้อง serialize ฝั่งแอป (เวลาเป็น ISO string) ให้ผล hash
-  ไม่ขึ้นกับ precision ของ DB แต่ละยี่ห้อ (ดู 4.4)
-  ซื่อสัตย์กับข้อจำกัด: immutability สมบูรณ์ต้องการ write-once storage ภายนอก
-  (บันทึกใน ADR ว่า scale นี้ใช้ hash chain + สิทธิ์ระดับแอป)
+- **Audit trail ✅ (2026-08-03 — ดู ADR 0015):** ตาราง `tdl_audit` append-only
+  แยกจาก data ปกติ (ไม่มี FK ผูก) บันทึกผ่าน event `after_flush` ของ Session
+  **ครอบทุก write อัตโนมัติรวม CLI** — actor เป็น `actor_id` (เลข) ไม่ใช่ username
+  ตามที่ ADR 0014 กำหนด และ "ที่ไหน" เก็บ `request_id` ไม่เก็บ IP
+  (IP มีอายุ 90 วันตามชั้น C6 ก๊อปมาไว้ 1 ปีไม่ได้)
+  tamper-evident ด้วย hash chain + `prev_hash` unique ที่ระดับ DB (สายแตกสองสายไม่ได้)
+  คำสั่ง `flask audit-verify` / `flask audit-log` ไม่มี route ไหนแตะตารางนี้เลย
+  ห้ามแก้/ลบผ่าน ORM (ด่านที่ `before_flush`) purge ตัดได้จากหัวสายเท่านั้นแล้วเขียน
+  checkpoint ก่อนลบ เวลาในตารางตัดเศษวินาทีทิ้งให้ผล hash ไม่ขึ้นกับยี่ห้อ DB (ดู 4.5)
+  **ข้อจำกัดที่รู้ตัว:** bulk/raw SQL ไม่ถูกดัก, ตัดหางสายหรือลบทั้งตารางแล้วสร้างใหม่
+  ยังตรวจไม่ได้ — ต้องส่ง hash ออกไป anchor ที่อื่น ยกไป Phase 7 พร้อมงาน SIEM
 - เปิด `PRAGMA foreign_keys=ON` ต่อ connection (ปิดช่อง integrity ของ SQLite)
 
 **ทำไมตรงนี้:** (1) เปลี่ยน semantics ของข้อมูล — ต้องเสร็จก่อน API v1 freeze สัญญา

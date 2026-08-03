@@ -14,12 +14,17 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from app import db, tz
+from sqlalchemy import func
+
+from app import audit, db, tz
+from app.audit import AuditEntry
 from app.models import Category, Todo, User
 from app.soft_delete import INCLUDE_DELETED, SoftDeleteMixin
 
 # ระยะที่อนุมัติไว้ (ADR 0014) — เปลี่ยนต้องแก้เอกสารจำแนกชั้นข้อมูลด้วย
 PURGE_AFTER_DAYS = 30
+# audit เก็บนานกว่าข้อมูลปฏิบัติการมาก เพราะเป็นหลักฐาน ไม่ใช่ข้อมูลของ subject
+AUDIT_RETAIN_DAYS = 365
 
 
 @dataclass
@@ -29,10 +34,11 @@ class PurgeResult:
     todos: int = 0
     categories: int = 0
     users_purged: int = 0
+    audit_entries: int = 0
 
     @property
     def total(self) -> int:
-        return self.todos + self.categories + self.users_purged
+        return self.todos + self.categories + self.users_purged + self.audit_entries
 
 
 def _cutoff(days: int) -> datetime:
@@ -72,7 +78,66 @@ def _collect(
     )
 
 
-def preview_expired(days: int = PURGE_AFTER_DAYS) -> PurgeResult:
+def _expired_audit(days: int) -> list[AuditEntry]:
+    """แถว audit ที่พ้นระยะแล้ว **เฉพาะที่เป็นคำนำหน้าของสายเท่านั้น**
+
+    audit เป็นสาย hash จึงตัดได้จากหัวอย่างเดียว การลบแถวกลางสายทำให้แถวถัดไป
+    ชี้ไปแถวที่ไม่มีอยู่ และ checkpoint ก็ช่วยไม่ได้เพราะมันรับรองได้แค่ช่องว่าง
+    ที่อยู่ต้นสาย ถ้าเขียนเป็น `WHERE created_at < cutoff` เฉย ๆ วันที่นาฬิกา
+    เครื่องถูกปรับย้อนหลัง (NTP) จะมีแถวเก่าไปแทรกอยู่กลางสาย แล้ว purge
+    ครั้งถัดไปจะเจาะรูตรงกลางทำให้ verify ไม่ผ่านตลอดกาล
+
+    จึงหยุดที่แถวแรกที่ยังไม่หมดอายุ — แถวเก่าที่ตกค้างอยู่หลังจากนั้นถูกเก็บต่อ
+    อีกพักหนึ่งจนกว่าคำนำหน้าจะไล่มาถึง (ยอมเก็บเกินดีกว่าทำหลักฐานพัง)
+    """
+    cutoff = _cutoff(days)
+    query = db.session.query(AuditEntry).order_by(AuditEntry.id)
+    first_kept = (
+        db.session.query(func.min(AuditEntry.id)).filter(AuditEntry.created_at >= cutoff).scalar()
+    )
+    if first_kept is None:
+        return query.all()
+    return query.filter(AuditEntry.id < first_kept).all()
+
+
+def purge_audit(days: int = AUDIT_RETAIN_DAYS) -> int:
+    """ล้าง audit ที่พ้น 1 ปี พร้อมเขียน checkpoint ไม่ให้ hash chain ขาด
+
+    **เขียน checkpoint ก่อนลบ** เพราะตอนนั้น chain ยังต่อกันครบ แถว checkpoint
+    จึงเกาะปลายสายเดิมได้ตามธรรมชาติ ไม่ต้องไปยัดค่า hash เข้าไปเอง
+    (ถ้าลบก่อนแล้วค่อยเขียน จะไม่มีอะไรให้เกาะเมื่อลบหมดทั้งตาราง)
+
+    checkpoint เก็บ hash ของแถวสุดท้ายที่ถูกลบไว้ให้ `verify_chain()` ใช้เป็น
+    จุดยึดแทนแถวที่หายไป — พิสูจน์ได้แค่ว่าแถวที่เหลือไม่ถูกแก้ ไม่ได้พิสูจน์ว่า
+    แถวที่ถูกลบมีอะไร (ADR 0014 บันทึกข้อจำกัดนี้ไว้แล้ว)
+    """
+    rows = _expired_audit(days)
+    if not rows:
+        return 0
+
+    audit.record(
+        audit.CHECKPOINT_EVENT,
+        changes={
+            "purged_rows": len(rows),
+            "last_purged_hash": rows[-1].row_hash,
+            "covers_from": rows[0].created_at.isoformat(),
+            "covers_to": rows[-1].created_at.isoformat(),
+        },
+    )
+    audit.allow_purge(db.session)
+    try:
+        for row in rows:
+            db.session.delete(row)
+        db.session.commit()
+    finally:
+        # ปิดสิทธิ์คืนทันที ไม่ปล่อยค้างไว้ให้โค้ดถัดไปลบ audit ได้ฟรี ๆ
+        audit.finish_purge(db.session)
+    return len(rows)
+
+
+def preview_expired(
+    days: int = PURGE_AFTER_DAYS, audit_days: int = AUDIT_RETAIN_DAYS
+) -> PurgeResult:
     """นับว่าจะกระทบอะไรบ้าง **โดยไม่แตะข้อมูลเลย**
 
     เป็นฟังก์ชันคนละตัวกับ `purge_expired()` โดยตั้งใจ — เคยเขียนเป็น flag
@@ -81,14 +146,22 @@ def preview_expired(days: int = PURGE_AFTER_DAYS) -> PurgeResult:
     ทางที่ปลอดภัยคือทางที่ไม่มีคำสั่งลบอยู่ในนั้นเลย ไม่ใช่ทางที่ตั้งใจจะย้อน
     """
     todos, categories, users = _collect(days)
-    return PurgeResult(todos=len(todos), categories=len(categories), users_purged=len(users))
+    return PurgeResult(
+        todos=len(todos),
+        categories=len(categories),
+        users_purged=len(users),
+        audit_entries=len(_expired_audit(audit_days)),
+    )
 
 
-def purge_expired(days: int = PURGE_AFTER_DAYS) -> PurgeResult:
+def purge_expired(days: int = PURGE_AFTER_DAYS, audit_days: int = AUDIT_RETAIN_DAYS) -> PurgeResult:
     """ล้างของที่พ้นระยะแล้วออกจากฐานข้อมูลจริง
 
     ผู้ใช้ **ไม่ถูกลบแถวทิ้ง** แต่ถูกล้าง PII แล้วเหลือไว้เป็น tombstone
     เพื่อให้ audit ที่อ้าง `actor_id` ยังแสดงผลได้ว่าเป็นใคร (ดู ADR 0014)
+
+    ล้าง audit **หลัง** ล้างข้อมูล เพราะการล้างข้อมูลเองก็สร้างแถว audit
+    (เหตุการณ์ `*.purge`) ซึ่งเป็นแถวใหม่เอี่ยม ไม่มีทางพ้นระยะอยู่แล้ว
     """
     todos, categories, users = _collect(days)
 
@@ -106,4 +179,9 @@ def purge_expired(days: int = PURGE_AFTER_DAYS) -> PurgeResult:
         user.purged_at = tz.now_utc()
 
     db.session.commit()
-    return PurgeResult(todos=len(todos), categories=len(categories), users_purged=len(users))
+    return PurgeResult(
+        todos=len(todos),
+        categories=len(categories),
+        users_purged=len(users),
+        audit_entries=purge_audit(audit_days),
+    )

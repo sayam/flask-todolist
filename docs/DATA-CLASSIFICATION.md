@@ -23,7 +23,7 @@
 | **C2** | ระบุตัวบุคคล (PII) | `tdl_user.username`, `first_name`, `last_name` |
 | **C3** | เนื้อหาของผู้ใช้ | `tdl_todo.title`, `tdl_category.name`, `start_date`, `due_date` |
 | **C4** | การตั้งค่า/metadata | `locale`, `theme`, `mode`, `timezone_name`, `is_done`, `created_at`, `updated_at`, `deleted_at`, `purged_at`, `id`, `*_id` |
-| **C5** | หลักฐาน (audit) | ตาราง audit trail |
+| **C5** | หลักฐาน (audit) | `tdl_audit.id`, `created_at`, `event`, `actor_id`, `source`, `request_id`, `table_name`, `row_id`, `changes`, `prev_hash`, `row_hash` |
 | **C6** | log ปฏิบัติการ | JSON log ทาง stdout (`actor`, `remote_addr`, `path`, …) |
 
 **หมายเหตุที่สำคัญกว่าที่เห็น**
@@ -34,6 +34,11 @@
 - **`remote_addr` ใน C6 เป็นข้อมูลส่วนบุคคล** ไม่ใช่แค่ metadata ทางเทคนิค
 - **`deleted_at`/`purged_at` เป็น C4 ไม่ใช่ C5** — เป็นสถานะของแถวนั้น ไม่ใช่หลักฐาน
   การมีอยู่ของมันบอกแค่ว่าแถวถูกลบเมื่อไหร่ ไม่ได้บอกว่าใครลบ (นั่นเป็นงานของ audit)
+- **`tdl_audit.changes` ไม่มีค่าของ C1/C2/C3 อยู่ข้างใน** — มีแค่ชื่อคอลัมน์
+  กับ HMAC ของค่า จึงยังเป็น C5 ล้วน ไม่ใช่ภาชนะที่ทำให้ชั้นอื่นรั่วออกมา
+- **audit เก็บ `request_id` แทน IP โดยตั้งใจ** — IP เป็นข้อมูลส่วนบุคคลที่มีอายุ
+  90 วันตาม C6 ถ้าก๊อปมาไว้ในตาราง audit ด้วย มันจะอยู่ยาว 1 ปีโดยไม่มีใครตั้งใจ
+  ต้องการ IP ให้เอา `request_id` ไปค้นใน log ระหว่างที่ log ยังไม่หมดอายุ
 - **C4 ไม่ใช่ข้อมูลไร้ตัวตน** — `timezone_name` บอกโซนที่อยู่ได้คร่าว ๆ
   ถือว่าอ่อนพอจะเก็บใน audit ได้ แต่ไม่ควรเผยแพร่รวมกลุ่มโดยไม่คิด
 

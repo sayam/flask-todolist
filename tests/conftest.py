@@ -53,7 +53,11 @@ def app():
     # ไม่มี db.create_all() ใน create_app แล้ว (ใช้ Flask-Migrate) เทสต์จึงสร้างเอง
     with app.app_context():
         db.create_all()
-    return app
+    yield app
+    # ปิด connection pool ทิ้งท้ายเทสต์ ไม่งั้น sqlite ในหน่วยความจำถูกเก็บโดย GC
+    # แล้วโผล่เป็น ResourceWarning เป็นร้อย ๆ อัน — เสียงรบกวนขนาดนั้นกลบ warning จริง
+    with app.app_context():
+        db.engine.dispose()
 
 
 @pytest.fixture

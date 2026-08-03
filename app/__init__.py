@@ -75,6 +75,11 @@ def create_app(config_class=Config):
     init_security_headers(app)
 
     db.init_app(app)
+    # import เพื่อ **ผลข้างเคียง** อีกตัว — ตัวโมดูลผูก event ที่ทำให้ทุก write
+    # ถูกบันทึกลง audit เอง และประกาศตาราง tdl_audit เข้า metadata
+    # ต้อง import หลัง db ถูกสร้างแล้ว จึงอยู่ในนี้ไม่ใช่หัวไฟล์ (ดู app/audit.py)
+    from app import audit  # noqa: F401
+
     # render_as_batch: SQLite ALTER TABLE ทำได้จำกัด ต้องให้ alembic สร้างตารางใหม่แทน
     migrate.init_app(app, db, render_as_batch=True)
     # คุมทุก POST/PUT/PATCH/DELETE ทั้งแอป ไม่ต้องไปใส่ทีละ route

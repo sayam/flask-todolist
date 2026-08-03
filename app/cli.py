@@ -7,9 +7,9 @@
 import click
 from flask.cli import with_appcontext
 
-from app import db
+from app import audit, db
 from app.models import Category, User
-from app.purge import PURGE_AFTER_DAYS, preview_expired, purge_expired
+from app.purge import AUDIT_RETAIN_DAYS, PURGE_AFTER_DAYS, preview_expired, purge_expired
 from config import DEFAULT_LANGUAGE, LANGUAGES
 
 # หมวดตั้งต้นที่สร้างให้ user ใหม่ แยกตามภาษาที่เลือกตอนสร้าง
@@ -128,27 +128,62 @@ def list_users():
     show_default=True,
     help="Purge rows soft-deleted longer ago than this.",
 )
+@click.option(
+    "--audit-days",
+    type=int,
+    default=AUDIT_RETAIN_DAYS,
+    show_default=True,
+    help="Purge audit entries older than this (they keep a longer retention than data).",
+)
 @click.option("--dry-run", is_flag=True, help="Report what would be purged without deleting.")
 @with_appcontext
-def purge_expired_command(days, dry_run):
+def purge_expired_command(days, audit_days, dry_run):
     """Permanently remove data whose retention period has passed.
 
     This is the only command in the system that deletes real rows.
     """
     if dry_run:
         # คนละฟังก์ชันกับของจริง ไม่ใช่ flag ที่ย้อน transaction ทีหลัง — ดู app/purge.py
-        result = preview_expired(days)
+        result = preview_expired(days, audit_days)
         click.echo(
             f"[dry run] would purge {result.todos} tasks, {result.categories} categories, "
-            f"{result.users_purged} users (nothing was deleted)."
+            f"{result.users_purged} users, {result.audit_entries} audit entries "
+            f"(nothing was deleted)."
         )
         return
 
-    result = purge_expired(days)
+    result = purge_expired(days, audit_days)
     click.echo(
-        f"Purged {result.todos} tasks, {result.categories} categories "
-        f"and scrubbed {result.users_purged} users."
+        f"Purged {result.todos} tasks, {result.categories} categories, "
+        f"{result.audit_entries} audit entries and scrubbed {result.users_purged} users."
     )
+
+
+@click.command("audit-verify")
+@with_appcontext
+def audit_verify():
+    """Walk the audit hash chain and report whether it is intact."""
+    try:
+        checked = audit.verify_chain()
+    except audit.ChainError as broken:
+        raise click.ClickException(str(broken)) from broken
+    click.echo(f"Audit chain OK — {checked} entries verified.")
+
+
+@click.command("audit-log")
+@click.option("--limit", type=int, default=20, show_default=True, help="How many entries to show.")
+@with_appcontext
+def audit_log(limit):
+    """Show the most recent audit entries (newest first, read only)."""
+    rows = audit.entries(limit)
+    if not rows:
+        click.echo("No audit entries yet.")
+        return
+    for row in rows:
+        actor = f"user:{row.actor_id}" if row.actor_id is not None else row.source
+        target = f" {row.table_name}:{row.row_id}" if row.table_name else ""
+        click.echo(f"{row.id}\t{row.created_at.isoformat()}\t{actor}\t{row.event}{target}")
+        click.echo(f"\t{row.changes}")
 
 
 def register_cli(app):
@@ -157,3 +192,5 @@ def register_cli(app):
     app.cli.add_command(delete_user)
     app.cli.add_command(list_users)
     app.cli.add_command(purge_expired_command)
+    app.cli.add_command(audit_verify)
+    app.cli.add_command(audit_log)
