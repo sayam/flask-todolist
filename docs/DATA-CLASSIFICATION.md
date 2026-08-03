@@ -19,10 +19,10 @@
 
 | ชั้น | ชื่อ | ฟิลด์จริงในระบบ |
 |---|---|---|
-| **C1** | ความลับ (secret) | `tdl_user.password_hash` |
+| **C1** | ความลับ (secret) | `tdl_user.password_hash`, `tdl_api_token.token_hash` |
 | **C2** | ระบุตัวบุคคล (PII) | `tdl_user.username`, `first_name`, `last_name` |
-| **C3** | เนื้อหาของผู้ใช้ | `tdl_todo.title`, `tdl_category.name`, `start_date`, `due_date` |
-| **C4** | การตั้งค่า/metadata | `locale`, `theme`, `mode`, `timezone_name`, `is_done`, `created_at`, `updated_at`, `deleted_at`, `purged_at`, `id`, `*_id` |
+| **C3** | เนื้อหาของผู้ใช้ | `tdl_todo.title`, `tdl_category.name`, `tdl_api_token.name`, `start_date`, `due_date` |
+| **C4** | การตั้งค่า/metadata | `locale`, `theme`, `mode`, `timezone_name`, `is_done`, `created_at`, `updated_at`, `deleted_at`, `purged_at`, `expires_at`, `id`, `*_id` |
 | **C5** | หลักฐาน (audit) | `tdl_audit.id`, `created_at`, `event`, `actor_id`, `source`, `request_id`, `table_name`, `row_id`, `changes`, `prev_hash`, `row_hash` |
 | **C6** | log ปฏิบัติการ | JSON log ทาง stdout (`actor`, `remote_addr`, `path`, …) |
 
@@ -41,6 +41,11 @@
   ต้องการ IP ให้เอา `request_id` ไปค้นใน log ระหว่างที่ log ยังไม่หมดอายุ
 - **C4 ไม่ใช่ข้อมูลไร้ตัวตน** — `timezone_name` บอกโซนที่อยู่ได้คร่าว ๆ
   ถือว่าอ่อนพอจะเก็บใน audit ได้ แต่ไม่ควรเผยแพร่รวมกลุ่มโดยไม่คิด
+- **`tdl_api_token.token_hash` เป็น C1 เท่ากับรหัสผ่าน** ต่างกันแค่วิธี hash
+  (sha256 เพราะความลับสุ่ม 256 บิต — ดูเหตุผลใน `app/services/tokens.py`)
+  ตัวความลับจริงไม่เคยถูกเก็บ แสดงครั้งเดียวตอนออกใบแล้วหายไปจากระบบ
+- **ชื่อ token เป็น C3** ผู้ใช้พิมพ์เองได้และมักบอกใบ้ถึงเครื่อง/ระบบที่เอาไปใช้
+  ("โน้ตบุ๊กที่ทำงาน") จึงปฏิบัติเท่าเนื้อหาผู้ใช้ ไม่ใช่ metadata
 
 ## ระยะเก็บรักษา
 
@@ -48,9 +53,9 @@
 
 | ชั้น | ระยะ | ลบเมื่อไหร่/อย่างไร |
 |---|---|---|
-| C1 | **ล้างทันทีที่ soft delete บัญชี** ไม่รอ grace | ไม่มีเหตุผลใดที่ต้องเก็บ credential ของบัญชีที่ปิดแล้ว — กู้บัญชีคืนภายใน 30 วันได้ แต่ต้องตั้งรหัสใหม่ |
+| C1 | **ล้างทันทีที่ soft delete บัญชี / เพิกถอน token** ไม่รอ grace | ไม่มีเหตุผลใดที่ต้องเก็บ credential ของบัญชีที่ปิดแล้ว — กู้บัญชีคืนภายใน 30 วันได้ แต่ต้องตั้งรหัสใหม่ และต้องออก token ใบใหม่ |
 | C2 | soft delete + **30 วัน** → purge | purge = เขียนทับ `username` ด้วย `#deleted-<id>` และตั้ง `first_name`/`last_name` เป็น NULL |
-| C3 | soft delete + **30 วัน** → purge | ลบแถวจริงออกจากฐานข้อมูล |
+| C3 | soft delete + **30 วัน** → purge | ลบแถวจริงออกจากฐานข้อมูล (รวมแถว `tdl_api_token` ที่ถูกเพิกถอนแล้ว) |
 | C4 | ตามอายุของแถวที่มันสังกัด | ไปพร้อม user/todo/category ที่เป็นเจ้าของ |
 | C5 | **1 ปี** นับจากเวลาที่บันทึก | purge job ลบแถวเก่ากว่านั้น + เขียน checkpoint (ดูด้านล่าง) |
 | C6 | **90 วัน** | ตอนนี้ออก stdout จึงขึ้นกับ runtime ที่รับไป — บังคับจริงเมื่อมี log shipping ใน Phase 5 |

@@ -18,7 +18,7 @@ from sqlalchemy import func
 
 from app import audit, db, tz
 from app.audit import AuditEntry
-from app.models import Category, Todo, User
+from app.models import ApiToken, Category, Todo, User
 from app.soft_delete import INCLUDE_DELETED, SoftDeleteMixin
 
 # ระยะที่อนุมัติไว้ (ADR 0014) — เปลี่ยนต้องแก้เอกสารจำแนกชั้นข้อมูลด้วย
@@ -33,12 +33,15 @@ class PurgeResult:
 
     todos: int = 0
     categories: int = 0
+    api_tokens: int = 0
     users_purged: int = 0
     audit_entries: int = 0
 
     @property
     def total(self) -> int:
-        return self.todos + self.categories + self.users_purged + self.audit_entries
+        return (
+            self.todos + self.categories + self.api_tokens + self.users_purged + self.audit_entries
+        )
 
 
 def _cutoff(days: int) -> datetime:
@@ -64,7 +67,7 @@ def _expired[T: SoftDeleteMixin](model: type[T], cutoff: datetime) -> list[T]:
 
 def _collect(
     days: int,
-) -> tuple[list[Todo], list[Category], list[User]]:
+) -> tuple[list[Todo], list[Category], list[ApiToken], list[User]]:
     """หาแถวที่ถึงกำหนดล้าง — ใช้ร่วมกันทั้ง preview และของจริง
 
     แยกการ "หา" ออกจากการ "ลบ" เพื่อให้ทั้งสองทางมองเห็นชุดเดียวกันเสมอ
@@ -74,6 +77,7 @@ def _collect(
     return (
         _expired(Todo, cutoff),
         _expired(Category, cutoff),
+        _expired(ApiToken, cutoff),
         [u for u in _expired(User, cutoff) if u.purged_at is None],
     )
 
@@ -145,10 +149,11 @@ def preview_expired(
     เพราะตัว purge commit ไปก่อนแล้ว savepoint จึงถูกปิดไปแล้วตอน rollback
     ทางที่ปลอดภัยคือทางที่ไม่มีคำสั่งลบอยู่ในนั้นเลย ไม่ใช่ทางที่ตั้งใจจะย้อน
     """
-    todos, categories, users = _collect(days)
+    todos, categories, api_tokens, users = _collect(days)
     return PurgeResult(
         todos=len(todos),
         categories=len(categories),
+        api_tokens=len(api_tokens),
         users_purged=len(users),
         audit_entries=len(_expired_audit(audit_days)),
     )
@@ -163,12 +168,14 @@ def purge_expired(days: int = PURGE_AFTER_DAYS, audit_days: int = AUDIT_RETAIN_D
     ล้าง audit **หลัง** ล้างข้อมูล เพราะการล้างข้อมูลเองก็สร้างแถว audit
     (เหตุการณ์ `*.purge`) ซึ่งเป็นแถวใหม่เอี่ยม ไม่มีทางพ้นระยะอยู่แล้ว
     """
-    todos, categories, users = _collect(days)
+    todos, categories, api_tokens, users = _collect(days)
 
     for todo in todos:
         db.session.delete(todo)
     for category in categories:
         db.session.delete(category)
+    for token in api_tokens:
+        db.session.delete(token)
     for user in users:
         # เขียนทับ username ให้ชื่อเดิมถูกปล่อยคืนให้คนอื่นสมัครซ้ำได้
         # ไม่กำกวมย้อนหลังเพราะ audit อ้าง actor_id ที่เป็นเลข ไม่ใช่ชื่อ
@@ -182,6 +189,7 @@ def purge_expired(days: int = PURGE_AFTER_DAYS, audit_days: int = AUDIT_RETAIN_D
     return PurgeResult(
         todos=len(todos),
         categories=len(categories),
+        api_tokens=len(api_tokens),
         users_purged=len(users),
         audit_entries=purge_audit(audit_days),
     )

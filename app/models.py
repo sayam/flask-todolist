@@ -18,9 +18,9 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from app import db, tz
 from app.soft_delete import SoftDeleteMixin
 
-# ค่าที่ใส่แทน hash เมื่อปิดบัญชี — ไม่ใช่รูปแบบ hash ที่ถูกต้อง จึงเทียบกับ
-# รหัสผ่านใดก็ไม่ผ่าน (ธรรมเนียมเดียวกับ /etc/shadow ของ unix)
-DISABLED_PASSWORD = "!"  # noqa: S105  ไม่ใช่รหัสผ่าน แต่เป็นค่าที่แปลว่า "ใช้ไม่ได้"
+# ค่าที่ใส่แทน hash เมื่อปิดบัญชีหรือเพิกถอน token — ไม่ใช่รูปแบบ hash ที่ถูกต้อง
+# จึงเทียบกับความลับใดก็ไม่ผ่าน (ธรรมเนียมเดียวกับ /etc/shadow ของ unix)
+DISABLED_SECRET = "!"  # noqa: S105  ไม่ใช่ความลับ แต่เป็นค่าที่แปลว่า "ใช้ไม่ได้"
 
 
 def _utcnow() -> datetime:
@@ -56,13 +56,16 @@ class User(UserMixin, SoftDeleteMixin, db.Model):
         back_populates="user", cascade="all, delete-orphan"
     )
     todos: Mapped[list["Todo"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    api_tokens: Mapped[list["ApiToken"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
 
     def set_password(self, password: str) -> None:
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password: str) -> bool:
         # เช็คก่อนส่งเข้า werkzeug เพราะค่า sentinel ไม่ใช่ hash ที่ parse ได้
-        if self.password_hash == DISABLED_PASSWORD:
+        if self.password_hash == DISABLED_SECRET:
             return False
         return check_password_hash(self.password_hash, password)
 
@@ -72,7 +75,7 @@ class User(UserMixin, SoftDeleteMixin, db.Model):
         ทำทันทีที่ soft delete ไม่รอ grace 30 วัน (ดู docs/DATA-CLASSIFICATION.md)
         กู้บัญชีคืนได้ แต่ต้องตั้งรหัสใหม่
         """
-        self.password_hash = DISABLED_PASSWORD
+        self.password_hash = DISABLED_SECRET
 
     @property
     def full_name(self) -> str:
@@ -86,6 +89,62 @@ class User(UserMixin, SoftDeleteMixin, db.Model):
 
     def __repr__(self) -> str:
         return f"<User {self.id} {self.username!r}>"
+
+
+class ApiToken(SoftDeleteMixin, db.Model):
+    """personal access token สำหรับเรียก `/api/v1` (Phase 3 — ดู ADR 0017)
+
+    **เก็บเฉพาะ hash ของความลับ ตัวความลับจริงแสดงครั้งเดียวตอนสร้าง**
+    ทำหายแล้วออกใบใหม่ ไม่มีทาง "ดูอีกครั้ง" — เป็นข้อจำกัดที่ตั้งใจ ไม่ใช่ของที่ยังไม่ได้ทำ
+
+    ไม่มีคอลัมน์ `last_used_at` โดยตั้งใจเช่นกัน: การอัปเดตทุกครั้งที่เรียก API
+    แปลว่ามี write หนึ่งครั้งต่อหนึ่ง request ซึ่งจะไปโผล่เป็นแถว audit หนึ่งแถว
+    ต่อหนึ่ง request ด้วย (event `after_flush` ดักทุก write) — กลบสายหลักฐาน
+    ด้วยเสียงรบกวน คำถาม "token นี้ถูกใช้ครั้งล่าสุดเมื่อไหร่" ตอบจาก log
+    ที่มี `token_id` อยู่แล้ว (ชั้น C6 อายุ 90 วัน)
+    """
+
+    __tablename__ = "tdl_api_token"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("tdl_user.id"), index=True)
+    # ชื่อที่ผู้ใช้ตั้งไว้ให้ตัวเองจำได้ว่าใบไหนอยู่เครื่องไหน
+    name: Mapped[str] = mapped_column(String(80))
+    # sha256 ของความลับ (hex 64 ตัว) — ดูเหตุผลที่ไม่ใช้ scrypt ใน app/services/tokens.py
+    token_hash: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime | None] = mapped_column(DateTime, default=_utcnow)
+    # NULL = ไม่มีวันหมดอายุ (ต้องขอเป็นพิเศษ ค่าเริ่มต้นคือมีอายุ)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime, default=None)
+
+    user: Mapped["User"] = relationship(back_populates="api_tokens")
+
+    @property
+    def is_expired(self) -> bool:
+        """หมดอายุแล้วหรือยัง — ใบที่ไม่ได้ตั้งวันหมดอายุไม่มีวันหมด"""
+        return self.expires_at is not None and self.expires_at <= tz.now_utc()
+
+    @property
+    def is_usable(self) -> bool:
+        """ยังใช้ยืนยันตัวตนได้ไหม — ถูกเพิกถอน/หมดอายุแล้วใช้ไม่ได้
+
+        `not self.is_deleted` **ซ้ำซ้อนโดยตั้งใจ** เหมือน `_expired()` ใน purge.py:
+        ตัวกรอง soft delete ซ่อนแถวที่ถูกเพิกถอนไปตั้งแต่ตอน query แล้ว และ
+        `revoke()` ยังล้าง hash ทิ้งอีกชั้น การถอดเงื่อนไขนี้ออกจึงไม่ทำให้เทสต์ตัวไหน
+        แดง (equivalent mutant — ตรวจแล้ว บันทึกไว้กันสับสนรอบหน้า) แต่เก็บไว้
+        เพราะผู้เรียกที่หยิบแถวมาด้วย `INCLUDE_DELETED` ต้องได้คำตอบที่ถูกด้วย
+        """
+        return not self.is_deleted and not self.is_expired
+
+    def disable(self) -> None:
+        """ล้าง hash ทิ้งตอนเพิกถอน — ชั้น C1 ไม่มีเหตุผลให้เก็บต่อ
+
+        แถวยังอยู่เพื่อให้ผู้ใช้เห็นว่าเคยมีใบนี้ (และ audit อ้าง `row_id` ได้)
+        แต่ค่าที่เหลือเทียบกับความลับใดก็ไม่ผ่าน
+        """
+        self.token_hash = DISABLED_SECRET
+
+    def __repr__(self) -> str:
+        return f"<ApiToken {self.id} {self.name!r} user={self.user_id}>"
 
 
 class Category(SoftDeleteMixin, db.Model):

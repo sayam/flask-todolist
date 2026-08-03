@@ -15,6 +15,8 @@
 - เพิ่ม dependency: `pipenv install <pkg>` (ห้ามใช้ `pip install` ตรง ๆ — Pipfile/Pipfile.lock จะไม่ sync)
 - สร้าง user: `pipenv run flask create-user <ชื่อ>` (ไม่มีหน้าสมัครสมาชิก โดยตั้งใจ)
 - ดู user: `pipenv run flask list-users`
+- ออก API token: `pipenv run flask token-create <ชื่อผู้ใช้> --name "<ใช้ทำอะไร>"`
+  (ดู `token-list` / เพิกถอน `token-revoke <ชื่อผู้ใช้> <id>`)
 - ล้างข้อมูลที่พ้นระยะ: `pipenv run flask purge-expired` (ดูก่อนด้วย `--dry-run`)
 - ตรวจ audit: `pipenv run flask audit-verify` / อ่าน audit: `pipenv run flask audit-log`
 - เปลี่ยน schema: `pipenv run flask db migrate -m "..."` แล้ว `pipenv run flask db upgrade`
@@ -96,6 +98,19 @@
 **เทสต์ที่ผลลัพธ์ขึ้นกับเครื่อง ต้องปลอม input เอง** อย่าพึ่งว่าเครื่องที่รันมีอะไร
 (`available_timezones()` มี `localtime` บน Ubuntu แต่ไม่มีบน Gentoo →
 เขียวบนเครื่อง dev แดงบน CI ดู `test_pseudo_zones_are_never_offered`)
+
+### session ในเทสต์: สองกับดักที่ทำให้เทสต์เขียวโดยไม่ได้ทดสอบอะไร
+
+1. **`with app.app_context():` ซ้อนใน context ของ fixture = session คนละตัว**
+   object ที่ fixture สร้างไว้ผูกอยู่กับ session ข้างนอก การแก้ค่าบนมันแล้ว commit
+   ในชั้นใน **ไม่ถูกเขียนลงฐานข้อมูลเลย** ทั้งที่ค่าในหน่วยความจำเปลี่ยนแล้ว
+   → fixture ที่ `yield` object ให้ ต้องเปิด context ค้างไว้เอง แล้วตัวเทสต์ห้ามเปิดซ้อน
+   (ดูหัวเรื่องของ `tests/test_services.py`)
+2. **การอ่านซ้ำจาก session ใหม่ ไม่ได้พิสูจน์ว่า commit แล้ว** เพราะ sqlite
+   `:memory:` ใช้ connection เดียวร่วมกัน (StaticPool) session ใหม่จึงยังอยู่ใน
+   transaction เดิมและเห็นของที่ยังไม่ commit → ต้อง `db.session.remove()`
+   (rollback + ปิด session) ก่อนอ่าน ถ้าอยากพิสูจน์ว่าข้อมูลลงจริง
+   ถอด `db.session.commit()` ออกจาก service แล้วเทสต์ต้องแดง ไม่งั้นแปลว่ายังไม่ได้พิสูจน์
 
 ## ลำดับด่านของ request (สำคัญตอนอ่าน status code)
 
@@ -389,6 +404,22 @@ log ขึ้น "Running upgrade" ครบทุกตัว exit code เป�
   เจาะรูกลางสายแล้ว verify ไม่ผ่านตลอดกาล
 - **checkpoint ต้องเขียนก่อนลบเสมอ** ไม่งั้นตอนล้างทั้งตารางมันจะหาแถวก่อนหน้าไม่เจอ
   แล้วตั้งต้นที่ genesis — สายยัง "ผ่าน" แต่ไม่ผูกกับประวัติที่มันอ้างว่าแทนอีกต่อไป
+
+## Personal access token (Phase 3 — ดู ADR 0017)
+
+- token คือกุญแจของ **เครื่อง** ไม่ใช่ของคน ใช้กับ `/api/v1` แทน session cookie
+  โค้ดอยู่ที่ `app/services/tokens.py` ตารางคือ `tdl_api_token`
+- รูปแบบ `tdl_<id>_<ความลับ>` เก็บลง DB เป็น **sha256 ของความลับ ไม่ใช่ scrypt**
+  (ค่าสุ่ม 256 บิตไม่มี dictionary ให้ไล่ ส่วน scrypt ต่อ request คือช่องให้ยิงถล่ม)
+  เทียบด้วย `hmac.compare_digest` เสมอ ห้ามใช้ `==`
+- **ความลับจริงแสดงครั้งเดียวตอนออกใบ** ไม่มีทางดูอีก ทำหายให้ออกใบใหม่
+- **เพิกถอน = ล้าง hash ทิ้งทันที** ไม่ใช่แค่ soft delete — กู้แถวคืนมาก็ใช้ไม่ได้
+  `delete-user` ก็ทำแบบเดียวกันกับทุกใบของคนนั้น
+- ค่าเริ่มต้นมีวันหมดอายุ 90 วัน ใบที่ไม่มีวันหมดต้องขอเอง (`--expires-days 0`)
+- **ห้ามเพิ่ม `last_used_at`** — เขียนทุก request = แถว audit ต่อ request
+  คำถาม "ใช้ครั้งล่าสุดเมื่อไหร่" ตอบจาก log ที่มี `token_id`
+- `token_hash` เป็นชั้น C1 เท่ารหัสผ่าน อยู่ใน `SECRET_COLUMNS` ของ `app/audit.py`
+  (audit บันทึกได้แค่ `{"changed": true}`)
 
 ## Foreign key (Phase 2)
 - **SQLite ปิดการบังคับ FK เป็นค่าเริ่มต้น และเป็นค่าต่อ connection** ไม่ใช่ต่อไฟล์

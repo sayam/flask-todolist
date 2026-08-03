@@ -64,9 +64,21 @@ def test_the_document_lists_every_class(classified):
         assert f"**{label}**" in text, f"เอกสารขาดชั้น {label}"
 
 
-def test_password_hash_is_the_only_secret(classified):
-    """C1 ต้องมีตัวเดียว — เพิ่มความลับใหม่ต้องมาทบทวนกติกา 'ห้ามออกจากระบบ' ด้วย"""
+# ความลับทุกตัวที่ทบทวนแล้วว่ายอมรับกติกา "ห้ามออกจากระบบทุกกรณี" ได้
+# **เพิ่มชื่อที่นี่ = ประกาศว่าทบทวนแล้ว** ไม่ใช่แค่ทำให้เทสต์เขียว
+REVIEWED_SECRETS = {
+    "tdl_user.password_hash",  # C1 ตั้งแต่ Phase 2 (ADR 0014)
+    "tdl_api_token.token_hash",  # C1 เพิ่มตอน Phase 3 พร้อม PAT (ADR 0017)
+}
+
+
+def test_every_secret_was_explicitly_reviewed(classified):
+    """C1 ต้องตรงกับรายการที่ทบทวนแล้วเป๊ะ — ทั้งเพิ่มและลดต้องผ่านสายตาคน
+
+    ความลับใหม่แต่ละตัวมีต้นทุนตามมาเสมอ (ห้ามอยู่ใน export/log/audit,
+    ต้องมีเส้นทางล้างทิ้งของตัวเอง) การเพิ่มโดยไม่ทบทวนคือการรับหนี้เงียบ ๆ
+    """
     text = DOC.read_text(encoding="utf-8")
     row = next(line for line in text.splitlines() if line.startswith("| **C1**"))
-    assert row.count("`") == 2, f"C1 ควรมีฟิลด์เดียว แถวคือ: {row}"
-    assert "password_hash" in row
+    listed = set(re.findall(r"`([^`]+)`", row))
+    assert listed == REVIEWED_SECRETS, f"C1 ในเอกสารไม่ตรงกับรายการที่ทบทวนแล้ว: {listed}"

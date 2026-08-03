@@ -11,6 +11,8 @@ from sqlalchemy import select
 from app import audit, db
 from app.models import Category, User
 from app.purge import AUDIT_RETAIN_DAYS, PURGE_AFTER_DAYS, preview_expired, purge_expired
+from app.services import ServiceError
+from app.services import tokens as tokens_service
 from config import DEFAULT_LANGUAGE, LANGUAGES
 
 # หมวดตั้งต้นที่สร้างให้ user ใหม่ แยกตามภาษาที่เลือกตอนสร้าง
@@ -107,6 +109,12 @@ def delete_user(username, yes):
     user.soft_delete()
     # credential เป็นชั้น C1 ล้างทันที ไม่รอ grace — กู้บัญชีได้แต่ต้องตั้งรหัสใหม่
     user.disable_password()
+    # token ที่ยังไม่หมดอายุคือกุญแจที่ยังเปิดประตูได้ ต้องตายไปพร้อมบัญชี
+    # (ตัวกรอง soft delete ซ่อนเจ้าของไปแล้วก็จริง แต่ "ปิดสองชั้น" ถูกกว่าการ
+    # ต้องพิสูจน์ว่าชั้นเดียวไม่มีทางพลาด)
+    for token in user.api_tokens:
+        token.soft_delete()
+        token.disable()
     db.session.commit()
     click.echo(
         f"Deleted {username!r} (soft delete — purged for real after "
@@ -124,6 +132,65 @@ def list_users():
         return
     for user in users:
         click.echo(f"{user.id}\t{user.username}\t{user.locale or '-'}")
+
+
+@click.command("token-create")
+@click.argument("username")
+@click.option("--name", required=True, help="What this token is for (shown in the token list).")
+@click.option(
+    "--expires-days",
+    type=int,
+    default=tokens_service.DEFAULT_EXPIRY_DAYS,
+    show_default=True,
+    help="Days until the token expires. Use 0 for a token that never expires.",
+)
+@with_appcontext
+def token_create(username, name, expires_days):
+    """Issue a personal access token for a user (shown once, never again)."""
+    user = _find_user(username.strip())
+    if user is None:
+        raise click.ClickException(f"No user named {username!r}.")
+    try:
+        secret = tokens_service.issue(user, name, expires_days)
+    except ServiceError as error:
+        raise click.ClickException(error.message) from error
+
+    click.echo(f"Token for {user.username!r} created. Copy it now — it is not stored anywhere:")
+    click.echo(secret)
+
+
+@click.command("token-list")
+@click.argument("username")
+@with_appcontext
+def token_list(username):
+    """List a user's active tokens (revoked ones are hidden)."""
+    user = _find_user(username.strip())
+    if user is None:
+        raise click.ClickException(f"No user named {username!r}.")
+    rows = tokens_service.list_tokens(user)
+    if not rows:
+        click.echo(f"No tokens for {user.username!r} — create one with `flask token-create`.")
+        return
+    for token in rows:
+        expiry = token.expires_at.isoformat() if token.expires_at else "never"
+        state = "expired" if token.is_expired else "active"
+        click.echo(f"{token.id}\t{token.name}\t{state}\texpires: {expiry}")
+
+
+@click.command("token-revoke")
+@click.argument("username")
+@click.argument("token_id", type=int)
+@with_appcontext
+def token_revoke(username, token_id):
+    """Revoke one token immediately (its secret is wiped, not just hidden)."""
+    user = _find_user(username.strip())
+    if user is None:
+        raise click.ClickException(f"No user named {username!r}.")
+    try:
+        token = tokens_service.revoke(user, token_id)
+    except ServiceError as error:
+        raise click.ClickException(error.message) from error
+    click.echo(f"Revoked token {token.id} ({token.name!r}) of {user.username!r}.")
 
 
 @click.command("purge-expired")
@@ -153,15 +220,16 @@ def purge_expired_command(days, audit_days, dry_run):
         result = preview_expired(days, audit_days)
         click.echo(
             f"[dry run] would purge {result.todos} tasks, {result.categories} categories, "
-            f"{result.users_purged} users, {result.audit_entries} audit entries "
-            f"(nothing was deleted)."
+            f"{result.api_tokens} tokens, {result.users_purged} users, "
+            f"{result.audit_entries} audit entries (nothing was deleted)."
         )
         return
 
     result = purge_expired(days, audit_days)
     click.echo(
         f"Purged {result.todos} tasks, {result.categories} categories, "
-        f"{result.audit_entries} audit entries and scrubbed {result.users_purged} users."
+        f"{result.api_tokens} tokens, {result.audit_entries} audit entries "
+        f"and scrubbed {result.users_purged} users."
     )
 
 
@@ -197,6 +265,9 @@ def register_cli(app):
     app.cli.add_command(create_user)
     app.cli.add_command(delete_user)
     app.cli.add_command(list_users)
+    app.cli.add_command(token_create)
+    app.cli.add_command(token_list)
+    app.cli.add_command(token_revoke)
     app.cli.add_command(purge_expired_command)
     app.cli.add_command(audit_verify)
     app.cli.add_command(audit_log)

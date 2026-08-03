@@ -79,11 +79,12 @@ PLAIN_COLUMNS = frozenset(
         "updated_at",
         "deleted_at",
         "purged_at",
+        "expires_at",
     }
 )
 
 # ชั้น C1 — ห้ามออกจากระบบทุกกรณี บันทึกได้แค่ว่า "มีการเปลี่ยน"
-SECRET_COLUMNS = frozenset({"password_hash"})
+SECRET_COLUMNS = frozenset({"password_hash", "token_hash"})
 
 # ชั้น C2/C3 — เก็บชื่อคอลัมน์ + HMAC ของค่าเก่า/ใหม่
 HASHED_COLUMNS = frozenset(
