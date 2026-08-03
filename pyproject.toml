@@ -71,6 +71,7 @@ module = [
     "flask_login.*", "flask_limiter.*", "flask_wtf.*",
     "flask_babel.*", "flask_migrate.*", "flask_sqlalchemy.*",
     "flask_talisman.*",
+    "flask_smorest.*",  # marshmallow/apispec/webargs มี py.typed แต่ตัว smorest ยังไม่มี
 ]
 ignore_missing_imports = true
 
@@ -90,6 +91,7 @@ module = [
     "app.models", "app.soft_delete", "app.purge", "app.audit",
     "app.i18n", "app.theme",
     "app.services.*",
+    "app.api.*",
 ]
 disallow_untyped_defs = true
 disallow_incomplete_defs = true

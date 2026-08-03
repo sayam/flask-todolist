@@ -119,6 +119,20 @@ class ApiToken(SoftDeleteMixin, db.Model):
     user: Mapped["User"] = relationship(back_populates="api_tokens")
 
     @property
+    def _tz_name(self) -> str | None:
+        return self.user.timezone_name if self.user else None
+
+    @property
+    def created_local(self) -> datetime | None:
+        """เวลาที่ออกใบ ในเวลาท้องถิ่นของเจ้าของ — ใช้ตอนแสดงผลเท่านั้น"""
+        return tz.to_local(self.created_at, self._tz_name)
+
+    @property
+    def expires_local(self) -> datetime | None:
+        """วันหมดอายุในเวลาท้องถิ่นของเจ้าของ"""
+        return tz.to_local(self.expires_at, self._tz_name)
+
+    @property
     def is_expired(self) -> bool:
         """หมดอายุแล้วหรือยัง — ใบที่ไม่ได้ตั้งวันหมดอายุไม่มีวันหมด"""
         return self.expires_at is not None and self.expires_at <= tz.now_utc()
@@ -203,6 +217,16 @@ class Todo(SoftDeleteMixin, db.Model):
     def start_local(self) -> datetime | None:
         """วันเริ่มในเวลาท้องถิ่นของเจ้าของงาน"""
         return tz.to_local(self.start_date, self._tz_name)
+
+    @property
+    def created_local(self) -> datetime | None:
+        """เวลาที่สร้าง ในเวลาท้องถิ่นของเจ้าของงาน (API v1 ส่งเวลาท้องถิ่นทุกตัว)"""
+        return tz.to_local(self.created_at, self._tz_name)
+
+    @property
+    def updated_local(self) -> datetime | None:
+        """เวลาที่แก้ล่าสุด ในเวลาท้องถิ่นของเจ้าของงาน"""
+        return tz.to_local(self.updated_at, self._tz_name)
 
     @property
     def is_overdue(self) -> bool:

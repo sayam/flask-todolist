@@ -2,6 +2,7 @@ import pytest
 
 from app import create_app, db, limiter
 from app.models import Category, User
+from app.services import tokens as tokens_service
 from config import Config
 
 PASSWORD = "password123"
@@ -123,6 +124,36 @@ def ratelimit_app():
     yield app
     with app.app_context():
         limiter.reset()
+
+
+def issue_token(app, user_id, name="pytest"):
+    """ออก token ให้ผู้ใช้คนนั้น คืนสตริงเต็มที่เอาไปใส่ header ได้เลย"""
+    with app.app_context():
+        return tokens_service.issue(db.session.get(User, user_id), name)
+
+
+def bearer_client(app, token):
+    """client ที่แนบ `Authorization: Bearer ...` ให้ทุกคำขอเอง"""
+    client = app.test_client()
+    client.environ_base["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+    return client
+
+
+@pytest.fixture
+def api_token(app, user_id):
+    return issue_token(app, user_id)
+
+
+@pytest.fixture
+def api_client(app, api_token):
+    """client ที่ยิง `/api/v1` ในนามของ tester ด้วย token (ไม่มี session cookie)"""
+    return bearer_client(app, api_token)
+
+
+@pytest.fixture
+def other_api_client(app, other_user_id):
+    """client ที่ยิง API ในนามของคนอื่น ใช้ทดสอบว่าข้ามไปยุ่งข้อมูลกันไม่ได้"""
+    return bearer_client(app, issue_token(app, other_user_id))
 
 
 @pytest.fixture

@@ -1,0 +1,872 @@
+{
+  "components": {
+    "responses": {
+      "DEFAULT_ERROR": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "Default error response"
+      },
+      "UNPROCESSABLE_CONTENT": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "Unprocessable Content"
+      }
+    },
+    "schemas": {
+      "Category": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "name": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "task_count": {
+            "description": "จำนวนงานที่ยังอยู่ในหมวดนี้",
+            "readOnly": true,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "CategoryWrite": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "Error": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorDetail"
+          }
+        },
+        "type": "object"
+      },
+      "ErrorDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "description": "ชื่อความผิดพลาดแบบคงที่ ใช้เทียบในโค้ดได้",
+            "type": "string"
+          },
+          "errors": {
+            "additionalProperties": {},
+            "description": "ข้อผิดพลาดรายฟิลด์จากชั้น validation",
+            "type": "object"
+          },
+          "field": {
+            "description": "ฟิลด์ที่เป็นต้นเหตุ ถ้าระบุได้",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "message": {
+            "description": "คำอธิบายสำหรับคนอ่าน",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "PaginationMetadata": {
+        "additionalProperties": false,
+        "properties": {
+          "first_page": {
+            "description": "First available page number.",
+            "type": "integer"
+          },
+          "last_page": {
+            "description": "Last available page number.",
+            "type": "integer"
+          },
+          "next_page": {
+            "description": "Next page number.",
+            "type": "integer"
+          },
+          "page": {
+            "description": "Current page number.",
+            "type": "integer"
+          },
+          "previous_page": {
+            "description": "Previous page number.",
+            "type": "integer"
+          },
+          "total": {
+            "description": "Total number of items.",
+            "type": "integer"
+          },
+          "total_pages": {
+            "description": "Total number of pages.",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "Todo": {
+        "additionalProperties": false,
+        "properties": {
+          "category_id": {
+            "readOnly": true,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "created_at": {
+            "readOnly": true
+          },
+          "due_date": {
+            "readOnly": true
+          },
+          "id": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "is_done": {
+            "readOnly": true,
+            "type": "boolean"
+          },
+          "is_due_today": {
+            "readOnly": true,
+            "type": "boolean"
+          },
+          "is_overdue": {
+            "readOnly": true,
+            "type": "boolean"
+          },
+          "start_date": {
+            "readOnly": true
+          },
+          "title": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "updated_at": {
+            "readOnly": true
+          }
+        },
+        "type": "object"
+      },
+      "TodoCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "category_id": {
+            "default": null,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "due_date": {
+            "default": null
+          },
+          "start_date": {
+            "default": null
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "type": "object"
+      },
+      "TodoUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "category_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "due_date": {},
+          "is_done": {
+            "type": "boolean"
+          },
+          "start_date": {},
+          "title": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "Token": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "readOnly": true
+          },
+          "expires_at": {
+            "readOnly": true
+          },
+          "id": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "is_expired": {
+            "readOnly": true,
+            "type": "boolean"
+          },
+          "name": {
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "PersonalAccessToken": {
+        "description": "personal access token ที่ออกด้วย `flask token-create` ส่งมาเป็น `Authorization: Bearer tdl_<id>_<secret>`",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "description": "API ของ todolist — เรียกตรรกะชุดเดียวกับหน้าเว็บ (ADR 0016)\n\n**การยืนยันตัวตน:** ทุก endpoint ต้องมี personal access token\n(`Authorization: Bearer tdl_<id>_<secret>`) ออกใบด้วย `flask token-create`\nsession cookie ของเบราว์เซอร์ **ใช้กับ API ไม่ได้** และ token ก็ใช้กับหน้าเว็บ\nไม่ได้เช่นกัน ไม่มี token / token หมดอายุ / ถูกเพิกถอน → `401`\n\n**เวลา:** ทุก datetime เป็นเวลาท้องถิ่นของเจ้าของข้อมูล รูปแบบ ISO 8601\n**ไม่มี offset** (เช่น `2026-09-01T16:00`) ค่าที่ส่ง offset มาด้วยถูกปฏิเสธ\n\n**ความผิดพลาด:** ทุกคำตอบที่ไม่สำเร็จมีรูปเดียวกันคือ\n`{\"error\": {\"code\": ..., \"message\": ...}}` โดย `code` เป็นส่วนหนึ่งของสัญญา\nส่วน `message` เป็นข้อความสำหรับคนอ่านและเปลี่ยนได้\n\n**เวอร์ชัน:** สัญญาอยู่ที่ path (`/api/v1`) การเปลี่ยนที่ทำให้ client เดิมพัง\nต้องขึ้น `/api/v2` ใหม่ทั้งชุด ไม่ใช่แก้ของเดิม (ADR 0018)",
+  "info": {
+    "title": "Todolist API",
+    "version": "1.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/categories": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Category"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/DEFAULT_ERROR"
+          }
+        },
+        "summary": "หมวดทั้งหมดของผู้ใช้ เรียงตามชื่อ",
+        "tags": [
+          "categories"
+        ]
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Category"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "ชื่อหมวดว่าง"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "ชื่อนี้มีอยู่แล้ว"
+          },
+          "422": {
+            "$ref": "#/components/responses/UNPROCESSABLE_CONTENT"
+          },
+          "default": {
+            "$ref": "#/components/responses/DEFAULT_ERROR"
+          }
+        },
+        "summary": "สร้างหมวดใหม่ — ชื่อห้ามซ้ำกับหมวดอื่นของคนเดียวกัน",
+        "tags": [
+          "categories"
+        ]
+      }
+    },
+    "/api/v1/categories/{category_id}": {
+      "delete": {
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "ไม่มีหมวดนี้ หรือไม่ใช่ของผู้ใช้คนนี้"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "ยังมีงานอยู่ในหมวดนี้"
+          },
+          "default": {
+            "$ref": "#/components/responses/DEFAULT_ERROR"
+          }
+        },
+        "summary": "ลบหมวด — **ทำได้เฉพาะตอนไม่มีงานอยู่เลย** งานที่ทำเสร็จแล้วก็ยังนับ",
+        "tags": [
+          "categories"
+        ]
+      },
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Category"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "ไม่มีหมวดนี้ หรือไม่ใช่ของผู้ใช้คนนี้"
+          },
+          "default": {
+            "$ref": "#/components/responses/DEFAULT_ERROR"
+          }
+        },
+        "summary": "หมวดหนึ่งรายการ",
+        "tags": [
+          "categories"
+        ]
+      },
+      "parameters": [
+        {
+          "in": "path",
+          "name": "category_id",
+          "required": true,
+          "schema": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        }
+      ],
+      "patch": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Category"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "ชื่อหมวดว่าง"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "ไม่มีหมวดนี้ หรือไม่ใช่ของผู้ใช้คนนี้"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "ชื่อนี้มีอยู่แล้ว"
+          },
+          "422": {
+            "$ref": "#/components/responses/UNPROCESSABLE_CONTENT"
+          },
+          "default": {
+            "$ref": "#/components/responses/DEFAULT_ERROR"
+          }
+        },
+        "summary": "เปลี่ยนชื่อหมวด",
+        "tags": [
+          "categories"
+        ]
+      }
+    },
+    "/api/v1/todos": {
+      "get": {
+        "description": "ตัวกรองชุดเดียวกับหน้าเว็บทุกตัว ค่าที่ไม่รู้จักตกกลับเป็นค่าเริ่มต้น",
+        "parameters": [
+          {
+            "description": "หนึ่งใน ['all', 'active', 'completed']",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "type": "string"
+            }
+          },
+          {
+            "description": "id ของหมวด หรือ 'none' = งานที่ไม่มีหมวด",
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "default": "",
+              "type": "string"
+            }
+          },
+          {
+            "description": "หนึ่งใน ['all', 'upcoming', 'today', 'tomorrow', 'range']",
+            "in": "query",
+            "name": "when",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "type": "string"
+            }
+          },
+          {
+            "description": "นาทีของช่วง upcoming หนึ่งใน [15, 30, 45, 480]",
+            "in": "query",
+            "name": "within",
+            "required": false,
+            "schema": {
+              "default": 480,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "ใช้กับ when=range",
+            "in": "query",
+            "name": "date_from",
+            "required": false,
+            "schema": {
+              "default": "",
+              "type": "string"
+            }
+          },
+          {
+            "description": "ใช้กับ when=range",
+            "in": "query",
+            "name": "date_to",
+            "required": false,
+            "schema": {
+              "default": "",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Todo"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "หมวดที่กรองไม่ใช่ของผู้ใช้คนนี้"
+          },
+          "422": {
+            "$ref": "#/components/responses/UNPROCESSABLE_CONTENT"
+          },
+          "default": {
+            "$ref": "#/components/responses/DEFAULT_ERROR"
+          }
+        },
+        "summary": "รายการงานตามตัวกรอง",
+        "tags": [
+          "todos"
+        ]
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TodoCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Todo"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "ชื่องานว่างหรือค่าที่ส่งมาใช้ไม่ได้"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "หมวดที่อ้างถึงไม่ใช่ของผู้ใช้คนนี้"
+          },
+          "422": {
+            "$ref": "#/components/responses/UNPROCESSABLE_CONTENT"
+          },
+          "default": {
+            "$ref": "#/components/responses/DEFAULT_ERROR"
+          }
+        },
+        "summary": "สร้างงานใหม่",
+        "tags": [
+          "todos"
+        ]
+      }
+    },
+    "/api/v1/todos/{todo_id}": {
+      "delete": {
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "ไม่มีงานนี้ หรือไม่ใช่ของผู้ใช้คนนี้"
+          },
+          "default": {
+            "$ref": "#/components/responses/DEFAULT_ERROR"
+          }
+        },
+        "summary": "ลบงาน (ซ่อนไว้ก่อน ของจริงถูกล้างโดย purge job เมื่อพ้นระยะ)",
+        "tags": [
+          "todos"
+        ]
+      },
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Todo"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "ไม่มีงานนี้ หรือไม่ใช่ของผู้ใช้คนนี้"
+          },
+          "default": {
+            "$ref": "#/components/responses/DEFAULT_ERROR"
+          }
+        },
+        "summary": "งานหนึ่งรายการ",
+        "tags": [
+          "todos"
+        ]
+      },
+      "parameters": [
+        {
+          "in": "path",
+          "name": "todo_id",
+          "required": true,
+          "schema": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        }
+      ],
+      "patch": {
+        "description": "ฟิลด์ที่ไม่ได้ส่งมาไม่ถูกแตะ ส่วนการส่ง `null` มาแปลว่า \"ล้างค่านั้น\"",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TodoUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Todo"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "ค่าที่ส่งมาใช้ไม่ได้"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "ไม่มีงานนี้ หรือไม่ใช่ของผู้ใช้คนนี้"
+          },
+          "422": {
+            "$ref": "#/components/responses/UNPROCESSABLE_CONTENT"
+          },
+          "default": {
+            "$ref": "#/components/responses/DEFAULT_ERROR"
+          }
+        },
+        "summary": "แก้เฉพาะฟิลด์ที่ส่งมา",
+        "tags": [
+          "todos"
+        ]
+      }
+    },
+    "/api/v1/tokens": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Token"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/DEFAULT_ERROR"
+          }
+        },
+        "summary": "ใบที่ยังไม่ถูกเพิกถอนของผู้ใช้ ใหม่สุดก่อน — **ไม่มีตัวความลับในคำตอบ**",
+        "tags": [
+          "tokens"
+        ]
+      }
+    },
+    "/api/v1/tokens/{token_id}": {
+      "delete": {
+        "description": "เพิกถอนใบที่กำลังใช้ยิงคำขอนี้อยู่ก็ได้ — คำขอนี้สำเร็จ แต่คำขอถัดไป\nที่ใช้ใบเดิมจะได้ 401",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "ไม่มีใบนี้ หรือไม่ใช่ของผู้ใช้คนนี้"
+          },
+          "default": {
+            "$ref": "#/components/responses/DEFAULT_ERROR"
+          }
+        },
+        "summary": "เพิกถอนใบนั้นทันที (ล้าง hash ทิ้งด้วย ไม่ใช่แค่ซ่อน)",
+        "tags": [
+          "tokens"
+        ]
+      },
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Token"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "ไม่มีใบนี้ หรือไม่ใช่ของผู้ใช้คนนี้"
+          },
+          "default": {
+            "$ref": "#/components/responses/DEFAULT_ERROR"
+          }
+        },
+        "summary": "ใบหนึ่งใบ",
+        "tags": [
+          "tokens"
+        ]
+      },
+      "parameters": [
+        {
+          "in": "path",
+          "name": "token_id",
+          "required": true,
+          "schema": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        }
+      ]
+    }
+  },
+  "security": [
+    {
+      "PersonalAccessToken": []
+    }
+  ],
+  "tags": [
+    {
+      "description": "งานของผู้ใช้ที่ยืนยันตัวตนด้วย token",
+      "name": "todos"
+    },
+    {
+      "description": "หมวดของงาน",
+      "name": "categories"
+    },
+    {
+      "description": "personal access token ของผู้ใช้เอง",
+      "name": "tokens"
+    }
+  ]
+}

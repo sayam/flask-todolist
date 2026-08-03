@@ -38,6 +38,16 @@ class Config:
     HTTPS_ENABLED = os.environ.get("HTTPS_ENABLED", "") == "1"
     LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
 
+    # --- OpenAPI / API v1 (ดู app/api/__init__.py และ ADR 0018) ---
+    # ตัวเลขนี้เป็นเวอร์ชันของ **เอกสาร** ไม่ใช่ของสัญญา — สัญญาอยู่ที่ path
+    # `/api/v1` ซึ่งเปลี่ยนได้ทางเดียวคือขึ้น v2 ใหม่ทั้งชุด
+    API_TITLE = "Todolist API"
+    API_VERSION = "1.0.0"
+    OPENAPI_VERSION = "3.1.0"
+    # เสิร์ฟแค่ตัว JSON ไม่มี Swagger UI — UI โหลดของจาก CDN ซึ่ง CSP บล็อกอยู่แล้ว
+    OPENAPI_URL_PREFIX = "/api/v1"
+    OPENAPI_JSON_PATH = "openapi.json"
+
     # กุญแจปิดบังค่าของชั้น C2/C3 ใน audit (ดู app/audit.py)
     # ไม่ตั้งก็ได้ — จะแยกสายมาจาก SECRET_KEY ให้เอง แต่ตั้งแยกจะดีกว่าเพราะ
     # เปลี่ยน SECRET_KEY ทีหลังแล้วยังเทียบค่าเก่าใน audit ได้อยู่

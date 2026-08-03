@@ -23,3 +23,4 @@ ADR 0002–0008 เป็นการ backfill การตัดสินใจ
 | [0015](0015-audit-trail-design.md) | audit trail: ดักที่ ORM, hash chain, checkpoint ตอน purge | accepted |
 | [0016](0016-service-layer-boundary.md) | service layer ไม่รู้จัก HTTP, route เป็น adapter | accepted |
 | [0017](0017-personal-access-tokens.md) | PAT แยกจาก session cookie, sha256 ไม่ใช่ scrypt | accepted |
+| [0018](0018-api-v1-contract-and-versioning.md) | API v1: spec generate จากโค้ด, เวอร์ชันที่ path | accepted |

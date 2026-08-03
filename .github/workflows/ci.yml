@@ -72,6 +72,32 @@ jobs:
           SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
           DATABASE_URL: sqlite:////tmp/schema-check.db
 
+  openapi:
+    # สัญญาที่ commit ไว้ต้องเป็นภาพถ่ายของโค้ดปัจจุบัน ไม่ใช่ของเมื่อสามเดือนก่อน
+    #
+    # generate ใหม่แล้ว `git diff` ต้องว่าง — เขียนแบบนี้แทนการ commit ไฟล์ให้เอง
+    # โดยตั้งใจ: bot ที่ commit เอกสารให้จะกลบการเปลี่ยนสัญญาที่ไม่ได้ตั้งใจ
+    # ให้เนียนหายไปใน commit ของ bot แทนที่จะมาอยู่ตรงหน้าคนรีวิวใน PR
+    #
+    # (ซ้ำกับ tests/test_openapi.py ตั้งใจให้ซ้ำ — job นี้บอกสาเหตุตรง ๆ
+    # โดยไม่ต้องอ่าน diff ของ dict ที่ pytest พิมพ์ออกมา)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pipenv
+      - run: pip install pipenv
+      - run: pipenv sync --dev
+      - name: generate แล้วต้องไม่มีอะไรเปลี่ยน
+        run: |
+          pipenv run python scripts/generate_openapi.py
+          git diff --exit-code docs/openapi.json \
+            || { echo "docs/openapi.json ไม่ตรงกับโค้ด — รัน scripts/generate_openapi.py แล้ว commit"; exit 1; }
+        env:
+          PYTHONPATH: .
+
   commit-lint:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
