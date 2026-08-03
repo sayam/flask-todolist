@@ -380,6 +380,6 @@ functional/non-functional ให้ครบตามแผนเท่านั
 
 | เรื่อง | สถานะ | เก็บเมื่อไหร่ |
 |---|---|---|
-| CI actions ยัง target Node.js 20 ที่ deprecated (`checkout@v4`, `setup-python@v5`, `setup-node@v4`) | ยังไม่พัง — runner บังคับรันบน Node 24 ให้อยู่ แต่จะพังเมื่อ GitHub ถอด fallback | ครั้งหน้าที่แตะ `.github/workflows/ci.yml` |
+| ~~CI actions ยัง target Node.js 20 ที่ deprecated~~ | ✅ เก็บแล้ว 2026-08-03 — ขยับครบ 5 ตัวเป็น `checkout@v7`, `setup-python@v7`, `setup-node@v7`, `upload-artifact@v7`, `gitleaks-action@v3` ทุกตัวรันบน Node 24 แล้ว (เส้นตาย: GitHub ถอด Node 20 ออกจาก runner 2026-09-16) | — |
 | raw SQL 3 จุดใน migration เก่าอ้างตาราง `user` แบบไม่ quote | ยอมค้างไว้ ไม่เพิ่มจุดใหม่ (มี `tests/test_migration_lint.py` ดัก) | baseline squash ตอน Phase 5 |
 | WCAG audit ด้วยคน (focus order, ลำดับ heading, ข้อความ error) | automated ครอบได้ ~30–40% ของเกณฑ์เท่านั้น | Phase 7 |
