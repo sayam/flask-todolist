@@ -108,7 +108,7 @@ omit = ["app/sun_data.py"]  # ตาราง generate — ไม่มี logic
 [tool.coverage.report]
 show_missing = true
 # ตั้งจากค่าที่วัดจริงตอน Phase 0 แล้วห้ามต่ำลง (ratchet ขึ้นได้อย่างเดียว)
-fail_under = 94  # วัดจริง 2026-08 (Phase 2 จบ): 94.88% — ขยับขึ้นได้อย่างเดียว
+fail_under = 96  # วัดจริง 2026-08 (Phase 3 จบ): 96.44% — ขยับขึ้นได้อย่างเดียว
 
 # ---------------------------------------------------------------- interrogate
 [tool.interrogate]
@@ -119,4 +119,4 @@ exclude = ["app/sun_data.py"]
 ignore-init-method = true
 ignore-nested-functions = true
 # ตั้งจากค่าที่วัดจริงตอน Phase 0 (ratchet เช่นกัน)
-fail-under = 65  # วัดจริง 2026-08 (Phase 2 จบ): 65.8% — ขยับขึ้นได้อย่างเดียว
+fail-under = 73  # วัดจริง 2026-08 (Phase 3 จบ): 73.3% — ขยับขึ้นได้อย่างเดียว

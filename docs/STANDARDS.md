@@ -133,7 +133,7 @@ Laravel มี PHPStan/Larastan ตัวเดียวจบ ฝั่ง Pyth
 | **interrogate** | docstring coverage | โค้ดมี docstring ภาษาไทยดีอยู่แล้ว — วัดให้เป็นตัวเลข |
 | **pre-commit** | รันทุกอย่างก่อน commit ฝั่งเครื่อง dev | มาตรฐาน de facto |
 | **gitlint** | บังคับ Conventional Commits | โปรเจกต์ใช้ convention นี้อยู่แล้วทุก commit — แค่ enforce |
-| **schemathesis** | fuzz จาก OpenAPI spec | รอ Phase 3 (ยังไม่มี API) |
+| **schemathesis** | fuzz จาก OpenAPI spec | ✓ ใช้แล้ว (Phase 3) — `tests/test_api_fuzz.py` |
 | **uv** (Astral) | แทน pipenv เร็วกว่ามาก | optional — Pipfile ใช้งานได้ดี ย้ายเมื่อเจ็บจริง ไม่ย้ายตามแฟชั่น |
 
 ### 2.4 สิ่งที่โปรเจกต์ทำถูกตามมาตรฐานอยู่แล้ว (ประกาศเป็นกติกา)
@@ -154,7 +154,7 @@ Conventional Commits ทุก commit / ADR กำลังจะเริ่ม
 | Pattern | สถานะโปรเจกต์ |
 |---|---|
 | Application factory (`create_app`) | ✓ ใช้แล้ว |
-| Blueprints แยกส่วน | ✓ `main`/`auth` |
+| Blueprints แยกส่วน | ✓ `main`/`auth` + `/api/v1` (Phase 3) |
 | Config เป็น class + env | ✓ + fail-closed SECRET_KEY |
 | ไม่รัน debug server ใน production | ✓ ระบุใน README |
 | Extension init แบบ `init_app` | ✓ ทุกตัว |
@@ -187,6 +187,13 @@ prefix `tdl_*` ทุกตาราง + `tdl_alembic_version` / SQLAlchemy `na
 Flask-Talisman + djlint → Phase 1 / hypothesis → เริ่ม Phase 2 (ใช้กับ tz/filters
 ก่อน) / mutmut nightly → หลัง Phase 0 เสถียร / schemathesis → Phase 3 /
 sqlfluff → เมื่อ migration ซับซ้อนขึ้น (Phase 2)
+
+**schemathesis เข้าแล้วใน Phase 3** (`tests/test_api_fuzz.py`) — สร้างคำขอจาก
+`docs/openapi.json` เองแล้วตรวจว่าคำตอบตรงกับสัญญา รอบแรกที่เปิดใช้จับได้สามอย่าง
+ที่เทสต์ที่คนเขียนเองมองข้าม และทั้งสามกระทบหน้าเว็บด้วยไม่ใช่แค่ API:
+ตัวกรองวันที่ที่ย่อยไม่ได้ → 500, id ที่เกิน 64 บิต → `OverflowError` → 500,
+และคำขอที่ตกตั้งแต่ชั้น routing ได้ HTML กลับไป (405 ไม่มี header `Allow` ด้วย)
+ตั้ง `max_examples` ไว้เตี้ยเพื่อให้รันได้ทุกครั้ง — งานหนักกว่านี้เป็นของ nightly
 
 ### Watch list (ยังไม่ใช้ — ตรวจใหม่เมื่อ stable)
 ty (beta, conformance ต่ำ), pyrefly (ยังไล่ mypy ไม่ทัน), uv (ย้ายเมื่อคุ้มจริง)

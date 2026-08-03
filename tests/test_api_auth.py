@@ -176,3 +176,31 @@ def test_the_html_site_still_asks_for_a_csrf_token(csrf_api):
     """กันการยกเว้น CSRF หลุดไปทั้งแอปโดยไม่ตั้งใจ"""
     app, _ = csrf_api
     assert app.test_client().post("/login", data={"username": "tester"}).status_code == 400
+
+
+# ---------------------------------------------------------------- ของที่ fuzz จับได้
+
+
+def test_an_unknown_path_under_the_api_answers_in_json(api_client):
+    """คำขอที่ตกตั้งแต่ชั้น routing ไม่มี blueprint ให้ handler เกาะ — ต้องดักที่ระดับแอป
+
+    ก่อนแก้: client ที่พิมพ์ path ผิดได้หน้า HTML กลับไปแล้ว JSON parser พัง
+    ด้วยข้อความที่ไม่เกี่ยวกับสาเหตุจริงเลย
+    """
+    resp = api_client.get(f"{API_PREFIX}/ไม่มีทางนี้")
+    assert resp.status_code == 404
+    assert resp.get_json()["error"]["code"] == "not_found"
+
+
+def test_a_method_that_is_not_allowed_says_which_ones_are(api_client):
+    """405 ต้องมี header `Allow` ตาม RFC 9110 — หายไปตอนเปลี่ยนมาสร้างคำตอบเอง"""
+    resp = api_client.open(f"{API_PREFIX}/todos/1", method="TRACE")
+    assert resp.status_code == 405
+    assert "GET" in resp.headers["Allow"]
+    assert resp.get_json()["error"]["code"] == "method_not_allowed"
+
+
+def test_a_token_id_too_large_for_the_column_is_just_refused(app):
+    """id ในตัว token เป็นตัวเลขที่คนนอกพิมพ์มาเองได้ — ต้องไม่ทำให้ระบบพัง 500"""
+    client = bearer_client(app, f"tdl_{10**25}_ความลับปลอม")
+    assert client.get(f"{API_PREFIX}/todos").status_code == UNAUTHORIZED

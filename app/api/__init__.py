@@ -13,13 +13,14 @@ apispec) ไฟล์ `docs/openapi.json` ที่ commit ไว้เป็น
 
 from typing import Any
 
-from flask import Flask
+from flask import Flask, request
 from flask_smorest import Api
+from werkzeug.exceptions import HTTPException
 
 from app import csrf
 from app.api import auth, categories, todos, tokens
 from app.api.base import API_PREFIX
-from app.api.errors import ErrorSchema
+from app.api.errors import ErrorSchema, http_error_response
 
 # ชื่อ security scheme ใน spec — ที่เดียวกับที่ view อ้างถึง
 BEARER_SCHEME = "PersonalAccessToken"
@@ -30,7 +31,8 @@ class TodolistApi(Api):
 
     ตัวเดิมทำ `app.register_error_handler(HTTPException, ...)` ตอน init ซึ่ง
     แปลว่าหน้า 404 ของเว็บ HTML จะกลายเป็น JSON ไปด้วยทั้งเว็บ — ผลข้างเคียง
-    ที่ไม่มีใครสั่ง เราผูก handler ที่ระดับ blueprint แทน (ดู `app/api/base.py`)
+    ที่ไม่มีใครสั่ง เราผูกเองสองชั้นแทน: ที่ระดับ blueprint (`app/api/base.py`)
+    และที่ระดับแอปแบบดูจาก path (`_errors_stay_in_their_own_language` ข้างล่าง)
     ขอบเขตจึงอยู่แค่ `/api/` จริง ๆ
     """
 
@@ -64,9 +66,27 @@ session cookie ของเบราว์เซอร์ **ใช้กับ A
 """
 
 
+def _errors_stay_in_their_own_language(app: Flask) -> None:
+    """คำขอที่ยิงมาที่ `/api/` ต้องได้ JSON เสมอ ส่วนหน้าเว็บต้องได้ HTML เสมอ
+
+    handler ที่ blueprint ครอบได้แค่คำขอที่หา view เจอ — URL ที่พิมพ์ผิดหรือ
+    method ที่ไม่รองรับถูกตัดตั้งแต่ชั้น routing ซึ่งยังไม่รู้ว่าเป็นของ blueprint ไหน
+    ถ้าไม่ดักตรงนี้ client ที่พิมพ์ path ผิดจะได้หน้า HTML กลับไปแล้ว JSON parser
+    พังด้วยข้อความที่ไม่เกี่ยวอะไรกับสาเหตุจริงเลย (schemathesis จับข้อนี้ให้)
+    """
+
+    @app.errorhandler(HTTPException)
+    def _http_error(error: HTTPException) -> Any:
+        if request.path.startswith(auth.API_PREFIX):
+            return http_error_response(error)
+        # หน้าเว็บ: คืนคำตอบมาตรฐานของ werkzeug ตามเดิม ไม่แตะอะไร
+        return error.get_response()
+
+
 def init_api(app: Flask) -> Api:
     """ผูก `/api/v1` เข้ากับแอป — เรียกจาก `create_app()`"""
     api = TodolistApi(app, spec_kwargs={"description": DESCRIPTION.strip()})
+    _errors_stay_in_their_own_language(app)
 
     api.spec.components.security_scheme(
         BEARER_SCHEME,

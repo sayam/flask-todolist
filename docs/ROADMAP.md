@@ -117,7 +117,7 @@ migration และโค้ดใหม่ทุกตัวจากนี้�
 | 0 ✅ | Process backbone | S | Maintainability |
 | 1 ✅ | Cross-cutting inheritance | M | Security(headers), Interaction, Maintainability |
 | 2 ✅ | Data governance core | L | Audit Trail, Data Retention, PDPA |
-| 3 | Service layer + API v1 | M–L | Compatibility, Maintainability |
+| 3 ✅ | Service layer + API v1 | M–L | Compatibility, Maintainability |
 | 4 | Identity & AuthN/AuthZ | L | Security(authn), Compatibility(SSO) |
 | 5 | Deployment parity + DB/cache plugins | M–L | Flexibility, Security(TLS/secrets), Compatibility |
 | 6 | Performance validation | M | Performance Efficiency |
@@ -230,20 +230,55 @@ Core DML, `synchronize_session` — จับได้ทั้งหมด)
 (สคริปต์พร้อมแล้ว ดู [OPERATIONS.md](OPERATIONS.md)) / anchor hash ออกนอกระบบเพื่อ
 จับการตัดหางสายหรือลบทั้งตาราง → Phase 7 พร้อมงาน SIEM (ดู ADR 0015)
 
-## Phase 3 — Service layer + API v1 (contract-first)
+## Phase 3 — Service layer + API v1 (contract-first) ✅ (เสร็จ 2026-08-03)
 
 **เป้าหมาย:** แยก business logic ออกจาก HTTP แล้วประกาศสัญญาที่ freeze ได้จริง
 
-- Extract `app/services/` (todo, category, settings) — routes เหลือ thin adapter
-  จ่ายต้นทุนรื้อครั้งเดียวตอน route ยังมี ~20 ตัว
-- `/api/v1` + OpenAPI spec (flask-smorest หรือเทียบเท่า — spec ต้อง generate
-  จากโค้ด ไม่ใช่เขียนมือแล้วหลุด sync), versioning strategy เป็น ADR
-- API auth: token (PAT) แยกจาก session cookie — เตรียม seam ให้ OAuth/SSO เกาะ
-- HTML routes กับ API เรียก service เดียวกัน — ฟีเจอร์ใหม่เขียนครั้งเดียวได้สองหน้า
+- **Service layer ✅ (ADR 0016):** `app/services/` (todos, categories, settings,
+  tokens) ไม่รู้จัก HTTP เลย — `app/routes.py` เหลือ adapter ที่อ่าน request
+  เรียก service แล้วเลือกคำตอบ ตัวกรองยุบเป็น `FilterSpec` ชุดเดียวที่ทั้งฟอร์ม
+  HTML และ query string ของ API แปลงเข้า (ปิดหนี้ `apply_when()` 7 อาร์กิวเมนต์)
+  บังคับด้วย `tests/test_service_layer.py` ทั้งสแกน import และรันจริงโดยไม่มี request
+- **Personal access token ✅ (ADR 0017):** ตาราง `tdl_api_token` เก็บ sha256 ของ
+  ความลับสุ่ม 256 บิต (ไม่ใช่ scrypt — ค่าสุ่มไม่มี dictionary ให้ไล่ ส่วน scrypt
+  ต่อ request คือช่องยิงถล่ม) แสดงความลับครั้งเดียวตอนออกใบ เพิกถอนแล้วล้าง hash
+  ทันทีไม่รอ grace ออกใบผ่าน CLI เท่านั้น — **token ออก token ไม่ได้** ไม่งั้นใบที่
+  หลุดจะแตกลูกที่อายุยาวกว่าเดิมแล้วการเพิกถอนก็ไม่ปิดประตูจริง
+- **`/api/v1` ✅ (ADR 0018):** todos + categories + tokens ผ่าน flask-smorest +
+  marshmallow view เป็น adapter บาง ๆ เหนือ service เดิม — งานที่สร้างผ่าน API
+  โผล่บนหน้าเว็บทันทีและถูก audit ให้เองโดยไม่ต้องเขียนอะไรเพิ่ม (ผลตอบแทนของ
+  ADR 0015 ที่จ่ายไปแล้วใน Phase 2) เวอร์ชันอยู่ที่ path, ซอง error รูปเดียว
+  ที่ `code` มาจาก service ตรง ๆ, เวลาเป็นเวลาท้องถิ่นของเจ้าของข้อมูลทั้งขาเข้าออก
+- **สัญญาไม่มีทางหลุด sync ✅:** `docs/openapi.json` generate จากโค้ดด้วย
+  `scripts/generate_openapi.py` มีสองด่านเทียบ (`tests/test_openapi.py` + job
+  `openapi` ใน CI ที่ `git diff --exit-code`) **CI ไม่ commit ไฟล์ให้เอง** เพราะ
+  commit ของ bot จะกลบการเปลี่ยนสัญญาที่ไม่ตั้งใจแทนที่จะเอามาวางตรงหน้าคนรีวิว
 
 **ทำไมตรงนี้:** หลัง Phase 2 เพื่อให้ v1 เกิดบน semantics สุดท้าย (soft delete แล้ว)
 และ API ถูก audit ฟรีผ่าน hooks — ก่อน Phase 4 เพื่อให้ SSO/MFA ลงบน seam ที่นิ่ง
-**DoD:** OpenAPI spec ตรวจใน CI ว่า sync กับโค้ด, เทสต์ API แยกชุด, ADR versioning
+**DoD:** ✅ OpenAPI spec ตรวจใน CI ว่า sync กับโค้ด ✅ เทสต์ API แยกชุด
+(`test_api_auth` / `test_api_todos` / `test_api_categories` / `test_api_tokens` /
+`test_openapi` / `test_api_fuzz`) ✅ ADR versioning (0018) — เทสต์ 548 ผ่าน
+coverage 96.50% (ratchet 94→96, interrogate 65→73), `app/api/*` 100% ทุกไฟล์
+
+**schemathesis เข้ามาตามที่ STANDARDS วางไว้** (`tests/test_api_fuzz.py`) สร้างคำขอ
+จาก `openapi.json` เองแล้วตรวจว่าคำตอบตรงกับสัญญา — รอบแรกจับได้สามอย่างที่เทสต์
+ซึ่งคนเขียนเองมองข้าม และ**ทั้งสามกระทบหน้าเว็บด้วย ไม่ใช่แค่ API**: ตัวกรองวันที่
+ที่ย่อยไม่ได้ทำให้ `ValueError` หลุดเป็น 500, id ที่เกิน 64 บิตทำให้ไดรเวอร์ DB
+โยน `OverflowError` เป็น 500 (แก้ที่ `app/services/lookup.py` จึงได้ทั้งสองทาง),
+และคำขอที่ตกตั้งแต่ชั้น routing ได้ HTML กลับไปพร้อม 405 ที่ไม่มี header `Allow`
+
+**ด่านที่ต้องอยู่ตลอดไป ไม่ใช่เหตุการณ์ที่ผ่านไปแล้ว:** ตัวตนของ API ต้องมาจาก
+token เท่านั้น — API ยกเว้น CSRF ไว้ ถ้าวันหนึ่งด่านยอมรับ session cookie ด้วย
+เท่ากับเปิดรู CSRF ที่ปิดไว้ตั้งแต่ Phase 1 กลับมาโดยไม่มีอะไรฟ้อง จึงบังคับ
+สามชั้น: ด่านผูกที่ `before_request` ของ blueprint (ลืมแปะไม่ได้เพราะไม่ใช่
+decorator), เทสต์ยิงด้วย cookie จริงที่ login สำเร็จแล้ว, และเทสต์ที่ไล่ทุก rule
+ใน `url_map` (mutation test 18 แบบ — ตายทั้งหมด)
+
+**ของที่ยกไปเฟสอื่นอย่างตั้งใจ:** rate limit เฉพาะของ API → Phase 5 (ต้องมี
+storage ที่ไม่ใช่ `memory://` ก่อน ไม่งั้นเพดานจริงเป็น N เท่าตามจำนวน worker) /
+หน้าเว็บสำหรับออก token → Phase 4 (ต้องคิดเรื่อง re-authentication ก่อน) /
+pagination กับ ETag → เพิ่มแบบ opt-in ได้โดยไม่ต้องขึ้น v2 (ตัดสินใจไว้ใน ADR 0018)
 
 ## Phase 4 — Identity & AuthN/AuthZ
 

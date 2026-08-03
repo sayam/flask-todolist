@@ -8,6 +8,7 @@ from typing import Any
 
 import marshmallow as ma
 from flask.views import MethodView
+from flask_babel import gettext as _
 
 from app.api.auth import token_owner
 from app.api.base import api_blueprint
@@ -19,6 +20,7 @@ from app.api.schemas import (
     TodoUpdateSchema,
 )
 from app.filters import FilterSpec
+from app.services import ValidationError
 from app.services import todos as todos_service
 
 blp = api_blueprint("todos", "/todos", "งานของผู้ใช้ที่ยืนยันตัวตนด้วย token")
@@ -33,13 +35,22 @@ class TodoCollection(MethodView):
     # แล้วจะได้ผลลัพธ์ที่ไม่ได้กรองกลับไปเงียบ ๆ (กติกาเดียวกับฟิลด์ใน PATCH)
     @blp.arguments(TodoQuerySchema, location="query", unknown=ma.RAISE)
     @blp.response(200, TodoSchema(many=True))
+    @blp.alt_response(400, schema=ErrorSchema, description="รูปแบบวันที่ในตัวกรองใช้ไม่ได้")
     @blp.alt_response(404, schema=ErrorSchema, description="หมวดที่กรองไม่ใช่ของผู้ใช้คนนี้")
     def get(self, args: dict[str, Any]) -> list[Any]:
         """รายการงานตามตัวกรอง
 
-        ตัวกรองชุดเดียวกับหน้าเว็บทุกตัว ค่าที่ไม่รู้จักตกกลับเป็นค่าเริ่มต้น
+        ตัวกรองชุดเดียวกับหน้าเว็บทุกตัว **ค่า**ที่ไม่รู้จักตกกลับเป็นค่าเริ่มต้น
+        ยกเว้นรูปแบบวันที่ที่ย่อยไม่ได้ ซึ่งตอบ 400 แทนที่จะเงียบแล้วแสดงอย่างอื่น
         """
-        spec = FilterSpec.from_params({key: str(value) for key, value in args.items()})
+        try:
+            spec = FilterSpec.from_params({key: str(value) for key, value in args.items()})
+        except ValueError as bad:
+            # ฝั่ง HTML flash แล้วแสดงทุกงานแทน (คนกดผิดเห็นข้อความได้) แต่ client
+            # ที่ยิง API ต้องรู้ว่าตัวกรองไม่ทำงาน ไม่ใช่ได้ผลลัพธ์ที่ตีความไปเอง
+            raise ValidationError(
+                _("Invalid date format"), code="date_invalid", field="date_from"
+            ) from bad
         return todos_service.list_todos(token_owner(), spec)
 
     @blp.arguments(TodoCreateSchema)

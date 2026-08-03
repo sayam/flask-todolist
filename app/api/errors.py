@@ -48,6 +48,11 @@ CODE_BY_STATUS = {
 }
 UNKNOWN_CODE = "http_error"
 
+# header ที่เป็นส่วนหนึ่งของความหมายของคำตอบ ไม่ใช่ของตกแต่ง — ต้องติดไปด้วยเสมอ
+# `Allow` ของ 405 กับ `Retry-After` ของ 429/503 เป็นข้อบังคับของ RFC 9110
+# (เคยหายไปตอนเปลี่ยนมาสร้างคำตอบเอง — schemathesis จับได้จากการยิง TRACE)
+CARRIED_HEADERS = ("Allow", "Retry-After", "WWW-Authenticate")
+
 
 class ErrorDetailSchema(ma.Schema):
     """เนื้อในของซอง — มีไว้ให้ spec อธิบายได้ ไม่ได้ใช้ dump จริง"""
@@ -98,4 +103,8 @@ def http_error_response(error: HTTPException) -> tuple[Response, int, dict[str, 
     field_errors = data.get("errors") or data.get("messages")
     if field_errors:
         payload["errors"] = field_errors
-    return _envelope(payload, status, data.get("headers"))
+
+    original = error.get_response().headers
+    headers = {name: original[name] for name in CARRIED_HEADERS if name in original}
+    headers.update(data.get("headers") or {})
+    return _envelope(payload, status, headers)

@@ -17,6 +17,7 @@ from sqlalchemy import func, select
 from app import db
 from app.models import Category, Todo, User
 from app.services.errors import ConflictError, NotFoundError, ValidationError
+from app.services.lookup import by_id
 
 
 def list_categories(user: User) -> list[Category]:
@@ -27,7 +28,7 @@ def list_categories(user: User) -> list[Category]:
 
 def get_category(user: User, category_id: int) -> Category:
     """หมวดของผู้ใช้คนนี้เท่านั้น — ของคนอื่นตอบเหมือนไม่มีอยู่ (ADR 0004)"""
-    category = db.session.get(Category, category_id)
+    category = by_id(Category, category_id)
     if category is None or category.user_id != user.id:
         raise NotFoundError(_("Category not found"), code="category_not_found")
     return category

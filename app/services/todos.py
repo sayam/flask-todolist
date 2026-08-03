@@ -22,6 +22,7 @@ from app.filters import CATEGORY_NONE, FilterSpec, apply_when
 from app.models import Todo, User
 from app.services.categories import get_category
 from app.services.errors import NotFoundError, ValidationError
+from app.services.lookup import by_id
 
 # ฟิลด์ที่แก้ผ่าน `update_todo()` ได้ — ค่าที่ไม่อยู่ในนี้ถูกปฏิเสธ ไม่ใช่ถูกเมิน
 # (การเมินเงียบ ๆ ทำให้ client ที่พิมพ์ชื่อฟิลด์ผิดคิดว่าบันทึกสำเร็จ)
@@ -56,7 +57,7 @@ def list_todos(user: User, spec: FilterSpec) -> list[Todo]:
 
 def get_todo(user: User, todo_id: int) -> Todo:
     """งานของผู้ใช้คนนี้เท่านั้น — ของคนอื่นตอบเหมือนไม่มีอยู่ (ADR 0004)"""
-    todo = db.session.get(Todo, todo_id)
+    todo = by_id(Todo, todo_id)
     if todo is None or todo.user_id != user.id:
         raise NotFoundError(_("Task not found"), code="todo_not_found")
     return todo

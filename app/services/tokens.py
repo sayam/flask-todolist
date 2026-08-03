@@ -27,6 +27,7 @@ from sqlalchemy import select
 from app import db, tz
 from app.models import ApiToken, User
 from app.services.errors import NotFoundError, ValidationError
+from app.services.lookup import by_id
 
 # ขึ้นต้นด้วยคำที่ค้นเจอง่าย เผื่อ token หลุดเข้า git หรือ log — เครื่องมือสแกน
 # secret จับ pattern ที่ตายตัวได้ ต่างจากสตริงสุ่มเปล่า ๆ ที่แยกจาก id ไม่ออก
@@ -91,7 +92,7 @@ def list_tokens(user: User) -> list[ApiToken]:
 
 def get_token(user: User, token_id: int) -> ApiToken:
     """ใบของผู้ใช้คนนี้เท่านั้น — ของคนอื่นตอบเหมือนไม่มีอยู่ (ADR 0004)"""
-    token = db.session.get(ApiToken, token_id)
+    token = by_id(ApiToken, token_id)
     if token is None or token.user_id != user.id:
         raise NotFoundError(_("Token not found"), code="token_not_found")
     return token
@@ -121,7 +122,7 @@ def authenticate(raw: str | None) -> ApiToken | None:
     if len(parts) != expected_parts or parts[0] != TOKEN_PREFIX or not parts[1].isdigit():
         return None
 
-    token = db.session.get(ApiToken, int(parts[1]))
+    token = by_id(ApiToken, int(parts[1]))
     if token is None or not token.is_usable:
         return None
     if not hmac.compare_digest(token.token_hash, _hash_secret(parts[2])):

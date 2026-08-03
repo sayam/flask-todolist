@@ -4,6 +4,7 @@
 - Flask + Flask-SQLAlchemy, SQLite (dev), pipenv จัดการ env
 - Flask-Migrate (alembic) จัดการ schema, Flask-Login จัดการ session, Flask-WTF จัดการ CSRF,
   Flask-Limiter จำกัดจำนวนครั้งที่หน้า login
+- flask-smorest + marshmallow ทำ `/api/v1` และ generate OpenAPI spec จากโค้ด
 - Python 3.13
 
 ## Commands
@@ -20,12 +21,18 @@
 - ล้างข้อมูลที่พ้นระยะ: `pipenv run flask purge-expired` (ดูก่อนด้วย `--dry-run`)
 - ตรวจ audit: `pipenv run flask audit-verify` / อ่าน audit: `pipenv run flask audit-log`
 - เปลี่ยน schema: `pipenv run flask db migrate -m "..."` แล้ว `pipenv run flask db upgrade`
+- อัปเดตสัญญา API: `PYTHONPATH=. pipenv run python scripts/generate_openapi.py`
+  (ต้องรันทุกครั้งที่แก้ `app/api/` ไม่งั้น CI แดง)
 
 ## Structure
 - `app/__init__.py` — app factory (`create_app`), init db/migrate/csrf/limiter/login_manager
   และ errorhandler ของ 429
-- `app/models.py` — SQLAlchemy models (`User`, `Category`, `Todo`) แบบ 2.0 typed (`Mapped[]`)
+- `app/models.py` — SQLAlchemy models (`User`, `ApiToken`, `Category`, `Todo`) แบบ 2.0 typed (`Mapped[]`)
+- `app/services/` — **ตรรกะทั้งหมดอยู่ที่นี่ และไม่รู้จัก HTTP เลย** (ดูหัวข้อ service layer)
+  `lookup.by_id()` เป็นทางเดียวที่หาแถวตาม id ที่มาจากภายนอก (กัน id เกิน 64 บิต → 500)
 - `app/routes.py` — view functions ของงาน/หมวด/ตั้งค่า ผูกกับ blueprint `main`
+  เป็น **adapter บาง ๆ** เหนือ service ไม่ใช่ที่อยู่ของตรรกะ
+- `app/api/` — `/api/v1` (flask-smorest) adapter อีกตัวบน service ชุดเดียวกัน
 - `app/auth.py` — login/logout ผูกกับ blueprint `auth`
 - `app/cli.py` — custom flask CLI commands
 - `app/tz.py` — แปลงเวลา UTC ↔ เวลาท้องถิ่นของผู้ใช้
@@ -39,6 +46,7 @@
 - `app/static/app.js` — พฤติกรรมฝั่ง client **ทั้งหมด** (ห้ามมี inline handler ที่อื่น)
 - `.pa11yci.json` — รายการหน้าที่ job `a11y` ใน CI สแกน (รวมโหมดมืด/ธีม ocean/ภาษาไทย)
 - `scripts/` — สคริปต์ที่รันมือ ไม่ได้ถูกเรียกตอนแอปทำงาน
+- `docs/openapi.json` — **ไฟล์ที่ generate มา ห้ามแก้ด้วยมือ** (ดูหัวข้อ API v1)
 - `app/templates/` — Jinja2 templates (ทุกหน้า extend `base.html`)
 - `app/static/` — `logo.svg` (120px ใช้หน้า login) และ `logo-small.svg` (32px ใช้บน header + favicon)
   ตัวเล็กไม่ใช่ตัวใหญ่ย่อลงมา แต่ตัดรายละเอียดออกให้เหลือแค่เครื่องหมายถูก
@@ -61,8 +69,9 @@
 - **ลบหมวดได้เฉพาะตอนไม่มีงานอยู่เลย** งานที่ทำเสร็จแล้วก็ยังนับ
   (มันยังโผล่ในตัวกรอง "เสร็จแล้ว") ปุ่มบนหน้าเว็บถูก disabled ไว้ด้วย
   แต่การกันจริงอยู่ที่ route — อย่าเชื่อแค่ปุ่ม
-- ห้ามใช้ `db.get_or_404()` กับข้อมูลที่มีเจ้าของ — ใช้ `_owned_todo()`/`_owned_category()` ใน `routes.py`
-  ซึ่งตอบ 404 (ไม่ใช่ 403) เมื่อเป็นของคนอื่น เพื่อไม่ให้รู้ว่า id นั้นมีจริง
+- ห้ามใช้ `db.get_or_404()` กับข้อมูลที่มีเจ้าของ — ใช้ `get_todo()`/`get_category()`/
+  `get_token()` ของ service ซึ่ง raise `NotFoundError` (→ 404 ไม่ใช่ 403) เมื่อเป็น
+  ของคนอื่น เพื่อไม่ให้รู้ว่า id นั้นมีจริง (ADR 0004)
 - `create_app` **ไม่เรียก** `db.create_all()` แล้ว — schema มาจาก migration เท่านั้น
   (เทสต์สร้างตารางเองใน fixture `app`)
 - **`TestConfig` ใน `tests/conftest.py` ต้อง `class TestConfig(Config)` เสมอ**
@@ -94,6 +103,11 @@
 - เทสต์บันทึก preferences ที่ผ่านทั้งที่ไม่ได้เขียน session (แก้: seed session ค้างไว้ก่อน)
 - `resolve_mode()` ที่ผ่านทั้งที่เป็น stub (แก้: เทสต์ end-to-end หาโซนที่ตอนนี้เป็นกลางคืน)
 - regex จับ `#, fuzzy` ที่พลาด `#, fuzzy, python-format`
+
+**API มีตัว fuzz ให้ด้วย** `tests/test_api_fuzz.py` ยิงคำขอที่สร้างจาก
+`docs/openapi.json` เอง จับของที่เทสต์ซึ่งคนเขียนเองมองข้าม — รอบแรกจับได้สามอย่าง
+ที่กระทบหน้าเว็บด้วย (ตัวกรองวันที่ย่อยไม่ได้ → 500, id เกิน 64 บิต → 500,
+คำขอที่ตกตั้งแต่ชั้น routing ได้ HTML) **เพิ่ม endpoint ใหม่แล้วมันครอบให้เอง**
 
 **เทสต์ที่ผลลัพธ์ขึ้นกับเครื่อง ต้องปลอม input เอง** อย่าพึ่งว่าเครื่องที่รันมีอะไร
 (`available_timezones()` มี `localtime` บน Ubuntu แต่ไม่มีบน Gentoo →
@@ -404,6 +418,55 @@ log ขึ้น "Running upgrade" ครบทุกตัว exit code เป�
   เจาะรูกลางสายแล้ว verify ไม่ผ่านตลอดกาล
 - **checkpoint ต้องเขียนก่อนลบเสมอ** ไม่งั้นตอนล้างทั้งตารางมันจะหาแถวก่อนหน้าไม่เจอ
   แล้วตั้งต้นที่ genesis — สายยัง "ผ่าน" แต่ไม่ผูกกับประวัติที่มันอ้างว่าแทนอีกต่อไป
+
+## Service layer (Phase 3 — ดู ADR 0016)
+
+- **ตรรกะอยู่ใน `app/services/` ที่เดียว** route ของ HTML กับ view ของ API เป็น
+  adapter ที่อ่าน input → เรียก service → เลือกคำตอบ เท่านั้น
+- **ไฟล์ใน `app/services/` ห้าม import** `request`, `session`, `g`, `flash`, `abort`,
+  `redirect`, `render_template`, `url_for`, `jsonify`, `make_response`, ทั้งโมดูล
+  `flask`, `flask_login`, `app.routes`/`app.auth`/`app.api`
+  (`current_app` อนุญาต — ผูกกับแอป ไม่ใช่กับ request) `tests/test_service_layer.py`
+  สแกน AST บังคับ + มีเทสต์ที่รันตรรกะทั้งเส้นในapp context เปล่า ๆ
+- **ความล้มเหลวสื่อสารด้วย exception ไม่ใช่ `abort()`** — `NotFoundError` /
+  `ValidationError` / `ConflictError` แต่ละตัวมี `code` (ภาษาเครื่อง เป็นส่วนหนึ่ง
+  ของสัญญา API) แยกจาก `message` (ภาษาคน เปลี่ยนถ้อยคำได้)
+- **service `commit()` เอง** ผู้เรียกไม่ต้องรู้เรื่อง session — "ลืม commit" คือบั๊ก
+  ที่เงียบที่สุดชนิดหนึ่ง (ทำงานถูกทุกอย่างแต่ข้อมูลไม่ถูกเขียน)
+- service รับ **`datetime` ที่ย่อยแล้ว** เป็นเวลาท้องถิ่นของผู้ใช้ ไม่ใช่สตริงดิบ
+  การแปลงเป็น UTC เกิดในตัว service (ผู้เรียกไม่ต้องรู้เรื่อง timezone)
+- `update_todo()` รับ **dict ของเฉพาะฟิลด์ที่ส่งมา** ไม่ใช่ argument ต่อฟิลด์ เพราะ
+  PATCH ต้องแยก "ไม่ได้ส่งฟิลด์นี้มา" ออกจาก "ส่ง null มาเพื่อล้างค่า"
+  ชื่อฟิลด์ที่ไม่รู้จัก **ถูกปฏิเสธ ไม่ใช่ถูกเมิน**
+
+## API v1 (Phase 3 — ดู ADR 0018)
+
+- `/api/v1` = todos + categories + tokens โค้ดอยู่ใน `app/api/` ใช้ flask-smorest
+  + marshmallow เรียก service ชุดเดียวกับหน้าเว็บ **ห้ามมีตรรกะของโดเมนในนี้**
+- **สร้าง blueprint ของ API ได้ทางเดียวคือ `api_blueprint()` ใน `app/api/base.py`**
+  ซึ่งผูกด่าน token (`before_request`) และ error handler ให้ครบ — blueprint ที่
+  สร้างเองจะไม่มีด่านและไม่มีอะไรฟ้อง
+- **ด่านตรวจ `g.api_token` ไม่ใช่แค่ `current_user.is_authenticated`**
+  API ยกเว้น CSRF ไว้ ถ้ายอมรับ session cookie ด้วยจะเปิดรู CSRF ทันที
+  และ **token ใช้กับหน้าเว็บ HTML ไม่ได้** (loader จำกัดด้วย path `/api/`)
+- `require_api_token()` ต้องแตะ `current_user` ก่อนหนึ่งครั้ง — Flask-Login เรียก
+  `request_loader` แบบ lazy ถ้าไม่แตะ `g.api_token` จะว่างเสมอแล้วทุกคำขอได้ 401
+- ซอง error รูปเดียวทุกกรณี: `{"error": {"code": ..., "message": ...}}`
+  โดย `code` มาจาก `ServiceError.code` ตรง ๆ (400 = แก้ค่าที่ส่งมา, 409 = ไปแก้
+  สถานะก่อน, 404 = ไม่มีหรือของคนอื่น ตาม ADR 0004, 422 = schema จับได้ก่อนถึง service)
+- **`_register_error_handlers()` ของ smorest ถูก override ให้ไม่ทำอะไร** ไม่งั้น
+  มันจะยึด handler ของ `HTTPException` ทั้งแอปแล้วหน้า 404 ของเว็บกลายเป็น JSON
+- **เวลาในสัญญาเป็นเวลาท้องถิ่นของเจ้าของข้อมูล ไม่มี offset** ค่าที่มี offset
+  ถูกปฏิเสธ ย่อยด้วย `tz.parse_naive()` ตัวเดียวกับฝั่ง HTML
+- ชื่อ query parameter ที่ไม่รู้จัก **ถูกปฏิเสธ (422)** — ต้องระบุ `unknown=ma.RAISE`
+  เอง เพราะ webargs ตั้งค่าเริ่มต้นของ query เป็น EXCLUDE (พิมพ์ชื่อตัวกรองผิดแล้ว
+  ได้ผลลัพธ์ที่ไม่ได้กรองกลับไปเงียบ ๆ) ส่วน **ค่า**ที่ไม่รู้จักยังตกกลับเป็นค่าเริ่มต้น
+  เหมือนฝั่งเว็บ
+- **แก้ `app/api/` แล้วต้องรัน `scripts/generate_openapi.py`** — `docs/openapi.json`
+  เป็นภาพถ่ายที่มีเทสต์กับ job `openapi` ใน CI เทียบว่าตรงกับโค้ดเป๊ะ
+- **เวอร์ชันอยู่ที่ path และ v1 แก้ไม่ได้** เพิ่ม field/endpoint/query ที่มีค่าเริ่มต้นได้
+  แต่ลบ/เปลี่ยนชื่อ/เปลี่ยนชนิด/เปลี่ยน status code/เปลี่ยนความหมายของ `code` ต้องขึ้น v2
+- ยังไม่มี: pagination, ETag, rate limit ของ API, หน้าเว็บสำหรับออก token
 
 ## Personal access token (Phase 3 — ดู ADR 0017)
 

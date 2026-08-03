@@ -235,3 +235,27 @@ def test_a_date_that_is_not_even_a_string_is_refused(api_client):
     resp = api_client.post(TODOS, json={"title": "งาน", "due_date": 1756704000})
     assert resp.status_code == UNPROCESSABLE
     assert "ISO 8601" in str(resp.get_json()["error"]["errors"])
+
+
+# ---------------------------------------------------------------- ของที่ fuzz จับได้
+
+
+def test_a_date_filter_that_cannot_be_parsed_is_a_400(api_client):
+    """ฝั่งเว็บ flash แล้วแสดงทุกงานแทน แต่ client ที่ยิง API ต้องรู้ว่าตัวกรองไม่ทำงาน
+
+    ก่อนแก้: `ValueError` หลุดออกจาก view กลายเป็น 500 (schemathesis จับได้)
+    """
+    resp = api_client.get(f"{TODOS}?when=range&date_from=เมื่อวาน")
+    assert resp.status_code == BAD_REQUEST
+    assert resp.get_json()["error"]["code"] == "date_invalid"
+
+
+def test_an_id_too_large_for_the_column_is_a_404(api_client):
+    """id ที่เกิน 64 บิตแปลว่า "ไม่มีวันมีอยู่จริง" ไม่ใช่ "ระบบพัง"
+
+    ก่อนแก้: ไดรเวอร์ DB โยน OverflowError ตั้งแต่ยังไม่ได้ query → 500
+    """
+    huge = 10**19
+    assert api_client.get(f"{TODOS}/{huge}").status_code == NOT_FOUND
+    assert api_client.delete(f"{TODOS}/{huge}").status_code == NOT_FOUND
+    assert api_client.patch(f"{TODOS}/{huge}", json={"title": "แก้"}).status_code == NOT_FOUND

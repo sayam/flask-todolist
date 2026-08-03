@@ -26,6 +26,7 @@ interrogate = "*"
 pip-audit = "*"
 cyclonedx-bom = "*"
 pre-commit = "*"
+schemathesis = "*"
 
 [requires]
 python_version = "3.13"
