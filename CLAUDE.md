@@ -342,6 +342,9 @@ log ขึ้น "Running upgrade" ครบทุกตัว exit code เป�
 ## Soft delete และ purge (Phase 2 — ดู ADR 0014)
 - **"ลบ" ทั้งระบบแปลว่าซ่อน** ตั้ง `deleted_at` ไม่ใช่ลบแถว
   ห้ามใช้ `db.session.delete()` หรือ `.delete()` แบบ bulk ที่ไหนอีกนอก `app/purge.py`
+  **`tests/test_write_discipline.py` สแกนโค้ดบังคับข้อนี้อยู่** รวมถึง raw SQL /
+  `text()` / Core DML / `synchronize_session` ซึ่งเลี่ยง `after_flush` จึงไม่ลง audit
+  จำเป็นต้องใช้จริงต้องเพิ่มใน `ALLOWED_LINES` พร้อมเหตุผล ไม่ใช่ลบเทสต์ทิ้ง
 - **ตัวกรองถูกเติมอัตโนมัติทุก ORM query** ผ่าน event `do_orm_execute` ใน
   `app/soft_delete.py` ไม่ต้องใส่เอง และ**ห้ามพึ่งการใส่เอง** เพราะลืมได้
   งานที่ต้องเห็นของที่ลบแล้วต้องขอด้วย `.execution_options(**INCLUDE_DELETED)`

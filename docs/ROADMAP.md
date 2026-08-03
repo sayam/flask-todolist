@@ -116,7 +116,7 @@ migration และโค้ดใหม่ทุกตัวจากนี้�
 |---|---|---|---|
 | 0 ✅ | Process backbone | S | Maintainability |
 | 1 ✅ | Cross-cutting inheritance | M | Security(headers), Interaction, Maintainability |
-| 2 | Data governance core | L | Audit Trail, Data Retention, PDPA |
+| 2 ✅ | Data governance core | L | Audit Trail, Data Retention, PDPA |
 | 3 | Service layer + API v1 | M–L | Compatibility, Maintainability |
 | 4 | Identity & AuthN/AuthZ | L | Security(authn), Compatibility(SSO) |
 | 5 | Deployment parity + DB/cache plugins | M–L | Flexibility, Security(TLS/secrets), Compatibility |
@@ -175,7 +175,7 @@ coverage gate ใน CI
 **DoD:** ✅ CSP ไม่มี `unsafe-inline`/`unsafe-eval` ✅ a11y gate เขียวใน CI (11/11)
 ✅ ทุก request มี request_id ใน log — เทสต์ 292 ผ่าน coverage 93.20% (ratchet 92→93)
 
-## Phase 2 — Data governance core ★ เฟสที่แพงสุดถ้าทำช้า
+## Phase 2 — Data governance core ✅ (เสร็จ 2026-08-03) ★ เฟสที่แพงสุดถ้าทำช้า
 
 **เป้าหมาย:** เปลี่ยนความหมายของ "ลบ" และให้ทุก write ถูกบันทึก **ก่อน** ที่จะมี
 ฟีเจอร์/สัญญาใหม่มาทับ
@@ -217,8 +217,18 @@ coverage gate ใน CI
 **ทำไมตรงนี้:** (1) เปลี่ยน semantics ของข้อมูล — ต้องเสร็จก่อน API v1 freeze สัญญา
 (2) audit ผ่าน event hooks แปลว่าฟีเจอร์ทุกตัวหลังจากนี้ถูก audit ฟรี
 (3) ทุก route ที่เพิ่มก่อนเฟสนี้คือจุด hard-delete ที่ต้องย้อนแก้เพิ่ม
-**DoD:** ไม่มี `session.delete`/bulk delete บนข้อมูลผู้ใช้นอก purge job,
-mutation test ยืนยันว่า write ที่ไม่ลง audit ถูกจับได้, verify chain ผ่าน
+**DoD:** ✅ ไม่มี `session.delete`/bulk delete บนข้อมูลผู้ใช้นอก purge job
+✅ mutation test ยืนยันว่า write ที่ไม่ลง audit ถูกจับได้ ✅ verify chain ผ่าน
+— เทสต์ 387 ผ่าน coverage 94.88% (ratchet 93→94), audit 97% / purge, soft_delete 100%
+
+**ข้อ DoD แรกเป็นสถานะ ไม่ใช่เหตุการณ์** — จริงวันนี้แล้วเท็จพรุ่งนี้ได้ถ้ามีคนเพิ่ม
+route ใหม่ จึงมี `tests/test_write_discipline.py` สแกนโค้ดบังคับไว้ ไม่ปล่อยให้ขึ้นกับ
+ความจำ (mutation test 6 แบบ: hard delete, bulk delete, raw SQL, `text()`,
+Core DML, `synchronize_session` — จับได้ทั้งหมด)
+
+**ของที่ยกไปเฟสอื่นอย่างตั้งใจ:** ติดตั้งตารางเวลา purge บน host จริง → Phase 5
+(สคริปต์พร้อมแล้ว ดู [OPERATIONS.md](OPERATIONS.md)) / anchor hash ออกนอกระบบเพื่อ
+จับการตัดหางสายหรือลบทั้งตาราง → Phase 7 พร้อมงาน SIEM (ดู ADR 0015)
 
 ## Phase 3 — Service layer + API v1 (contract-first)
 
