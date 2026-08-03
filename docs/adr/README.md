@@ -20,3 +20,5 @@ ADR 0002–0008 เป็นการ backfill การตัดสินใจ
 | [0012](0012-accessibility-two-tier-gate.md) | a11y gate สองชั้น (โครงสร้าง + pa11y) | accepted |
 | [0013](0013-schema-identity-tdl-prefix.md) | prefix `tdl_`, naming convention, typed models | accepted |
 | [0014](0014-pdpa-vs-audit-retention.md) | PDPA vs audit: ไม่เขียน PII ลง audit ตั้งแต่แรก | accepted |
+| [0015](0015-audit-trail-design.md) | audit trail: ดักที่ ORM, hash chain, checkpoint ตอน purge | accepted |
+| [0016](0016-service-layer-boundary.md) | service layer ไม่รู้จัก HTTP, route เป็น adapter | accepted |

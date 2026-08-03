@@ -12,6 +12,8 @@
 ลำดับความสำคัญเหมือนภาษา: `?mode=` → session → `User.mode` → ค่าเริ่มต้น
 """
 
+from datetime import datetime
+
 from flask import has_request_context, request, session
 from flask_login import current_user
 
@@ -29,45 +31,45 @@ MODES = (LIGHT, DARK, AUTO)
 DEFAULT_MODE = AUTO
 
 
-def themes():
+def themes() -> dict[str, plugins.Plugin]:
     """ชุดสีที่ติดตั้งอยู่: ไอดี -> Plugin — มาจากการค้นหาไดเรกทอรี ไม่ใช่ config"""
     return plugins.themes()
 
 
-def theme_is_supported(value):
+def theme_is_supported(value: str | None) -> bool:
     return bool(value) and value in themes()
 
 
-def mode_is_supported(value):
+def mode_is_supported(value: str | None) -> bool:
     return value in MODES
 
 
-def select_theme():
+def select_theme() -> str:
     if not has_request_context():
         return DEFAULT_THEME
     if theme_is_supported(request.args.get(THEME_SESSION_KEY)):
-        return request.args[THEME_SESSION_KEY]
+        return str(request.args[THEME_SESSION_KEY])
     if theme_is_supported(session.get(THEME_SESSION_KEY)):
-        return session[THEME_SESSION_KEY]
+        return str(session[THEME_SESSION_KEY])
     if current_user.is_authenticated and theme_is_supported(current_user.theme):
-        return current_user.theme
+        return str(current_user.theme)
     return DEFAULT_THEME
 
 
-def select_mode():
+def select_mode() -> str:
     """โหมดที่ผู้ใช้เลือก — อาจเป็น 'auto' ซึ่งยังไม่ใช่ค่าที่เอาไปแสดงได้"""
     if not has_request_context():
         return DEFAULT_MODE
     if mode_is_supported(request.args.get(MODE_SESSION_KEY)):
-        return request.args[MODE_SESSION_KEY]
+        return str(request.args[MODE_SESSION_KEY])
     if mode_is_supported(session.get(MODE_SESSION_KEY)):
-        return session[MODE_SESSION_KEY]
+        return str(session[MODE_SESSION_KEY])
     if current_user.is_authenticated and mode_is_supported(current_user.mode):
-        return current_user.mode
+        return str(current_user.mode)
     return DEFAULT_MODE
 
 
-def sun_mode(tz_name, now_local=None):
+def sun_mode(tz_name: str | None, now_local: datetime | None = None) -> str:
     """โหมดตามดวงอาทิตย์ของ timezone หนึ่ง ๆ — คืน 'light' หรือ 'dark' เสมอ
 
     โซนที่ไม่มีในตาราง (เช่นชื่อพ้องที่ tzdata ไม่ได้ให้พิกัดไว้) ให้ 'light'
@@ -91,13 +93,13 @@ def sun_mode(tz_name, now_local=None):
     return LIGHT if sunrise <= minutes < sunset else DARK
 
 
-def resolve_mode():
+def resolve_mode() -> str:
     """โหมดที่เอาไปใส่ `data-theme` ได้จริง — 'light' หรือ 'dark' เท่านั้น"""
     mode = select_mode()
     if mode != AUTO:
         return mode
 
-    tz_name = (
+    tz_name: str | None = (
         current_user.timezone_name
         if has_request_context() and current_user.is_authenticated
         else None

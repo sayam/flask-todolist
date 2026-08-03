@@ -11,6 +11,7 @@ from flask import (
 )
 from flask_babel import gettext as _
 from flask_login import current_user, login_required, login_user, logout_user
+from sqlalchemy import select
 
 from app import audit, db, limiter
 from app.i18n import SESSION_KEY, is_supported
@@ -33,7 +34,7 @@ def login():
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
-        user = User.query.filter_by(username=username).first()
+        user = db.session.scalars(select(User).where(User.username == username)).first()
         # ไม่แยกว่า user ผิดหรือรหัสผิด กัน username enumeration
         if user is None or not user.check_password(password):
             # **ห้ามบันทึก username ที่กรอกมา** เป็นชั้น C2 และเป็นของคนนอกด้วยซ้ำ

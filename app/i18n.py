@@ -17,29 +17,31 @@ from flask_login import current_user
 SESSION_KEY = "lang"
 
 
-def supported_languages():
-    return current_app.config["LANGUAGES"]
+def supported_languages() -> dict[str, str]:
+    """รหัสภาษา -> ชื่อที่แสดงในตัวเลือก (ประกาศไว้ใน config.LANGUAGES)"""
+    languages: dict[str, str] = current_app.config["LANGUAGES"]
+    return languages
 
 
-def is_supported(code):
+def is_supported(code: str | None) -> bool:
     return bool(code) and code in supported_languages()
 
 
-def select_locale():
+def select_locale() -> str:
     # นอก request (เช่นใน flask CLI) ไม่มีข้อมูลให้เดาภาษา ใช้ค่าเริ่มต้นไปเลย
     # ถ้าไม่กันไว้ การเรียก gettext จาก CLI จะพังที่ request.args
     if not has_request_context():
-        return current_app.config["BABEL_DEFAULT_LOCALE"]
+        return str(current_app.config["BABEL_DEFAULT_LOCALE"])
 
     if is_supported(request.args.get(SESSION_KEY)):
-        return request.args[SESSION_KEY]
+        return str(request.args[SESSION_KEY])
 
     if is_supported(session.get(SESSION_KEY)):
-        return session[SESSION_KEY]
+        return str(session[SESSION_KEY])
 
     # current_user เข้าถึงได้เฉพาะตอนมี request context ที่ผูก login manager แล้ว
     if current_user.is_authenticated and is_supported(current_user.locale):
-        return current_user.locale
+        return str(current_user.locale)
 
     best = request.accept_languages.best_match(list(supported_languages()))
-    return best or current_app.config["BABEL_DEFAULT_LOCALE"]
+    return best or str(current_app.config["BABEL_DEFAULT_LOCALE"])

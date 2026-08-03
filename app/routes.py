@@ -1,4 +1,12 @@
-from datetime import datetime
+"""view ของฝั่ง HTML — **adapter บาง ๆ เท่านั้น** (Phase 3 — ดู ADR 0016)
+
+หน้าที่ของไฟล์นี้มีสามอย่าง: อ่าน request, เรียก service, แล้วเลือกว่าจะ
+render อะไร/เด้งไปไหน/flash อะไร ตรรกะว่าอะไรถูกอะไรผิดอยู่ใน `app/services/`
+ทั้งหมด เพื่อให้ `/api/v1` เรียกตรรกะชุดเดียวกันได้โดยไม่ต้องก๊อป
+
+การแปลงความล้มเหลวเป็นภาษา HTTP เขียนไว้ตรง ๆ ทุกจุดโดยตั้งใจ ไม่ทำเป็น
+decorator กลาง เพราะแต่ละหน้าเด้งกลับคนละที่เมื่อมีข้อผิดพลาด
+"""
 
 from flask import (
     Blueprint,
@@ -12,74 +20,24 @@ from flask import (
     url_for,
 )
 from flask_babel import gettext as _
-from flask_babel import ngettext
 from flask_login import current_user, login_required
 
-from app import db, plugins, tz
-from app.filters import (
-    DAY_END,
-    DAY_START,
-    UPCOMING_CHOICES,
-    apply_when,
-    normalise_status,
-    normalise_when,
-    normalise_within,
-    parse_boundary,
-)
+from app import plugins, tz
+from app.filters import UPCOMING_CHOICES, FilterSpec
 from app.i18n import SESSION_KEY, is_supported
-from app.models import Category, Todo
+from app.services import NotFoundError, ServiceError, ValidationError
+from app.services import categories as categories_service
+from app.services import settings as settings_service
+from app.services import todos as todos_service
 from app.theme import (
     MODE_SESSION_KEY,
     THEME_SESSION_KEY,
     mode_is_supported,
-    theme_is_supported,
 )
 
 bp = Blueprint("main", __name__)
 
 SHOW_START_KEY = "show_start"
-
-
-def _owned_todo(todo_id):
-    """ดึง todo ที่เป็นของ current_user เท่านั้น — ของคนอื่นตอบ 404 ไม่ใช่ 403
-    เพื่อไม่ให้รู้ว่า id นั้นมีอยู่จริง"""
-    todo = db.session.get(Todo, todo_id)
-    if todo is None or todo.user_id != current_user.id:
-        abort(404)
-    return todo
-
-
-def _owned_category(category_id):
-    category = db.session.get(Category, category_id)
-    if category is None or category.user_id != current_user.id:
-        abort(404)
-    return category
-
-
-def _resolve_category_id(raw):
-    """แปลงค่า category จาก form เป็น id ที่ยืนยันแล้วว่าเป็นของ current_user"""
-    if not raw:
-        return None
-    return _owned_category(int(raw)).id
-
-
-def _parse_due_date(raw):
-    """แปลงค่าจาก <input type="datetime-local"> เป็น datetime แบบ naive UTC
-
-    คืน None ถ้าเว้นว่าง และ raise ValueError ถ้ารูปแบบใช้ไม่ได้
-    (browser ส่งมาถูกเสมอ แต่คนยิง POST ตรง ๆ ส่งอะไรมาก็ได้)
-
-    รับ "YYYY-MM-DD" เปล่า ๆ ด้วย โดยถือว่าเป็นเที่ยงคืนของวันนั้น —
-    เผื่อ client เก่าหรือคนยิง API ที่ยังส่งแค่วัน
-    """
-    raw = (raw or "").strip()
-    if not raw:
-        return None
-    parsed = datetime.fromisoformat(raw)
-    if parsed.tzinfo is not None:
-        raise ValueError("ไม่รับ timezone offset — ใช้เวลาท้องถิ่นเท่านั้น")
-    # ค่าที่ได้เป็นเวลาท้องถิ่นของผู้ใช้ แปลงเป็น UTC ก่อนส่งไปเก็บ
-    return tz.to_utc(parsed, current_user.timezone_name)
 
 
 def _safe_referrer():
@@ -93,42 +51,43 @@ def _safe_referrer():
     return "/" + path
 
 
+def _form_datetime(field):
+    """ค่าจาก `<input type="datetime-local">` เป็น datetime ท้องถิ่นแบบ naive
+
+    browser ส่งรูปแบบถูกเสมอ แต่คนยิง POST ตรง ๆ ส่งอะไรมาก็ได้ — รูปแบบที่
+    ย่อยไม่ได้ถูกแปลงเป็น `ValidationError` เพื่อให้ทางเดินของข้อผิดพลาด
+    เหมือนกับที่มาจาก service ไม่ต้องมีทางที่สอง
+    """
+    try:
+        return tz.parse_naive(request.form.get(field))
+    except ValueError as bad:
+        raise ValidationError(_("Invalid date format"), code="date_invalid", field=field) from bad
+
+
+def _todo_fields():
+    """ฟิลด์ของงานจากฟอร์ม — ฟอร์ม HTML ส่งมาครบทุกช่องเสมอ (ต่างจาก PATCH ของ API)"""
+    return {
+        "title": request.form.get("title", ""),
+        "category_id": request.form.get("category_id"),
+        "start_date": _form_datetime("start_date"),
+        "due_date": _form_datetime("due_date"),
+    }
+
+
 @bp.route("/")
 @login_required
 def index():
-    status = normalise_status(request.args.get("status", "all"))
-
-    query = Todo.query.filter_by(user_id=current_user.id)
-    if status == "active":
-        query = query.filter_by(is_done=False)
-    elif status == "completed":
-        query = query.filter_by(is_done=True)
-
-    # ตัวกรองหมวด: "none" = เฉพาะงานที่ไม่มีหมวด, ตัวเลข = id ของหมวด
-    category_arg = (request.args.get("category") or "").strip()
-    selected_category = None
-    if category_arg == "none":
-        query = query.filter(Todo.category_id.is_(None))
-    elif category_arg.isdigit():
-        selected_category = _owned_category(int(category_arg)).id
-        query = query.filter_by(category_id=selected_category)
-    else:
-        category_arg = ""
-
-    # ตัวกรองตามวัน (ดูจาก due_date)
-    when = normalise_when(request.args.get("when", "all"))
-    within = normalise_within(request.args.get("within"))
-    range_from_raw = (request.args.get("date_from") or "").strip()
-    range_to_raw = (request.args.get("date_to") or "").strip()
     try:
-        range_from = parse_boundary(range_from_raw, DAY_START)
-        range_to = parse_boundary(range_to_raw, DAY_END)
+        spec = FilterSpec.from_params(request.args)
     except ValueError:
+        # วันที่ที่ย่อยไม่ได้ ให้แสดงทุกงานแทนที่จะแสดงผลลัพธ์ที่ตีความไปเอง
         flash(_("Invalid date format"))
-        range_from = range_to = None
-        when = "all"
+        spec = FilterSpec.from_params(request.args, ignore_dates=True)
 
-    query = apply_when(query, Todo, when, within, range_from, range_to, current_user.timezone_name)
+    try:
+        todos = todos_service.list_todos(current_user, spec)
+    except NotFoundError:
+        abort(404)
 
     # ติ๊กว่าจะโชว์วันเริ่มในลิสต์ไหม จำไว้ใน session จะได้ไม่ต้องติ๊กใหม่ทุกครั้ง
     # ต้องมี marker เพราะ checkbox ที่ไม่ติ๊กจะไม่ถูกส่งมาเลย แยกไม่ออกจาก
@@ -136,56 +95,32 @@ def index():
     if request.args.get("filters_submitted"):
         # เทียบค่า "1" ตรง ๆ (ค่าที่ checkbox ส่ง) แทน bool() ครอบ user input
         session[SHOW_START_KEY] = request.args.get(SHOW_START_KEY) == "1"
-    show_start = bool(session.get(SHOW_START_KEY))
 
-    todos = query.order_by(
-        # งานที่มีกำหนดส่งขึ้นก่อน เรียงจากใกล้ครบกำหนดสุด
-        # is_(None) ให้ False(0) มาก่อน True(1) เวลาเรียงจากน้อยไปมาก
-        Todo.due_date.is_(None),
-        Todo.due_date.asc(),
-        Todo.created_at.desc(),
-    ).all()
-
-    categories = Category.query.filter_by(user_id=current_user.id).order_by(Category.name).all()
     return render_template(
         "index.html",
         todos=todos,
-        categories=categories,
-        status=status,
-        category_arg=category_arg,
-        selected_category=selected_category,
-        when=when,
-        within=within,
+        categories=categories_service.list_categories(current_user),
+        status=spec.status,
+        category_arg=spec.category,
+        selected_category=int(spec.category) if spec.category.isdigit() else None,
+        when=spec.when,
+        within=spec.within,
         upcoming_choices=UPCOMING_CHOICES,
-        range_from=range_from_raw,
-        range_to=range_to_raw,
-        show_start=show_start,
+        range_from=(request.args.get("date_from") or "").strip(),
+        range_to=(request.args.get("date_to") or "").strip(),
+        show_start=bool(session.get(SHOW_START_KEY)),
     )
 
 
 @bp.route("/add", methods=["POST"])
 @login_required
 def add():
-    title = request.form.get("title", "").strip()
-    if not title:
-        flash(_("Please enter a task name"))
-        return redirect(url_for("main.index"))
     try:
-        start_date = _parse_due_date(request.form.get("start_date"))
-        due_date = _parse_due_date(request.form.get("due_date"))
-    except ValueError:
-        flash(_("Invalid date format"))
-        return redirect(url_for("main.index"))
-    db.session.add(
-        Todo(
-            title=title,
-            user_id=current_user.id,
-            category_id=_resolve_category_id(request.form.get("category_id")),
-            start_date=start_date,
-            due_date=due_date,
-        )
-    )
-    db.session.commit()
+        todos_service.create_todo(current_user, **_todo_fields())
+    except NotFoundError:
+        abort(404)
+    except ServiceError as error:
+        flash(error.message)
     return redirect(url_for("main.index"))
 
 
@@ -194,27 +129,25 @@ def add():
 def edit(todo_id):
     """หน้าแก้งาน — แยกออกมาจากลิสต์เพราะมีทั้งชื่อ วันเริ่ม และกำหนดส่ง
     ใส่ครบในแถวเดียวแล้วอ่านไม่ออก"""
-    todo = _owned_todo(todo_id)
     if request.method == "GET":
-        categories = Category.query.filter_by(user_id=current_user.id).order_by(Category.name).all()
-        return render_template("edit_todo.html", todo=todo, categories=categories)
+        try:
+            todo = todos_service.get_todo(current_user, todo_id)
+        except NotFoundError:
+            abort(404)
+        return render_template(
+            "edit_todo.html",
+            todo=todo,
+            categories=categories_service.list_categories(current_user),
+        )
 
-    title = request.form.get("title", "").strip()
-    if not title:
-        flash(_("Task name cannot be empty"))
-        return redirect(url_for("main.edit", todo_id=todo.id))
     try:
-        start_date = _parse_due_date(request.form.get("start_date"))
-        due_date = _parse_due_date(request.form.get("due_date"))
-    except ValueError:
-        flash(_("Invalid date format"))
-        return redirect(url_for("main.edit", todo_id=todo.id))
+        todos_service.update_todo(current_user, todo_id, _todo_fields())
+    except NotFoundError:
+        abort(404)
+    except ServiceError as error:
+        flash(error.message)
+        return redirect(url_for("main.edit", todo_id=todo_id))
 
-    todo.title = title
-    todo.category_id = _resolve_category_id(request.form.get("category_id"))
-    todo.start_date = start_date
-    todo.due_date = due_date
-    db.session.commit()
     flash(_("Task saved"))
     return redirect(url_for("main.index"))
 
@@ -222,91 +155,71 @@ def edit(todo_id):
 @bp.route("/toggle/<int:todo_id>", methods=["POST"])
 @login_required
 def toggle(todo_id):
-    todo = _owned_todo(todo_id)
-    todo.is_done = not todo.is_done
-    db.session.commit()
+    try:
+        todos_service.toggle_todo(current_user, todo_id)
+    except NotFoundError:
+        abort(404)
     return redirect(url_for("main.index"))
 
 
 @bp.route("/delete/<int:todo_id>", methods=["POST"])
 @login_required
 def delete(todo_id):
-    _owned_todo(todo_id).soft_delete()
-    db.session.commit()
+    try:
+        todos_service.delete_todo(current_user, todo_id)
+    except NotFoundError:
+        abort(404)
     return redirect(url_for("main.index"))
 
 
 @bp.route("/clear-completed", methods=["POST"])
 @login_required
 def clear_completed():
-    # อัปเดตทีละแถวผ่าน ORM ไม่ใช้ bulk delete — จำนวนงานของคนเดียวมีไม่มาก
-    # และ Phase 2 ข้อ 4 ต้องให้ event hook เห็นทุกแถวที่ถูกแตะเพื่อลง audit
-    for todo in Todo.query.filter_by(user_id=current_user.id, is_done=True):
-        todo.soft_delete()
-    db.session.commit()
+    todos_service.clear_completed(current_user)
     return redirect(url_for("main.index"))
 
 
 @bp.route("/categories")
 @login_required
 def categories():
-    items = Category.query.filter_by(user_id=current_user.id).order_by(Category.name).all()
-    return render_template("categories.html", categories=items)
+    return render_template(
+        "categories.html",
+        categories=categories_service.list_categories(current_user),
+    )
 
 
 @bp.route("/categories/add", methods=["POST"])
 @login_required
 def add_category():
-    name = request.form.get("name", "").strip()
-    if not name:
-        flash(_("Please enter a category name"))
-    elif Category.query.filter_by(user_id=current_user.id, name=name).first():
-        flash(_("Category “%(name)s” already exists", name=name))
-    else:
-        db.session.add(Category(name=name, user_id=current_user.id))
-        db.session.commit()
+    try:
+        categories_service.create_category(current_user, request.form.get("name"))
+    except ServiceError as error:
+        flash(error.message)
     return redirect(url_for("main.categories"))
 
 
 @bp.route("/categories/edit/<int:category_id>", methods=["POST"])
 @login_required
 def edit_category(category_id):
-    category = _owned_category(category_id)
-    name = request.form.get("name", "").strip()
-    if not name:
-        flash(_("Category name cannot be empty"))
-    elif (
-        Category.query.filter_by(user_id=current_user.id, name=name)
-        .filter(Category.id != category.id)
-        .first()
-    ):
-        flash(_("Category “%(name)s” already exists", name=name))
-    else:
-        category.name = name
-        db.session.commit()
+    try:
+        categories_service.rename_category(current_user, category_id, request.form.get("name"))
+    except NotFoundError:
+        abort(404)
+    except ServiceError as error:
+        flash(error.message)
     return redirect(url_for("main.categories"))
 
 
 @bp.route("/categories/delete/<int:category_id>", methods=["POST"])
 @login_required
 def delete_category(category_id):
-    category = _owned_category(category_id)
-    # ลบได้เฉพาะหมวดที่ว่างเปล่า — งานที่ทำเสร็จแล้วก็ยังนับ
-    # เพราะมันคือประวัติที่ผู้ใช้ยังเห็นอยู่ในตัวกรอง "เสร็จแล้ว"
-    remaining = Todo.query.filter_by(category_id=category.id).count()
-    if remaining:
-        flash(
-            ngettext(
-                "Cannot delete “%(name)s” — it still has %(num)d task.",
-                "Cannot delete “%(name)s” — it still has %(num)d tasks.",
-                remaining,
-                name=category.name,
-            )
-        )
-        return redirect(url_for("main.categories"))
-
-    category.soft_delete()
-    db.session.commit()
+    try:
+        categories_service.delete_category(current_user, category_id)
+    except NotFoundError:
+        abort(404)
+    except ServiceError as error:
+        # ลบหมวดที่ยังมีงานอยู่ไม่ได้ — ปุ่มถูก disable ไว้แล้ว แต่การกันจริงอยู่ที่นี่
+        flash(error.message)
     return redirect(url_for("main.categories"))
 
 
@@ -322,8 +235,7 @@ def set_language(code):
 
     session[SESSION_KEY] = code
     if current_user.is_authenticated:
-        current_user.locale = code
-        db.session.commit()
+        settings_service.save_locale(current_user, code)
 
     return redirect(_safe_referrer())
 
@@ -339,8 +251,7 @@ def set_mode(value):
 
     session[MODE_SESSION_KEY] = value
     if current_user.is_authenticated:
-        current_user.mode = value
-        db.session.commit()
+        settings_service.save_mode(current_user, value)
 
     return redirect(_safe_referrer())
 
@@ -362,9 +273,11 @@ def settings():
 @login_required
 def save_profile():
     """แก้ชื่อ-นามสกุล — username เป็นตัวระบุตอน login จึงแก้ที่นี่ไม่ได้"""
-    current_user.first_name = (request.form.get("first_name") or "").strip() or None
-    current_user.last_name = (request.form.get("last_name") or "").strip() or None
-    db.session.commit()
+    settings_service.save_profile(
+        current_user,
+        request.form.get("first_name"),
+        request.form.get("last_name"),
+    )
     flash(_("Profile saved"))
     return redirect(url_for("main.settings"))
 
@@ -373,36 +286,22 @@ def save_profile():
 @login_required
 def save_preferences():
     """ภาษา ธีม และ timezone อยู่ในฟอร์มเดียวกัน บันทึกทีเดียวจบ"""
-    lang = request.form.get("locale")
-    if not is_supported(lang):
-        flash(_("Unsupported language"))
+    try:
+        settings_service.save_preferences(
+            current_user,
+            locale=request.form.get("locale"),
+            theme=request.form.get("theme"),
+            mode=request.form.get("mode"),
+            timezone_name=request.form.get("timezone"),
+        )
+    except ServiceError as error:
+        flash(error.message)
         return redirect(url_for("main.settings"))
-
-    theme_value = request.form.get("theme")
-    if not theme_is_supported(theme_value):
-        flash(_("Unsupported theme"))
-        return redirect(url_for("main.settings"))
-
-    mode_value = request.form.get("mode")
-    if not mode_is_supported(mode_value):
-        flash(_("Unsupported mode"))
-        return redirect(url_for("main.settings"))
-
-    tz_name = request.form.get("timezone")
-    if not tz.is_supported(tz_name):
-        flash(_("Unsupported timezone"))
-        return redirect(url_for("main.settings"))
-
-    current_user.locale = lang
-    current_user.theme = theme_value
-    current_user.mode = mode_value
-    current_user.timezone_name = tz_name
-    db.session.commit()
 
     # session ชนะโปรไฟล์ในลำดับการเลือก ต้องอัปเดตด้วยไม่งั้นค่าที่เพิ่งบันทึกจะไม่มีผล
-    session[SESSION_KEY] = lang
-    session[THEME_SESSION_KEY] = theme_value
-    session[MODE_SESSION_KEY] = mode_value
+    session[SESSION_KEY] = current_user.locale
+    session[THEME_SESSION_KEY] = current_user.theme
+    session[MODE_SESSION_KEY] = current_user.mode
 
     flash(_("Settings saved"))
     return redirect(url_for("main.settings"))

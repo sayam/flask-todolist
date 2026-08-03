@@ -45,13 +45,15 @@ ignore = [
     "SLF001",   # เทสต์แตะฟังก์ชันภายในได้ — นโยบายอย่าง _column_change/_hmac ต้องพิสูจน์
                 # ทีละชั้น การทดสอบผ่านทางอ้อมอย่างเดียวไม่ได้บอกว่าชั้นไหนพัง
 ]
+"scripts/generate_sun_table.py" = ["C901"]  # main() เป็นไปป์ไลน์เส้นตรงของขั้นตอน
+    # generate ที่อ่านไล่บนลงล่างได้ การหั่นให้ผ่าน gate ทำให้ตามลำดับยากกว่าเดิม
 "scripts/**" = ["T201", "INP001", "PLR2004", "S101"]  # สคริปต์รันมือ: print คือ output,
     # ไม่ใช่ package, ตัวเลขในสูตรดาราศาสตร์อ่านคู่กับสูตรตรง ๆ, assert เป็น sanity check
 "tests/**/*" = ["INP001"]
 "migrations/**" = ["INP001"]
 
 [tool.ruff.lint.mccabe]
-max-complexity = 12  # index() ของ routes มี branch ตัวกรองเยอะ — Phase 3 จะ extract
+max-complexity = 10  # ลดจาก 12 ได้หลัง Phase 3 ย้าย branch ของตัวกรองออกจาก routes (ratchet)
 
 # ---------------------------------------------------------------- mypy
 [tool.mypy]
@@ -74,7 +76,9 @@ ignore_missing_imports = true
 
 # `db.Model` ของ flask_sqlalchemy เป็น attribute แบบ dynamic mypy จึงมองไม่เห็น
 # ตัวคลาส — ปิดเฉพาะ error ตัวนี้ตัวเดียว ส่วนที่เหลือของไฟล์ยัง strict เต็ม
-# (ใช้ Base ตรง ๆ แทนไม่ได้ เพราะ routes ยังใช้ `Model.query` อยู่ — Phase 3 จะย้าย)
+# (โค้ดแอปเลิกใช้ `Model.query` แบบเก่าแล้วตั้งแต่ Phase 3 — query ทุกจุดเป็น
+# `select()` ของ SQLAlchemy 2.0 แต่ base class ยังต้องเป็น `db.Model` อยู่ดี
+# เพราะ flask-sqlalchemy ผูก metadata/session ผ่านตัวนั้น)
 [[tool.mypy.overrides]]
 module = ["app.models", "app.audit"]
 disable_error_code = ["name-defined"]
@@ -84,6 +88,8 @@ disable_error_code = ["name-defined"]
 module = [
     "app.tz", "app.filters", "app.plugins", "app.sun_data",
     "app.models", "app.soft_delete", "app.purge", "app.audit",
+    "app.i18n", "app.theme",
+    "app.services.*",
 ]
 disallow_untyped_defs = true
 disallow_incomplete_defs = true

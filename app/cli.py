@@ -6,6 +6,7 @@
 
 import click
 from flask.cli import with_appcontext
+from sqlalchemy import select
 
 from app import audit, db
 from app.models import Category, User
@@ -29,6 +30,11 @@ DEFAULT_CATEGORIES = {
 MIN_PASSWORD_LENGTH = 8
 
 
+def _find_user(username):
+    """หา user จากชื่อ — คืน None ถ้าไม่มี (ผู้ที่ถูก soft delete ถูกกรองออกให้เอง)"""
+    return db.session.scalars(select(User).where(User.username == username)).first()
+
+
 @click.command("create-user")
 @click.argument("username")
 @click.option(
@@ -47,7 +53,7 @@ MIN_PASSWORD_LENGTH = 8
 def create_user(username, lang, no_categories):
     """Create a new user (prompts for a password without echoing it)."""
     username = username.strip()
-    if User.query.filter_by(username=username).first():
+    if _find_user(username) is not None:
         raise click.ClickException(f"A user named {username!r} already exists.")
 
     password = click.prompt("Password", hide_input=True, confirmation_prompt="Repeat password")
@@ -78,7 +84,7 @@ def create_user(username, lang, no_categories):
 @with_appcontext
 def delete_user(username, yes):
     """Delete a user along with all their categories and tasks (cannot be undone)."""
-    user = User.query.filter_by(username=username.strip()).first()
+    user = _find_user(username.strip())
     if user is None:
         raise click.ClickException(f"No user named {username!r}.")
 
@@ -112,7 +118,7 @@ def delete_user(username, yes):
 @with_appcontext
 def list_users():
     """List all users with their id, username and language."""
-    users = User.query.order_by(User.id).all()
+    users = db.session.scalars(select(User).order_by(User.id)).all()
     if not users:
         click.echo("No users yet — create one with `flask create-user <name>`.")
         return

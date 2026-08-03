@@ -7,8 +7,10 @@
 ทุกช่วงจึงถูกคำนวณในเวลาท้องถิ่นก่อนแล้วค่อยแปลงเป็น UTC ตอนไปเทียบ
 """
 
+from collections.abc import Mapping
+from dataclasses import dataclass
 from datetime import datetime, time, timedelta
-from typing import Any
+from typing import Any, Self
 
 from app import tz
 
@@ -61,11 +63,9 @@ def parse_boundary(raw: str | None, fallback_time: time) -> datetime | None:
     คืน None ถ้าเว้นว่าง และ raise ValueError ถ้ารูปแบบใช้ไม่ได้
     """
     raw = (raw or "").strip()
-    if not raw:
+    parsed = tz.parse_naive(raw)
+    if parsed is None:
         return None
-    parsed = datetime.fromisoformat(raw)
-    if parsed.tzinfo is not None:
-        raise ValueError("ไม่รับ timezone offset")
     # ผู้ใช้กรอกแค่วัน (ไม่มีเวลา) fromisoformat จะให้เที่ยงคืนมา
     if len(raw) == DATE_ONLY_LEN:
         parsed = datetime.combine(parsed.date(), fallback_time)
@@ -109,17 +109,65 @@ def local_bounds(
     return None, None
 
 
-def apply_when(  # noqa: PLR0913, PLR0917 — จะยุบเป็น FilterSpec ตอน extract service (Phase 3)
-    query: Any,
-    model: Any,
-    when: str,
-    within_minutes: int,
-    range_from: datetime | None,
-    range_to: datetime | None,
-    tz_name: str | None,
-) -> Any:
+CATEGORY_NONE = "none"
+
+
+@dataclass(frozen=True)
+class FilterSpec:
+    """ตัวกรองหนึ่งชุดที่ normalise แล้ว — ค่าทุกตัวใช้ได้ทันทีโดยไม่ต้องตรวจซ้ำ
+
+    เป็นภาษากลางระหว่าง adapter กับ service (Phase 3 — ดู ADR 0016):
+    ฟอร์ม HTML กับ query string ของ API แปลง input ดิบมาเป็นตัวนี้ตัวเดียว
+    แล้ว service ก็รับแต่ตัวนี้ ไม่ต้องรู้ว่าใครเป็นคนส่งมา
+
+    `category` เป็นสตริงตามที่รับมา (`""` = ทุกหมวด, `"none"` = ไม่มีหมวด,
+    ตัวเลข = id) เพราะการยืนยันว่า id นั้นเป็นของใครต้องแตะฐานข้อมูล
+    ซึ่งเป็นงานของ service ไม่ใช่ของตัว normalise
+    """
+
+    status: str = "all"
+    category: str = ""
+    when: str = WHEN_ALL
+    within: int = DEFAULT_UPCOMING
+    range_from: datetime | None = None
+    range_to: datetime | None = None
+
+    @classmethod
+    def from_params(cls, params: Mapping[str, str], *, ignore_dates: bool = False) -> Self:
+        """อ่านจาก query string — ค่าที่ไม่รู้จักตกไปใช้ค่าเริ่มต้นเงียบ ๆ
+
+        raise `ValueError` เฉพาะรูปแบบวันที่ที่ย่อยไม่ได้ เพราะเป็นกรณีเดียวที่
+        การเงียบแล้วแสดงผลอย่างอื่นแทนจะทำให้ผู้ใช้เข้าใจผิดว่าตัวกรองทำงานอยู่
+
+        `ignore_dates=True` คือทางที่ผู้เรียกใช้ **หลังจาก** รับ `ValueError`
+        ไปแล้วและตัดสินใจว่าจะแสดงทุกงานแทน — ไม่ใช่ทางลัดให้ข้ามการตรวจ
+        """
+        category = (params.get("category") or "").strip()
+        if category != CATEGORY_NONE and not category.isdigit():
+            category = ""
+        when = normalise_when(params.get("when", WHEN_ALL))
+        range_from = range_to = None
+        if ignore_dates:
+            # ไม่มีช่วงวันแล้วก็ไม่มีความหมายที่จะคง when=range ไว้
+            when = WHEN_ALL
+        else:
+            range_from = parse_boundary(params.get("date_from"), DAY_START)
+            range_to = parse_boundary(params.get("date_to"), DAY_END)
+        return cls(
+            status=normalise_status(params.get("status", "all")),
+            category=category,
+            when=when,
+            within=normalise_within(params.get("within")),
+            range_from=range_from,
+            range_to=range_to,
+        )
+
+
+def apply_when(query: Any, model: Any, spec: FilterSpec, tz_name: str | None) -> Any:
     """ใส่เงื่อนไขช่วงวันลงใน query ตาม due_date"""
-    start_local, end_local = local_bounds(when, within_minutes, range_from, range_to, tz_name)
+    start_local, end_local = local_bounds(
+        spec.when, spec.within, spec.range_from, spec.range_to, tz_name
+    )
     if start_local is None and end_local is None:
         return query
 

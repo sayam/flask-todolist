@@ -85,6 +85,27 @@ def to_local(naive_utc: datetime | None, tz_name: str | None) -> datetime | None
     return aware.astimezone(resolve(tz_name)).replace(tzinfo=None)
 
 
+def parse_naive(raw: str | None) -> datetime | None:
+    """ข้อความ ISO ("YYYY-MM-DDTHH:MM" หรือ "YYYY-MM-DD") -> datetime naive
+
+    คืน None ถ้าเว้นว่าง และ raise `ValueError` ถ้ารูปแบบใช้ไม่ได้
+
+    **ปฏิเสธค่าที่มี offset ติดมาด้วย** เพราะทั้งระบบตกลงกันว่าเวลาที่รับเข้ามา
+    คือเวลาท้องถิ่นของผู้ใช้ ค่าที่มี offset จะกำกวมทันทีว่าให้เชื่ออันไหน
+    (`+07:00` ที่ส่งมาโดยคนที่ตั้ง timezone เป็น Asia/Tokyo หมายถึงอะไร)
+
+    รับ "YYYY-MM-DD" เปล่า ๆ ด้วยโดยถือว่าเป็นเที่ยงคืนของวันนั้น — client ที่
+    ยิง API ตรง ๆ อาจส่งมาแค่วัน
+    """
+    text = (raw or "").strip()
+    if not text:
+        return None
+    parsed = datetime.fromisoformat(text)
+    if parsed.tzinfo is not None:
+        raise ValueError("ไม่รับ timezone offset — ใช้เวลาท้องถิ่นเท่านั้น")
+    return parsed
+
+
 def now_utc() -> datetime:
     """เวลาปัจจุบันเป็น naive UTC — เทียบกับค่าใน DB ได้ตรง ๆ"""
     return datetime.now(UTC).replace(tzinfo=None)
