@@ -324,8 +324,20 @@ session มาก่อนโปรไฟล์เพื่อให้กดส
 ที่ส่งให้ alembic **ทำให้ migration ทั้งชุดถูก rollback เงียบ ๆ**
 log ขึ้น "Running upgrade" ครบทุกตัว exit code เป็น 0 แต่ฐานข้อมูลไม่เปลี่ยนเลย
 งานที่ต้องแตะ DB ก่อน configure ให้ใช้ `engine.begin()` เปิด connection ของตัวเอง
-`tests/test_migrations.py` เป็นที่เดียวที่รัน migration จริง — **ห้ามลบ**
+`tests/test_migrations.py` เป็นที่เดียวในชุดเทสต์ที่รัน migration จริง — **ห้ามลบ**
 เทสต์อื่นใช้ `db.create_all()` จึงไม่มีทางจับบั๊กชั้นนี้ได้
+
+### model กับ migration ต้องตรงกัน
+`db.create_all()` สร้างตารางจาก model ตรง ๆ เทสต์ที่ใช้มันจึงตรงกับ model เสมอ
+โดยนิยาม **ต่อให้ migration เขียนอะไรไว้ก็มองไม่เห็น** — เคยหลุดมาแล้วจริง:
+`deleted_at` มี index ใน migration แต่ model ไม่ได้ประกาศ `index=True`
+ผลคือ `flask db migrate` ครั้งถัดไปจะออก migration ที่ **drop index ทิ้งเงียบ ๆ**
+ทั้งที่ทุก SELECT ในระบบมี `deleted_at IS NULL` ต่อท้าย
+
+ตอนนี้มีสองด่านที่ทับกัน (ตั้งใจ) — **เพิ่มคอลัมน์/index ต้องผ่านทั้งคู่**:
+- `tests/test_migrations.py::test_models_match_the_migrated_schema`
+- job `schema` ใน CI — `flask db upgrade` บนฐานข้อมูลเปล่าแล้ว `flask db check`
+  (รันเองบนเครื่องได้ด้วย `DATABASE_URL=sqlite:////tmp/x.db pipenv run flask db check`)
 
 ## Soft delete และ purge (Phase 2 — ดู ADR 0014)
 - **"ลบ" ทั้งระบบแปลว่าซ่อน** ตั้ง `deleted_at` ไม่ใช่ลบแถว

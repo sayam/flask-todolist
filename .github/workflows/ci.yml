@@ -44,6 +44,34 @@ jobs:
       - run: pipenv run interrogate app
       - run: pipenv run mypy app scripts
 
+  schema:
+    # model กับ schema ที่ migration สร้างต้องตรงกันเป๊ะ
+    #
+    # เทสต์อื่นสร้างตารางด้วย `db.create_all()` ซึ่งสร้างจาก model ตรง ๆ จึงตรงกับ
+    # model เสมอโดยนิยาม ต่อให้ migration เขียนอะไรไว้ก็มองไม่เห็น ด่านนี้จึงต้อง
+    # ตั้งต้นจากฐานข้อมูลเปล่าแล้ว `flask db upgrade` จริงก่อน ถึงจะมีของให้เทียบ
+    #
+    # เคยหลุดมาแล้ว: deleted_at มี index ใน migration แต่ model ไม่ได้ประกาศ
+    # `flask db migrate` ครั้งถัดไปจะออก migration ที่ drop index ทิ้งเงียบ ๆ
+    # (ซ้ำกับ tests/test_migrations.py::test_models_match_the_migrated_schema
+    # ตั้งใจให้ซ้ำ — job นี้บอกสาเหตุตรง ๆ โดยไม่ต้องอ่าน traceback ของ pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pipenv
+      - run: pip install pipenv
+      - run: pipenv sync --dev
+      - name: db upgrade แล้วเทียบ model กับ schema (drift ต้องเป็นศูนย์)
+        run: |
+          pipenv run flask db upgrade
+          pipenv run flask db check
+        env:
+          SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
+          DATABASE_URL: sqlite:////tmp/schema-check.db
+
   commit-lint:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
