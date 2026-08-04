@@ -247,14 +247,20 @@ def plugin_list():
     existing = set(inspect(db.engine).get_table_names())
     # ไล่จากดิสก์ ไม่ใช่จากของที่ใช้งานได้ — ตัวที่ถูกสวิตช์ปิดต้องยังโผล่ในรายการ
     # ไม่งั้นผู้ดูแลแยกไม่ออกว่า "ปิดไว้" กับ "ไดเรกทอรีหายไปแล้ว"
-    for plugin in plugins.installed_on_disk():
+    #
+    # และต้องครบทุกชั้น (รวมส่วนเสริม) เพราะคีย์ที่ใส่ลง DISABLED_PLUGINS
+    # มาจากรายการนี้ — คีย์ที่ไม่เคยถูกพิมพ์ออกมาคือคีย์ที่ไม่มีใครใส่ได้ถูก
+    for plugin in plugins.plug_points_on_disk():
         tables = sorted(plugins.tables_of(plugin))
-        if not tables:
-            state = "no tables"
-        elif all(name in existing for name in tables):
-            state = f"installed: {', '.join(tables)}"
+        needed = plugins.requirements(plugin)
+        if tables:
+            verb = "installed" if all(name in existing for name in tables) else "NOT installed"
+            state = f"{verb}: {', '.join(tables)}"
+        elif needed:
+            missing = set(plugins.missing_requirements(plugin))
+            state = ", ".join(f"{item}{' MISSING' if item in missing else ''}" for item in needed)
         else:
-            state = f"NOT installed: {', '.join(tables)}"
+            state = "no tables"
         core = " (core)" if plugin.is_core else ""
         off = " DISABLED" if plugins.is_disabled(plugin) else ""
         click.echo(f"{plugin.key}\tv{plugin.version}{core}{off}\t{state}")

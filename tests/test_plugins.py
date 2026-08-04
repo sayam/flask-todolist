@@ -263,6 +263,7 @@ def test_settings_rejects_a_theme_that_is_not_installed(app, client, user_id):
 # --- plugin ที่มีข้อมูลของตัวเอง (Phase 4 — ADR 0023) ---
 
 TOTP_KEY = "auth/totp"
+QR_KEY = "auth/totp#qr-segno"
 
 
 @pytest.fixture
@@ -447,6 +448,44 @@ def test_a_pick_that_names_nothing_real_is_still_fail_closed(app, host_plugin):
         assert plugins.capability(plugins.find("auth/hosty"), "thing") is None
 
 
+def test_the_one_left_standing_does_not_get_promoted_over_a_pick(app, host_plugin):
+    """ตัวที่ผู้ดูแล **ไม่ได้เลือก** ต้องไม่ถูกเลื่อนขึ้นมาแทนเงียบ ๆ
+
+    เกิดได้จริงตอนที่ตัวที่ถูกเลือกไว้ถูกปิดเพราะ CVE หรือไลบรารีหายไป
+    ถ้าเหลือตัวเดียวแล้วใช้เลย = การปิดตัวหนึ่งกลายเป็นการ **เปิด** อีกตัวหนึ่ง
+    ซึ่งไม่มีใครสั่ง (นี่คือสิ่งเดียวกับที่กฎ fail closed มีไว้ป้องกัน)
+    """
+    host_plugin("chosen")
+    host_plugin("other", body="WHICH = 'other'\n")
+    with app.app_context():
+        app.config["PLUGIN_PICKS"] = {"auth/hosty#thing": "chosen"}
+        app.config["DISABLED_PLUGINS"] = frozenset({"auth/hosty#chosen"})
+        assert plugins.capability(plugins.find("auth/hosty"), "thing") is None
+
+
+def test_a_pick_still_applies_when_only_one_provider_is_installed(app, host_plugin):
+    host_plugin("chosen", body="WHICH = 'chosen'\n")
+    with app.app_context():
+        app.config["PLUGIN_PICKS"] = {"auth/hosty#thing": "chosen"}
+        module = plugins.capability(plugins.find("auth/hosty"), "thing")
+        assert module is not None
+        assert module.WHICH == "chosen"
+
+
+def test_an_enhancement_that_fails_to_load_stays_broken(app, host_plugin):
+    """โมดูลที่ exec ไม่จบต้องไม่ค้างใน sys.modules ให้ครั้งถัดไปได้ของครึ่ง ๆ
+
+    เส้นทางนี้เป็นเรื่องปกติของส่วนเสริม เพราะ `ImportError` ถูกกลืนไว้เป็น
+    การปิดตัวเอง — ถ้าไม่ถอนออก ครั้งแรกได้ None ครั้งที่สองได้โมดูลเปล่า
+    ที่ไม่มีฟังก์ชันอะไรเลย แล้ว host จะพังตอนเรียกใช้
+    """
+    host_plugin("broken", body="import ไม่มีโมดูลนี้จริง\n\ndef render(text):\n    return text\n")
+    with app.app_context():
+        host = plugins.find("auth/hosty")
+        assert plugins.capability(host, "thing") is None
+        assert plugins.capability(host, "thing") is None, "ครั้งที่สองต้องยังปิดอยู่"
+
+
 def test_an_enhancement_may_not_own_data(app, host_plugin):
     """ส่วนเสริมที่มีข้อมูลของตัวเอง = สลับ implementation กลายเป็นย้ายข้อมูล"""
     directory = host_plugin("greedy")
@@ -460,6 +499,32 @@ def test_find_reaches_an_enhancement_by_key(app, host_plugin):
     with app.app_context():
         assert plugins.find("auth/hosty#basic") is not None
         assert plugins.find("auth/hosty#ไม่มี") is None
+
+
+def test_a_plugin_can_point_at_itself_without_naming_itself(app, host_plugin):
+    """โค้ดของ plugin ต้องอ้างถึงตัวเองได้โดยไม่เขียนไอดีของตัวเองเป็นสตริง
+
+    ไอดีที่เขียนไว้ในโค้ดจะกลายเป็นค่าที่ผิดเงียบ ๆ วันที่มีคนเปลี่ยนชื่อไดเรกทอรี
+    (ความสามารถหายไปโดยไม่มีอะไรฟ้อง)
+    """
+    enhancement = host_plugin("basic")
+    directory = plugins.PLUGIN_ROOT / "auth" / "hosty"
+    with app.app_context():
+        assert plugins.plugin_of(str(directory / "factor.py")).key == "auth/hosty"
+        # ส่วนเสริมก็ต้องหาตัวเองเจอ ไม่งั้นมันเรียก `plugin_of(__file__)` ไม่ได้
+        assert plugins.plugin_of(str(enhancement / "provide.py")).key == "auth/hosty#basic"
+        assert plugins.plugin_of(str(plugins.PLUGIN_ROOT / "nowhere" / "x.py")) is None
+
+
+def test_the_shipped_qr_is_plugged_in_as_an_enhancement(app):
+    """ของจริง: QR ต้องมาจากส่วนเสริม ไม่ได้อยู่ในตัว plugin แล้ว"""
+    with app.app_context():
+        totp = plugins.find(TOTP_KEY)
+        assert plugins.capability(totp, "qr") is not None
+        assert callable(plugins.capability(totp, "qr").render)
+        # และตัว plugin เองต้องไม่ import ไลบรารีของส่วนเสริมอีกแล้ว
+        source = (totp.directory / "factor.py").read_text(encoding="utf-8")
+        assert "segno" not in source
 
 
 def test_plug_points_covers_every_level(app, host_plugin):
@@ -484,7 +549,9 @@ def _pipfile():
 
 def test_a_plugin_declares_the_libraries_it_needs(app):
     with app.app_context():
-        assert plugins.requirements(plugins.find(TOTP_KEY)) == ["segno~=1.6"]
+        # ตัวปัจจัยที่สองเองไม่พึ่งไลบรารีอะไรเลย — ของที่พึ่งอยู่ในส่วนเสริมของมัน
+        assert plugins.requirements(plugins.find(TOTP_KEY)) == []
+        assert plugins.requirements(plugins.find(QR_KEY)) == ["segno~=1.6"]
         assert plugins.requirements(plugins.find("themes/system")) == []
 
 
@@ -492,6 +559,29 @@ def test_the_category_name_is_derived_from_the_key(app):
     """ชื่อ category ห้ามให้ manifest ประกาศเอง — ค่าที่ประกาศซ้ำได้คือค่าที่จะไม่ตรงกัน"""
     with app.app_context():
         assert plugins.category_of(plugins.find(TOTP_KEY)) == "plugin-auth-totp"
+        assert plugins.category_of(plugins.find(QR_KEY)) == "plugin-auth-totp-qr-segno"
+
+
+def test_no_pipenv_category_outlives_the_plug_point_that_needed_it(app):
+    """category ที่ไม่มีจุด plug ไหนขอแล้ว = supply chain ที่ยังถูกติดตั้งทุก deploy
+
+    เจอมาแล้วตอนย้าย QR ลงไปเป็นส่วนเสริม: `pipenv lock` **ไม่ลบ** category เก่า
+    ที่หายไปจาก Pipfile ออกจาก Pipfile.lock ให้ ต้องลบเอง
+    """
+    import json
+
+    with app.app_context():
+        # เฉพาะจุด plug ที่**ประกาศไลบรารีจริง** — จุดที่ไม่พึ่งอะไรเลยไม่ควรมี
+        # หมวดของตัวเองค้างอยู่ (ซึ่งคือกรณีของ auth/totp หลังย้าย QR ออกไป)
+        wanted = {
+            plugins.category_of(point)
+            for point in plugins.plug_points()
+            if plugins.requirements(point)
+        }
+    lock = json.loads((PIPFILE.parent / "Pipfile.lock").read_text(encoding="utf-8"))
+    for source, name in ((_pipfile(), "Pipfile"), (lock, "Pipfile.lock")):
+        orphans = {key for key in source if key.startswith("plugin-")} - wanted
+        assert not orphans, f"{name} มีหมวดที่ไม่มีใครขอแล้ว: {sorted(orphans)}"
 
 
 def test_no_plugin_library_sits_in_the_core_packages(app):
@@ -504,7 +594,7 @@ def test_no_plugin_library_sits_in_the_core_packages(app):
     with app.app_context():
         offenders = [
             (plugin.key, requirement)
-            for plugin in plugins.installed()
+            for plugin in plugins.plug_points()
             for requirement in plugins.requirements(plugin)
             if plugins.distribution_name(requirement).lower() in core_packages
         ]
@@ -519,7 +609,7 @@ def test_every_declared_library_has_a_matching_pipfile_category(app):
     """
     pipfile = _pipfile()
     with app.app_context():
-        for plugin in plugins.installed():
+        for plugin in plugins.plug_points():
             needed = plugins.requirements(plugin)
             if not needed:
                 continue
@@ -556,7 +646,7 @@ def test_plugin_deps_can_print_categories_for_a_script(app):
     """CI ต้องติดตั้ง category ได้โดยไม่ต้องรู้จักชื่อ plugin ตัวไหนเป็นการเฉพาะ"""
     result = app.test_cli_runner().invoke(args=["plugin-deps", "--categories"])
     assert result.exit_code == 0
-    assert result.output.strip() == "plugin-auth-totp"
+    assert result.output.strip() == "plugin-auth-totp-qr-segno"
 
 
 # --- CLI ของวงจรชีวิต plugin (Phase 4) ---
@@ -741,6 +831,38 @@ def test_plugin_list_still_shows_what_is_switched_off(app):
     assert result.exit_code == 0, result.output
     assert TOTP_KEY in result.output
     assert "DISABLED" in result.output
+
+
+def test_plugin_list_prints_the_keys_the_switch_needs(app):
+    """คีย์ที่ไม่เคยถูกพิมพ์ออกมา คือคีย์ที่ไม่มีใครใส่ลง DISABLED_PLUGINS ได้ถูก
+
+    docs/OPERATIONS.md บอกให้เอาคีย์จากคำสั่งนี้ไปใช้ ถ้ารายการมีแต่ plugin
+    ระดับบน คนที่ตั้งใจปิดแค่ส่วนเสริมจะพิมพ์คีย์ของ plugin แม่แทน ซึ่งสำหรับ
+    ปัจจัยยืนยันตัวตนแปลว่าปิด MFA ของทุกคนทิ้ง
+    """
+    result = app.test_cli_runner().invoke(args=["plugin-list"])
+    assert result.exit_code == 0, result.output
+    assert QR_KEY in result.output
+    assert "segno" in result.output, "ต้องบอกด้วยว่าจุดนั้นลากไลบรารีอะไรมา"
+
+
+def test_switching_off_a_second_factor_says_so_in_plain_words(app, warnings_of):
+    """ปิดปัจจัยยืนยันตัวตน = คนที่เปิดไว้ login ด้วยรหัสผ่านอย่างเดียวได้ทันที
+
+    คีย์ของ plugin แม่กับของส่วนเสริมต่างกันแค่ `#` เดียว การพิมพ์พลาดจึงเป็น
+    การลดระดับความปลอดภัยของทุกคนโดยไม่ตั้งใจ — ต้องมีบรรทัดที่บอกตรง ๆ
+    """
+    with app.app_context():
+        _switch(app, TOTP_KEY)
+        plugins.check_installation()
+    assert any("รหัสผ่านอย่างเดียว" in line for line in warnings_of)
+
+    # ปิดแค่ส่วนเสริมต้องไม่มีคำเตือนนี้ ไม่งั้นคำเตือนจะกลายเป็นเสียงรบกวน
+    warnings_of.clear()
+    with app.app_context():
+        _switch(app, QR_KEY)
+        plugins.check_installation()
+    assert not any("รหัสผ่านอย่างเดียว" in line for line in warnings_of)
 
 
 def test_a_core_plugin_cannot_be_switched_off(app):

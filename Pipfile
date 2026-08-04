@@ -31,5 +31,5 @@ schemathesis = "*"
 [requires]
 python_version = "3.13"
 
-[plugin-auth-totp]
+[plugin-auth-totp-qr-segno]
 segno = "*"

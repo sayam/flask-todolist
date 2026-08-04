@@ -15,7 +15,7 @@
 import base64
 import io
 import logging
-import sys
+import shutil
 import time
 
 import pytest
@@ -282,16 +282,53 @@ def test_the_qr_carries_its_own_light_background(app, user_id):
     assert 'stroke="#000"' in svg or 'stroke="#000000"' in svg
 
 
-def test_without_its_library_the_qr_disappears_instead_of_breaking(app, user_id, monkeypatch):
-    """ไลบรารีของ plugin อยู่นอก `[packages]` ของ core (ADR 0025) — คนที่รัน
-    `pipenv sync --dev` เฉย ๆ จะไม่มี segno และต้องได้หน้าลงทะเบียนแบบข้อความ
-    ล้วน ไม่ใช่ 500
+@pytest.fixture
+def qr_unplugged():
+    """ย้ายไดเรกทอรีของส่วนเสริม QR ออกไปจริง ๆ แล้วเอากลับที่เดิมเสมอ
 
-    ใส่ `None` ลง sys.modules ทำให้ `import segno` โยน ImportError ได้จริง
-    (จำลองสภาพแวดล้อมที่ยังไม่ได้ติดตั้ง category ของ plugin ตัวนี้)
+    ไม่ได้ mock อะไรเลย — นี่คือการถอดปลั๊กแบบเดียวกับที่ผู้ดูแลระบบทำจริง
+    (ADR 0025) ถ้าเทสต์นี้ต้อง mock ถึงจะผ่าน แปลว่าเส้นทาง "ไม่มีส่วนเสริม"
+    ไม่ใช่เส้นทางเดียวกับตอนที่ยังไม่เคยมี ซึ่งเป็นสิ่งที่ทั้งเฟสนี้ห้ามไว้
     """
-    monkeypatch.setitem(sys.modules, "segno", None)
+    source = plugins.PLUGIN_ROOT / "auth" / "totp" / "enhancements" / "qr-segno"
+    # ย้ายออกไปนอกไดเรกทอรี `enhancements/` ไม่ใช่แค่เปลี่ยนชื่อในนั้น
+    # (ที่เดิมยังมี plugin.json อยู่ registry ก็ยังค้นเจอ — เจอตอนเขียนเทสต์นี้)
+    parked = source.parent.parent / "qr-segno.parked"
+    source.rename(parked)
+    try:
+        yield
+    finally:
+        parked.rename(source)
 
+
+def test_a_qr_enhancement_that_breaks_the_contract_is_loud(app, user_id):
+    """ส่วนเสริมที่ประกาศว่าให้ความสามารถ qr แต่ไม่มี `render` = บั๊กของ plugin
+
+    ต้องดังพร้อมบอกว่าใครผิดสัญญาอะไร ไม่ใช่ `AttributeError` เปล่า ๆ และ
+    ไม่ใช่การเงียบ (การเงียบสงวนไว้ให้ "ไลบรารียังไม่ได้ติดตั้ง" เท่านั้น)
+    """
+    directory = plugins.PLUGIN_ROOT / "auth" / "totp" / "enhancements" / "broken-qr"
+    directory.mkdir()
+    try:
+        (directory / "plugin.json").write_text('{"name": "broken", "provides": "qr"}')
+        (directory / "provide.py").write_text("def draw(text):\n    return text\n")
+        with app.app_context():
+            app.config["PLUGIN_PICKS"] = {"auth/totp#qr": "broken-qr"}
+            user = db.session.get(User, user_id)
+            factor().start_enrollment(user)
+            with pytest.raises(plugins.PluginError, match="render"):
+                factor().setup_image(user)
+    finally:
+        shutil.rmtree(directory)
+
+
+def test_unplugging_the_qr_leaves_enrollment_working(app, user_id, qr_unplugged):
+    """ถอดส่วนเสริม QR ออกแล้วต้องได้หน้าลงทะเบียนแบบข้อความล้วน ไม่ใช่ 500
+
+    ทางข้อความคือทางหลักที่ plugin นี้ทำงานได้ด้วยตัวเองมาตั้งแต่ต้น
+    ส่วน QR เป็นความสะดวกที่เสียบเพิ่มเข้ามาพร้อมไลบรารีของมัน — ถอดออกแล้ว
+    ทั้ง supply chain ของมันหายไปด้วย ไม่ใช่แค่ปุ่มหาย
+    """
     client = _sign_in(app, "tester")
     client.post("/settings/mfa/start", data={"factor": TOTP_KEY})
 

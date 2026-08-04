@@ -2,8 +2,5 @@
   "type": "auth",
   "name": "Authenticator app",
   "version": "1.0.0",
-  "factor": "second",
-  "requires": {
-    "pip": ["segno~=1.6"]
-  }
+  "factor": "second"
 }

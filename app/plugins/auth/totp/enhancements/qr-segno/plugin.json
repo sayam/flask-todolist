@@ -1,0 +1,8 @@
+{
+  "name": "QR code (segno)",
+  "version": "1.0.0",
+  "provides": "qr",
+  "requires": {
+    "pip": ["segno~=1.6"]
+  }
+}

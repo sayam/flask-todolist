@@ -32,6 +32,12 @@ class TestConfig(Config):
     RATELIMIT_ENABLED = False
     LOGIN_RATE_LIMIT = "5 per minute"
     BABEL_DEFAULT_TIMEZONE = "Asia/Bangkok"
+    # **ตรึงสภาพของ plugin ไม่ให้ขึ้นกับ .env ของเครื่องที่รัน** — สองค่านี้อ่านจาก
+    # environment ใน `Config` ผู้ดูแลที่ใช้สวิตช์จริงตามที่ docs/OPERATIONS.md บอก
+    # จะรันเทสต์ไม่ผ่านทันที ทั้งที่โค้ดไม่ได้ผิดอะไรเลย (หลักเดียวกับ RATELIMIT_ENABLED)
+    # ตัวสวิตช์เองมีเทสต์ที่ตั้งค่าเองอยู่แล้วใน tests/test_plugins.py
+    DISABLED_PLUGINS = frozenset()
+    PLUGIN_PICKS = {}
 
 
 class CsrfTestConfig(TestConfig):

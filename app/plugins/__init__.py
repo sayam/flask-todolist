@@ -306,20 +306,35 @@ def provider(plugin: Plugin, capability: str) -> Plugin | None:
     **กำกวมเมื่อไหร่ปิดไว้ก่อน (fail closed)**: มีหลายตัวที่ให้ความสามารถเดียวกัน
     แต่ config ไม่ได้ระบุว่าเอาตัวไหน = ปิดทั้งหมดพร้อมเตือน ไม่ใช่เดาให้
     (การเดาแปลว่าวางไดเรกทอรีเพิ่มแล้วพฤติกรรมเปลี่ยนโดยไม่มีใครสั่ง)
+
+    **ถ้า config ระบุตัวเลือกไว้ ตัวเลือกนั้นชนะเสมอ แม้จะเหลือตัวเดียว** —
+    ไม่งั้นวันที่ตัวที่ถูกเลือกใช้ไม่ได้ (ปิดเพราะ CVE หรือไลบรารีหาย) ตัวที่
+    ผู้ดูแล**ไม่ได้เลือก**จะถูกเลื่อนขึ้นมาแทนเงียบ ๆ ซึ่งเป็นสิ่งเดียวกับที่
+    กฎ fail closed มีไว้ป้องกัน
     """
+    target = f"{plugin.key}#{capability}"
     candidates = [item for item in usable_enhancements(plugin) if item.provides == capability]
     if not candidates:
         return None
-    if len(candidates) == 1:
-        return candidates[0]
 
-    wanted = _picks().get(f"{plugin.key}#{capability}")
-    chosen = next((item for item in candidates if item.id == wanted), None)
-    if chosen is None:
+    wanted = _picks().get(target)
+    if wanted is None:
+        if len(candidates) == 1:
+            return candidates[0]
         _warn(
             f"{plugin.key}: มีส่วนเสริมที่ให้ความสามารถ {capability!r} หลายตัว "
             f"({', '.join(sorted(item.id for item in candidates))}) "
             f"แต่ PLUGIN_PICKS ไม่ได้ระบุว่าจะใช้ตัวไหน — ปิดไว้ทั้งหมด"
+        )
+        return None
+
+    chosen = next((item for item in candidates if item.id == wanted), None)
+    if chosen is None:
+        _warn(
+            f"{plugin.key}: PLUGIN_PICKS เลือก {wanted!r} ไว้สำหรับความสามารถ "
+            f"{capability!r} แต่ตัวนั้นใช้งานไม่ได้ตอนนี้ "
+            f"(มีอยู่: {', '.join(sorted(item.id for item in candidates)) or 'ไม่มีเลย'}) "
+            "— ปิดไว้ ไม่เลื่อนตัวอื่นขึ้นมาแทน"
         )
     return chosen
 
@@ -441,6 +456,23 @@ def find_on_disk(key: str) -> Plugin | None:
     return _scan_enhancements(host).get(enhancement_id)
 
 
+def plugin_of(path: str) -> Plugin | None:
+    """plugin ที่เป็นเจ้าของไฟล์นั้น — ให้โค้ดของ plugin อ้างถึง *ตัวเอง* ได้
+
+    เรียกด้วย `plugins.plugin_of(__file__)` จากในไฟล์ของ plugin เอง
+    เพื่อไม่ต้องเขียนไอดีของตัวเองเป็นสตริงลงไป ซึ่งจะกลายเป็นค่าที่ผิดเงียบ ๆ
+    ในวันที่มีคนเปลี่ยนชื่อไดเรกทอรี (ความสามารถหายไปโดยไม่มีอะไรฟ้อง)
+
+    ครอบทุกชั้น (รวมส่วนเสริม) และไม่สนสวิตช์ปิด เพราะโค้ดที่ถามคำถามนี้
+    คือโค้ดที่กำลังทำงานอยู่แล้ว
+    """
+    directory = pathlib.Path(path).resolve().parent
+    return next(
+        (plugin for plugin in plug_points_on_disk() if plugin.directory == directory),
+        None,
+    )
+
+
 def plug_points() -> list[Plugin]:
     """จุด plug ทุกจุดทุกชั้น — plugin ทุกตัวบวกส่วนเสริมของแต่ละตัว
 
@@ -450,6 +482,20 @@ def plug_points() -> list[Plugin]:
     for plugin in installed():
         points.append(plugin)
         points.extend(enhancements(plugin).values())
+    return points
+
+
+def plug_points_on_disk() -> list[Plugin]:
+    """จุด plug ทุกจุดทุกชั้นที่ **มีไดเรกทอรีอยู่จริง** รวมตัวที่ถูกสวิตช์ปิด
+
+    ใช้ตอบคำถามที่ต้องเห็นของครบไม่ว่าจะเปิดหรือปิด — `flask plugin-list`
+    (ผู้ดูแลต้องเห็นว่าอะไรถูกปิดอยู่) และ `plugin_of()` (โค้ดที่กำลังรันอยู่
+    ถามหาตัวเอง)
+    """
+    points = []
+    for plugin in installed_on_disk():
+        points.append(plugin)
+        points.extend(_scan_enhancements(plugin).values())
     return points
 
 
@@ -472,7 +518,10 @@ def load_module(plugin: Plugin, module_name: str) -> ModuleType | None:
     path = plugin.directory / f"{module_name}.py"
     if not path.is_file():
         return None
-    name = f"app.plugins.{plugin.type}.{plugin.id.replace('-', '_')}.{module_name}"
+    # ชื่อโมดูลมาจาก **คีย์เต็ม** ไม่ใช่แค่ชนิดกับไอดี — ส่วนเสริมชื่อเดียวกัน
+    # ที่อยู่ใต้ plugin คนละตัวต้องไม่ชนกันใน sys.modules (ตัวหลังจะได้โค้ดของ
+    # ตัวแรกกลับไปเงียบ ๆ เพราะ python คืนของที่ cache ไว้)
+    name = f"app.plugins.{re.sub(r'[^0-9a-zA-Z]+', '_', plugin.key)}.{module_name}"
     cached = sys.modules.get(name)
     if cached is not None:
         return cached
@@ -482,7 +531,16 @@ def load_module(plugin: Plugin, module_name: str) -> ModuleType | None:
     module = importlib.util.module_from_spec(spec)
     # ใส่เข้า sys.modules ก่อน exec เพื่อให้ import ซ้อนภายในโมดูลทำงานได้
     sys.modules[name] = module
-    spec.loader.exec_module(module)
+    try:
+        spec.loader.exec_module(module)
+    except BaseException:
+        # **ต้องถอนออกถ้า exec ล้ม** ไม่งั้นโมดูลที่รันไม่จบค้างอยู่ใน cache
+        # แล้วการเรียกครั้งถัดไปจะได้ของครึ่ง ๆ กลาง ๆ กลับไปโดยไม่มี error
+        # (เส้นทางนี้เป็นเรื่องปกติของส่วนเสริม เพราะ `ImportError` ถูกกลืน
+        # ไว้เป็นการปิดตัวเอง — ครั้งแรกได้ None ครั้งที่สองได้โมดูลเปล่า)
+        # ทำแบบเดียวกับ importlib เองใน `_bootstrap._load`
+        del sys.modules[name]
+        raise
     return module
 
 
@@ -690,6 +748,17 @@ def _check_switch() -> None:
             _warn(f"DISABLED_PLUGINS: ไม่มีจุด plug ชื่อ {key!r} อยู่บนดิสก์")
     for point in disabled():
         _warn(f"{point.key}: ปิดอยู่ตามคำสั่ง DISABLED_PLUGINS")
+        # **ปิดปัจจัยยืนยันตัวตน = ลดระดับความปลอดภัยของคนที่เปิดใช้ไว้แล้ว**
+        # คนที่เคยต้องใส่รหัสสองชั้นจะ login ได้ด้วยรหัสผ่านอย่างเดียวทันที
+        # (ข้อมูลของเขายังอยู่ครบ เปิดสวิตช์กลับก็กลับมาเหมือนเดิม) — เรื่องนี้
+        # ต้องดังกว่าบรรทัดข้างบน เพราะคีย์ของ plugin แม่กับของส่วนเสริมต่างกัน
+        # แค่ `#` เดียว คนที่ตั้งใจปิดแค่ตัววาด QR พิมพ์พลาดเป็นตัวแม่ได้ง่ายมาก
+        if point.manifest.get("factor"):
+            _warn(
+                f"{point.key}: นี่คือปัจจัยยืนยันตัวตน — ผู้ใช้ที่เปิดไว้จะ login "
+                "ด้วยรหัสผ่านอย่างเดียวจนกว่าจะเอาคีย์นี้ออกจาก DISABLED_PLUGINS "
+                "(ถ้าตั้งใจปิดแค่ส่วนเสริมของมัน คีย์ต้องมี # ต่อท้าย)"
+            )
 
 
 def check_installation() -> None:

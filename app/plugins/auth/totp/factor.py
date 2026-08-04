@@ -26,7 +26,7 @@ from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import quote
 
-from app import db
+from app import db, plugins
 
 from .models import TotpSecret
 
@@ -139,11 +139,16 @@ def setup_details(user: Any) -> list[tuple[str, str]]:
     ]
 
 
-def setup_image(user: Any) -> tuple[str, bytes] | None:
-    """QR ของ `otpauth://` เป็น **SVG** — คืน `(mimetype, body)` หรือ None
+QR_CAPABILITY = "qr"
 
-    **SVG ไม่ใช่ PNG โดยตั้งใจ:** เป็นข้อความล้วน ไม่ต้องพึ่งไลบรารีวาดภาพ
-    (segno ไม่มี dependency ต่อ) และคมทุกความละเอียดหน้าจอ
+
+def setup_image(user: Any) -> tuple[str, bytes] | None:
+    """QR ของ `otpauth://` — คืน `(mimetype, body)` หรือ None ถ้าไม่มีให้แสดง
+
+    **การวาดรูปเป็นส่วนเสริมที่ถอดได้** (ADR 0025) ตัว plugin นี้ทำงานครบโดย
+    ไม่มีมันอยู่แล้ว เพราะผู้ใช้คัดลอกความลับไปวางในแอปได้เสมอ (`setup_details()`)
+    ไม่มีส่วนเสริม = ไม่มีรูป ซึ่งเป็นเส้นทางเดียวกับ "ยังไม่เคยมีส่วนเสริมตัวนี้"
+    ไม่ใช่เส้นทางสำรองที่เขียนเพิ่ม
 
     **คืนเป็น body ให้ core เอาไปเสิร์ฟเป็นไฟล์ ไม่ใช่ data URI ที่ฝังในหน้า**
     เพราะ data URI ต้องผ่อน CSP เป็น `img-src 'self' data:` ซึ่งเป็นการแลก
@@ -152,35 +157,34 @@ def setup_image(user: Any) -> tuple[str, bytes] | None:
     **แสดงเฉพาะใบที่ยังไม่ยืนยัน** ด้วยเหตุผลเดียวกับ `setup_details()` —
     ใบที่เปิดใช้แล้วต้องไม่มีทางดูความลับซ้ำได้อีก ไม่ว่าจะในรูปข้อความหรือรูปภาพ
     """
-    import io
-
-    try:
-        import segno
-    except ImportError:
-        # **ไม่มีไลบรารี = ปิดตัวเอง ไม่ใช่พัง** (ADR 0025) — `segno` อยู่ใน
-        # category ของ plugin ตัวนี้ ไม่ได้อยู่ใน `[packages]` ของ core
-        # ใครที่ `pipenv sync --dev` เฉย ๆ จึงไม่มีมัน และต้องได้หน้าลงทะเบียน
-        # แบบข้อความล้วนแทนที่จะได้ 500
-        return None
-
     row = _row(user)
     if row is None or row.confirmed_at is not None:
         return None
 
-    buffer = io.BytesIO()
-    segno.make(provisioning_uri(row.totp_secret, user.username), error="m").save(
-        buffer,
-        kind="svg",
-        scale=5,
-        border=2,
-        # **พื้นหลังขาวฝังมาในรูปเลย ไม่ปล่อยโปร่งใส** — ค่าเริ่มต้นของ segno คือ
-        # โปร่งใส ซึ่งบนธีมโหมดมืดจะกลายเป็นสี่เหลี่ยมดำบนพื้นดำ = สแกนไม่ได้
-        # สองสีนี้ **ไม่ใช่เรื่องของธีม** แต่เป็นข้อกำหนดของตัวสแกน (ต้องเป็น
-        # โมดูลเข้มบนพื้นอ่อนเสมอ) จึงตายตัวและอยู่ในรูป ไม่ได้อยู่ใน CSS ของ core
-        dark="#000000",
-        light="#ffffff",
-    )
-    return "image/svg+xml", buffer.getvalue()
+    me = plugins.plugin_of(__file__)
+    if me is None:  # pragma: no cover — ไฟล์นี้อยู่ในไดเรกทอรีของ plugin เสมอ
+        return None
+    renderer = plugins.capability(me, QR_CAPABILITY)
+    if renderer is None:
+        return None
+
+    # **สัญญาของความสามารถเป็นเรื่องของ host ไม่ใช่ของ registry** (registry ไม่รู้
+    # ว่าความสามารถแต่ละอย่างต้องมีอะไรบ้าง) ตรวจที่นี่แล้วบอกให้ตรงจุด ดีกว่า
+    # ปล่อยให้เป็น AttributeError ซึ่งทำให้ทั้งหน้า settings พังโดยไม่บอกว่า
+    # ส่วนเสริมตัวไหนผิดสัญญาอะไร — และเงียบไม่ได้ เพราะนี่คือบั๊กของ plugin
+    # ไม่ใช่สถานะ "ไม่มีของเสริม" ที่ออกแบบไว้ (ADR 0025)
+    render = getattr(renderer, "render", None)
+    if not callable(render):
+        raise plugins.PluginError(
+            f"{me.key}: ส่วนเสริมที่ให้ความสามารถ {QR_CAPABILITY!r} "
+            "ต้องมีฟังก์ชัน render(text) ที่คืน (mimetype, body)"
+        )
+
+    # ส่งไปแค่ข้อความ — ตัววาดรูปไม่ได้รับ user ไม่ได้รับแถวในฐานข้อมูล
+    # และไม่รู้ด้วยซ้ำว่าข้อความนี้คืออะไร ขอบเขตแค่นี้คือสิ่งที่ทำให้สลับ
+    # ไปใช้ไลบรารีเจ้าอื่นเป็นการ plug ไม่ใช่การย้ายข้อมูล
+    result: tuple[str, bytes] = render(provisioning_uri(row.totp_secret, user.username))
+    return result
 
 
 def start_enrollment(user: Any) -> str:
