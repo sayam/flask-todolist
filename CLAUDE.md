@@ -327,6 +327,19 @@ session มาก่อนโปรไฟล์เพื่อให้กดส
   ฟังก์ชันอะไร host จึงต้องตรวจเองแล้ว raise `PluginError` ที่บอกว่าใครผิดสัญญาข้อไหน
 - ส่วนเสริมที่มี manifest แต่ไม่มี `provide.py` = แพ็กมาไม่ครบ → แอปไม่ start
 
+### job `bare`: "ถอดแล้วไม่พัง" ต้องวัดได้ ไม่ใช่แค่ตั้งใจ
+- CI รันชุดเทสต์ **สองรอบ** — job `test` ติดตั้ง category ครบ, job `bare` รัน
+  `pipenv sync --dev` เฉย ๆ (= สภาพของทุกคนที่เพิ่ง clone) แล้วต้องเขียว
+- **เทสต์ที่ต้องมีไลบรารีของ plugin ต้องมี `@pytest.mark.plugin_deps`**
+  job `bare` รันด้วย `-m "not plugin_deps"` — ลืมมาร์กแล้ว job นั้นแดง (ตั้งใจ)
+  แต่ **ห้ามใช้ `importorskip`** เพราะจะทำให้ job `test` ข้ามเทสต์นั้นเงียบ ๆ ด้วย
+  ตอนที่ไลบรารีหาย ซึ่งคือกรณีที่เราต้องการให้มันแดงที่สุด
+- จำลองบนเครื่อง: ย้าย package ออกจาก `.venv/lib/python3.13/site-packages/`
+  ชั่วคราวแล้วรัน `pipenv run pytest -q -m "not plugin_deps"` (คืนกลับให้ครบด้วย)
+- `pip-audit`/SBOM แยกตาม category แล้ว: core อยู่ใน job `security`/`sbom` (แดงได้)
+  ของ plugin อยู่ใน job `plugin-audit` ซึ่ง **ไม่ทำให้ pipeline แดง** แต่ยิง
+  `::warning::` + สรุปของ run เพราะคำตอบของ CVE ที่ถอดได้คือ "ถอดก่อน"
+
 ### สวิตช์ปิดตอน runtime (`DISABLED_PLUGINS`)
 - ปิดจุด plug ได้ทุกชั้นด้วยคีย์เดียวกับที่ `flask plugin-list` แสดง
   (`themes/ocean`, `auth/totp`, `auth/totp#qr-segno`) คั่นด้วยจุลภาค ไม่ต้องแก้โค้ด

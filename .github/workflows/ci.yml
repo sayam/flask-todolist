@@ -34,6 +34,40 @@ jobs:
           git fetch origin ${{ github.base_ref }} --depth=50
           pipenv run diff-cover coverage.xml --compare-branch origin/${{ github.base_ref }} --fail-under 100
 
+  bare:
+    # job `test` แต่ **ไม่มี step ติดตั้ง category ของ plugin** (ADR 0025 ข้อ 7)
+    # นี่คือด่านเดียวที่ทำให้ "ถอดส่วนเสริมแล้วไม่พัง" เป็นข้อเท็จจริงที่วัดได้
+    # ทุก push แทนที่จะเป็นความตั้งใจที่เขียนไว้ในเอกสาร — และมันคือสภาพของ
+    # เครื่องที่ `pipenv sync --dev` เฉย ๆ ได้ ซึ่งคือค่าเริ่มต้นของทุกคนที่ clone
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pipenv
+      - run: pip install pipenv
+      - run: pipenv sync --dev
+      # ถ้าวันหนึ่งไลบรารีของ plugin เผลอย้ายกลับเข้า `[packages]` ของ core
+      # job นี้จะยังเขียวทั้งที่ไม่ได้พิสูจน์อะไรเลย — ตรวจก่อนว่ามันหายไปจริง
+      # ถามสถานะจากตัวแอปเอง **ห้าม hardcode ชื่อ plugin หรือชื่อไลบรารีใน CI**
+      - name: ยืนยันว่าไม่มีไลบรารีของ plugin ตัวไหนติดตั้งอยู่
+        run: |
+          installed=$(pipenv run flask plugin-deps | awk -F'\t' '$3 == "ok"' | wc -l)
+          if [ "$installed" != "0" ]; then
+            echo "โหมด bare แต่ยังมีไลบรารีของ plugin ติดตั้งอยู่ $installed รายการ"
+            pipenv run flask plugin-deps
+            exit 1
+          fi
+        env:
+          SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
+      # ไม่มี coverage gate ที่นี่ — โหมดนี้ไม่ได้เดินโค้ดของส่วนเสริมเลย
+      # เพดาน coverage วัดจาก job `test` ที่ติดตั้งครบ ที่นี่วัดแค่ว่า "ไม่พัง"
+      - name: pytest ทั้งชุด ยกเว้นเทสต์ที่ประกาศตัวว่าต้องมีไลบรารีของ plugin
+        run: pipenv run pytest -q -m "not plugin_deps"
+        env:
+          SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
+
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -142,14 +176,11 @@ jobs:
           cache: pipenv
       - run: pip install pipenv
       - run: pipenv sync --dev
-      # ไลบรารีของ plugin ต้องถูก audit ด้วย ไม่งั้นการย้ายมันออกจาก [packages]
-      # (ADR 0025) จะกลายเป็นการทำให้มัน **หลุดจากการตรวจ** ซึ่งแย่กว่าเดิม
-      # (การแยกให้รู้ว่า CVE มาจาก plugin ไหนและถอดได้ไหม อยู่ใน step ถัดไปของเฟส)
-      - name: ติดตั้ง category ของ plugin ทุกตัวที่ประกาศไว้
-        run: pipenv sync --categories="$(pipenv run flask plugin-deps --categories)"
-        env:
-          SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
-      - name: pip-audit (อัปเกรด pip ใน venv ก่อน — ตัว pip เองก็ถูก audit)
+      # **ไม่มี step ติดตั้ง category ของ plugin ที่นี่โดยตั้งใจ** — job นี้คือ
+      # supply chain ที่ถอดไม่ได้ CVE ที่เจอที่นี่จึงหยุด pipeline ได้เต็มปาก
+      # ส่วนของ plugin ถูก audit ในอีก job (`plugin-audit`) ซึ่งบอกได้ว่า CVE
+      # เป็นของ plugin ไหน และตอบด้วยการถอดได้ (ADR 0025)
+      - name: pip-audit ของ core (อัปเกรด pip ใน venv ก่อน — ตัว pip เองก็ถูก audit)
         run: |
           pipenv run python -m pip install --quiet --upgrade pip
           pipenv run pip-audit
@@ -158,6 +189,60 @@ jobs:
           pip install --quiet semgrep
           semgrep scan --config p/flask --config p/python \
             --exclude migrations --exclude .venv --metrics=off --error --quiet
+
+  plugin-audit:
+    # supply chain ของ plugin แยก audit **ทีละ category** เพื่อให้ตอบได้ว่า CVE
+    # ตัวนี้เป็นของ plugin ไหน และคำตอบคือ "ถอดตัวนั้นออกก่อน" ได้จริงไหม
+    # (ADR 0025) — CVE ของของที่ถอดได้จึง **ไม่ทำให้ job ของ core แดง**
+    # แต่ต้องดังพอให้เห็น: ล้มแล้วยิง ::warning:: + เขียนลงสรุปของ run
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pipenv
+      - run: pip install pipenv
+      - run: pipenv sync --dev
+      # ไม่ต้องติดตั้งไลบรารีของ plugin — audit จาก lock file ทีละ category
+      # ชื่อ category ถามจากตัวแอปเอง **ห้าม hardcode ชื่อ plugin ใน CI**
+      - name: แยก requirement ของแต่ละ category ออกมาเป็นไฟล์
+        run: |
+          for category in $(pipenv run flask plugin-deps --categories); do
+            pipenv requirements --categories="$category" > "req-$category.txt"
+          done
+        env:
+          SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
+      - name: pip-audit ทีละ category
+        id: audit
+        continue-on-error: true
+        run: |
+          shopt -s nullglob
+          files=(req-*.txt)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "ไม่มี plugin ตัวไหนประกาศไลบรารีไว้ — ไม่มีอะไรต้อง audit"
+            exit 0
+          fi
+          status=0
+          for file in "${files[@]}"; do
+            category="${file#req-}"
+            echo "== ${category%.txt}"
+            # `|| status=$?` ไม่ใช่ `if ! cmd; then status=$?` — ในกิ่งนั้น $? เป็น 0 เสมอ
+            # (กติกาเดียวกับ scripts/purge_cron.sh) และต้อง audit ให้ครบทุก category
+            # ไม่ใช่หยุดที่ตัวแรกที่มี CVE
+            pipenv run pip-audit --no-deps -r "$file" || status=$?
+          done
+          exit $status
+      - name: รายงานว่ามี CVE ค้างอยู่ในไลบรารีของ plugin
+        if: steps.audit.outcome == 'failure'
+        run: |
+          echo "::warning title=CVE ในไลบรารีของ plugin::ดู log ของ job นี้ว่าเป็น category ไหน — ถอด plugin ตัวนั้นด้วย DISABLED_PLUGINS ได้ทันทีโดยไม่ต้อง deploy (ADR 0025)"
+          {
+            echo "### มี CVE ในไลบรารีของ plugin"
+            echo
+            echo "core ไม่แดงเพราะไลบรารีพวกนี้ **ถอดได้** — แต่ต้องมีคนตัดสินใจ"
+            echo "ว่าจะถอด (\`DISABLED_PLUGINS\`) หรืออัปเกรด ดู log ของ job นี้"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   a11y:
     # WCAG 2.2 AA ด้วย browser จริง — ครอบสิ่งที่ tests/test_a11y.py ตรวจไม่ได้
@@ -229,8 +314,19 @@ jobs:
           cache: pipenv
       - run: pip install pipenv
       - run: pipenv sync --dev
-      - run: pipenv run cyclonedx-py environment -o sbom.json
+      # แยกเป็นไฟล์ละ category ด้วยเหตุผลเดียวกับ pip-audit: SBOM ที่รวมทุกอย่าง
+      # เป็นก้อนเดียวตอบไม่ได้ว่า "ถอด plugin ตัวนี้แล้ว component ไหนหายไปบ้าง"
+      # ซึ่งเป็นคำถามแรกของวันที่ CVE ออก (ADR 0025)
+      - run: pipenv run cyclonedx-py environment -o sbom-core.json
+      - name: SBOM ของแต่ละ category ของ plugin
+        run: |
+          for category in $(pipenv run flask plugin-deps --categories); do
+            pipenv requirements --categories="$category" > "req-$category.txt"
+            pipenv run cyclonedx-py requirements "req-$category.txt" -o "sbom-$category.json"
+          done
+        env:
+          SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
       - uses: actions/upload-artifact@v7
         with:
           name: sbom
-          path: sbom.json
+          path: sbom-*.json

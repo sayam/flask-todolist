@@ -232,6 +232,7 @@ def test_disabling_removes_the_secret_for_real(app, person):
 # 3. เห็นได้เฉพาะเจ้าของ และเฉพาะตอนที่ยังไม่ยืนยัน
 
 
+@pytest.mark.plugin_deps
 def test_the_qr_encodes_exactly_the_same_uri_as_the_text(app, user_id):
     """รูปกับข้อความต้องเป็นความลับเดียวกัน ไม่งั้นสแกนแล้วรหัสไม่ตรง
 
@@ -267,6 +268,7 @@ def test_the_qr_encodes_exactly_the_same_uri_as_the_text(app, user_id):
     assert resp.data != other.getvalue()
 
 
+@pytest.mark.plugin_deps
 def test_the_qr_carries_its_own_light_background(app, user_id):
     """โหมดมืด: QR ที่พื้นหลังโปร่งใสจะกลายเป็นดำบนดำ = สแกนไม่ได้
 
@@ -346,6 +348,7 @@ def test_unplugging_the_qr_leaves_enrollment_working(app, user_id, qr_unplugged)
         assert factor().is_enrolled(db.session.get(User, user_id))
 
 
+@pytest.mark.plugin_deps
 def test_the_qr_url_never_carries_the_secret(app, user_id, caplog):
     """ความลับใน URL = ความลับใน log ของเรา (ชั้น C6 อายุ 90 วัน), ใน log ของ
     reverse proxy, ในประวัติเบราว์เซอร์ และใน header `Referer` ของหน้าถัดไป"""
@@ -379,6 +382,7 @@ def test_serving_the_qr_does_not_loosen_the_csp(app, user_id):
         assert "data:" not in csp, f"{path}: CSP ถูกผ่อนให้รับ data URI"
 
 
+@pytest.mark.plugin_deps
 def test_the_qr_is_not_cached_anywhere(app, user_id):
     client = _sign_in(app, "tester")
     client.post("/settings/mfa/start", data={"factor": TOTP_KEY})

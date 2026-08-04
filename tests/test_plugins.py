@@ -520,8 +520,13 @@ def test_a_plugin_can_point_at_itself_without_naming_itself(app, host_plugin):
         assert plugins.plugin_of(str(plugins.PLUGIN_ROOT / "nowhere" / "x.py")) is None
 
 
+@pytest.mark.plugin_deps
 def test_the_shipped_qr_is_plugged_in_as_an_enhancement(app):
-    """ของจริง: QR ต้องมาจากส่วนเสริม ไม่ได้อยู่ในตัว plugin แล้ว"""
+    """ของจริง: QR ต้องมาจากส่วนเสริม ไม่ได้อยู่ในตัว plugin แล้ว
+
+    ต้องมีไลบรารีของส่วนเสริมติดตั้งอยู่ถึงจะจริง — ไม่มีไลบรารี = ส่วนเสริม
+    ปิดตัวเอง ซึ่งเป็นสถานะที่ถูกต้อง (job `bare` เป็นคนพิสูจน์ฝั่งนั้น)
+    """
     with app.app_context():
         totp = plugins.find(TOTP_KEY)
         assert plugins.capability(totp, "qr") is not None
