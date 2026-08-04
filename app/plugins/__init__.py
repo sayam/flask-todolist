@@ -289,6 +289,27 @@ def _table_objects(plugin: Plugin) -> list[Any]:
     return [db.metadata.tables[name] for name in sorted(tables_of(plugin))]
 
 
+def is_installed(plugin: Plugin) -> bool:
+    """ตารางของ plugin ตัวนี้มีอยู่จริงในฐานข้อมูลแล้วหรือยัง
+
+    **core ต้องถามข้อนี้ก่อนใช้งาน plugin ที่มีข้อมูล** ไม่งั้นการวางไดเรกทอรี
+    ลงไปโดยยังไม่ `flask plugin-install` จะทำให้ทุกหน้าที่แตะ plugin นั้นพัง
+    ด้วย "no such table" — รวมถึงหน้า login (เจอจริงตอน Phase 4: job a11y ใน CI
+    ล้มทั้ง job เพราะ CI รันแค่ `flask db upgrade` ซึ่งไม่สร้างตารางของ plugin
+    ตามดีไซน์)
+
+    plugin ที่ไม่มีตารางของตัวเอง (เช่นธีม) ถือว่าติดตั้งแล้วเสมอ
+    """
+    from sqlalchemy import inspect
+
+    from app import db
+
+    tables = tables_of(plugin)
+    if not tables:
+        return True
+    return tables <= set(inspect(db.engine).get_table_names())
+
+
 def install(plugin: Plugin) -> frozenset[str]:
     """สร้างตารางของ plugin ตัวนี้ (ทำซ้ำได้ ไม่พังถ้ามีอยู่แล้ว)"""
     from app import db

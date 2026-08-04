@@ -21,8 +21,18 @@ ENROLLMENT_CONTRACT = ("start_enrollment", "setup_details", "confirm", "disable"
 
 
 def available() -> list[plugins.Plugin]:
-    """ปัจจัยที่สองที่ติดตั้งอยู่ตอนนี้ (อ่านดิสก์ใหม่ทุกครั้ง)"""
-    return plugins.second_factors()
+    """ปัจจัยที่สองที่ **ติดตั้งครบแล้ว** ตอนนี้ (อ่านดิสก์ใหม่ทุกครั้ง)
+
+    ตัวที่วางไดเรกทอรีไว้แต่ยังไม่ได้ `flask plugin-install` ถูกข้ามไป
+    **ไม่ใช่ปล่อยให้พัง** — ตารางที่ยังไม่ถูกสร้างแปลว่ายังไม่มีใครลงทะเบียน
+    ปัจจัยนั้นไว้เลย การข้ามจึงเป็นคำตอบที่ถูกต้อง ไม่ใช่การปิดด่านความปลอดภัย
+    (และตรงกับความหมายของการถอน plugin: ตารางหาย = ไม่มีใครเปิดใช้)
+
+    ถ้าไม่ทำข้อนี้ การวาง plugin ลงไปเฉย ๆ จะทำให้ **หน้า login ทั้งหน้าพัง**
+    ด้วย "no such table" ซึ่งเป็นการเอาระบบทั้งระบบไปผูกกับขั้นตอนติดตั้งของ
+    plugin ตัวเดียว
+    """
+    return [plugin for plugin in plugins.second_factors() if plugins.is_installed(plugin)]
 
 
 def enrolled(user: Any) -> list[plugins.Plugin]:

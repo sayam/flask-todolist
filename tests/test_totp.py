@@ -12,6 +12,7 @@
 ไม่มี context ค้าง** (ดู `tests/test_rbac.py` และ CLAUDE.md)
 """
 
+import base64
 import time
 
 import pytest
@@ -22,8 +23,11 @@ from app.services import mfa
 from tests.conftest import PASSWORD
 
 TOTP_KEY = "auth/totp"
-# ความลับตัวอย่างใน RFC 6238 ("12345678901234567890" เข้ารหัสเป็น base32)
-RFC_SECRET = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"
+# ความลับตัวอย่างใน RFC 6238 คือ ASCII "12345678901234567890"
+# **เข้ารหัส base32 ตรงนี้แทนที่จะเขียนค่าที่เข้ารหัสแล้วลงไป** สองเหตุผล:
+# อ่านแล้วตรงกับที่ RFC เขียนไว้จริง ๆ และไม่มีสตริง base32 32 ตัวลอยอยู่ในซอร์ส
+# ให้เครื่องมือสแกน secret เข้าใจผิดว่าเป็นความลับที่หลุด (gitleaks จับมาแล้ว)
+RFC_SECRET = base64.b32encode(b"12345678901234567890").decode("ascii")
 # (เวลา, รหัสแปดหลักตาม RFC) — ของเราใช้หกหลัก ซึ่งคือหกหลักท้ายของค่าเดียวกัน
 RFC_VECTORS = [
     (59, "94287082"),
@@ -276,6 +280,30 @@ def test_the_halfway_state_expires(app, enrolled_user):
 
     resp = client.post("/login/verify", data={"code": current_code(secret)})
     assert "/login" in resp.headers["Location"], "หมดเวลาแล้วต้องกลับไปเริ่มใหม่"
+
+
+def test_a_plugin_that_was_never_installed_does_not_break_login(app, user_id):
+    """วางไดเรกทอรีไว้แต่ยังไม่ `flask plugin-install` = ข้ามไป ไม่ใช่พังทั้งระบบ
+
+    เจอจริงตอน Phase 4: job `a11y` ใน CI ล้มทั้ง job เพราะที่นั่นรันแค่
+    `flask db upgrade` (ซึ่งไม่สร้างตารางของ plugin **ตามดีไซน์** — ADR 0023)
+    แล้วทุกหน้าที่แตะปัจจัยที่สองพังด้วย "no such table" รวมถึงหน้า login
+    """
+    from app import plugins
+
+    with app.app_context():
+        plugins.uninstall(plugins.find(TOTP_KEY))
+        assert not plugins.is_installed(plugins.find(TOTP_KEY))
+        assert mfa.available() == []
+
+    client = app.test_client()
+    assert (
+        client.post("/login", data={"username": "tester", "password": PASSWORD}).status_code == 302
+    )
+    assert client.get("/settings").status_code == 200
+
+    with app.app_context():
+        plugins.install(plugins.find(TOTP_KEY))  # คืนสภาพให้เทสต์ตัวถัดไป
 
 
 def test_someone_without_mfa_signs_in_as_before(app, user_id):

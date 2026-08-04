@@ -277,6 +277,10 @@ session มาก่อนโปรไฟล์เพื่อให้กดส
 - **ตารางของ plugin อยู่นอกสาย migration ของ core** — `include_object` ใน
   `migrations/env.py` กรองออกทั้ง table/index/constraint ไม่งั้นวาง plugin แล้ว
   `flask db migrate` ตัวถัดไปจะสร้างให้ และ**ถอน plugin แล้วตัวถัดไปจะ drop ทิ้งเงียบ ๆ**
+- **หลัง `flask db upgrade` ต้อง `flask plugin-install <ชนิด>/<ไอดี>` ด้วย**
+  ไม่งั้น plugin นั้นถูกข้ามไปเงียบ ๆ (core เช็ค `is_installed()` ก่อนใช้งานเสมอ
+  — ตารางที่ยังไม่ถูกสร้างแปลว่ายังไม่มีใครลงทะเบียน จึงข้ามได้อย่างถูกต้อง
+  ถ้าไม่เช็ค หน้า login จะพังทั้งหน้าด้วย `no such table`)
 - วงจรชีวิตเป็นของ plugin เอง: `flask plugin-install` / `plugin-uninstall`
   (ถอน = ลบตารางจริง ไม่ใช่ soft delete — ข้อมูลของความสามารถที่ไม่มีอยู่แล้ว
   ไม่มีใครดูแล และ purge job ของ core ก็ไม่รู้จักตารางนั้น)

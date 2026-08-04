@@ -158,6 +158,10 @@ jobs:
       - name: เตรียมฐานข้อมูลชั่วคราว + ข้อมูลตัวอย่าง
         run: |
           pipenv run flask db upgrade
+          # ตารางของ plugin ไม่ได้อยู่ในสาย migration ของ core (ADR 0023)
+          # ต้องติดตั้งแยกเหมือนตอน deploy จริง ไม่งั้นหน้า settings จะไม่มี
+          # ส่วนของการยืนยันสองขั้นให้สแกน
+          pipenv run flask plugin-install auth/totp
           PYTHONPATH=. pipenv run python scripts/a11y_fixture.py
         env:
           SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
