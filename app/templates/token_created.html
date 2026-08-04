@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}{{ _('New API token') }}{% endblock %}
+
+{% block content %}
+<h2>{{ _('New API token') }}</h2>
+
+<p><strong>{{ _('Copy it now — it is not stored anywhere and cannot be shown again.') }}</strong></p>
+<p><code>{{ secret }}</code></p>
+
+<p>{{ _('Send it as an Authorization header:') }}</p>
+<pre><code>Authorization: Bearer {{ secret }}</code></pre>
+
+<p><a href="{{ url_for('main.settings') }}">{{ _('Back to settings') }}</a></p>
+{% endblock %}

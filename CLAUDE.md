@@ -120,7 +120,15 @@
    ในชั้นใน **ไม่ถูกเขียนลงฐานข้อมูลเลย** ทั้งที่ค่าในหน่วยความจำเปลี่ยนแล้ว
    → fixture ที่ `yield` object ให้ ต้องเปิด context ค้างไว้เอง แล้วตัวเทสต์ห้ามเปิดซ้อน
    (ดูหัวเรื่องของ `tests/test_services.py`)
-2. **การอ่านซ้ำจาก session ใหม่ ไม่ได้พิสูจน์ว่า commit แล้ว** เพราะ sqlite
+2. **`with app.app_context():` ที่ค้างอยู่ตอนยิง HTTP ทำให้ทุก request ใช้ `g` ก้อนเดียวกัน**
+   Flask จะ push app context ใหม่ให้ request **ก็ต่อเมื่อยังไม่มีของแอปนั้นค้างอยู่**
+   ถ้า fixture เปิดค้างไว้ `g` จึงถูกใช้ร่วมกันข้าม request — และ Flask-Login
+   cache `current_user` ไว้ใน `g` ผลคือ **ผู้ใช้ของ request ก่อนหน้าติดมาให้
+   request ถัดไป** เทสต์ที่ login เป็นคนละคนสองรอบจะกลายเป็นคนเดิมทั้งสองรอบ
+   → fixture ที่เทสต์ฝั่งเว็บใช้ ต้อง**ปิด context ก่อน return** (คืน id ไม่ใช่ object)
+   ส่วน fixture ที่ยัง `yield` object ให้ ใช้ได้เฉพาะเทสต์ที่เรียก service ตรง ๆ
+   (ดูสอง fixture ใน `tests/test_rbac.py` ที่แยกกันด้วยเหตุผลนี้)
+3. **การอ่านซ้ำจาก session ใหม่ ไม่ได้พิสูจน์ว่า commit แล้ว** เพราะ sqlite
    `:memory:` ใช้ connection เดียวร่วมกัน (StaticPool) session ใหม่จึงยังอยู่ใน
    transaction เดิมและเห็นของที่ยังไม่ commit → ต้อง `db.session.remove()`
    (rollback + ปิด session) ก่อนอ่าน ถ้าอยากพิสูจน์ว่าข้อมูลลงจริง

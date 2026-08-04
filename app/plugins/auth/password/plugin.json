@@ -1,0 +1,7 @@
+{
+  "type": "auth",
+  "name": "Password",
+  "version": "1.0.0",
+  "core": true,
+  "factor": "primary"
+}

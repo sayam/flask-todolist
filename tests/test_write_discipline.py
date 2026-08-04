@@ -30,6 +30,10 @@ EXEMPT_FILES = {"purge.py"}
 ALLOWED_LINES = {
     # ตั้งค่า connection ตอนเชื่อมต่อ ไม่ได้แตะข้อมูลสักแถว (ดู app/db_engine.py)
     ("db_engine.py", "PRAGMA foreign_keys=ON"),
+    # ปิด MFA = ลบความลับทิ้งจริง ไม่ใช่ซ่อน — ความลับ TOTP เป็นชั้น C1 เหมือน
+    # รหัสผ่าน (ไม่มีเหตุผลให้เก็บต่อ) และตารางนี้เป็นของ plugin ซึ่ง purge job
+    # ของ core ไม่รู้จัก ถ้า soft delete ก็จะไม่มีใครมาล้างให้เลย (ADR 0023/0024)
+    ("factor.py", "db.session.delete(row)"),
 }
 
 FORBIDDEN = {

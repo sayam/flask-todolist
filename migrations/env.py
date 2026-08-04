@@ -54,6 +54,22 @@ def get_metadata():
     return target_db.metadata
 
 
+def include_object(object_, name, type_, reflected, compare_to):  # noqa: ARG001
+    """ตารางของ plugin ไม่อยู่ในสาย migration ของ core (Phase 4 — ADR 0023)
+
+    ถ้าไม่กรองออก: วาง plugin ลงไปแล้ว `flask db migrate` ตัวถัดไปของ core จะมี
+    `create_table` ของ plugin ติดไปด้วย และ **ถอน plugin แล้วตัวถัดไปจะ
+    `drop_table` ทิ้งเงียบ ๆ** — วงจรชีวิตของตารางจะขึ้นกับว่าใครรัน migrate
+    ตอนไหน ซึ่งไม่ใช่สิ่งที่ใครตั้งใจ
+
+    วงจรชีวิตของตารางเหล่านี้เป็นของ plugin เอง (`flask plugin-install` /
+    `plugin-uninstall`) core รู้แค่ว่า "ไม่ใช่ของฉัน"
+    """
+    from app import plugins
+
+    return not (type_ == "table" and name in plugins.owned_tables())
+
+
 def run_migrations_offline():
     """Run migrations in 'offline' mode.
 
@@ -72,6 +88,7 @@ def run_migrations_offline():
         target_metadata=get_metadata(),
         literal_binds=True,
         version_table=VERSION_TABLE,
+        include_object=include_object,
     )
 
     with context.begin_transaction():
@@ -125,6 +142,7 @@ def run_migrations_online():
     conf_args = current_app.extensions["migrate"].configure_args
     if conf_args.get("process_revision_directives") is None:
         conf_args["process_revision_directives"] = process_revision_directives
+    conf_args.setdefault("include_object", include_object)
 
     connectable = get_engine()
     _adopt_legacy_version_table(connectable)

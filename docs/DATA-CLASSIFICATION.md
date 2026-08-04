@@ -19,10 +19,10 @@
 
 | ชั้น | ชื่อ | ฟิลด์จริงในระบบ |
 |---|---|---|
-| **C1** | ความลับ (secret) | `tdl_user.password_hash`, `tdl_api_token.token_hash` |
+| **C1** | ความลับ (secret) | `tdl_user.password_hash`, `tdl_api_token.token_hash`, `tdl_auth_totp_secret.totp_secret` |
 | **C2** | ระบุตัวบุคคล (PII) | `tdl_user.username`, `first_name`, `last_name` |
 | **C3** | เนื้อหาของผู้ใช้ | `tdl_todo.title`, `tdl_category.name`, `tdl_api_token.name`, `start_date`, `due_date` |
-| **C4** | การตั้งค่า/metadata | `locale`, `theme`, `mode`, `timezone_name`, `is_done`, `created_at`, `updated_at`, `deleted_at`, `purged_at`, `expires_at`, `id`, `*_id` |
+| **C4** | การตั้งค่า/metadata | `confirmed_at`, `last_counter`, `locale`, `theme`, `mode`, `timezone_name`, `role`, `is_done`, `created_at`, `updated_at`, `deleted_at`, `purged_at`, `expires_at`, `id`, `*_id` |
 | **C5** | หลักฐาน (audit) | `tdl_audit.id`, `created_at`, `event`, `actor_id`, `source`, `request_id`, `table_name`, `row_id`, `changes`, `prev_hash`, `row_hash` |
 | **C6** | log ปฏิบัติการ | JSON log ทาง stdout (`actor`, `remote_addr`, `path`, …) |
 
@@ -39,8 +39,16 @@
 - **audit เก็บ `request_id` แทน IP โดยตั้งใจ** — IP เป็นข้อมูลส่วนบุคคลที่มีอายุ
   90 วันตาม C6 ถ้าก๊อปมาไว้ในตาราง audit ด้วย มันจะอยู่ยาว 1 ปีโดยไม่มีใครตั้งใจ
   ต้องการ IP ให้เอา `request_id` ไปค้นใน log ระหว่างที่ log ยังไม่หมดอายุ
+- **`role` เป็น C4 ที่ต้องอ่านออกจาก audit ได้จริง** (ไม่ใช่ HMAC) เพราะคำถาม
+  "ใครยกระดับใครเป็น admin เมื่อไหร่" เป็นคำถามแรก ๆ ตอนสืบเหตุ และตัวค่าเอง
+  ไม่ได้บอกอะไรเกี่ยวกับตัวบุคคลนอกจากสิทธิ์ในระบบนี้ (ADR 0022)
 - **C4 ไม่ใช่ข้อมูลไร้ตัวตน** — `timezone_name` บอกโซนที่อยู่ได้คร่าว ๆ
   ถือว่าอ่อนพอจะเก็บใน audit ได้ แต่ไม่ควรเผยแพร่รวมกลุ่มโดยไม่คิด
+- **ตารางของ plugin ก็ถูกจำแนกที่นี่ด้วย** (`tdl_auth_totp_secret` — ADR 0023)
+  ความลับ TOTP เป็น C1 เท่ารหัสผ่าน ต่างกันตรงที่ **เก็บเป็นค่าจริง ไม่ใช่ hash**
+  เพราะต้องเอาไปคำนวณรหัสเทียบทุกครั้ง (นั่นคือธรรมชาติของ TOTP ไม่ใช่ทางลัด)
+  ผลที่ตามมา: ปิด MFA = ลบแถวทิ้งจริง ไม่ใช่ soft delete และ purge job ของ core
+  ไม่รู้จักตารางนี้ — วงจรชีวิตเป็นของ plugin เอง
 - **`tdl_api_token.token_hash` เป็น C1 เท่ากับรหัสผ่าน** ต่างกันแค่วิธี hash
   (sha256 เพราะความลับสุ่ม 256 บิต — ดูเหตุผลใน `app/services/tokens.py`)
   ตัวความลับจริงไม่เคยถูกเก็บ แสดงครั้งเดียวตอนออกใบแล้วหายไปจากระบบ

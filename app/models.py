@@ -48,6 +48,10 @@ class User(UserMixin, SoftDeleteMixin, db.Model):
     timezone_name: Mapped[str | None] = mapped_column(String(64))
     first_name: Mapped[str | None] = mapped_column(String(80))
     last_name: Mapped[str | None] = mapped_column(String(80))
+    # บทบาท: 'user' หรือ 'admin' (ชุดปิด ตรวจใน app/services/roles.py — ADR 0022)
+    # **ไม่ nullable และมี server_default** เพราะแถวที่มีอยู่ก่อน migration
+    # ต้องได้ค่าที่ชัดเจน ไม่ใช่ NULL ที่แปลว่า "ไม่รู้ว่ามีสิทธิ์แค่ไหน"
+    role: Mapped[str] = mapped_column(String(16), default="user", server_default="user")
     # เวลาที่ PII ถูกล้างจริง (แถวยังอยู่เป็น tombstone ให้ audit อ้างถึงได้)
     # ดู docs/DATA-CLASSIFICATION.md — ต่างจาก deleted_at ที่แปลว่า 'ปิดบัญชีแล้ว'
     purged_at: Mapped[datetime | None] = mapped_column(DateTime, default=None)
@@ -61,13 +65,23 @@ class User(UserMixin, SoftDeleteMixin, db.Model):
     )
 
     def set_password(self, password: str) -> None:
-        self.password_hash = generate_password_hash(password)
+        """เก็บ hash ของรหัสผ่านที่ normalize แล้ว (ดู `app/services/passwords.py`)
+
+        **การ normalize อยู่ที่นี่ ไม่ใช่ที่ผู้เรียก** เพราะต้องเกิดคู่กับ
+        `check_password()` เสมอ ถ้าปล่อยให้ผู้เรียกจำเอง วันที่มีใครลืมสักทาง
+        ผู้ใช้ที่ตั้งรหัสด้วยอักขระ unicode จะ login ไม่ได้ทั้งที่พิมพ์เหมือนเดิม
+        """
+        from app.services.passwords import normalize
+
+        self.password_hash = generate_password_hash(normalize(password))
 
     def check_password(self, password: str) -> bool:
+        from app.services.passwords import normalize
+
         # เช็คก่อนส่งเข้า werkzeug เพราะค่า sentinel ไม่ใช่ hash ที่ parse ได้
         if self.password_hash == DISABLED_SECRET:
             return False
-        return check_password_hash(self.password_hash, password)
+        return check_password_hash(self.password_hash, normalize(password))
 
     def disable_password(self) -> None:
         """ล้าง credential ทิ้ง — ชั้น C1 ไม่มีเหตุผลให้เก็บต่อเมื่อบัญชีถูกปิด
@@ -76,6 +90,18 @@ class User(UserMixin, SoftDeleteMixin, db.Model):
         กู้บัญชีคืนได้ แต่ต้องตั้งรหัสใหม่
         """
         self.password_hash = DISABLED_SECRET
+
+    @property
+    def is_admin(self) -> bool:
+        """ใช้ใน template เพื่อตัดสินว่าจะโชว์เมนูของผู้ดูแลไหม
+
+        **การโชว์/ไม่โชว์เมนูไม่ใช่การกันสิทธิ์** ตัวที่กันจริงคือ
+        `roles.require_admin()` ที่อยู่ใน service (หลักเดียวกับปุ่มลบหมวด
+        ที่ถูก disable ไว้ แต่การกันจริงอยู่ที่ route)
+        """
+        from app.services.roles import is_admin
+
+        return is_admin(self)
 
     @property
     def full_name(self) -> str:

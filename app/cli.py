@@ -12,6 +12,8 @@ from app import audit, db
 from app.models import Category, User
 from app.purge import AUDIT_RETAIN_DAYS, PURGE_AFTER_DAYS, preview_expired, purge_expired
 from app.services import ServiceError
+from app.services import passwords as passwords_service
+from app.services import roles as roles_service
 from app.services import tokens as tokens_service
 from config import DEFAULT_LANGUAGE, LANGUAGES
 
@@ -28,8 +30,6 @@ DEFAULT_CATEGORIES = {
         "งานที่ทำงาน",
     ],
 }
-
-MIN_PASSWORD_LENGTH = 8
 
 
 def _find_user(username):
@@ -59,10 +59,12 @@ def create_user(username, lang, no_categories):
         raise click.ClickException(f"A user named {username!r} already exists.")
 
     password = click.prompt("Password", hide_input=True, confirmation_prompt="Repeat password")
-    if len(password) < MIN_PASSWORD_LENGTH:
-        raise click.ClickException(
-            f"Password must be at least {MIN_PASSWORD_LENGTH} characters long."
-        )
+    # นโยบายเดียวกับฝั่งเว็บเป๊ะ — ประตูหลังที่ยอมให้ตั้งรหัสอ่อนกว่าคือช่องที่
+    # คนจะใช้จริง เพราะมันสะดวกกว่า (ดู app/services/passwords.py)
+    try:
+        password = passwords_service.validate(password, username=username)
+    except ServiceError as error:
+        raise click.ClickException(error.message) from error
 
     user = User(username=username, locale=lang)
     user.set_password(password)
@@ -122,16 +124,57 @@ def delete_user(username, yes):
     )
 
 
+@click.command("set-password")
+@click.argument("username")
+@with_appcontext
+def set_password(username):
+    """Set a user's password without asking for the old one (admin recovery path).
+
+    There is no self-service password reset by design (no email is stored),
+    so this is how a forgotten password gets fixed.
+    """
+    user = _find_user(username.strip())
+    if user is None:
+        raise click.ClickException(f"No user named {username!r}.")
+
+    password = click.prompt("New password", hide_input=True, confirmation_prompt="Repeat password")
+    try:
+        passwords_service.set_password(user, password)
+    except ServiceError as error:
+        raise click.ClickException(error.message) from error
+    click.echo(f"Password of {user.username!r} changed.")
+
+
+@click.command("set-role")
+@click.argument("username")
+@click.argument("role", type=click.Choice(roles_service.ROLES))
+@with_appcontext
+def set_role(username, role):
+    """Set a user's role (this is how the first administrator is created).
+
+    The web page refuses to change your own role, on purpose. This command
+    does not: whoever can run it already has full access to the machine.
+    """
+    user = _find_user(username.strip())
+    if user is None:
+        raise click.ClickException(f"No user named {username!r}.")
+    try:
+        roles_service.set_role(user, role)
+    except ServiceError as error:
+        raise click.ClickException(error.message) from error
+    click.echo(f"{user.username!r} is now {role!r}.")
+
+
 @click.command("list-users")
 @with_appcontext
 def list_users():
-    """List all users with their id, username and language."""
+    """List all users with their id, username, language and role."""
     users = db.session.scalars(select(User).order_by(User.id)).all()
     if not users:
         click.echo("No users yet — create one with `flask create-user <name>`.")
         return
     for user in users:
-        click.echo(f"{user.id}\t{user.username}\t{user.locale or '-'}")
+        click.echo(f"{user.id}\t{user.username}\t{user.locale or '-'}\t{user.role}")
 
 
 @click.command("token-create")
@@ -191,6 +234,71 @@ def token_revoke(username, token_id):
     except ServiceError as error:
         raise click.ClickException(error.message) from error
     click.echo(f"Revoked token {token.id} ({token.name!r}) of {user.username!r}.")
+
+
+@click.command("plugin-list")
+@with_appcontext
+def plugin_list():
+    """List installed plugins and the tables they own, if any."""
+    from sqlalchemy import inspect
+
+    from app import plugins
+
+    existing = set(inspect(db.engine).get_table_names())
+    for plugin in plugins.installed():
+        tables = sorted(plugins.tables_of(plugin))
+        if not tables:
+            state = "no tables"
+        elif all(name in existing for name in tables):
+            state = f"installed: {', '.join(tables)}"
+        else:
+            state = f"NOT installed: {', '.join(tables)}"
+        core = " (core)" if plugin.is_core else ""
+        click.echo(f"{plugin.key}\tv{plugin.version}{core}\t{state}")
+
+
+@click.command("plugin-install")
+@click.argument("key")
+@with_appcontext
+def plugin_install(key):
+    """Create the tables owned by a plugin (safe to run twice).
+
+    Plugin tables are deliberately outside the core migration chain: dropping
+    a plugin directory must not make the next core migration delete its data.
+    """
+    from app import plugins
+
+    plugin = plugins.find(key)
+    if plugin is None:
+        raise click.ClickException(f"No plugin named {key!r} (see `flask plugin-list`).")
+    tables = plugins.install(plugin)
+    if not tables:
+        click.echo(f"{plugin.key} has no tables of its own — nothing to do.")
+        return
+    click.echo(f"Installed {plugin.key}: {', '.join(sorted(tables))}")
+
+
+@click.command("plugin-uninstall")
+@click.argument("key")
+@click.option("--yes", is_flag=True, help="Drop without asking for confirmation.")
+@with_appcontext
+def plugin_uninstall(key, yes):
+    """Drop the tables owned by a plugin — the data in them is gone for good."""
+    from app import plugins
+
+    plugin = plugins.find(key)
+    if plugin is None:
+        raise click.ClickException(f"No plugin named {key!r} (see `flask plugin-list`).")
+    tables = sorted(plugins.tables_of(plugin))
+    if not tables:
+        click.echo(f"{plugin.key} has no tables of its own — nothing to do.")
+        return
+
+    click.echo(f"About to drop {', '.join(tables)} and everything in them.")
+    if not yes:
+        click.confirm("Drop?", abort=True)
+    plugins.uninstall(plugin)
+    click.echo(f"Uninstalled {plugin.key}.")
 
 
 @click.command("purge-expired")
@@ -264,10 +372,15 @@ def register_cli(app):
     """ผูกทุก command เข้ากับ flask CLI — ตัว command ประกาศระดับ module"""
     app.cli.add_command(create_user)
     app.cli.add_command(delete_user)
+    app.cli.add_command(set_password)
+    app.cli.add_command(set_role)
     app.cli.add_command(list_users)
     app.cli.add_command(token_create)
     app.cli.add_command(token_list)
     app.cli.add_command(token_revoke)
+    app.cli.add_command(plugin_list)
+    app.cli.add_command(plugin_install)
+    app.cli.add_command(plugin_uninstall)
     app.cli.add_command(purge_expired_command)
     app.cli.add_command(audit_verify)
     app.cli.add_command(audit_log)

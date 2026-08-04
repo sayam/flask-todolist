@@ -24,9 +24,28 @@ class Config:
 
     # นับเฉพาะ login ที่ล้มเหลว ล็อกอินถูกไม่กินโควตา
     LOGIN_RATE_LIMIT = os.environ.get("LOGIN_RATE_LIMIT", "5 per minute; 20 per hour")
+    # โควตาที่นับ **ต่อชื่อผู้ใช้** ไม่ใช่ต่อ IP — ปิดช่องคนที่เปลี่ยน IP ไปเรื่อย ๆ
+    # ตั้งหลวมกว่าฝั่ง IP โดยตั้งใจ เพราะโควตานี้เป็นของ *เหยื่อ* ไม่ใช่ของคนยิง
+    # (ดู app/auth.py และ ADR 0021 — หน้าต่างสั้นเพื่อจำกัดเวลาที่เจ้าของบัญชี
+    # ตัวจริงถูกกันออกไปด้วย)
+    LOGIN_USERNAME_RATE_LIMIT = os.environ.get(
+        "LOGIN_USERNAME_RATE_LIMIT", "10 per 5 minutes; 60 per hour"
+    )
     # memory:// เก็บใน process เดียว พอสำหรับ dev/single worker
     # ถ้ารันหลาย worker ต้องเปลี่ยนเป็น redis:// ไม่งั้นแต่ละ worker นับแยกกัน
     RATELIMIT_STORAGE_URI = os.environ.get("RATELIMIT_STORAGE_URI", "memory://")
+
+    # --- อายุของ session (Phase 4 — ดู app/session_security.py และ ADR 0020) ---
+    # ค่าแรกคือ idle timeout สำหรับเครื่องที่ถูกทิ้งไว้
+    # ค่าที่สองคือ absolute timeout ที่หมดอายุแม้จะใช้งานอยู่ตลอด
+    SESSION_IDLE_MINUTES = int(os.environ.get("SESSION_IDLE_MINUTES", "30"))
+    SESSION_ABSOLUTE_HOURS = int(os.environ.get("SESSION_ABSOLUTE_HOURS", "12"))
+    # **ไม่มี `PERMANENT_SESSION_LIFETIME` โดยตั้งใจ** — คุกกี้ของแอปนี้เป็น
+    # คุกกี้แบบจบเมื่อปิดเบราว์เซอร์ อายุจริงบังคับที่ server ทุก request
+    # (ดูเหตุผลเต็มใน `app/session_security.py`)
+    # อายุของสถานะ "ผ่านรหัสผ่านแล้วแต่ยังไม่ผ่านขั้นที่สอง" — สั้นโดยตั้งใจ
+    # เพราะมันคือครึ่งทางของการยืนยันตัวตน (ADR 0024)
+    MFA_PENDING_SECONDS = int(os.environ.get("MFA_PENDING_SECONDS", "300"))
 
     LANGUAGES = LANGUAGES
     BABEL_DEFAULT_LOCALE = DEFAULT_LANGUAGE

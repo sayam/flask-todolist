@@ -1,0 +1,6 @@
+{
+  "type": "auth",
+  "name": "Authenticator app",
+  "version": "1.0.0",
+  "factor": "second"
+}

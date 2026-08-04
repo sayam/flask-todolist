@@ -8,15 +8,35 @@
 * เพิ่ม plugin = วางไดเรกทอรีลงไป **ไม่ต้องแก้โค้ด core แม้แต่บรรทัดเดียว**
 * ลบ plugin = ลบไดเรกทอรีทิ้ง ระบบต้องยังทำงานได้ ผู้ใช้ที่เลือก plugin นั้นไว้
   จะตกกลับไปใช้ตัว core อัตโนมัติ
-* plugin ที่ต้องเก็บข้อมูลเพิ่มต้องดูแล table ของตัวเอง ห้ามแก้ table ของ core
-  (ยังไม่มี plugin ชนิดนั้นในตอนนี้ — ดู "ยังไม่ได้ทำ" ใน CLAUDE.md)
+* plugin ที่ต้องเก็บข้อมูลเพิ่ม **ดูแล table ของตัวเอง** ห้ามแก้ table ของ core
+  (กลไกอยู่ในไฟล์นี้ — ดูหัวข้อ "plugin ที่มีข้อมูลของตัวเอง" ข้างล่าง และ ADR 0023)
 
-ตอนนี้รองรับชนิดเดียวคือ `theme` แต่ตัว registry ออกแบบให้เพิ่มชนิดอื่นได้
-โดยไม่ต้องรื้อ
+## plugin ที่มีข้อมูลของตัวเอง (Phase 4)
+
+plugin ที่ต้องเก็บข้อมูลวาง `models.py` ไว้ในไดเรกทอรีของตัวเอง ประกาศ model
+ตามปกติ โดย **ชื่อตารางต้องขึ้นต้นด้วย `tdl_<ชนิด>_<ไอดี>_`** (บังคับตอนโหลด
+ไม่ใช่แค่ธรรมเนียม) core รู้ว่าตารางไหนเป็นของ plugin ตัวไหนด้วยการดูว่ามีตาราง
+อะไรโผล่เข้า metadata ระหว่าง import ไฟล์นั้น — ไม่ต้องประกาศซ้ำใน manifest
+ให้มีโอกาสไม่ตรงกัน
+
+ตารางของ plugin **ไม่อยู่ในสาย migration ของ core** โดยตั้งใจ: `flask db migrate`
+ของ core จะมองไม่เห็นมันเลย (env.py กรองออกด้วย `owned_tables()`) ไม่งั้นการ
+วาง plugin ลงไปจะทำให้ migration ตัวถัดไปของ core มีตารางของ plugin ติดไปด้วย
+และการถอด plugin จะทำให้ migration ตัวถัดไป **drop ตารางนั้นทิ้งเงียบ ๆ**
+
+วงจรชีวิตจึงเป็นของ plugin เอง: `flask plugin-install` สร้างตาราง
+`flask plugin-uninstall` ลบทิ้ง — ถอนแล้วข้อมูลของ plugin หายไปด้วยจริง ๆ
+ส่วน core ไม่รู้จักแม้แต่ชื่อตาราง
+
+ตอนนี้รองรับสองชนิดคือ `themes` (ไม่มีข้อมูลของตัวเอง) กับ `auth`
+แต่ตัว registry ออกแบบให้เพิ่มชนิดอื่นได้โดยไม่ต้องรื้อ
 """
 
+import importlib.util
 import json
 import pathlib
+import sys
+from types import ModuleType
 from typing import Any
 
 PLUGIN_ROOT = pathlib.Path(__file__).resolve().parent
@@ -31,6 +51,16 @@ CORE_THEME = "system"
 
 class PluginError(RuntimeError):
     """manifest เสียหรือโครงสร้าง plugin ไม่ถูกต้อง"""
+
+
+AUTH_TYPE = "auth"
+
+# ชื่อโมดูลที่ plugin ใช้ประกาศ model ของตัวเอง (ไม่มีก็ได้ = ไม่มีข้อมูลของตัวเอง)
+MODELS_MODULE = "models"
+# โมดูลที่ plugin ชนิด auth ต้องมี ถ้าประกาศตัวเองเป็นปัจจัยที่สอง
+FACTOR_MODULE = "factor"
+# ฟังก์ชันที่ปัจจัยที่สองต้องมีครบ — core เรียกแค่สองตัวนี้ ไม่รู้อะไรมากกว่านี้
+SECOND_FACTOR_CONTRACT = ("is_enrolled", "verify")
 
 
 class Plugin:
@@ -63,6 +93,16 @@ class Plugin:
     def stylesheet(self) -> str | None:
         value = self.manifest.get("stylesheet")
         return str(value) if value is not None else None
+
+    @property
+    def key(self) -> str:
+        """ชื่อเต็มที่ใช้อ้างถึง plugin ตัวนี้จากบรรทัดคำสั่ง เช่น `auth/totp`"""
+        return f"{self.type}/{self.id}"
+
+    @property
+    def table_prefix(self) -> str:
+        """ตารางของ plugin ตัวนี้ต้องขึ้นต้นด้วยอะไร (docs/STANDARDS.md ข้อ 1.1)"""
+        return f"tdl_{self.type}_{self.id}_"
 
     def file(self, filename: str) -> pathlib.Path:
         """path ของไฟล์ใน plugin — กันไม่ให้หลุดออกนอกไดเรกทอรีตัวเอง"""
@@ -109,6 +149,167 @@ def discover(plugin_type: str) -> dict[str, Plugin]:
     return found
 
 
+def types() -> list[str]:
+    """ชนิดของ plugin ที่มีไดเรกทอรีอยู่จริง — core ไม่ได้ประกาศรายชื่อไว้ที่ไหน"""
+    return sorted(
+        directory.name
+        for directory in PLUGIN_ROOT.iterdir()
+        if directory.is_dir() and not directory.name.startswith(("_", "."))
+    )
+
+
+def installed() -> list[Plugin]:
+    """plugin ทุกตัวทุกชนิดที่ค้นเจอบนดิสก์ ณ ตอนนี้"""
+    return [plugin for plugin_type in types() for plugin in discover(plugin_type).values()]
+
+
+def find(key: str) -> Plugin | None:
+    """หา plugin จากชื่อเต็ม `<ชนิด>/<ไอดี>` — ไม่มีก็คืน None"""
+    plugin_type, _, plugin_id = key.partition("/")
+    return discover(plugin_type).get(plugin_id) if plugin_id else None
+
+
+# ---------------------------------------------------------------- ข้อมูลของ plugin
+
+# ผลของการ import models.py ของทุก plugin — cache ไว้เพราะ import ซ้ำจะไม่เห็น
+# ตารางใหม่อีก (โมดูลถูก cache ไว้แล้ว) การอ่านค่าจึงต้องมาจากที่นี่ที่เดียว
+_owned: dict[str, frozenset[str]] | None = None
+
+
+def load_module(plugin: Plugin, module_name: str) -> ModuleType | None:
+    """โหลดโมดูลของ plugin ตามชื่อไฟล์ (`models`, `factor`, …) — ไม่มีไฟล์คืน None
+
+    โหลดจาก path ตรง ๆ ไม่ผ่านชื่อโมดูลปกติ เพราะไอดีของ plugin เป็นชื่อ
+    ไดเรกทอรีที่มีขีดกลางได้ ซึ่งเป็นชื่อโมดูล python ที่ import ตรง ๆ ไม่ได้
+    """
+    path = plugin.directory / f"{module_name}.py"
+    if not path.is_file():
+        return None
+    name = f"app.plugins.{plugin.type}.{plugin.id.replace('-', '_')}.{module_name}"
+    cached = sys.modules.get(name)
+    if cached is not None:
+        return cached
+    spec = importlib.util.spec_from_file_location(name, path)
+    if spec is None or spec.loader is None:  # pragma: no cover — ไฟล์มีอยู่แล้ว
+        raise PluginError(f"{plugin.key}: โหลด {path.name} ไม่ได้")
+    module = importlib.util.module_from_spec(spec)
+    # ใส่เข้า sys.modules ก่อน exec เพื่อให้ import ซ้อนภายในโมดูลทำงานได้
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def load_models() -> dict[str, frozenset[str]]:
+    """import model ของ plugin ทุกตัว คืน map `<ชนิด>/<ไอดี>` → ชื่อตารางที่มันเป็นเจ้าของ
+
+    **รู้ว่าตารางไหนเป็นของใครด้วยการดูว่ามีอะไรโผล่เข้า metadata ระหว่าง import**
+    ไม่ใช่ให้ plugin ประกาศรายชื่อตารางไว้ใน manifest ซึ่งจะไม่ตรงกับของจริง
+    ในวันที่มีคนเพิ่ม model แล้วลืมแก้ manifest
+    """
+    global _owned  # noqa: PLW0603  ผลของการ import เป็นสถานะระดับ process อยู่แล้ว
+    if _owned is not None:
+        return _owned
+
+    from app import db
+
+    found: dict[str, frozenset[str]] = {}
+    for plugin in installed():
+        before = set(db.metadata.tables)
+        if load_module(plugin, MODELS_MODULE) is None:
+            continue
+        added = set(db.metadata.tables) - before
+        wrong = sorted(name for name in added if not name.startswith(plugin.table_prefix))
+        if wrong:
+            raise PluginError(
+                f"{plugin.key}: ตาราง {', '.join(wrong)} ต้องขึ้นต้นด้วย {plugin.table_prefix!r} "
+                "ไม่งั้นแยกไม่ออกว่าเป็นของ plugin ตัวไหนตอนถอน"
+            )
+        if added:
+            found[plugin.key] = frozenset(added)
+    _owned = found
+    return _owned
+
+
+def forget_models() -> None:
+    """ลืมผลการ import ทิ้ง เพื่อให้ `load_models()` อ่านดิสก์ใหม่
+
+    ต่างจาก `discover()` ที่อ่านดิสก์ทุกครั้ง — ตรงนี้ cache ไว้เพราะการ import
+    ซ้ำจะไม่เห็นตารางใหม่อีก (python cache โมดูลไว้แล้ว) ใช้ตอนเทสต์ที่วาง
+    plugin ลงไประหว่างรัน ของจริงไม่ต้องเรียกเพราะ plugin มาพร้อมตอน deploy
+    """
+    global _owned  # noqa: PLW0603  ตัวเดียวกับที่ load_models() ดูแล
+    _owned = None
+
+
+def tables_of(plugin: Plugin) -> frozenset[str]:
+    """ชื่อตารางที่ plugin ตัวนี้เป็นเจ้าของ"""
+    return load_models().get(plugin.key, frozenset())
+
+
+def owned_tables() -> frozenset[str]:
+    """ตารางทั้งหมดที่เป็นของ plugin — **core ใช้ตัวนี้เพื่อ "ไม่ยุ่ง" กับมัน**
+
+    ที่ใช้จริง: `migrations/env.py` กรองออกจาก autogenerate ไม่งั้น migration
+    ตัวถัดไปของ core จะสร้าง/drop ตารางของ plugin ตามการวาง/ถอนไดเรกทอรี
+    """
+    return frozenset(name for tables in load_models().values() for name in tables)
+
+
+def _table_objects(plugin: Plugin) -> list[Any]:
+    from app import db
+
+    return [db.metadata.tables[name] for name in sorted(tables_of(plugin))]
+
+
+def install(plugin: Plugin) -> frozenset[str]:
+    """สร้างตารางของ plugin ตัวนี้ (ทำซ้ำได้ ไม่พังถ้ามีอยู่แล้ว)"""
+    from app import db
+
+    tables = _table_objects(plugin)
+    if tables:
+        db.metadata.create_all(bind=db.engine, tables=tables, checkfirst=True)
+    return tables_of(plugin)
+
+
+def uninstall(plugin: Plugin) -> frozenset[str]:
+    """ลบตารางของ plugin ตัวนี้ทิ้ง — **ข้อมูลหายจริง ไม่ใช่ soft delete**
+
+    ต่างจากข้อมูลของ core โดยตั้งใจ: การถอน plugin คือการบอกว่า "ไม่ใช้
+    ความสามารถนี้แล้ว" ข้อมูลที่ค้างอยู่ของความสามารถที่ไม่มีอยู่แล้วคือของที่
+    ไม่มีใครดูแล และตัว plugin เองก็ไม่อยู่ให้ purge job เรียกใช้อีกต่อไป
+    """
+    from app import db
+
+    tables = _table_objects(plugin)
+    if tables:
+        db.metadata.drop_all(bind=db.engine, tables=tables, checkfirst=True)
+    return tables_of(plugin)
+
+
+# ---------------------------------------------------------------- ปัจจัยยืนยันตัวตน
+
+
+def second_factors() -> list[Plugin]:
+    """plugin ชนิด `auth` ที่ประกาศตัวเองเป็นปัจจัยที่สอง
+
+    core รู้แค่ว่า "มีกี่ตัว" กับ "เรียกอะไรได้บ้าง" ไม่รู้จักชื่อตัวไหนเลย
+    ถอนไดเรกทอรีทิ้งแล้วระบบกลับไปเป็น login ด้วยรหัสผ่านอย่างเดียวทันที
+    """
+    return [
+        plugin
+        for plugin in discover(AUTH_TYPE).values()
+        if plugin.manifest.get("factor") == "second"
+    ]
+
+
+def factor_module(plugin: Plugin) -> ModuleType:
+    """โมดูลที่ทำงานจริงของปัจจัยตัวนั้น — ต้องมีเสมอ (ตรวจตอน start)"""
+    module = load_module(plugin, FACTOR_MODULE)
+    if module is None:
+        raise PluginError(f"{plugin.key}: ไม่มี {FACTOR_MODULE}.py")
+    return module
+
+
 def themes() -> dict[str, Plugin]:
     return discover(THEME_TYPE)
 
@@ -134,8 +335,20 @@ def check_installation() -> None:
     ให้พังตั้งแต่ตอน start ดีกว่าไปพังตอน render หน้าแรก
     """
     core_theme()
+    # โหลด model ของ plugin ที่มีข้อมูลของตัวเอง — ให้ prefix ที่ผิดพังตั้งแต่ตอน
+    # start ไม่ใช่ตอนที่มีคนกด install แล้วได้ตารางชื่อประหลาดค้างในฐานข้อมูล
+    load_models()
     for plugin in themes().values():
         if not plugin.stylesheet:
             raise PluginError(f"ธีม {plugin.id}: manifest ไม่ได้ระบุ stylesheet")
         if not plugin.file(plugin.stylesheet).is_file():
             raise PluginError(f"ธีม {plugin.id}: ไม่พบไฟล์ {plugin.stylesheet}")
+    # ปัจจัยที่สองที่ทำสัญญาไม่ครบ = ด่าน login ที่พังตอนมีคนพยายาม login จริง
+    # ให้พังตั้งแต่ตอน start ดีกว่า
+    for plugin in second_factors():
+        module = factor_module(plugin)
+        missing = [
+            name for name in SECOND_FACTOR_CONTRACT if not callable(getattr(module, name, None))
+        ]
+        if missing:
+            raise PluginError(f"{plugin.key}: {FACTOR_MODULE}.py ต้องมีฟังก์ชัน {', '.join(missing)}")

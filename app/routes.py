@@ -27,8 +27,12 @@ from app.filters import UPCOMING_CHOICES, FilterSpec
 from app.i18n import SESSION_KEY, is_supported
 from app.services import NotFoundError, ServiceError, ValidationError
 from app.services import categories as categories_service
+from app.services import mfa as mfa_service
+from app.services import passwords as passwords_service
 from app.services import settings as settings_service
 from app.services import todos as todos_service
+from app.services import tokens as tokens_service
+from app.session_security import renew_session
 from app.theme import (
     MODE_SESSION_KEY,
     THEME_SESSION_KEY,
@@ -266,6 +270,10 @@ def settings():
         "settings.html",
         timezones=tz.all_timezones(),
         current_timezone=current_user.timezone_name or tz.default_name(),
+        password_min_length=passwords_service.MIN_LENGTH,
+        factors=mfa_service.state(current_user),
+        tokens=tokens_service.list_tokens(current_user),
+        default_expiry_days=tokens_service.DEFAULT_EXPIRY_DAYS,
     )
 
 
@@ -279,6 +287,152 @@ def save_profile():
         request.form.get("last_name"),
     )
     flash(_("Profile saved"))
+    return redirect(url_for("main.settings"))
+
+
+@bp.route("/settings/password", methods=["POST"])
+@login_required
+def change_password():
+    """เปลี่ยนรหัสผ่านของตัวเอง — ต้องกรอกรหัสเดิมด้วยเสมอ
+
+    ช่องยืนยันรหัสใหม่ถูกเทียบที่นี่ ไม่ใช่ใน service เพราะมันคือกันพิมพ์ผิด
+    ของฟอร์ม HTML ไม่ใช่กฎของโดเมน (API ส่งรหัสใหม่มาช่องเดียว)
+    """
+    new_password = request.form.get("new_password", "")
+    if new_password != request.form.get("confirm_password", ""):
+        flash(_("The two new passwords do not match"))
+        return redirect(url_for("main.settings"))
+
+    try:
+        passwords_service.change_password(
+            current_user,
+            current_password=request.form.get("current_password", ""),
+            new_password=new_password,
+        )
+    except ServiceError as error:
+        flash(error.message)
+        return redirect(url_for("main.settings"))
+
+    # รหัสเปลี่ยนแล้วคุกกี้ใบเดิมต้องใช้ไม่ได้ — คนที่เปลี่ยนรหัสเพราะสงสัยว่า
+    # ถูกยึดบัญชีต้องได้ผลจริง ไม่ใช่แค่เปลี่ยนสิ่งที่ใช้ตอน login ครั้งหน้า
+    renew_session()
+    flash(_("Password changed"))
+    return redirect(url_for("main.settings"))
+
+
+# --- personal access token (ยกมาจาก Phase 3 — ADR 0017) ---
+
+
+@bp.route("/settings/tokens", methods=["POST"])
+@login_required
+def create_token():
+    """ออก token ใบใหม่ — **ต้องกรอกรหัสผ่านซ้ำ**
+
+    การออกกุญแจใบใหม่คือการสร้าง credential ที่ใช้ได้ยาวเป็นเดือนโดยไม่ผ่าน
+    ปัจจัยที่สอง session ที่ถูกยึดจึงต้องทำแบบนี้ไม่ได้ (นี่คือ "เรื่อง
+    re-authentication ที่ต้องคิดก่อน" ซึ่ง ADR 0017 บันทึกไว้ว่ายังไม่ได้ทำ)
+
+    **ไม่ redirect กลับหน้า settings** เพราะจะต้องส่งความลับผ่าน flash ซึ่งไป
+    นอนอยู่ในคุกกี้ session — คุกกี้นั้นถูก *เซ็น* แต่ไม่ได้ *เข้ารหัส* ใครเปิด
+    ไฟล์คุกกี้ของเบราว์เซอร์ก็อ่านได้ ตัวความลับจึงถูก render ในคำตอบนี้ครั้งเดียว
+    """
+    if not current_user.check_password(request.form.get("password", "")):
+        flash(_("Current password is incorrect"))
+        return redirect(url_for("main.settings"))
+
+    try:
+        secret = tokens_service.issue(
+            current_user,
+            request.form.get("name"),
+            _expiry_days(request.form.get("expires_days")),
+        )
+    except ServiceError as error:
+        flash(error.message)
+        return redirect(url_for("main.settings"))
+
+    return render_template("token_created.html", secret=secret)
+
+
+def _expiry_days(raw):
+    """จำนวนวันจากฟอร์ม — ค่าที่ย่อยไม่ได้ตกกลับเป็นค่าเริ่มต้น (มีวันหมดอายุ)
+
+    ตกกลับไปทาง "ปลอดภัยกว่า" เสมอ: ใบที่ไม่มีวันหมดอายุต้องเป็นสิ่งที่ตั้งใจขอ
+    ไม่ใช่สิ่งที่ได้มาเพราะพิมพ์เลขผิด
+    """
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return tokens_service.DEFAULT_EXPIRY_DAYS
+
+
+@bp.route("/settings/tokens/<int:token_id>/revoke", methods=["POST"])
+@login_required
+def revoke_token(token_id):
+    """เพิกถอน token — ไม่ต้องกรอกรหัสผ่านซ้ำ
+
+    ต่างจากการออกใบใหม่โดยตั้งใจ: การเพิกถอนทำให้ระบบ *ปลอดภัยขึ้น* เสมอ
+    การตั้งด่านขวางไว้มีแต่จะทำให้คนลังเลตอนที่ควรรีบกด
+    """
+    try:
+        tokens_service.revoke(current_user, token_id)
+    except NotFoundError:
+        abort(404)
+    except ServiceError as error:
+        flash(error.message)
+        return redirect(url_for("main.settings"))
+
+    flash(_("Token revoked"))
+    return redirect(url_for("main.settings"))
+
+
+# --- การยืนยันสองขั้น (Phase 4) ---
+# route พวกนี้ไม่รู้จักชื่อ plugin ตัวไหนเลย รับ `factor` มาจากฟอร์มแล้วส่งต่อ
+# ให้ service ซึ่งเทียบกับรายการที่ค้นเจอจริงก่อนเสมอ (ดู app/services/mfa.py)
+
+
+@bp.route("/settings/mfa/start", methods=["POST"])
+@login_required
+def start_mfa():
+    """ออกความลับให้ปัจจัยที่เลือก — ยังไม่เปิดใช้จนกว่าจะยืนยันด้วยรหัสจริง"""
+    try:
+        mfa_service.start(current_user, request.form.get("factor", ""))
+    except LookupError:
+        abort(404)
+    except ServiceError as error:
+        flash(error.message)
+    return redirect(url_for("main.settings"))
+
+
+@bp.route("/settings/mfa/confirm", methods=["POST"])
+@login_required
+def confirm_mfa():
+    try:
+        confirmed = mfa_service.confirm(
+            current_user, request.form.get("factor", ""), request.form.get("code", "")
+        )
+    except LookupError:
+        abort(404)
+    flash(_("Two-step verification is on") if confirmed else _("That code is not valid"))
+    return redirect(url_for("main.settings"))
+
+
+@bp.route("/settings/mfa/disable", methods=["POST"])
+@login_required
+def disable_mfa():
+    """ปิดปัจจัยที่สอง — **ต้องกรอกรหัสผ่านซ้ำ**
+
+    ไม่งั้น session ที่ถูกยึดจะถอดปัจจัยที่สองทิ้งได้ในคลิกเดียว ซึ่งทำให้
+    การมี MFA ไม่ได้ป้องกันสถานการณ์ที่มันถูกสร้างมาเพื่อป้องกันพอดี
+    """
+    if not current_user.check_password(request.form.get("password", "")):
+        flash(_("Current password is incorrect"))
+        return redirect(url_for("main.settings"))
+
+    try:
+        mfa_service.disable(current_user, request.form.get("factor", ""))
+    except LookupError:
+        abort(404)
+    flash(_("Two-step verification is off"))
     return redirect(url_for("main.settings"))
 
 

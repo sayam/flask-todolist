@@ -92,6 +92,18 @@ def test_constraints_follow_the_naming_convention(migrated):
         assert expected in ddl, f"ไม่พบ constraint/index ชื่อ {expected}"
 
 
+def _is_plugin(entry):
+    """ตารางของ plugin ไม่อยู่ในสาย migration ของ core โดยตั้งใจ (ADR 0023)
+
+    กรองด้วยเกณฑ์เดียวกับ `include_object` ใน `migrations/env.py` — ถ้าที่นี่กับ
+    ที่นั่นใช้คนละเกณฑ์ เทสต์จะแดงทั้งที่ `flask db check` เขียว (หรือกลับกัน)
+    """
+    from app import plugins
+
+    table = getattr(entry[1], "name", None) if isinstance(entry, tuple) else None
+    return table in plugins.owned_tables()
+
+
 def test_models_match_the_migrated_schema(migrated):
     """model กับ schema ที่ได้จาก migration ต้องตรงกันเป๊ะ (เทียบเท่า `flask db check`)
 
@@ -111,7 +123,7 @@ def test_models_match_the_migrated_schema(migrated):
     with app.app_context(), engine.connect() as conn:
         # version_table ต้องตรงกับ env.py ไม่งั้น alembic จะรายงานว่ามันเป็นตารางส่วนเกิน
         context = MigrationContext.configure(conn, opts={"version_table": VERSION_TABLE})
-        diff = compare_metadata(context, db.metadata)
+        diff = [entry for entry in compare_metadata(context, db.metadata) if not _is_plugin(entry)]
     engine.dispose()
 
     assert not diff, f"model กับ migration ไม่ตรงกัน: {diff}"

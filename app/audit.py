@@ -74,17 +74,24 @@ PLAIN_COLUMNS = frozenset(
         "locale",
         "theme",
         "mode",
+        # บทบาทเป็นชั้น C4 และเป็นค่าที่ **ต้องอ่านออกจาก audit ได้จริง** —
+        # "ใครยกระดับใครเป็น admin เมื่อไหร่" เป็นคำถามแรก ๆ ตอนสืบเหตุ
+        "role",
         "timezone_name",
         "created_at",
         "updated_at",
         "deleted_at",
         "purged_at",
         "expires_at",
+        # ของ plugin ที่มีตารางของตัวเอง (ADR 0023) — เวลาที่ยืนยันปัจจัยที่สอง
+        # กับหมายเลขช่วงเวลาล่าสุดที่ใช้รหัสไป ทั้งคู่เป็น metadata ไม่ใช่ความลับ
+        "confirmed_at",
+        "last_counter",
     }
 )
 
 # ชั้น C1 — ห้ามออกจากระบบทุกกรณี บันทึกได้แค่ว่า "มีการเปลี่ยน"
-SECRET_COLUMNS = frozenset({"password_hash", "token_hash"})
+SECRET_COLUMNS = frozenset({"password_hash", "token_hash", "totp_secret"})
 
 # ชั้น C2/C3 — เก็บชื่อคอลัมน์ + HMAC ของค่าเก่า/ใหม่
 HASHED_COLUMNS = frozenset(

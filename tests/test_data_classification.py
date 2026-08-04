@@ -69,6 +69,9 @@ def test_the_document_lists_every_class(classified):
 REVIEWED_SECRETS = {
     "tdl_user.password_hash",  # C1 ตั้งแต่ Phase 2 (ADR 0014)
     "tdl_api_token.token_hash",  # C1 เพิ่มตอน Phase 3 พร้อม PAT (ADR 0017)
+    # C1 ของ plugin auth/totp (Phase 4 — ADR 0023/0024): เก็บค่าจริงเพราะ TOTP
+    # ต้องคำนวณรหัสเทียบทุกครั้ง ชดเชยด้วยการลบทิ้งทันทีที่ปิด MFA
+    "tdl_auth_totp_secret.totp_secret",
 }
 
 

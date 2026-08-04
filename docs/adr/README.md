@@ -24,3 +24,9 @@ ADR 0002–0008 เป็นการ backfill การตัดสินใจ
 | [0016](0016-service-layer-boundary.md) | service layer ไม่รู้จัก HTTP, route เป็น adapter | accepted |
 | [0017](0017-personal-access-tokens.md) | PAT แยกจาก session cookie, sha256 ไม่ใช่ scrypt | accepted |
 | [0018](0018-api-v1-contract-and-versioning.md) | API v1: spec generate จากโค้ด, เวอร์ชันที่ path | accepted |
+| [0019](0019-password-policy-nist-800-63b.md) | นโยบายรหัสผ่านตาม NIST 800-63B + blocklist offline | accepted |
+| [0020](0020-session-lifetime-and-binding.md) | อายุ session บังคับที่ server + ผูกกับเครื่องและ credential | accepted |
+| [0021](0021-per-username-login-throttle.md) | โควตา login ต่อชื่อผู้ใช้ (กันคนเปลี่ยน IP) | accepted |
+| [0022](0022-minimal-rbac.md) | RBAC ขั้นต่ำ admin/user ตรวจที่ service | accepted |
+| [0023](0023-plugin-owns-its-own-table.md) | plugin ดูแลตารางของตัวเอง นอกสาย migration ของ core | accepted |
+| [0024](0024-mfa-as-an-auth-plugin.md) | MFA เป็น plugin ชนิด auth, TOTP เขียนเอง | accepted |

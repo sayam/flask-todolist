@@ -7,11 +7,12 @@ SQLite ไม่บังคับ FK ให้ ถ้า cascade พังจ�
 from app import db
 from app.cli import DEFAULT_CATEGORIES
 from app.models import Category, Todo, User
+from tests.conftest import PASSWORD
 
 
 def test_create_user_seeds_default_categories(app):
     result = app.test_cli_runner().invoke(
-        args=["create-user", "somchai"], input="password123\npassword123\n"
+        args=["create-user", "somchai"], input=f"{PASSWORD}\n{PASSWORD}\n"
     )
     assert result.exit_code == 0, result.output
     with app.app_context():
@@ -36,7 +37,7 @@ def test_create_user_rejects_duplicate(app, user_id):
 def test_create_user_no_categories_flag(app):
     app.test_cli_runner().invoke(
         args=["create-user", "somchai", "--no-categories"],
-        input="password123\npassword123\n",
+        input=f"{PASSWORD}\n{PASSWORD}\n",
     )
     with app.app_context():
         assert User.query.filter_by(username="somchai").one().categories == []

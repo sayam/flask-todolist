@@ -5,7 +5,10 @@ from app.models import Category, User
 from app.services import tokens as tokens_service
 from config import Config
 
-PASSWORD = "password123"
+# ต้องผ่านนโยบายของ `app/services/passwords.py` ด้วย เพราะเทสต์บางตัวสร้าง user
+# ผ่าน `flask create-user` ซึ่งบังคับนโยบายเต็ม — ค่าเดิม ("password123")
+# อยู่ในรายการรหัสที่หลุดแล้ว จึงถูกปฏิเสธตั้งแต่ Phase 4
+PASSWORD = "pytest-fixture-passphrase"
 
 
 class TestConfig(Config):
@@ -38,6 +41,17 @@ class CsrfTestConfig(TestConfig):
 class RateLimitTestConfig(TestConfig):
     RATELIMIT_ENABLED = True
     LOGIN_RATE_LIMIT = "3 per minute"
+
+
+class UsernameRateLimitTestConfig(TestConfig):
+    """โควตาต่อ IP ตั้งหลวมมากเพื่อให้เห็นผลของโควตาต่อ *ชื่อผู้ใช้* ล้วน ๆ
+
+    ถ้าตั้งสองตัวใกล้กัน เทสต์จะแยกไม่ออกว่าที่โดนกันเป็นเพราะมิติไหน
+    """
+
+    RATELIMIT_ENABLED = True
+    LOGIN_RATE_LIMIT = "1000 per minute"
+    LOGIN_USERNAME_RATE_LIMIT = "3 per minute"
 
 
 def _make_user(username):
@@ -120,6 +134,23 @@ def ratelimit_app():
     with app.app_context():
         db.create_all()
         _make_user("tester")
+        limiter.reset()
+    yield app
+    with app.app_context():
+        limiter.reset()
+
+
+@pytest.fixture
+def username_ratelimit_app():
+    """แอปที่โควตาต่อชื่อผู้ใช้เหลือ 3 ครั้ง/นาที ส่วนโควตาต่อ IP หลวมจนไม่มีผล
+
+    reset ทั้งก่อนและหลังด้วยเหตุผลเดียวกับ `ratelimit_app`
+    """
+    app = create_app(UsernameRateLimitTestConfig)
+    with app.app_context():
+        db.create_all()
+        _make_user("tester")
+        _make_user("somchai")
         limiter.reset()
     yield app
     with app.app_context():

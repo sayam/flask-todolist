@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Two-step verification') }}{% endblock %}
+
+{% block content %}
+<div class="auth">
+  <img src="{{ url_for('static', filename='logo.svg') }}" alt="{{ _('Todolist') }}" width="120" height="120">
+  <h1>{{ _('Two-step verification') }}</h1>
+
+  <p class="switcher">
+    {{ language_switcher() }}
+    <br>
+    {{ mode_switcher() }}
+  </p>
+
+  {% if rate_limited %}
+  <p><strong>{{ _('Too many sign-in attempts — please wait and try again.') }} ({{ rate_limited }})</strong></p>
+  {% endif %}
+
+  <p>{{ _('Enter the current code from your authenticator app.') }}</p>
+
+  <form action="{{ url_for('auth.verify') }}" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <p>
+      <label for="code">{{ _('Code') }}</label><br>
+      <input id="code" type="text" name="code" inputmode="numeric" autocomplete="one-time-code"
+             required autofocus>
+    </p>
+    <button type="submit">{{ _('Verify') }}</button>
+  </form>
+
+  <p><a href="{{ url_for('auth.login') }}">{{ _('Start over') }}</a></p>
+</div>
+{% endblock %}

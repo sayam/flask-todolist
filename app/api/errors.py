@@ -20,14 +20,23 @@ import marshmallow as ma
 from flask import Response, jsonify
 from werkzeug.exceptions import HTTPException
 
-from app.services import ConflictError, NotFoundError, ServiceError, ValidationError
+from app.services import (
+    ConflictError,
+    ForbiddenError,
+    NotFoundError,
+    ServiceError,
+    ValidationError,
+)
 
 # ความล้มเหลวของโดเมน → status ที่ตรงความหมาย
 # `NotFoundError` เป็น 404 ทั้งกรณี "ไม่มี" และ "ของคนอื่น" ตาม ADR 0004
+# ส่วน `ForbiddenError` เป็น 403 เพราะเป็นเรื่องบทบาท ไม่ใช่เรื่องความเป็นเจ้าของ
+# (ยังไม่มี endpoint ไหนใน v1 ที่ยกมันขึ้นมา — ผูกไว้ให้ตรงกันไว้ก่อน ดู ADR 0022)
 STATUS_BY_ERROR = {
     NotFoundError: 404,
     ValidationError: 400,
     ConflictError: 409,
+    ForbiddenError: 403,
 }
 FALLBACK_STATUS = 400
 

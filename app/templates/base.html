@@ -55,6 +55,10 @@
     <a href="{{ url_for('main.index') }}">{{ _('Tasks') }}</a> |
     <a href="{{ url_for('main.categories') }}">{{ _('Categories') }}</a> |
     <a href="{{ url_for('main.settings') }}">{{ _('Settings') }}</a> |
+    {% if current_user.is_admin %}
+    {# เมนูนี้แค่ซ่อนตา ไม่ใช่การกันสิทธิ์ — ตัวที่กันจริงคือ require_admin() ใน service #}
+    <a href="{{ url_for('admin.users') }}">{{ _('Users') }}</a> |
+    {% endif %}
     <span>{{ current_user.display_name }}</span>
     <form action="{{ url_for('auth.logout') }}" method="post">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

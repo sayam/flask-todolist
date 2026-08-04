@@ -16,6 +16,7 @@ app context อยู่ที่ fixture ตัวเทสต์ห้าม�
 """
 
 import hashlib
+import re
 from datetime import timedelta
 
 import pytest
@@ -27,7 +28,7 @@ from app.purge import purge_expired
 from app.services import NotFoundError, ValidationError
 from app.services import tokens as tokens_service
 from app.soft_delete import INCLUDE_DELETED
-from tests.conftest import PASSWORD
+from tests.conftest import PASSWORD, bearer_client, issue_token
 
 
 @pytest.fixture
@@ -397,3 +398,86 @@ def test_token_revoke_refuses_someone_elses_token(app, owner, stranger):
     db.session.remove()
 
     assert tokens_service.authenticate(raw) is not None
+
+
+# ---------------------------------------------------------------- หน้าเว็บ (Phase 4)
+# ADR 0017 เลื่อนหน้านี้ไว้เพราะ "ต้องคิดเรื่อง re-authentication ก่อน"
+# คำตอบ: ออกใบใหม่ต้องกรอกรหัสผ่านซ้ำ ส่วนเพิกถอนไม่ต้อง (ทำให้ปลอดภัยขึ้นเสมอ)
+#
+# เทสต์กลุ่มนี้ยิง HTTP จึง **ห้ามใช้ fixture `owner` ที่เปิด app context ค้างไว้**
+# (ดูเหตุผลใน CLAUDE.md — `g` จะถูกใช้ร่วมกันข้าม request)
+
+
+def _web_client(app, username="tester"):
+    client = app.test_client()
+    resp = client.post("/login", data={"username": username, "password": PASSWORD})
+    assert resp.status_code == 302
+    return client
+
+
+def _secret_from(body):
+    """ดึงสตริง token ออกจากหน้าที่แสดงมันครั้งเดียว"""
+    match = re.search(r"tdl_\d+_[A-Za-z0-9_-]+", body)
+    assert match, "หน้าที่ออกใบต้องแสดงความลับให้เห็น"
+    return match.group(0)
+
+
+def test_the_settings_page_lists_tokens(app, user_id):
+    issue_token(app, user_id, name="เครื่องที่ทำงาน")
+    body = _web_client(app).get("/settings").get_data(as_text=True)
+    assert "เครื่องที่ทำงาน" in body
+
+
+def test_creating_a_token_needs_the_password_again(app, user_id):
+    """session ที่ถูกยึดต้องออกกุญแจใบใหม่ให้ตัวเองไม่ได้"""
+    resp = _web_client(app).post(
+        "/settings/tokens", data={"name": "ของคนแปลกหน้า", "password": "ผิด"}
+    )
+    assert resp.status_code == 302
+
+    with app.app_context():
+        assert tokens_service.list_tokens(db.session.get(User, user_id)) == []
+
+
+def test_a_created_token_is_shown_once_and_works(app, user_id):
+    client = _web_client(app)
+    resp = client.post(
+        "/settings/tokens",
+        data={"name": "สคริปต์สำรองข้อมูล", "expires_days": "30", "password": PASSWORD},
+    )
+    assert resp.status_code == 200
+    secret = _secret_from(resp.get_data(as_text=True))
+
+    assert bearer_client(app, secret).get("/api/v1/todos").status_code == 200
+    # **ห้ามส่งความลับผ่าน flash** — คุกกี้ session ถูกเซ็นแต่ไม่ได้เข้ารหัส
+    assert secret not in (client.get_cookie("session").value or "")
+
+
+def test_an_unreadable_expiry_falls_back_to_the_safer_default(app, user_id):
+    """ตกกลับไปทาง "มีวันหมดอายุ" เสมอ — ใบที่ไม่มีวันหมดต้องเป็นสิ่งที่ตั้งใจขอ"""
+    _web_client(app).post(
+        "/settings/tokens", data={"name": "พิมพ์เลขผิด", "expires_days": "ก", "password": PASSWORD}
+    )
+    with app.app_context():
+        token = tokens_service.list_tokens(db.session.get(User, user_id))[0]
+        assert token.expires_at is not None
+
+
+def test_revoking_from_the_web_kills_the_token(app, user_id):
+    secret = issue_token(app, user_id, name="ใบที่จะถูกเพิกถอน")
+    api = bearer_client(app, secret)
+    assert api.get("/api/v1/todos").status_code == 200
+
+    with app.app_context():
+        token_id = tokens_service.list_tokens(db.session.get(User, user_id))[0].id
+
+    assert _web_client(app).post(f"/settings/tokens/{token_id}/revoke").status_code == 302
+    assert api.get("/api/v1/todos").status_code == 401
+
+
+def test_revoking_someone_elses_token_is_a_404(app, user_id, other_user_id):
+    issue_token(app, other_user_id, name="ของคนอื่น")
+    with app.app_context():
+        victim_token = tokens_service.list_tokens(db.session.get(User, other_user_id))[0].id
+
+    assert _web_client(app).post(f"/settings/tokens/{victim_token}/revoke").status_code == 404

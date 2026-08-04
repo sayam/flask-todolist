@@ -21,6 +21,7 @@ exception ใน `app.services.errors` ไม่ใช่ด้วย `abort()` 
 
 from app.services.errors import (
     ConflictError,
+    ForbiddenError,
     NotFoundError,
     ServiceError,
     ValidationError,
@@ -28,6 +29,7 @@ from app.services.errors import (
 
 __all__ = [
     "ConflictError",
+    "ForbiddenError",
     "NotFoundError",
     "ServiceError",
     "ValidationError",

@@ -258,3 +258,94 @@ def test_settings_rejects_a_theme_that_is_not_installed(app, client, user_id):
     assert b"Unsupported theme" in resp.data
     with app.app_context():
         assert db.session.get(User, user_id).theme is None
+
+
+# --- plugin ที่มีข้อมูลของตัวเอง (Phase 4 — ADR 0023) ---
+
+TOTP_KEY = "auth/totp"
+
+
+@pytest.fixture
+def data_plugin():
+    """plugin ชั่วคราวที่ประกาศตารางของตัวเอง แล้วเก็บกวาด metadata ให้ด้วย
+
+    ต้องถอนตารางออกจาก `db.metadata` เองหลังเทสต์จบ ไม่งั้นมันจะค้างอยู่ตลอด
+    อายุ process แล้วไปโผล่ใน `db.create_all()` ของเทสต์ตัวถัดไป
+    """
+    created = []
+
+    def make(plugin_id, table_name):
+        directory = plugins.PLUGIN_ROOT / "auth" / plugin_id
+        directory.mkdir(parents=True)
+        created.append((directory, table_name))
+        (directory / "plugin.json").write_text(json.dumps({"type": "auth", "name": plugin_id}))
+        (directory / "models.py").write_text(
+            "from sqlalchemy.orm import Mapped, mapped_column\n"
+            "from app import db\n\n\n"
+            f"class Temp(db.Model):\n"
+            f'    __tablename__ = "{table_name}"\n'
+            "    id: Mapped[int] = mapped_column(primary_key=True)\n"
+        )
+        plugins.forget_models()
+        return directory
+
+    yield make
+
+    for directory, table_name in created:
+        shutil.rmtree(directory, ignore_errors=True)
+        table = db.metadata.tables.get(table_name)
+        if table is not None:
+            db.metadata.remove(table)
+    plugins.forget_models()
+
+
+def test_a_plugin_owns_the_tables_it_declares(app):
+    with app.app_context():
+        plugin = plugins.find(TOTP_KEY)
+        assert plugins.tables_of(plugin) == {"tdl_auth_totp_secret"}
+
+
+def test_core_tables_are_not_owned_by_any_plugin(app):
+    """ตารางของ core ต้องไม่หลุดเข้าไปในรายการของ plugin (ไม่งั้น migration จะเมินมัน)"""
+    with app.app_context():
+        assert "tdl_user" not in plugins.owned_tables()
+        assert "tdl_todo" not in plugins.owned_tables()
+
+
+def test_installing_and_uninstalling_creates_and_drops_the_table(app):
+    """ถอน plugin แล้วข้อมูลของมันหายไปจริง ไม่ใช่ค้างอยู่โดยไม่มีใครดูแล"""
+    from sqlalchemy import inspect
+
+    with app.app_context():
+        plugin = plugins.find(TOTP_KEY)
+        plugins.uninstall(plugin)
+        assert "tdl_auth_totp_secret" not in inspect(db.engine).get_table_names()
+
+        plugins.install(plugin)
+        assert "tdl_auth_totp_secret" in inspect(db.engine).get_table_names()
+
+
+def test_a_table_without_the_right_prefix_is_refused(app, data_plugin):
+    """ชื่อที่ไม่มี prefix ของ plugin = แยกไม่ออกว่าเป็นของใครตอนถอน"""
+    data_plugin("badname", "tdl_something_else")
+    with app.app_context(), pytest.raises(plugins.PluginError, match="ขึ้นต้นด้วย"):
+        plugins.load_models()
+
+
+def test_dropping_in_a_plugin_with_tables_needs_no_core_change(app, data_plugin):
+    data_plugin("extra", "tdl_auth_extra_thing")
+    with app.app_context():
+        assert plugins.tables_of(plugins.find("auth/extra")) == {"tdl_auth_extra_thing"}
+        assert "tdl_auth_extra_thing" in plugins.owned_tables()
+
+
+def test_core_python_does_not_name_the_second_factor_plugin():
+    """ชื่อ plugin ของปัจจัยที่สองต้องไม่โผล่ในโค้ด core เลย (สัญญาเดียวกับธีม)"""
+    app_dir = pathlib.Path(__file__).resolve().parent.parent / "app"
+    offenders = []
+    for path in app_dir.rglob("*.py"):
+        if plugins.PLUGIN_ROOT in path.parents or path == plugins.PLUGIN_ROOT / "__init__.py":
+            continue
+        if "totp" in path.read_text().lower():
+            offenders.append(str(path))
+    assert not offenders, f"core อ้างชื่อ plugin เฉพาะตัว: {offenders}"

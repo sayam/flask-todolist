@@ -49,6 +49,10 @@ babel = Babel()
 limiter = Limiter(key_func=get_remote_address)
 login_manager = LoginManager()
 login_manager.login_view = "auth.login"
+# ผูก session กับ IP + user agent — คุกกี้ที่ถูกก๊อปไปใช้ที่เครื่องอื่นจะใช้ไม่ได้
+# **ยอมรับผลข้างเคียง**: คนที่สลับเครือข่ายกลางคัน (มือถือ → wifi) จะถูกให้
+# login ใหม่ แลกกับการที่คุกกี้ที่หลุดออกไปใช้ต่อที่อื่นไม่ได้ (ดู ADR 0020)
+login_manager.session_protection = "strong"
 # lazy_gettext เพราะข้อความนี้ถูกกำหนดตอน import ซึ่งยังไม่มี request
 # ให้แปลตอนเอาไปแสดงจริง ไม่ใช่ตอนประกาศ
 login_manager.login_message = _l("Please sign in first")
@@ -122,16 +126,23 @@ def create_app(config_class=Config):
         # คืนหน้า login พร้อมข้อความ ไม่ใช่หน้า error ดิบ ๆ แต่คง status 429 ไว้
         return render_template("login.html", rate_limited=str(error.description)), 429
 
+    from app.admin import bp as admin_bp
     from app.auth import bp as auth_bp
     from app.routes import bp as main_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
+    app.register_blueprint(admin_bp)
 
     # /api/v1 — ต้องมาหลัง csrf.init_app() เพราะตัวมันขอยกเว้น CSRF ให้ blueprint ของ API
     from app.api import init_api
 
     init_api(app)
+
+    # ต้องมาหลัง init_api() เพราะด่านนี้ต้องรู้ path ของ API เพื่อ **ไม่** ไปยุ่งกับมัน
+    from app.session_security import init_session_security
+
+    init_session_security(app)
 
     from app.cli import register_cli
 
