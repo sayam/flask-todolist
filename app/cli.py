@@ -245,7 +245,9 @@ def plugin_list():
     from app import plugins
 
     existing = set(inspect(db.engine).get_table_names())
-    for plugin in plugins.installed():
+    # ไล่จากดิสก์ ไม่ใช่จากของที่ใช้งานได้ — ตัวที่ถูกสวิตช์ปิดต้องยังโผล่ในรายการ
+    # ไม่งั้นผู้ดูแลแยกไม่ออกว่า "ปิดไว้" กับ "ไดเรกทอรีหายไปแล้ว"
+    for plugin in plugins.installed_on_disk():
         tables = sorted(plugins.tables_of(plugin))
         if not tables:
             state = "no tables"
@@ -254,7 +256,8 @@ def plugin_list():
         else:
             state = f"NOT installed: {', '.join(tables)}"
         core = " (core)" if plugin.is_core else ""
-        click.echo(f"{plugin.key}\tv{plugin.version}{core}\t{state}")
+        off = " DISABLED" if plugins.is_disabled(plugin) else ""
+        click.echo(f"{plugin.key}\tv{plugin.version}{core}{off}\t{state}")
 
 
 @click.command("plugin-deps")
@@ -306,7 +309,9 @@ def plugin_install(key):
     """
     from app import plugins
 
-    plugin = plugins.find(key)
+    # ตั้งใจใช้ตัวที่ไม่สนสวิตช์ปิด เพราะวงจรชีวิตของ *ข้อมูล* ต้องทำได้เสมอ
+    # แม้ *โค้ด* ของ plugin จะถูกปิดไว้ชั่วคราวเพราะ CVE
+    plugin = plugins.find_on_disk(key)
     if plugin is None:
         raise click.ClickException(f"No plugin named {key!r} (see `flask plugin-list`).")
     tables = plugins.install(plugin)
@@ -324,7 +329,9 @@ def plugin_uninstall(key, yes):
     """Drop the tables owned by a plugin — the data in them is gone for good."""
     from app import plugins
 
-    plugin = plugins.find(key)
+    # ตั้งใจใช้ตัวที่ไม่สนสวิตช์ปิด เพราะวงจรชีวิตของ *ข้อมูล* ต้องทำได้เสมอ
+    # แม้ *โค้ด* ของ plugin จะถูกปิดไว้ชั่วคราวเพราะ CVE
+    plugin = plugins.find_on_disk(key)
     if plugin is None:
         raise click.ClickException(f"No plugin named {key!r} (see `flask plugin-list`).")
     tables = sorted(plugins.tables_of(plugin))

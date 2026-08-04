@@ -633,6 +633,177 @@ def test_plugin_commands_reject_an_unknown_plugin(app):
         assert "No plugin named" in result.output
 
 
+# --- สวิตช์ปิดตอน runtime (Phase 4.5 — ADR 0025) ---
+# สิ่งที่ต้องพิสูจน์: ปิดแล้วต้อง "เหมือนไม่เคยมีไดเรกทอรี" ทุกทาง ยกเว้นทางเดียว
+# คือข้อมูล ซึ่งต้องยังมีเจ้าของอยู่ ไม่งั้น migration ตัวถัดไปของ core จะ drop ทิ้ง
+
+
+def _switch(app, *keys):
+    app.config["DISABLED_PLUGINS"] = frozenset(keys)
+
+
+def test_a_switched_off_plugin_looks_like_it_was_never_installed(app, temp_theme):
+    temp_theme("switchable")
+    with app.app_context():
+        assert plugins.find("themes/switchable") is not None
+        _switch(app, "themes/switchable")
+        assert plugins.find("themes/switchable") is None
+        assert "switchable" not in plugins.themes()
+        assert "themes/switchable" not in {point.key for point in plugins.plug_points()}
+        # ไดเรกทอรียังอยู่ครบ — ต่างจากการถอนทิ้ง
+        assert plugins.find_on_disk("themes/switchable") is not None
+
+
+def test_a_user_on_a_switched_off_theme_falls_back(app, client, user_id, temp_theme):
+    """คนที่เลือกธีมนั้นไว้ต้องไม่เจอหน้าพัง — เส้นทางเดียวกับตอนลบไดเรกทอรีทิ้ง"""
+    temp_theme("switchable")
+    with app.app_context():
+        user = db.session.get(User, user_id)
+        user.theme = "switchable"
+        db.session.commit()
+
+    assert b"/plugin/themes/switchable/style.css" in client.get("/").data
+    app.config["DISABLED_PLUGINS"] = frozenset({"themes/switchable"})
+    body = client.get("/").data
+    assert b"/plugin/themes/switchable/style.css" not in body
+    assert b"/plugin/themes/system/style.css" in body
+
+
+def test_a_switched_off_enhancement_leaves_its_host_working(app, host_plugin):
+    host_plugin("basic")
+    with app.app_context():
+        assert plugins.capability(plugins.find("auth/hosty"), "thing") is not None
+        _switch(app, "auth/hosty#basic")
+        assert plugins.find("auth/hosty") is not None, "host ต้องไม่ถูกปิดตามไปด้วย"
+        assert plugins.capability(plugins.find("auth/hosty"), "thing") is None
+
+
+def test_switching_off_a_host_takes_its_enhancements_with_it(app, host_plugin):
+    host_plugin("basic")
+    with app.app_context():
+        _switch(app, "auth/hosty")
+        assert plugins.find("auth/hosty#basic") is None
+        assert "auth/hosty#basic" not in {point.key for point in plugins.plug_points()}
+
+
+def test_the_list_of_what_is_off_names_every_level(app, host_plugin):
+    """ปิด host หนึ่งตัวอาจหมายถึงหลายความสามารถหายไป — รายงานต้องบอกครบ"""
+    host_plugin("basic")
+    with app.app_context():
+        _switch(app, "auth/hosty")
+        assert {point.key for point in plugins.disabled()} == {"auth/hosty", "auth/hosty#basic"}
+
+
+def test_switching_something_off_takes_its_supply_chain_too(app):
+    """ปิดแล้ว `pipenv sync` รอบถัดไปต้องไม่ติดตั้งไลบรารีของมันอีก
+
+    นี่คือเหตุผลทั้งหมดที่สวิตช์นี้มีอยู่ — ถ้าไลบรารียังถูกติดตั้งต่อไป
+    การปิดก็แค่ซ่อนปุ่ม ไม่ได้ลดพื้นที่ที่ต้องเฝ้า CVE เลย
+    """
+    runner = app.test_cli_runner()
+    assert "plugin-auth-totp" in runner.invoke(args=["plugin-deps", "--categories"]).output
+    app.config["DISABLED_PLUGINS"] = frozenset({TOTP_KEY})
+    assert runner.invoke(args=["plugin-deps", "--categories"]).output.strip() == ""
+
+
+def test_a_switched_off_plugin_still_owns_its_tables(app):
+    """**สวิตช์ปิดโค้ด ไม่ได้ปิดข้อมูล**
+
+    ถ้าความเป็นเจ้าของตารางหายไปตอนปิด ตารางนั้นจะกลายเป็นตารางไม่มีเจ้าของ
+    แล้ว `flask db migrate` ตัวถัดไปของ core จะออก migration ที่ drop มันทิ้ง
+    (env.py กรอง "ตารางของ plugin" ออกจาก autogenerate ด้วย `owned_tables()`)
+    ข้อมูลของคนที่เปิดการยืนยันสองขั้นไว้จะหายไปเพราะการปิดสวิตช์ชั่วคราว
+    """
+    with app.app_context():
+        _switch(app, TOTP_KEY)
+        plugins.forget_models()
+        assert "tdl_auth_totp_secret" in plugins.owned_tables()
+        assert plugins.tables_of(plugins.find_on_disk(TOTP_KEY)) == {"tdl_auth_totp_secret"}
+    plugins.forget_models()
+
+
+def test_data_commands_still_reach_a_switched_off_plugin(app):
+    """ปิดโค้ดเพราะ CVE แล้วยังต้องเก็บกวาดข้อมูลของมันได้"""
+    from sqlalchemy import inspect
+
+    app.config["DISABLED_PLUGINS"] = frozenset({TOTP_KEY})
+    result = app.test_cli_runner().invoke(args=["plugin-uninstall", TOTP_KEY, "--yes"])
+    assert result.exit_code == 0, result.output
+    with app.app_context():
+        assert "tdl_auth_totp_secret" not in inspect(db.engine).get_table_names()
+        plugins.install(plugins.find_on_disk(TOTP_KEY))  # คืนสภาพให้เทสต์ตัวถัดไป
+
+
+def test_plugin_list_still_shows_what_is_switched_off(app):
+    """ปิดไว้ กับ ไดเรกทอรีหายไป เป็นคนละเรื่องกันตอนแก้ปัญหา ต้องแยกออกจากกันได้"""
+    app.config["DISABLED_PLUGINS"] = frozenset({TOTP_KEY})
+    result = app.test_cli_runner().invoke(args=["plugin-list"])
+    assert result.exit_code == 0, result.output
+    assert TOTP_KEY in result.output
+    assert "DISABLED" in result.output
+
+
+def test_a_core_plugin_cannot_be_switched_off(app):
+    """ปิดของ core = แอปที่ start ไม่ได้ ต้องบอกให้ตรงจุดตั้งแต่ตอน start"""
+    with app.app_context():
+        _switch(app, f"{plugins.THEME_TYPE}/{plugins.CORE_THEME}")
+        with pytest.raises(plugins.PluginError, match="เป็น plugin ของ core"):
+            plugins.check_installation()
+
+
+@pytest.fixture
+def warnings_of(app):
+    """เก็บ log ระดับ WARNING จาก logger ของแอปตรง ๆ
+
+    ไม่ใช้ `caplog` ที่นี่โดยตั้งใจ — มันดักด้วย handler บน root logger ส่วน
+    `init_logging()` ตั้ง `root.handlers = [handler]` ทับทุกครั้งที่สร้างแอป
+    ผลคือเทสต์เขียวตอนรันไฟล์เดียวแต่แดงตอนรันทั้งชุด ขึ้นกับว่าแอปตัวไหน
+    ถูกสร้างตอนไหน (เจอจริงตอนเขียนเทสต์ชุดนี้)
+    """
+    import logging
+
+    lines: list[str] = []
+
+    class Grab(logging.Handler):
+        def emit(self, record):
+            lines.append(record.getMessage())
+
+    handler = Grab(level=logging.WARNING)
+    app.logger.addHandler(handler)
+    yield lines
+    app.logger.removeHandler(handler)
+
+
+def test_what_is_switched_off_is_written_to_the_log_on_every_start(app, warnings_of):
+    """ต้องมีร่องรอยว่าตอนนั้นระบบเดินอยู่โดยไม่มีความสามารถอะไรบ้าง"""
+    with app.app_context():
+        _switch(app, TOTP_KEY)
+        plugins.check_installation()
+    assert any(TOTP_KEY in line and "DISABLED_PLUGINS" in line for line in warnings_of)
+
+
+def test_a_key_that_matches_nothing_is_reported(app, warnings_of):
+    """คีย์ที่พิมพ์ผิดหน้าตาเหมือนการปิดของที่ถอนไปแล้วเป๊ะ จึงต้องเตือนไว้"""
+    with app.app_context():
+        _switch(app, "auth/พิมพ์ผิด")
+        plugins.check_installation()
+    assert any("auth/พิมพ์ผิด" in line for line in warnings_of)
+
+
+def test_the_switch_ignores_blanks_and_spacing():
+    from config import _parse_keys
+
+    assert _parse_keys(" auth/totp , , themes/ocean ") == {"auth/totp", "themes/ocean"}
+    assert _parse_keys("") == frozenset()
+
+
+def test_nothing_is_switched_off_by_default(app):
+    """ค่าเริ่มต้นต้องเป็น "เปิดทุกอย่าง" — สวิตช์นี้มีไว้ใช้ตอนฉุกเฉิน ไม่ใช่ตอนปกติ"""
+    with app.app_context():
+        assert plugins.disabled_keys() == frozenset()
+        assert plugins.disabled() == []
+
+
 def test_core_python_does_not_name_the_second_factor_plugin():
     """ชื่อ plugin ของปัจจัยที่สองต้องไม่โผล่ในโค้ด core เลย (สัญญาเดียวกับธีม)"""
     app_dir = pathlib.Path(__file__).resolve().parent.parent / "app"

@@ -51,6 +51,32 @@ def migrated(tmp_path):
     return db_path
 
 
+def test_running_a_migration_does_not_silence_the_app_log(app, migrated):
+    """`fileConfig()` ของ alembic ต้องไม่ปิด logger ของแอปทิ้ง
+
+    ค่าเริ่มต้นของ `fileConfig` คือ `disable_existing_loggers=True` ซึ่งตั้ง
+    `disabled = True` ให้ทุก logger ที่ไม่ได้ถูกระบุใน alembic.ini — รวมถึงของแอปเอง
+    ผลคือทุกอย่างที่แอปเขียนหลังจากนั้น **หายเงียบทั้ง process** ไม่มี error ให้เห็น
+    ซึ่งแปลว่าเหตุการณ์ด้านความปลอดภัยก็หายไปด้วย (เจอเพราะเทสต์ของ Phase 4.5
+    แดงเฉพาะตอนรันทั้งชุด)
+    """
+    import logging
+
+    lines = []
+
+    class Grab(logging.Handler):
+        def emit(self, record):
+            lines.append(record.getMessage())
+
+    handler = Grab(level=logging.WARNING)
+    app.logger.addHandler(handler)
+    try:
+        app.logger.warning("ยังได้ยินอยู่ไหม")
+    finally:
+        app.logger.removeHandler(handler)
+    assert lines == ["ยังได้ยินอยู่ไหม"], "log ของแอปถูกปิดไปตอนรัน migration"
+
+
 def test_upgrade_creates_the_core_tables(migrated):
     missing = CORE_TABLES - _tables(migrated)
     assert not missing, f"migration ไม่ได้สร้างตาราง: {missing}"

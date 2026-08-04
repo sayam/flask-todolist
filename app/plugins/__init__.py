@@ -151,8 +151,54 @@ def _read_manifest(directory: pathlib.Path) -> dict[str, Any] | None:
     return manifest
 
 
-def discover(plugin_type: str) -> dict[str, Plugin]:
-    """หา plugin ทุกตัวของชนิดนั้น เรียงตามไอดี
+# ---------------------------------------------------------------- สวิตช์ปิด (ADR 0025)
+
+
+def disabled_keys() -> frozenset[str]:
+    """คีย์ของจุด plug ที่ config สั่งปิดไว้ (`DISABLED_PLUGINS`)
+
+    นอก app context ถือว่าไม่มีอะไรถูกปิด — สคริปต์ที่รันนอกแอปจึงเห็นของครบ
+    """
+    if not has_app_context():
+        return frozenset()
+    keys: frozenset[str] = current_app.config.get("DISABLED_PLUGINS", frozenset())
+    return keys
+
+
+def is_disabled(plugin: Plugin) -> bool:
+    """จุด plug นี้ถูกสวิตช์ปิดอยู่ไหม (ปิด host = ปิดทุกอย่างที่เสียบอยู่ข้างใน)
+
+    **ปิดแล้วต้องเหมือนไม่เคยวางไดเรกทอรีลงไป** ไม่ใช่เส้นทางสำรองที่เขียนเพิ่ม
+    เพราะเส้นทาง "ไม่มีของชิ้นนี้" ถูกทดสอบไว้แล้วทั้งชุด ส่วนเส้นทาง "มีแต่ปิดอยู่"
+    จะเป็นสถานะใหม่ที่ไม่มีใครเคยเดินผ่าน
+    """
+    keys = disabled_keys()
+    if plugin.key in keys:
+        return True
+    return plugin.host is not None and plugin.host.key in keys
+
+
+def disabled() -> list[Plugin]:
+    """จุด plug ที่มีอยู่บนดิสก์แต่ถูกสั่งปิด — มีไว้ให้ `plugin-list` บอกผู้ดูแล
+
+    ถ้าของที่ปิดแล้วหายไปจากรายการเฉย ๆ ผู้ดูแลจะแยกไม่ออกว่า "ปิดไว้"
+    กับ "ไดเรกทอรีหายไปแล้ว" ซึ่งเป็นคนละเรื่องกันตอนแก้ปัญหา
+    """
+    switched_off = []
+    for plugin_type in types():
+        for plugin in _scan(plugin_type).values():
+            if is_disabled(plugin):
+                switched_off.append(plugin)
+            # ไล่ข้างในต่อแม้ host จะถูกปิดไปแล้ว เพื่อให้รายการบอกครบว่าอะไร
+            # หายไปจากระบบบ้าง — ปิด host หนึ่งตัวอาจหมายถึงหลายความสามารถ
+            switched_off.extend(
+                item for item in _scan_enhancements(plugin).values() if is_disabled(item)
+            )
+    return switched_off
+
+
+def _scan(plugin_type: str) -> dict[str, Plugin]:
+    """สิ่งที่อยู่บนดิสก์จริง ๆ **ไม่สนสวิตช์ปิด** — ดู `discover()` สำหรับของที่ใช้งานได้
 
     อ่านจากดิสก์ทุกครั้งที่เรียก — แอปนี้เล็กพอที่จะไม่ต้อง cache
     และทำให้วาง plugin ใหม่แล้วเห็นผลทันทีโดยไม่ต้อง restart
@@ -172,10 +218,23 @@ def discover(plugin_type: str) -> dict[str, Plugin]:
     return found
 
 
+def discover(plugin_type: str) -> dict[str, Plugin]:
+    """plugin ของชนิดนั้นที่ **ใช้งานได้จริงตอนนี้** เรียงตามไอดี
+
+    ตัวที่ถูกสวิตช์ปิด (`DISABLED_PLUGINS`) หายไปจากผลลัพธ์เหมือนไม่เคยมี
+    ไดเรกทอรีอยู่ — เพราะนั่นคือเส้นทางที่ทั้งระบบทดสอบไว้แล้ว (ดู `is_disabled`)
+    """
+    return {
+        plugin_id: plugin
+        for plugin_id, plugin in _scan(plugin_type).items()
+        if not is_disabled(plugin)
+    }
+
+
 # ---------------------------------------------------------------- ส่วนเสริม (ADR 0025)
 
 
-def enhancements(plugin: Plugin) -> dict[str, Plugin]:
+def _scan_enhancements(plugin: Plugin) -> dict[str, Plugin]:
     """ส่วนเสริมทุกตัวที่วางอยู่ใต้ plugin นี้ — **ยังไม่สนว่าใช้งานได้ไหม**
 
     ใช้กติกาเดิมของ ADR 0006 ซ้อนอีกชั้น: ไดเรกทอรีที่มี `plugin.json` คือจุด plug
@@ -205,6 +264,15 @@ def enhancements(plugin: Plugin) -> dict[str, Plugin]:
             plugin.type, directory.name, directory.resolve(), manifest, host=plugin
         )
     return found
+
+
+def enhancements(plugin: Plugin) -> dict[str, Plugin]:
+    """ส่วนเสริมที่ยังไม่ถูกสวิตช์ปิด — ตัวที่ปิดแล้วหายไปเหมือนไม่เคยมีไดเรกทอรี"""
+    return {
+        enhancement_id: enhancement
+        for enhancement_id, enhancement in _scan_enhancements(plugin).items()
+        if not is_disabled(enhancement)
+    }
 
 
 def usable_enhancements(plugin: Plugin) -> list[Plugin]:
@@ -330,21 +398,47 @@ def types() -> list[str]:
     )
 
 
+def installed_on_disk() -> list[Plugin]:
+    """plugin ทุกตัวที่มีไดเรกทอรีอยู่จริง รวมตัวที่ถูกสวิตช์ปิด"""
+    return [plugin for plugin_type in types() for plugin in _scan(plugin_type).values()]
+
+
 def installed() -> list[Plugin]:
-    """plugin ทุกตัวทุกชนิดที่ค้นเจอบนดิสก์ ณ ตอนนี้"""
+    """plugin ทุกตัวทุกชนิดที่ใช้งานได้ ณ ตอนนี้"""
     return [plugin for plugin_type in types() for plugin in discover(plugin_type).values()]
 
 
-def find(key: str) -> Plugin | None:
-    """หาจุด plug จากคีย์ — รับทั้ง `<ชนิด>/<ไอดี>` และ `<ชนิด>/<ไอดี>#<ส่วนเสริม>`"""
+def _split_key(key: str) -> tuple[str, str, str]:
     host_key, _, enhancement_id = key.partition("#")
     plugin_type, _, plugin_id = host_key.partition("/")
+    return plugin_type, plugin_id, enhancement_id
+
+
+def find(key: str) -> Plugin | None:
+    """หาจุด plug ที่ใช้งานได้ — รับทั้ง `<ชนิด>/<ไอดี>` และ `<ชนิด>/<ไอดี>#<ส่วนเสริม>`"""
+    plugin_type, plugin_id, enhancement_id = _split_key(key)
     if not plugin_id:
         return None
     host = discover(plugin_type).get(plugin_id)
     if host is None or not enhancement_id:
         return host
     return enhancements(host).get(enhancement_id)
+
+
+def find_on_disk(key: str) -> Plugin | None:
+    """หาจุด plug โดย **ไม่สนสวิตช์ปิด** — สำหรับงานที่ต้องทำได้แม้ปิดโค้ดไว้แล้ว
+
+    ที่ใช้จริงคือคำสั่งจัดการตารางของ plugin: ปิดโค้ดไว้ชั่วคราวเพราะมี CVE
+    แล้วยังต้อง `plugin-uninstall` เก็บกวาดข้อมูลได้ ถ้าใช้ `find()` คำสั่งนั้น
+    จะตอบว่า "ไม่รู้จัก plugin นี้" ทั้งที่ไดเรกทอรีกับตารางยังอยู่ครบ
+    """
+    plugin_type, plugin_id, enhancement_id = _split_key(key)
+    if not plugin_id:
+        return None
+    host = _scan(plugin_type).get(plugin_id)
+    if host is None or not enhancement_id:
+        return host
+    return _scan_enhancements(host).get(enhancement_id)
 
 
 def plug_points() -> list[Plugin]:
@@ -407,7 +501,12 @@ def load_models() -> dict[str, frozenset[str]]:
 
     found: dict[str, frozenset[str]] = {}
     _modules.clear()
-    for plugin in installed():
+    # **อ่านจากดิสก์ตรง ๆ ไม่ผ่านสวิตช์ปิด** — สวิตช์ปิด *โค้ด* ไม่ได้ปิด *ข้อมูล*
+    # ถ้าตรงนี้เคารพสวิตช์ ตารางของ plugin ที่ถูกปิดจะกลายเป็นตารางไม่มีเจ้าของ
+    # แล้ว `flask db migrate` ตัวถัดไปของ core จะออก migration ที่ drop มันทิ้ง
+    # (env.py กรองตาราง "ของ plugin" ออกจาก autogenerate ด้วย `owned_tables()`)
+    # วงจรชีวิตของข้อมูลเป็นของ `plugin-install`/`plugin-uninstall` เท่านั้น
+    for plugin in installed_on_disk():
         before = set(db.metadata.tables)
         module = load_module(plugin, MODELS_MODULE)
         if module is None:
@@ -568,11 +667,37 @@ def core_theme() -> Plugin:
     return found
 
 
+def _check_switch() -> None:
+    """ตรวจสวิตช์ปิดตอน start — ปิดของ core ไม่ได้ และของที่ปิดต้องถูกบันทึกไว้
+
+    **ปิด plugin ของ core ไม่ได้** และต้องบอกให้ชัดว่าเพราะอะไร ถ้าปล่อยผ่าน
+    แอปจะไปพังทีหลังด้วยข้อความ "ไม่พบธีม core" ซึ่งชี้ไปผิดที่ (ไดเรกทอรียังอยู่ครบ
+    แค่ถูกสั่งปิด) — คนที่กำลังแก้ปัญหาตอนตีสามไม่ควรต้องเดา
+
+    ที่เหลือแค่ log ไว้ ไม่ได้ห้าม เพราะการปิดคือสิ่งที่สวิตช์นี้มีไว้ทำ แต่ต้องมี
+    ร่องรอยทุกครั้งที่แอป start ว่าตอนนั้นระบบเดินอยู่โดยไม่มีความสามารถอะไรบ้าง
+    """
+    for key in sorted(disabled_keys()):
+        point = find_on_disk(key)
+        if point is not None and point.is_core:
+            raise PluginError(
+                f"DISABLED_PLUGINS: ปิด {key} ไม่ได้เพราะเป็น plugin ของ core "
+                "— core ต้องมีตัวสำรองเสมอ เอาคีย์นี้ออกจาก DISABLED_PLUGINS"
+            )
+        if point is None:
+            # ไม่ใช่ข้อผิดพลาด เพราะปิดของที่ถอนไปแล้วก็ได้ผลเหมือนกัน
+            # แต่คีย์ที่พิมพ์ผิดก็หน้าตาแบบนี้เป๊ะ จึงต้องบอกไว้
+            _warn(f"DISABLED_PLUGINS: ไม่มีจุด plug ชื่อ {key!r} อยู่บนดิสก์")
+    for point in disabled():
+        _warn(f"{point.key}: ปิดอยู่ตามคำสั่ง DISABLED_PLUGINS")
+
+
 def check_installation() -> None:
     """ตรวจตอนสร้างแอปว่าโครงสร้าง plugin ใช้ได้
 
     ให้พังตั้งแต่ตอน start ดีกว่าไปพังตอน render หน้าแรก
     """
+    _check_switch()
     core_theme()
     # โหลด model ของ plugin ที่มีข้อมูลของตัวเอง — ให้ prefix ที่ผิดพังตั้งแต่ตอน
     # start ไม่ใช่ตอนที่มีคนกด install แล้วได้ตารางชื่อประหลาดค้างในฐานข้อมูล

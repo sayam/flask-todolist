@@ -11,7 +11,14 @@ config = context.config
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
-fileConfig(config.config_file_name)
+#
+# **`disable_existing_loggers=False` สำคัญ** — ค่าเริ่มต้นของ `fileConfig` คือ True
+# ซึ่งไปตั้ง `disabled = True` ให้ทุก logger ที่มีอยู่แล้วและไม่ได้ถูกระบุใน
+# alembic.ini รวมถึง logger ของแอปเอง ผลคือ log ของแอป**เงียบสนิทตลอดทั้ง process
+# ที่รัน migration** โดยไม่มีอะไรฟ้อง (เจอตอน Phase 4.5: เทสต์ที่ยืนยันว่าแอป
+# เขียน log เตือนเรื่องสวิตช์ปิด plugin กลายเป็นแดงเฉพาะตอนรันทั้งชุด เพราะ
+# tests/test_migrations.py รันก่อนตามลำดับตัวอักษร)
+fileConfig(config.config_file_name, disable_existing_loggers=False)
 logger = logging.getLogger("alembic.env")
 
 # ตารางของ alembic เองก็ต้องมี prefix เหมือนตารางอื่น ไม่งั้น `alembic_version`

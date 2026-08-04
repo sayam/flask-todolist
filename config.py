@@ -29,6 +29,11 @@ def _parse_picks(raw):
     return picks
 
 
+def _parse_keys(raw):
+    """แปลง `a/b,c/d#e` เป็น frozenset ของคีย์ — ช่องว่างและรายการว่างถูกทิ้ง"""
+    return frozenset(entry.strip() for entry in raw.split(",") if entry.strip())
+
+
 class Config:
     # ไม่มีค่า default โดยตั้งใจ — ไม่ตั้งแล้วต้องแอปพังตั้งแต่ตอน start
     # ดีกว่าเผลอรันด้วยคีย์ที่ใคร ๆ ก็รู้
@@ -66,6 +71,11 @@ class Config:
     # รูปแบบคือรายการที่คั่นด้วยจุลภาค แต่ละตัวเขียนว่า
     # ชนิด/ไอดี ตามด้วย # ความสามารถ ตามด้วยเครื่องหมายเท่ากับ แล้วไอดีของส่วนเสริม
     PLUGIN_PICKS = _parse_picks(os.environ.get("PLUGIN_PICKS", ""))
+    # สวิตช์ปิดจุด plug ตอน runtime — คั่นด้วยจุลภาค ใช้คีย์เดียวกับ `flask plugin-list`
+    # (`themes/ocean`, `auth/totp`, `auth/totp#qr-segno`) ปิดของ core ไม่ได้
+    # มีไว้สำหรับวันที่ CVE ของไลบรารีใน plugin ออกตอนบ่ายสาม: ปิดได้ทันทีโดยไม่ต้อง
+    # แก้โค้ด ไม่ต้องรอ deploy และไม่ต้องลบข้อมูลของ plugin ทิ้ง
+    DISABLED_PLUGINS = _parse_keys(os.environ.get("DISABLED_PLUGINS", ""))
 
     LANGUAGES = LANGUAGES
     BABEL_DEFAULT_LOCALE = DEFAULT_LANGUAGE
