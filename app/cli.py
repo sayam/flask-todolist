@@ -277,22 +277,22 @@ def plugin_deps(categories):
         # ให้ CI/สคริปต์เอาไปต่อท้าย `pipenv sync --categories` ได้เลยโดยไม่ต้อง
         # รู้จักชื่อ plugin ตัวไหนเป็นการเฉพาะ
         wanted = [
-            plugins.category_of(plugin)
-            for plugin in plugins.installed()
-            if plugins.requirements(plugin)
+            plugins.category_of(point)
+            for point in plugins.plug_points()
+            if plugins.requirements(point)
         ]
         click.echo(" ".join(sorted(wanted)))
         return
 
-    for plugin in plugins.installed():
-        needed = plugins.requirements(plugin)
+    for point in plugins.plug_points():
+        needed = plugins.requirements(point)
         if not needed:
-            click.echo(f"{plugin.key}\t(no libraries)")
+            click.echo(f"{point.key}\t(no libraries)")
             continue
-        missing = set(plugins.missing_requirements(plugin))
+        missing = set(plugins.missing_requirements(point))
         for requirement in needed:
             state = "MISSING" if requirement in missing else "ok"
-            click.echo(f"{plugin.key}\t{requirement}\t{state}\t[{plugins.category_of(plugin)}]")
+            click.echo(f"{point.key}\t{requirement}\t{state}\t[{plugins.category_of(point)}]")
 
 
 @click.command("plugin-install")

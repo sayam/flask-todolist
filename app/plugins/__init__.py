@@ -35,11 +35,14 @@ plugin ที่ต้องเก็บข้อมูลวาง `models.py` 
 import importlib.metadata
 import importlib.util
 import json
+import logging
 import pathlib
 import re
 import sys
 from types import ModuleType
 from typing import Any
+
+from flask import current_app, has_app_context
 
 PLUGIN_ROOT = pathlib.Path(__file__).resolve().parent
 MANIFEST_NAME = "plugin.json"
@@ -61,6 +64,9 @@ AUTH_TYPE = "auth"
 MODELS_MODULE = "models"
 # โมดูลที่ plugin ชนิด auth ต้องมี ถ้าประกาศตัวเองเป็นปัจจัยที่สอง
 FACTOR_MODULE = "factor"
+# ไดเรกทอรีที่ plugin วางส่วนเสริมของตัวเอง และชื่อโมดูลที่ส่วนเสริมต้องมี (ADR 0025)
+ENHANCEMENTS_DIR = "enhancements"
+PROVIDE_MODULE = "provide"
 # ฟังก์ชันที่ปัจจัยที่สองต้องมีครบ — core เรียกแค่สองตัวนี้ ไม่รู้อะไรมากกว่านี้
 SECOND_FACTOR_CONTRACT = ("is_enrolled", "verify")
 
@@ -69,12 +75,19 @@ class Plugin:
     """ข้อมูลของ plugin หนึ่งตัวที่อ่านมาจาก manifest"""
 
     def __init__(
-        self, plugin_type: str, plugin_id: str, directory: pathlib.Path, manifest: dict[str, Any]
+        self,
+        plugin_type: str,
+        plugin_id: str,
+        directory: pathlib.Path,
+        manifest: dict[str, Any],
+        host: "Plugin | None" = None,
     ) -> None:
         self.type = plugin_type
         self.id = plugin_id
         self.directory = directory
         self.manifest = manifest
+        # ส่วนเสริมรู้จัก plugin ที่มันเสียบอยู่ ส่วน plugin ระดับบนสุดมี host เป็น None
+        self.host = host
 
     @property
     def name(self) -> str:
@@ -98,8 +111,16 @@ class Plugin:
 
     @property
     def key(self) -> str:
-        """ชื่อเต็มที่ใช้อ้างถึง plugin ตัวนี้จากบรรทัดคำสั่ง เช่น `auth/totp`"""
+        """ชื่อเต็มที่ใช้อ้างถึงจุด plug นี้ — `auth/totp` หรือ `auth/totp#qr-segno`"""
+        if self.host is not None:
+            return f"{self.host.key}#{self.id}"
         return f"{self.type}/{self.id}"
+
+    @property
+    def provides(self) -> str | None:
+        """ชื่อความสามารถที่ส่วนเสริมตัวนี้ให้ — host ขอด้วยชื่อนี้ ไม่ได้ขอด้วยไอดี"""
+        value = self.manifest.get("provides")
+        return str(value) if value is not None else None
 
     @property
     def table_prefix(self) -> str:
@@ -149,6 +170,115 @@ def discover(plugin_type: str) -> dict[str, Plugin]:
             continue
         found[directory.name] = Plugin(plugin_type, directory.name, directory.resolve(), manifest)
     return found
+
+
+# ---------------------------------------------------------------- ส่วนเสริม (ADR 0025)
+
+
+def enhancements(plugin: Plugin) -> dict[str, Plugin]:
+    """ส่วนเสริมทุกตัวที่วางอยู่ใต้ plugin นี้ — **ยังไม่สนว่าใช้งานได้ไหม**
+
+    ใช้กติกาเดิมของ ADR 0006 ซ้อนอีกชั้น: ไดเรกทอรีที่มี `plugin.json` คือจุด plug
+    หนึ่งจุด ต่างกันแค่ว่าตัวนี้มี host
+
+    **ส่วนเสริมห้ามมี `models.py`** — ถ้ามีข้อมูลของตัวเอง การสลับไป
+    implementation ตัวอื่นจะกลายเป็นการย้ายข้อมูล ซึ่งไม่ใช่การ plug อีกต่อไป
+    (ADR 0025) ข้อมูลที่จำเป็นเป็นของ plugin แม่ซึ่งเป็นเจ้าของตารางอยู่แล้ว
+    """
+    base = plugin.directory / ENHANCEMENTS_DIR
+    if not base.is_dir():
+        return {}
+
+    found = {}
+    for directory in sorted(base.iterdir()):
+        if not directory.is_dir() or directory.name.startswith(("_", ".")):
+            continue
+        manifest = _read_manifest(directory)
+        if manifest is None:
+            continue
+        if (directory / f"{MODELS_MODULE}.py").is_file():
+            raise PluginError(
+                f"{plugin.key}#{directory.name}: ส่วนเสริมห้ามมี {MODELS_MODULE}.py — "
+                "ข้อมูลถาวรต้องเป็นของ plugin แม่ ไม่งั้นสลับ implementation ไม่ได้"
+            )
+        found[directory.name] = Plugin(
+            plugin.type, directory.name, directory.resolve(), manifest, host=plugin
+        )
+    return found
+
+
+def usable_enhancements(plugin: Plugin) -> list[Plugin]:
+    """ส่วนเสริมที่ **ไลบรารีครบ** — ตัวที่ยังไม่ได้ติดตั้งของถูกข้ามไปเงียบ ๆ
+
+    ไม่ใช่ข้อผิดพลาด: ADR 0025 ถือว่า "ยังไม่ได้ติดตั้งไลบรารีของส่วนเสริม"
+    เป็นสถานะปกติที่ออกแบบไว้ (หลักเดียวกับตารางของ plugin ที่ยังไม่ถูกสร้าง)
+    """
+    return [
+        enhancement
+        for enhancement in enhancements(plugin).values()
+        if not missing_requirements(enhancement)
+    ]
+
+
+def enhancement_module(enhancement: Plugin) -> ModuleType | None:
+    """โหลดโค้ดของส่วนเสริม — **`ImportError` = ปิดตัวเอง ไม่ใช่พัง**
+
+    จับเฉพาะ `ImportError` โดยตั้งใจ ข้อผิดพลาดอื่น (syntax ผิด, ตัวแปรไม่มี)
+    เป็นบั๊กของ plugin ที่ต้องดังให้ได้ยิน ไม่ใช่สิ่งที่ควรถูกกลืนหาย
+    """
+    try:
+        return load_module(enhancement, PROVIDE_MODULE)
+    except ImportError:
+        return None
+
+
+def provider(plugin: Plugin, capability: str) -> Plugin | None:
+    """ส่วนเสริมที่ถูกเลือกให้ทำความสามารถนั้น — ไม่มีหรือกำกวมก็คืน None
+
+    **กำกวมเมื่อไหร่ปิดไว้ก่อน (fail closed)**: มีหลายตัวที่ให้ความสามารถเดียวกัน
+    แต่ config ไม่ได้ระบุว่าเอาตัวไหน = ปิดทั้งหมดพร้อมเตือน ไม่ใช่เดาให้
+    (การเดาแปลว่าวางไดเรกทอรีเพิ่มแล้วพฤติกรรมเปลี่ยนโดยไม่มีใครสั่ง)
+    """
+    candidates = [item for item in usable_enhancements(plugin) if item.provides == capability]
+    if not candidates:
+        return None
+    if len(candidates) == 1:
+        return candidates[0]
+
+    wanted = _picks().get(f"{plugin.key}#{capability}")
+    chosen = next((item for item in candidates if item.id == wanted), None)
+    if chosen is None:
+        _warn(
+            f"{plugin.key}: มีส่วนเสริมที่ให้ความสามารถ {capability!r} หลายตัว "
+            f"({', '.join(sorted(item.id for item in candidates))}) "
+            f"แต่ PLUGIN_PICKS ไม่ได้ระบุว่าจะใช้ตัวไหน — ปิดไว้ทั้งหมด"
+        )
+    return chosen
+
+
+def capability(plugin: Plugin, name: str) -> ModuleType | None:
+    """โค้ดของความสามารถนั้นพร้อมใช้ไหม — คืนโมดูล หรือ None ถ้าไม่มี/ใช้ไม่ได้
+
+    นี่คือฟังก์ชันเดียวที่ host ต้องเรียก ส่วนการตรวจว่ามีฟังก์ชันครบตามสัญญาไหม
+    เป็นเรื่องของ host เพราะ registry ไม่รู้ว่าความสามารถแต่ละอย่างต้องมีอะไรบ้าง
+    """
+    chosen = provider(plugin, name)
+    return None if chosen is None else enhancement_module(chosen)
+
+
+def _picks() -> dict[str, str]:
+    """ค่าที่ config ระบุไว้ว่าความสามารถไหนให้ใช้ส่วนเสริมตัวไหน"""
+    if not has_app_context():
+        return {}
+    picks: dict[str, str] = current_app.config.get("PLUGIN_PICKS", {})
+    return picks
+
+
+def _warn(message: str) -> None:
+    if has_app_context():
+        current_app.logger.warning(message)
+    else:  # pragma: no cover — นอก request/app context (เช่นตอน import)
+        logging.getLogger(__name__).warning(message)
 
 
 # ---------------------------------------------------------------- dependency ของ plugin
@@ -206,9 +336,27 @@ def installed() -> list[Plugin]:
 
 
 def find(key: str) -> Plugin | None:
-    """หา plugin จากชื่อเต็ม `<ชนิด>/<ไอดี>` — ไม่มีก็คืน None"""
-    plugin_type, _, plugin_id = key.partition("/")
-    return discover(plugin_type).get(plugin_id) if plugin_id else None
+    """หาจุด plug จากคีย์ — รับทั้ง `<ชนิด>/<ไอดี>` และ `<ชนิด>/<ไอดี>#<ส่วนเสริม>`"""
+    host_key, _, enhancement_id = key.partition("#")
+    plugin_type, _, plugin_id = host_key.partition("/")
+    if not plugin_id:
+        return None
+    host = discover(plugin_type).get(plugin_id)
+    if host is None or not enhancement_id:
+        return host
+    return enhancements(host).get(enhancement_id)
+
+
+def plug_points() -> list[Plugin]:
+    """จุด plug ทุกจุดทุกชั้น — plugin ทุกตัวบวกส่วนเสริมของแต่ละตัว
+
+    ใช้ตอบคำถามที่ต้องครอบทุกชั้น เช่น "ระบบนี้พึ่งไลบรารีอะไรบ้าง"
+    """
+    points = []
+    for plugin in installed():
+        points.append(plugin)
+        points.extend(enhancements(plugin).values())
+    return points
 
 
 # ---------------------------------------------------------------- ข้อมูลของ plugin
@@ -436,6 +584,15 @@ def check_installation() -> None:
             raise PluginError(f"ธีม {plugin.id}: ไม่พบไฟล์ {plugin.stylesheet}")
     # ปัจจัยที่สองที่ทำสัญญาไม่ครบ = ด่าน login ที่พังตอนมีคนพยายาม login จริง
     # ให้พังตั้งแต่ตอน start ดีกว่า
+    # ส่วนเสริมที่มี manifest แต่ไม่มีโค้ดคือของที่แพ็กมาไม่ครบ — ให้ดังตั้งแต่ start
+    # (ต่างจาก "ไลบรารียังไม่ได้ติดตั้ง" ซึ่งเป็นสถานะปกติที่ตั้งใจให้เงียบ)
+    for plugin in installed():
+        for enhancement in enhancements(plugin).values():
+            if not (enhancement.directory / f"{PROVIDE_MODULE}.py").is_file():
+                raise PluginError(f"{enhancement.key}: ไม่มี {PROVIDE_MODULE}.py")
+            if not enhancement.provides:
+                raise PluginError(f"{enhancement.key}: manifest ไม่ได้ระบุ `provides`")
+
     for plugin in second_factors():
         module = factor_module(plugin)
         missing = [

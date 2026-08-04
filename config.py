@@ -15,6 +15,20 @@ DEFAULT_LANGUAGE = "en"
 # core จึงไม่รู้จักธีมตัวไหนเป็นการเฉพาะ เพิ่มธีม = วางไดเรกทอรี ไม่ต้องแก้ไฟล์นี้
 
 
+def _parse_picks(raw):
+    """แปลง `a#b=c,d#e=f` เป็น dict — ค่าที่รูปแบบผิดถูกข้ามไปเงียบ ๆ
+
+    ข้ามแทนที่จะพัง เพราะ config ที่พิมพ์ผิดหนึ่งตัวไม่ควรทำให้แอปไม่ start
+    ผลของการข้ามคือความสามารถนั้นถูกปิด (fail closed) ซึ่งเห็นได้จาก log อยู่แล้ว
+    """
+    picks = {}
+    for entry in raw.split(","):
+        target, separator, choice = entry.partition("=")
+        if separator and target.strip() and choice.strip():
+            picks[target.strip()] = choice.strip()
+    return picks
+
+
 class Config:
     # ไม่มีค่า default โดยตั้งใจ — ไม่ตั้งแล้วต้องแอปพังตั้งแต่ตอน start
     # ดีกว่าเผลอรันด้วยคีย์ที่ใคร ๆ ก็รู้
@@ -46,6 +60,12 @@ class Config:
     # อายุของสถานะ "ผ่านรหัสผ่านแล้วแต่ยังไม่ผ่านขั้นที่สอง" — สั้นโดยตั้งใจ
     # เพราะมันคือครึ่งทางของการยืนยันตัวตน (ADR 0024)
     MFA_PENDING_SECONDS = int(os.environ.get("MFA_PENDING_SECONDS", "300"))
+
+    # --- ตัวเลือกของ plugin (Phase 4.5 — ADR 0025) ---
+    # ความสามารถที่มีส่วนเสริมให้เลือกหลายตัว ต้องระบุว่าจะใช้ตัวไหน ไม่งั้นปิดทั้งหมด
+    # รูปแบบคือรายการที่คั่นด้วยจุลภาค แต่ละตัวเขียนว่า
+    # ชนิด/ไอดี ตามด้วย # ความสามารถ ตามด้วยเครื่องหมายเท่ากับ แล้วไอดีของส่วนเสริม
+    PLUGIN_PICKS = _parse_picks(os.environ.get("PLUGIN_PICKS", ""))
 
     LANGUAGES = LANGUAGES
     BABEL_DEFAULT_LOCALE = DEFAULT_LANGUAGE

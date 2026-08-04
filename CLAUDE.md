@@ -302,6 +302,20 @@ session มาก่อนโปรไฟล์เพื่อให้กดส
 - ข้อมูลของ plugin ยังอยู่ใต้กติกาเดิมทุกข้อ: ถูก audit อัตโนมัติ, ต้องถูกจำแนกใน
   `docs/DATA-CLASSIFICATION.md`, และอยู่ใต้ `tests/test_write_discipline.py`
 
+### ส่วนเสริมของ plugin (Phase 4.5 — ADR 0025)
+- **กติกาเดิมใช้ซ้อนอีกชั้น**: `app/plugins/<ชนิด>/<ไอดี>/enhancements/<ไอดีส่วนเสริม>/`
+  ที่มี `plugin.json` + `provide.py` — คีย์คือ `auth/totp#qr-segno`
+- manifest ประกาศ `provides` (ชื่อความสามารถ) และ `requires.pip`
+  **host ขอด้วยชื่อความสามารถ ไม่ใช่ไอดี**: `plugins.capability(plugin, "qr")`
+- **ส่วนเสริมห้ามมี `models.py`** (บังคับตอนค้นหา) — ถ้ามีข้อมูลของตัวเอง
+  การสลับไป implementation ตัวอื่นจะกลายเป็นการย้ายข้อมูล ไม่ใช่การ plug
+- **ไลบรารีขาด/`ImportError` = ปิดตัวเองเงียบ ๆ** ส่วนข้อผิดพลาดอื่น (syntax ผิด,
+  ตัวแปรไม่มี) **ต้องดัง** เพราะเป็นบั๊กของ plugin ไม่ใช่สถานะปกติ
+- **มีหลายตัวที่ `provides` เหมือนกันแต่ config ไม่ได้เลือก = ปิดทั้งหมด + log เตือน**
+  (`PLUGIN_PICKS="auth/totp#qr=qr-segno"`) การเดาให้แปลว่าวางไดเรกทอรีเพิ่ม
+  แล้วพฤติกรรมของระบบเปลี่ยนโดยไม่มีใครสั่ง
+- ส่วนเสริมที่มี manifest แต่ไม่มี `provide.py` = แพ็กมาไม่ครบ → แอปไม่ start
+
 ### ธีมเป็น plugin
 - สีทั้งหมดอยู่ใน `app/plugins/themes/<id>/theme.css` ส่วนเลย์เอาต์อยู่ใน
   `app/static/base.css` ของ core ซึ่งอ้าง `var(--...)` อย่างเดียว

@@ -339,6 +339,136 @@ def test_dropping_in_a_plugin_with_tables_needs_no_core_change(app, data_plugin)
         assert "tdl_auth_extra_thing" in plugins.owned_tables()
 
 
+# --- ส่วนเสริมของ plugin (Phase 4.5 — ADR 0025) ---
+# กติกาเดิม ("ไดเรกทอรีที่มี plugin.json = จุด plug") ใช้ซ้อนอีกชั้น
+# สิ่งที่ต้องพิสูจน์: ถอดส่วนเสริมออกแล้ว plugin แม่ยังทำงาน และเมื่อกำกวมต้องปิดไว้ก่อน
+
+
+@pytest.fixture
+def host_plugin():
+    """plugin แม่ชั่วคราวหนึ่งตัว พร้อมฟังก์ชันสร้างส่วนเสริมให้มัน"""
+    directory = plugins.PLUGIN_ROOT / "auth" / "hosty"
+    (directory / "enhancements").mkdir(parents=True)
+    (directory / "plugin.json").write_text(json.dumps({"type": "auth", "name": "hosty"}))
+
+    def add(enhancement_id, manifest=None, body="VALUE = 'ok'\n"):
+        target = directory / "enhancements" / enhancement_id
+        target.mkdir(parents=True)
+        (target / "plugin.json").write_text(
+            json.dumps(
+                manifest if manifest is not None else {"name": enhancement_id, "provides": "thing"}
+            )
+        )
+        if body is not None:
+            (target / "provide.py").write_text(body)
+        return target
+
+    yield add
+    shutil.rmtree(directory, ignore_errors=True)
+    plugins.forget_models()
+
+
+def test_an_enhancement_is_found_under_its_host(app, host_plugin):
+    host_plugin("basic")
+    with app.app_context():
+        host = plugins.find("auth/hosty")
+        found = plugins.enhancements(host)
+        assert list(found) == ["basic"]
+        assert found["basic"].key == "auth/hosty#basic"
+        assert found["basic"].host is host
+        assert plugins.category_of(found["basic"]) == "plugin-auth-hosty-basic"
+
+
+def test_the_host_asks_for_a_capability_not_for_an_id(app, host_plugin):
+    host_plugin("basic", body="def render():\n    return 'จากส่วนเสริม'\n")
+    with app.app_context():
+        module = plugins.capability(plugins.find("auth/hosty"), "thing")
+        assert module is not None
+        assert module.render() == "จากส่วนเสริม"
+
+
+def test_removing_the_directory_removes_the_capability(app, host_plugin):
+    """หัวใจของทั้งเฟส: ถอดไดเรกทอรีทิ้งแล้ว host ต้องไม่พัง แค่ไม่มีความสามารถนั้น"""
+    directory = host_plugin("basic")
+    with app.app_context():
+        assert plugins.capability(plugins.find("auth/hosty"), "thing") is not None
+
+    shutil.rmtree(directory)
+    with app.app_context():
+        assert plugins.capability(plugins.find("auth/hosty"), "thing") is None
+
+
+def test_an_enhancement_without_its_library_is_skipped(app, host_plugin):
+    host_plugin("needy", manifest={"provides": "thing", "requires": {"pip": ["ไม่มีจริง"]}})
+    with app.app_context():
+        host = plugins.find("auth/hosty")
+        assert plugins.enhancements(host)  # ยังค้นเจอ
+        assert plugins.usable_enhancements(host) == []  # แต่ใช้ไม่ได้
+        assert plugins.capability(host, "thing") is None
+
+
+def test_an_import_error_disables_the_enhancement_instead_of_raising(app, host_plugin):
+    """ไลบรารีหายตอน import = ปิดตัวเอง (ด่านสำรองของการเช็ค requires)"""
+    host_plugin("broken", body="import ไม่มีโมดูลนี้จริง\n")
+    with app.app_context():
+        assert plugins.capability(plugins.find("auth/hosty"), "thing") is None
+
+
+def test_other_errors_in_an_enhancement_are_loud(app, host_plugin):
+    """บั๊กของ plugin (ไม่ใช่ไลบรารีขาด) ต้องดังให้ได้ยิน ไม่ใช่ถูกกลืน"""
+    host_plugin("bad", body="raise ValueError('พังตั้งแต่ import')\n")
+    with app.app_context(), pytest.raises(ValueError, match="พังตั้งแต่ import"):
+        plugins.capability(plugins.find("auth/hosty"), "thing")
+
+
+def test_two_providers_without_a_pick_are_both_disabled(app, host_plugin):
+    """กำกวม = ปิดไว้ก่อน — การเดาให้แปลว่าวางไดเรกทอรีเพิ่มแล้วพฤติกรรมเปลี่ยนเอง"""
+    host_plugin("one")
+    host_plugin("two")
+    with app.app_context():
+        assert plugins.capability(plugins.find("auth/hosty"), "thing") is None
+
+
+def test_a_pick_chooses_between_two_providers(app, host_plugin):
+    host_plugin("one", body="WHICH = 'one'\n")
+    host_plugin("two", body="WHICH = 'two'\n")
+    with app.app_context():
+        app.config["PLUGIN_PICKS"] = {"auth/hosty#thing": "two"}
+        module = plugins.capability(plugins.find("auth/hosty"), "thing")
+        assert module is not None
+        assert module.WHICH == "two"
+
+
+def test_a_pick_that_names_nothing_real_is_still_fail_closed(app, host_plugin):
+    host_plugin("one")
+    host_plugin("two")
+    with app.app_context():
+        app.config["PLUGIN_PICKS"] = {"auth/hosty#thing": "ไม่มีตัวนี้"}
+        assert plugins.capability(plugins.find("auth/hosty"), "thing") is None
+
+
+def test_an_enhancement_may_not_own_data(app, host_plugin):
+    """ส่วนเสริมที่มีข้อมูลของตัวเอง = สลับ implementation กลายเป็นย้ายข้อมูล"""
+    directory = host_plugin("greedy")
+    (directory / "models.py").write_text("# ห้ามมีไฟล์นี้\n")
+    with app.app_context(), pytest.raises(plugins.PluginError, match="ส่วนเสริมห้ามมี"):
+        plugins.enhancements(plugins.find("auth/hosty"))
+
+
+def test_find_reaches_an_enhancement_by_key(app, host_plugin):
+    host_plugin("basic")
+    with app.app_context():
+        assert plugins.find("auth/hosty#basic") is not None
+        assert plugins.find("auth/hosty#ไม่มี") is None
+
+
+def test_plug_points_covers_every_level(app, host_plugin):
+    host_plugin("basic")
+    with app.app_context():
+        keys = {point.key for point in plugins.plug_points()}
+    assert {"auth/totp", "auth/hosty", "auth/hosty#basic"} <= keys
+
+
 # --- dependency ของ plugin (Phase 4.5 — ADR 0025) ---
 # สิ่งที่ต้องพิสูจน์คือคำว่า ถอด plugin แล้ว supply chain ของมันหายไปด้วย
 # ซึ่งจะจริงก็ต่อเมื่อไลบรารีของ plugin **ไม่ได้อยู่ใน `[packages]` ของ core**
