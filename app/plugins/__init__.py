@@ -32,9 +32,11 @@ plugin ที่ต้องเก็บข้อมูลวาง `models.py` 
 แต่ตัว registry ออกแบบให้เพิ่มชนิดอื่นได้โดยไม่ต้องรื้อ
 """
 
+import importlib.metadata
 import importlib.util
 import json
 import pathlib
+import re
 import sys
 from types import ModuleType
 from typing import Any
@@ -147,6 +149,46 @@ def discover(plugin_type: str) -> dict[str, Plugin]:
             continue
         found[directory.name] = Plugin(plugin_type, directory.name, directory.resolve(), manifest)
     return found
+
+
+# ---------------------------------------------------------------- dependency ของ plugin
+
+
+def category_of(plugin: Plugin) -> str:
+    """ชื่อ category ของ pipenv ที่ dependency ของจุด plug นี้อยู่
+
+    **คำนวณจากคีย์ ไม่ให้ manifest ประกาศเอง** (ADR 0025) — ค่าที่ประกาศซ้ำได้
+    คือค่าที่วันหนึ่งจะไม่ตรงกับของจริงโดยไม่มีใครสังเกต
+    """
+    return "plugin-" + plugin.key.replace("/", "-").replace("#", "-")
+
+
+def requirements(plugin: Plugin) -> list[str]:
+    """แพ็กเกจ pip ที่จุด plug นี้ประกาศว่าตัวเองต้องใช้ (ว่าง = ไม่พึ่งอะไรเลย)"""
+    declared = plugin.manifest.get("requires", {})
+    if not isinstance(declared, dict):
+        raise PluginError(f"{plugin.key}: `requires` ต้องเป็น object")
+    return [str(item) for item in declared.get("pip", [])]
+
+
+def distribution_name(requirement: str) -> str:
+    """ชื่อแพ็กเกจล้วน ๆ จากสตริงแบบ `segno~=1.6` หรือ `foo[extra]>=2`"""
+    return re.split(r"[<>=!~;\[\s]", requirement, maxsplit=1)[0].strip()
+
+
+def missing_requirements(plugin: Plugin) -> list[str]:
+    """แพ็กเกจที่ประกาศไว้แต่ยังไม่ได้ติดตั้งในสภาพแวดล้อมนี้
+
+    **ตัวเลขเวอร์ชันไม่ได้ตรวจที่นี่** — `Pipfile.lock` เป็นคนคุมว่าเวอร์ชันไหน
+    ถูกติดตั้ง ตรงนี้ตอบแค่ "มีหรือไม่มี" ซึ่งเป็นคำถามที่โค้ดตอนรันต้องใช้
+    """
+    missing = []
+    for requirement in requirements(plugin):
+        try:
+            importlib.metadata.version(distribution_name(requirement))
+        except importlib.metadata.PackageNotFoundError:
+            missing.append(requirement)
+    return missing
 
 
 def types() -> list[str]:

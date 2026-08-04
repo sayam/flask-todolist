@@ -339,6 +339,96 @@ def test_dropping_in_a_plugin_with_tables_needs_no_core_change(app, data_plugin)
         assert "tdl_auth_extra_thing" in plugins.owned_tables()
 
 
+# --- dependency ของ plugin (Phase 4.5 — ADR 0025) ---
+# สิ่งที่ต้องพิสูจน์คือคำว่า ถอด plugin แล้ว supply chain ของมันหายไปด้วย
+# ซึ่งจะจริงก็ต่อเมื่อไลบรารีของ plugin **ไม่ได้อยู่ใน `[packages]` ของ core**
+
+PIPFILE = pathlib.Path(__file__).resolve().parent.parent / "Pipfile"
+
+
+def _pipfile():
+    import tomllib
+
+    return tomllib.loads(PIPFILE.read_text(encoding="utf-8"))
+
+
+def test_a_plugin_declares_the_libraries_it_needs(app):
+    with app.app_context():
+        assert plugins.requirements(plugins.find(TOTP_KEY)) == ["segno~=1.6"]
+        assert plugins.requirements(plugins.find("themes/system")) == []
+
+
+def test_the_category_name_is_derived_from_the_key(app):
+    """ชื่อ category ห้ามให้ manifest ประกาศเอง — ค่าที่ประกาศซ้ำได้คือค่าที่จะไม่ตรงกัน"""
+    with app.app_context():
+        assert plugins.category_of(plugins.find(TOTP_KEY)) == "plugin-auth-totp"
+
+
+def test_no_plugin_library_sits_in_the_core_packages(app):
+    """**ด่านหลักของ ADR 0025** — ไลบรารีที่ plugin เดียวใช้ต้องไม่อยู่ใน [packages]
+
+    ถ้ามันอยู่ตรงนั้น การลบไดเรกทอรี plugin ทิ้งจะถอดได้แค่โค้ด ส่วนไลบรารียัง
+    ถูกติดตั้งทุก deploy ยังอยู่ใน SBOM และยังต้องเฝ้า CVE ต่อไป
+    """
+    core_packages = {name.lower() for name in _pipfile().get("packages", {})}
+    with app.app_context():
+        offenders = [
+            (plugin.key, requirement)
+            for plugin in plugins.installed()
+            for requirement in plugins.requirements(plugin)
+            if plugins.distribution_name(requirement).lower() in core_packages
+        ]
+    assert not offenders, f"ไลบรารีของ plugin ไปอยู่ใน [packages] ของ core: {offenders}"
+
+
+def test_every_declared_library_has_a_matching_pipfile_category(app):
+    """สิ่งที่ manifest ประกาศ ต้องตรงกับสิ่งที่ Pipfile ติดตั้งจริง
+
+    สองที่นี้แยกกันอยู่โดยธรรมชาติ (ไฟล์คนละไฟล์ คนละเครื่องมือ) ถ้าไม่มีอะไร
+    ผูกไว้ วันหนึ่งจะมี manifest ที่ประกาศของที่ไม่มีใครติดตั้งให้
+    """
+    pipfile = _pipfile()
+    with app.app_context():
+        for plugin in plugins.installed():
+            needed = plugins.requirements(plugin)
+            if not needed:
+                continue
+            category = plugins.category_of(plugin)
+            assert category in pipfile, f"Pipfile ไม่มีหมวด [{category}] ของ {plugin.key}"
+            listed = {name.lower() for name in pipfile[category]}
+            for requirement in needed:
+                assert plugins.distribution_name(requirement).lower() in listed, (
+                    f"{plugin.key} ประกาศ {requirement} แต่ [{category}] ไม่มี"
+                )
+
+
+def test_a_library_that_is_not_installed_is_reported(app, data_plugin):
+    directory = data_plugin("needy", "tdl_auth_needy_thing")
+    (directory / "plugin.json").write_text(
+        json.dumps({"type": "auth", "name": "needy", "requires": {"pip": ["ไม่มีแพ็กเกจนี้จริง"]}})
+    )
+    with app.app_context():
+        plugin = plugins.find("auth/needy")
+        assert plugins.missing_requirements(plugin) == ["ไม่มีแพ็กเกจนี้จริง"]
+        # ของที่ติดตั้งอยู่จริงต้องไม่ถูกรายงานว่าขาด
+        assert plugins.missing_requirements(plugins.find(TOTP_KEY)) == []
+
+
+def test_plugin_deps_lists_what_each_plugin_needs(app):
+    result = app.test_cli_runner().invoke(args=["plugin-deps"])
+    assert result.exit_code == 0, result.output
+    assert "segno" in result.output
+    assert "plugin-auth-totp" in result.output
+    assert "no libraries" in result.output, "plugin ที่ไม่พึ่งอะไรต้องบอกให้ชัดด้วย"
+
+
+def test_plugin_deps_can_print_categories_for_a_script(app):
+    """CI ต้องติดตั้ง category ได้โดยไม่ต้องรู้จักชื่อ plugin ตัวไหนเป็นการเฉพาะ"""
+    result = app.test_cli_runner().invoke(args=["plugin-deps", "--categories"])
+    assert result.exit_code == 0
+    assert result.output.strip() == "plugin-auth-totp"
+
+
 # --- CLI ของวงจรชีวิต plugin (Phase 4) ---
 
 

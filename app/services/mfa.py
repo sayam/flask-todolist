@@ -79,6 +79,15 @@ def _module(key: str) -> tuple[plugins.Plugin, Any]:
     raise LookupError(key)
 
 
+def _image_of(module: Any, user: Any) -> tuple[str, bytes] | None:
+    """รูปตั้งค่าของปัจจัยตัวนั้น ถ้ามันมีให้ — ปัจจัยที่ไม่มีฟังก์ชันนี้คืน None"""
+    maker = getattr(module, "setup_image", None)
+    if maker is None:
+        return None
+    result: tuple[str, bytes] | None = maker(user)
+    return result
+
+
 def state(user: Any) -> list[dict[str, Any]]:
     """สถานะของทุกปัจจัยสำหรับหน้า settings — core ไม่ต้องรู้ว่าแต่ละตัวคืออะไร
 
@@ -99,8 +108,11 @@ def state(user: Any) -> list[dict[str, Any]]:
                 "pending": pending,
                 "details": module.setup_details(user) if pending else [],
                 # มีรูปให้แสดงไหม (core ไม่รู้ว่ารูปนั้นคืออะไร) — ใช้ตัดสินว่า
-                # จะวาง <img> ในหน้า settings หรือไม่ ไม่ได้สร้างรูปตรงนี้
-                "has_image": pending and callable(getattr(module, "setup_image", None)),
+                # จะวาง <img> ในหน้า settings หรือไม่
+                # **ถามด้วยการลองสร้างจริง ไม่ใช่ดูว่ามีฟังก์ชันไหม** เพราะ
+                # ฟังก์ชันที่มีอยู่แต่คืน None (ไลบรารีไม่ได้ติดตั้ง — ADR 0025)
+                # จะทำให้หน้าเว็บวาง <img> ที่ชี้ไปยัง URL ที่ตอบ 404
+                "has_image": pending and _image_of(module, user) is not None,
             }
         )
     return rows
@@ -114,11 +126,7 @@ def setup_image(user: Any, key: str) -> tuple[str, bytes] | None:
     แล้ว adapter แปลงเป็น 404
     """
     _plugin, module = _module(key)
-    maker = getattr(module, "setup_image", None)
-    if maker is None:
-        return None
-    result: tuple[str, bytes] | None = maker(user)
-    return result
+    return _image_of(module, user)
 
 
 def start(user: Any, key: str) -> None:

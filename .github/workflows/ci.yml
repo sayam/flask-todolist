@@ -18,6 +18,12 @@ jobs:
           cache: pipenv
       - run: pip install pipenv
       - run: pipenv sync --dev
+      # ไลบรารีของ plugin อยู่นอก `[packages]` (ADR 0025) ต้องติดตั้งแยก —
+      # ถามชื่อ category จากตัวแอปเอง **ห้าม hardcode ชื่อ plugin ใน CI**
+      - name: ติดตั้ง category ของ plugin ทุกตัวที่ประกาศไว้
+        run: pipenv sync --categories="$(pipenv run flask plugin-deps --categories)"
+        env:
+          SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
       - name: pytest + coverage gate (fail_under ใน pyproject)
         run: pipenv run pytest -q --cov --cov-report=xml
         env:
@@ -127,6 +133,13 @@ jobs:
           cache: pipenv
       - run: pip install pipenv
       - run: pipenv sync --dev
+      # ไลบรารีของ plugin ต้องถูก audit ด้วย ไม่งั้นการย้ายมันออกจาก [packages]
+      # (ADR 0025) จะกลายเป็นการทำให้มัน **หลุดจากการตรวจ** ซึ่งแย่กว่าเดิม
+      # (การแยกให้รู้ว่า CVE มาจาก plugin ไหนและถอดได้ไหม อยู่ใน step ถัดไปของเฟส)
+      - name: ติดตั้ง category ของ plugin ทุกตัวที่ประกาศไว้
+        run: pipenv sync --categories="$(pipenv run flask plugin-deps --categories)"
+        env:
+          SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
       - name: pip-audit (อัปเกรด pip ใน venv ก่อน — ตัว pip เองก็ถูก audit)
         run: |
           pipenv run python -m pip install --quiet --upgrade pip
@@ -153,6 +166,12 @@ jobs:
           node-version: "22"
       - run: pip install pipenv
       - run: pipenv sync --dev
+      # ไลบรารีของ plugin อยู่นอก `[packages]` (ADR 0025) ต้องติดตั้งแยก —
+      # ถามชื่อ category จากตัวแอปเอง **ห้าม hardcode ชื่อ plugin ใน CI**
+      - name: ติดตั้ง category ของ plugin ทุกตัวที่ประกาศไว้
+        run: pipenv sync --categories="$(pipenv run flask plugin-deps --categories)"
+        env:
+          SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
       # pin ไว้ให้ผลซ้ำได้ — pa11y ขยับ rule เมื่อไหร่ gate จะไม่ขยับตามเงียบ ๆ
       - run: npm install --no-save pa11y-ci@4.1.1
       - name: เตรียมฐานข้อมูลชั่วคราว + ข้อมูลตัวอย่าง

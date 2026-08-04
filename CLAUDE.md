@@ -5,7 +5,8 @@
 - Flask-Migrate (alembic) จัดการ schema, Flask-Login จัดการ session, Flask-WTF จัดการ CSRF,
   Flask-Limiter จำกัดจำนวนครั้งที่หน้า login
 - flask-smorest + marshmallow ทำ `/api/v1` และ generate OpenAPI spec จากโค้ด
-- segno สร้าง QR ของ MFA (ไลบรารีเดียวที่เพิ่มมาใน Phase 4 — ไม่มี dependency ต่อ)
+- segno สร้าง QR ของ MFA — **อยู่ใน category `plugin-auth-totp` ไม่ใช่ `[packages]`**
+  เพราะเป็นไลบรารีของ plugin ไม่ใช่ของ core (ADR 0025)
 - Python 3.13
 
 ## Commands
@@ -21,6 +22,9 @@
 - ตั้งบทบาท: `pipenv run flask set-role <ชื่อ> admin|user` (ทางเดียวที่ตั้ง admin คนแรกได้)
 - plugin ที่มีตารางของตัวเอง: `pipenv run flask plugin-list` /
   `plugin-install auth/totp` / `plugin-uninstall auth/totp` (**ถอนแล้วข้อมูลหายจริง**)
+- ไลบรารีที่ plugin ต้องใช้: `pipenv run flask plugin-deps` (ดูว่าอะไรขาด)
+  ติดตั้ง: `pipenv sync --categories="$(pipenv run flask plugin-deps --categories)"`
+  **`pipenv sync --dev` เฉย ๆ ไม่ติดตั้งให้** โดยตั้งใจ (ADR 0025)
 - ออก API token: `pipenv run flask token-create <ชื่อผู้ใช้> --name "<ใช้ทำอะไร>"`
   (ดู `token-list` / เพิกถอน `token-revoke <ชื่อผู้ใช้> <id>`)
 - ล้างข้อมูลที่พ้นระยะ: `pipenv run flask purge-expired` (ดูก่อนด้วย `--dry-run`)
@@ -285,6 +289,13 @@ session มาก่อนโปรไฟล์เพื่อให้กดส
 - วงจรชีวิตเป็นของ plugin เอง: `flask plugin-install` / `plugin-uninstall`
   (ถอน = ลบตารางจริง ไม่ใช่ soft delete — ข้อมูลของความสามารถที่ไม่มีอยู่แล้ว
   ไม่มีใครดูแล และ purge job ของ core ก็ไม่รู้จักตารางนั้น)
+- **ไลบรารีของ plugin ประกาศใน manifest ของตัวเอง** (`requires.pip`) และติดตั้ง
+  แยก category ของ pipenv ที่**คำนวณจากคีย์** (`auth/totp` → `plugin-auth-totp`)
+  — ถอน plugin แล้ว supply chain ของมันต้องหายไปด้วย ไม่ใช่ค้างอยู่ใน `[packages]`
+  ตลอดไป มีเทสต์บังคับว่าไลบรารีของ plugin ห้ามโผล่ใน `[packages]` ของ core
+- **ไม่มีไลบรารี = ปิดตัวเอง ไม่ใช่พัง** — `import` ที่ล้มเป็นสถานะปกติที่ออกแบบไว้
+  (หลักเดียวกับตารางที่ยังไม่ถูกสร้าง) เส้นทาง "ไม่มีของเสริม" ต้องเป็นโค้ด
+  เส้นเดียวกับตอนที่ยังไม่เคยมี ไม่ใช่เส้นทางสำรองที่เขียนเพิ่ม
 - **ชั้นข้อมูลของคอลัมน์ plugin ประกาศใน `models.py` ของ plugin เอง**
   (`AUDIT_POLICIES`) ไม่ใช่ใน `app/audit.py` — ชื่อคอลัมน์ของ plugin ที่ไปอยู่ใน
   โค้ด core จะกลายเป็นขยะค้างทันทีที่ถอน plugin (และเทสต์ห้ามไว้อยู่แล้ว)

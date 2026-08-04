@@ -257,6 +257,44 @@ def plugin_list():
         click.echo(f"{plugin.key}\tv{plugin.version}{core}\t{state}")
 
 
+@click.command("plugin-deps")
+@click.option(
+    "--categories",
+    is_flag=True,
+    help="Print just the pipenv categories, ready to paste into `pipenv sync --categories`.",
+)
+@with_appcontext
+def plugin_deps(categories):
+    """Show which libraries each plugin needs, and whether they are installed.
+
+    Plugin libraries are deliberately outside the core `[packages]` (ADR 0025):
+    removing a plugin has to remove its supply chain too, not just its code.
+    Install one with: pipenv sync --categories="<category>"
+    """
+    from app import plugins
+
+    if categories:
+        # ให้ CI/สคริปต์เอาไปต่อท้าย `pipenv sync --categories` ได้เลยโดยไม่ต้อง
+        # รู้จักชื่อ plugin ตัวไหนเป็นการเฉพาะ
+        wanted = [
+            plugins.category_of(plugin)
+            for plugin in plugins.installed()
+            if plugins.requirements(plugin)
+        ]
+        click.echo(" ".join(sorted(wanted)))
+        return
+
+    for plugin in plugins.installed():
+        needed = plugins.requirements(plugin)
+        if not needed:
+            click.echo(f"{plugin.key}\t(no libraries)")
+            continue
+        missing = set(plugins.missing_requirements(plugin))
+        for requirement in needed:
+            state = "MISSING" if requirement in missing else "ok"
+            click.echo(f"{plugin.key}\t{requirement}\t{state}\t[{plugins.category_of(plugin)}]")
+
+
 @click.command("plugin-install")
 @click.argument("key")
 @with_appcontext
@@ -379,6 +417,7 @@ def register_cli(app):
     app.cli.add_command(token_list)
     app.cli.add_command(token_revoke)
     app.cli.add_command(plugin_list)
+    app.cli.add_command(plugin_deps)
     app.cli.add_command(plugin_install)
     app.cli.add_command(plugin_uninstall)
     app.cli.add_command(purge_expired_command)

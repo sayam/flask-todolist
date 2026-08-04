@@ -15,6 +15,7 @@
 import base64
 import io
 import logging
+import sys
 import time
 
 import pytest
@@ -279,6 +280,33 @@ def test_the_qr_carries_its_own_light_background(app, user_id):
     # segno ย่อ #ffffff เป็น #fff ให้เอง — เทียบทั้งสองรูปแบบ
     assert 'fill="#fff"' in svg or 'fill="#ffffff"' in svg, "QR ไม่มีพื้นหลังอ่อนฝังมาด้วย"
     assert 'stroke="#000"' in svg or 'stroke="#000000"' in svg
+
+
+def test_without_its_library_the_qr_disappears_instead_of_breaking(app, user_id, monkeypatch):
+    """ไลบรารีของ plugin อยู่นอก `[packages]` ของ core (ADR 0025) — คนที่รัน
+    `pipenv sync --dev` เฉย ๆ จะไม่มี segno และต้องได้หน้าลงทะเบียนแบบข้อความ
+    ล้วน ไม่ใช่ 500
+
+    ใส่ `None` ลง sys.modules ทำให้ `import segno` โยน ImportError ได้จริง
+    (จำลองสภาพแวดล้อมที่ยังไม่ได้ติดตั้ง category ของ plugin ตัวนี้)
+    """
+    monkeypatch.setitem(sys.modules, "segno", None)
+
+    client = _sign_in(app, "tester")
+    client.post("/settings/mfa/start", data={"factor": TOTP_KEY})
+
+    assert client.get(f"/settings/mfa/{TOTP_KEY}/image").status_code == 404
+
+    body = client.get("/settings").get_data(as_text=True)
+    assert "setup-qr" not in body, "ห้ามวาง <img> ที่ชี้ไปยัง URL ที่ตอบ 404"
+    assert "Secret key" in body, "ทางข้อความต้องยังใช้ตั้งค่าได้ตามปกติ"
+
+    # และการลงทะเบียนต้องยังจบได้ทั้งเส้น
+    with app.app_context():
+        secret = factor().secret_of(db.session.get(User, user_id))
+    client.post("/settings/mfa/confirm", data={"factor": TOTP_KEY, "code": current_code(secret)})
+    with app.app_context():
+        assert factor().is_enrolled(db.session.get(User, user_id))
 
 
 def test_the_qr_url_never_carries_the_secret(app, user_id, caplog):

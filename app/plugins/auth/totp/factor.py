@@ -154,7 +154,14 @@ def setup_image(user: Any) -> tuple[str, bytes] | None:
     """
     import io
 
-    import segno
+    try:
+        import segno
+    except ImportError:
+        # **ไม่มีไลบรารี = ปิดตัวเอง ไม่ใช่พัง** (ADR 0025) — `segno` อยู่ใน
+        # category ของ plugin ตัวนี้ ไม่ได้อยู่ใน `[packages]` ของ core
+        # ใครที่ `pipenv sync --dev` เฉย ๆ จึงไม่มีมัน และต้องได้หน้าลงทะเบียน
+        # แบบข้อความล้วนแทนที่จะได้ 500
+        return None
 
     row = _row(user)
     if row is None or row.confirmed_at is not None:

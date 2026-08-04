@@ -39,10 +39,18 @@ audit 1 ปี — **เป็นแค่ตัวเลขในเอกส�
 ## ขั้นตอนหลัง deploy ทุกครั้ง (ลำดับนี้สำคัญ)
 
 ```
-pipenv run flask db upgrade              # ตารางของ core
-pipenv run flask plugin-list             # ดูว่าตารางของ plugin ตัวไหนยังไม่ถูกสร้าง
+pipenv sync                                 # ไลบรารีของ core
+pipenv sync --categories="$(pipenv run flask plugin-deps --categories)"   # ของ plugin
+pipenv run flask db upgrade                 # ตารางของ core
+pipenv run flask plugin-list                # ตารางของ plugin ตัวไหนยังไม่ถูกสร้าง
 pipenv run flask plugin-install auth/totp   # ตารางของ plugin ที่ต้องการใช้
 ```
+
+**ไลบรารีของ plugin ไม่ได้อยู่ใน `[packages]`** (ADR 0025) — `pipenv sync` เฉย ๆ
+จึงไม่ติดตั้งให้ ตั้งใจให้เป็นแบบนี้เพื่อให้ "ไม่ใช้ plugin ตัวนั้น" แปลว่า
+"ไม่ต้องเฝ้า CVE ของไลบรารีที่มันลากมา" ด้วยจริง ๆ
+ข้ามขั้นนี้ระบบยังทำงานปกติ แค่ความสามารถที่พึ่งไลบรารีนั้นจะปิดตัวเองเงียบ ๆ
+(`flask plugin-deps` บอกว่าอะไรขาด)
 
 **ตารางของ plugin ไม่ได้อยู่ในสาย migration ของ core โดยตั้งใจ** (ADR 0023)
 `db upgrade` จึงไม่สร้างให้ ถ้าข้ามขั้นที่สอง plugin นั้นจะถูกข้ามไปเงียบ ๆ
