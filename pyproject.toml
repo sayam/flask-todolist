@@ -68,6 +68,23 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 no_implicit_optional = true
 check_untyped_defs = true
+# **ส่วนเสริมของ plugin อยู่นอกสายตาของ mypy** — ไม่ใช่การยกเว้นเพื่อความสะดวก
+# แต่เพราะ mypy ตั้งชื่อโมดูลให้มันไม่ได้: ไอดีของจุด plug คือชื่อไดเรกทอรี ซึ่ง
+# **มีขีดกลางได้โดยตั้งใจ** (plugin ถูกโหลดตาม path ไม่ใช่ตามชื่อโมดูล — ดู
+# `load_module()` และ per-file-ignores ของ ruff ข้างบน) พอมีขีดกลาง mypy หยุด
+# ไล่ package ตรงนั้นแล้วเรียกไฟล์ว่าโมดูล `provide` เฉย ๆ ผลคือสองอย่าง:
+#   (ก) ไม่ตรงกับ override `app.plugins.*` ข้างล่าง ไลบรารีของส่วนเสริมจึงกลายเป็น
+#       error ทั้งที่ ADR 0025 ตั้งใจให้ job นี้ไม่ต้องติดตั้งมัน
+#   (ข) **ส่วนเสริมตัวที่สองทำให้ mypy ล้มทั้ง job** ด้วย duplicate module เพราะ
+#       ทุกตัวใช้ชื่อไฟล์ `provide.py` ตามสัญญาเดียวกัน (ยืนยันด้วยการวางตัวที่สอง
+#       ลงไปจริงแล้ว: "errors prevented further checking")
+# ทางแก้ที่ mypy เสนอ ข้อ (b) ใส่ `__init__.py` ขัดกับสัญญาที่ว่าไอดีของ plugin
+# ไม่ต้องเป็นชื่อโมดูล python ที่ถูกต้อง ข้อ (c) explicit-package-bases ก็ยังติด
+# ขีดกลางอยู่ดี — เหลือข้อ (a) ซึ่งคือบรรทัดนี้
+# **ราคาที่จ่าย:** `provide.py` ไม่ถูก type check เลย รับได้เพราะโดยนิยามมันคือ
+# ไฟล์ที่ import ไลบรารีซึ่งไม่มีอยู่ในสภาพแวดล้อมของ core (mypy จึงทำอะไรได้ไม่มาก
+# อยู่แล้ว) และสัญญาของมันถูกบังคับด้วย host ตอนรัน + เทสต์สแกน import ของ Phase 4.5
+exclude = ["app/plugins/.*/enhancements/"]
 
 [[tool.mypy.overrides]]
 module = [

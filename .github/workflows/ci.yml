@@ -44,11 +44,20 @@ jobs:
           cache: pipenv
       - run: pip install pipenv
       - run: pipenv sync --dev
+      # `if: !cancelled()` ทุก step เพื่อให้ **ด่านที่แดงตัวแรกไม่บังคับตัวหลังให้เงียบ**
+      # เจอมาแล้วตอน Phase 4.5: xenon แดงก่อน job จึงไม่เคยเดินถึง mypy ที่แดงอยู่
+      # ด้วยคนละเรื่อง กว่าจะเห็นก็เสียไปอีกหนึ่งรอบ push — รอบ CI แพงกว่าการรัน
+      # ห้าคำสั่งจนจบเสมอ
       - run: pipenv run ruff check .
+        if: ${{ !cancelled() }}
       - run: pipenv run ruff format --check .
+        if: ${{ !cancelled() }}
       - run: pipenv run xenon --max-absolute B --max-modules A --max-average A app
+        if: ${{ !cancelled() }}
       - run: pipenv run interrogate app
+        if: ${{ !cancelled() }}
       - run: pipenv run mypy app scripts
+        if: ${{ !cancelled() }}
 
   schema:
     # model กับ schema ที่ migration สร้างต้องตรงกันเป๊ะ
