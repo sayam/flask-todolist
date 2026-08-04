@@ -5,10 +5,14 @@
 โดยไม่มีการแก้โค้ด core เลย
 """
 
+import ast
+import functools
+import importlib.metadata
 import json
 import pathlib
 import re
 import shutil
+import sys
 
 import pytest
 
@@ -647,6 +651,246 @@ def test_plugin_deps_can_print_categories_for_a_script(app):
     result = app.test_cli_runner().invoke(args=["plugin-deps", "--categories"])
     assert result.exit_code == 0
     assert result.output.strip() == "plugin-auth-totp-qr-segno"
+
+
+# --- โค้ดของจุด plug ต้อง import แค่ของที่ประกาศไว้ (Phase 4.5 — ADR 0025 ข้อ 7) ---
+# manifest ที่ประกาศไลบรารีไม่ครบทำให้คำสัญญาหลักของเฟสนี้ ("ถอดไดเรกทอรีแล้ว
+# supply chain ของมันหายไปด้วย") เป็นจริงแค่บนกระดาษ — `plugin-deps` จะไม่รู้จัก
+# ของที่ขาด, `missing_requirements()` จะบอกว่าครบทั้งที่ไม่ครบ, และไลบรารีตัวนั้น
+# จะไปนอนอยู่ใน [packages] ของ core แทน (ที่เดียวที่มันจะถูกติดตั้งให้)
+#
+# **นี่เป็นด่านตอนรีวิว ไม่ใช่กำแพงตอนรัน** — เมื่อไลบรารีถูกติดตั้งแล้ว python
+# ยอมให้โค้ดไหน import อะไรก็ได้ (ADR 0025 หัวข้อ "ขอบเขตที่ ADR นี้ไม่ครอบคลุม")
+
+CORE_DIR = pathlib.Path(__file__).resolve().parent.parent / "app"
+
+
+def _imported_modules(path):
+    """ชื่อโมดูลระดับบนสุดที่ไฟล์นี้ import พร้อมเลขบรรทัด
+
+    import แบบญาติ (`from .models import ...`) ไม่นับ เพราะเป็นโค้ดของจุด plug
+    เอง ไม่ใช่ของที่มาจากข้างนอก
+    """
+    found = []
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            found.extend((alias.name.split(".")[0], node.lineno) for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and not node.level:
+            found.append(((node.module or "").split(".")[0], node.lineno))
+    return found
+
+
+@functools.cache
+def _core_modules():
+    """โมดูลนอก stdlib ที่ **core เอง** import อยู่แล้ว
+
+    อ่านจากโค้ดของ core ตรง ๆ ไม่ได้เขียนเป็นรายชื่อไว้ที่ไหน (หลักเดียวกับ
+    `category_of()` ที่คำนวณจากคีย์ — รายชื่อที่ประกาศซ้ำได้คือรายชื่อที่วันหนึ่ง
+    จะไม่ตรงกับของจริง) plugin ยืมของพวกนี้ได้โดยไม่ต้องประกาศ เพราะถอด plugin
+    ทิ้งก็ถอดมันออกไม่ได้อยู่ดี การประกาศซ้ำจึงไม่ได้ทำให้ถอดอะไรได้เพิ่ม
+    (นี่คือเหตุผลที่ `models.py` ของ plugin import `sqlalchemy` ได้ตรง ๆ)
+    """
+    modules = {"app"}
+    for path in sorted(CORE_DIR.rglob("*.py")):
+        if path.is_relative_to(plugins.PLUGIN_ROOT):
+            continue
+        modules.update(name for name, _ in _imported_modules(path))
+    return frozenset(name for name in modules if name and name not in sys.stdlib_module_names)
+
+
+def _canonical(name):
+    """ชื่อแพ็กเกจแบบเทียบกันได้ตาม PEP 503 (`Flask-WTF` กับ `flask_wtf` คือตัวเดียวกัน)"""
+    return re.sub(r"[-_.]+", "-", name).lower()
+
+
+@functools.cache
+def _modules_of(requirement):
+    """ชื่อโมดูลที่ requirement **บรรทัดเดียว** นี้อนุญาตให้ import
+
+    ปกติชื่อแพ็กเกจกับชื่อโมดูลตรงกัน (`segno` → `segno`) แต่ไม่เสมอไป
+    (`python-dotenv` → `dotenv`) ถ้าไลบรารีถูกติดตั้งอยู่ก็ถาม metadata เอาตรง ๆ
+    ส่วนตอนที่ยังไม่ได้ติดตั้ง (job `bare` ของ CI) ตกกลับไปเดาจากชื่อแพ็กเกจ
+    ซึ่งพลาดไปในทาง **เข้มกว่า** ไม่ใช่หลวมกว่า — คือฟ้องของที่จริง ๆ แล้วถูก
+    ไม่ใช่ปล่อยของที่ผิดผ่าน
+
+    **ต้องแยกทีละบรรทัด ไม่ใช่ยุบเป็นก้อนเดียวต่อจุด plug** ไม่งั้นการถามว่า
+    "ไลบรารีตัวนี้ยังถูกใช้อยู่ไหม" จะตอบว่าใช้อยู่เพราะ*เพื่อนของมัน*ถูกใช้
+    """
+    distribution = plugins.distribution_name(requirement)
+    names = {distribution.replace("-", "_")}
+    names.update(
+        module
+        for module, owners in importlib.metadata.packages_distributions().items()
+        if any(_canonical(owner) == _canonical(distribution) for owner in owners)
+    )
+    return frozenset(names)
+
+
+def _declared_modules(point):
+    """ชื่อโมดูลทั้งหมดที่ manifest ของจุด plug นี้อนุญาตให้ import"""
+    return {name for item in plugins.requirements(point) for name in _modules_of(item)}
+
+
+def _own_files(point, points):
+    """ไฟล์ .py ที่เป็นของจุด plug นี้จริง ๆ
+
+    ไฟล์ที่อยู่ในจุด plug ที่ซ้อนอยู่ข้างใน (`enhancements/<ไอดี>/`) ไม่นับ —
+    ส่วนเสริมมี manifest ของตัวเอง จึงต้องถูกตัดสินด้วย manifest ของตัวเอง
+    ไม่ใช่ของ plugin แม่ ไม่งั้น plugin แม่จะกลายเป็นที่ประกาศไลบรารีของทุกตัว
+    ที่เสียบอยู่ข้างใน ซึ่งคือสิ่งที่ ADR 0025 ย้าย QR ออกมาเพื่อเลิกทำ
+    """
+    inner = [
+        other.directory
+        for other in points
+        if other.directory != point.directory and other.directory.is_relative_to(point.directory)
+    ]
+    return [
+        path
+        for path in sorted(point.directory.rglob("*.py"))
+        if not any(path.is_relative_to(directory) for directory in inner)
+    ]
+
+
+def _undeclared_imports(points):
+    """import ที่ไม่มี manifest ไหนรองรับ — คืนเป็นข้อความอ่านออกพร้อมที่อยู่"""
+    core = _core_modules()
+    found = []
+    for point in points:
+        allowed = core | _declared_modules(point)
+        for path in _own_files(point, points):
+            found.extend(
+                f"{point.key}: {path.name}:{lineno} import {name}"
+                for name, lineno in _imported_modules(path)
+                if name and name not in sys.stdlib_module_names and name not in allowed
+            )
+    return found
+
+
+def test_a_plug_point_imports_only_what_it_declares(app):
+    """ของจริงทุกตัวบนดิสก์ต้องผ่าน — รวมตัวที่ถูกสวิตช์ปิด
+
+    ใช้ `plug_points_on_disk()` ไม่ใช่ `plug_points()` เพราะนี่เป็นด่านตรวจ
+    *โค้ด* ซึ่งต้องให้ผลเดิมไม่ว่า `.env` ของเครื่องที่รันจะปิดอะไรไว้
+    """
+    with app.app_context():
+        offenders = _undeclared_imports(plugins.plug_points_on_disk())
+    assert not offenders, (
+        "โค้ดของจุด plug import ของที่ manifest ไม่ได้ประกาศ:\n"
+        + "\n".join(offenders)
+        + "\n\nประกาศใน `requires.pip` ของ manifest ตัวเอง แล้วเพิ่มหมวดใน Pipfile "
+        "ไม่งั้นถอนไดเรกทอรีทิ้งแล้วไลบรารีตัวนี้จะยังถูกติดตั้งต่อไปโดยไม่มีใครขอ"
+    )
+
+
+def test_the_scanner_reads_the_real_plugin_code(app):
+    """กันเทสต์ข้างบนเขียวเพราะหาไฟล์ไม่เจอ ไม่ใช่เพราะโค้ดสะอาด
+
+    และพิสูจน์การแบ่งเขตด้วย: `provide.py` ของส่วนเสริมต้อง **ไม่** ถูกนับเป็น
+    ไฟล์ของ plugin แม่ ไม่งั้น `import segno` จะถูกตัดสินด้วย manifest ที่ไม่ได้
+    ประกาศมันไว้ (หรือแย่กว่านั้นคือถูกปล่อยผ่านเพราะแม่ประกาศไว้ให้)
+    """
+    with app.app_context():
+        points = plugins.plug_points_on_disk()
+    files = {point.key: {path.name for path in _own_files(point, points)} for point in points}
+    assert files[TOTP_KEY] == {"factor.py", "models.py"}
+    assert files[QR_KEY] == {"provide.py"}
+
+
+def test_the_scanner_catches_an_import_that_no_manifest_declares(app, host_plugin):
+    """พิสูจน์ว่าตัวสแกนจับของจริงได้ ไม่ใช่ตัวกรองที่ไม่เคยตรงกับอะไรเลย"""
+    host_plugin("sneaky", body="import some_library_nobody_declared\n")
+    with app.app_context():
+        offenders = _undeclared_imports(plugins.plug_points_on_disk())
+    assert [item for item in offenders if item.startswith("auth/hosty#sneaky:")] == [
+        "auth/hosty#sneaky: provide.py:1 import some_library_nobody_declared"
+    ], offenders
+
+
+def test_declaring_the_library_makes_the_import_legal(app, host_plugin):
+    """ประกาศแล้วต้องผ่าน — และชื่อแพ็กเกจที่มีขีดกลางต้องเทียบกับชื่อโมดูลได้"""
+    host_plugin(
+        "honest",
+        manifest={
+            "name": "honest",
+            "provides": "thing",
+            "requires": {"pip": ["some-library-nobody-declared~=1.0"]},
+        },
+        body="import some_library_nobody_declared\n",
+    )
+    with app.app_context():
+        offenders = _undeclared_imports(plugins.plug_points_on_disk())
+    assert not [item for item in offenders if item.startswith("auth/hosty#honest:")], offenders
+
+
+# ไลบรารีที่ถูกใช้จริงโดยไม่มีบรรทัด `import` ให้เห็น — driver ที่ถูกเรียกตามชื่อ
+# ใน connection string เป็นตัวอย่างที่จะมาถึงจริงใน Phase 5 (`pymysql`, `redis`)
+# **เพิ่มรายการที่นี่ = ยอมรับว่าจะไม่มีอะไรบอกได้อีกว่าไลบรารีตัวนี้ยังถูกใช้อยู่ไหม**
+DECLARED_BUT_NOT_IMPORTED = {
+    # (คีย์ของจุด plug, ชื่อแพ็กเกจ) พร้อมเหตุผลว่าใครเป็นคนเรียกมันแทน
+}
+
+
+def _unused_requirements(points):
+    """ไลบรารีที่ manifest ประกาศไว้แต่ไม่มีไฟล์ไหนของจุด plug นั้น import เลย
+
+    ทิศทางกลับของด่านข้างบน และจำเป็นพอ ๆ กัน: การประกาศเกินแปลว่าทุก deploy
+    ติดตั้งไลบรารีที่ไม่มีใครใช้ ต้องเฝ้า CVE ของมัน และมันโผล่ใน SBOM ในฐานะ
+    ของที่ระบบนี้พึ่งพา — ซึ่งเป็นสิ่งเดียวกับที่ ADR 0025 ตั้งใจจะเลิกทำ
+    """
+    found = []
+    for point in points:
+        imported = {
+            name for path in _own_files(point, points) for name, _ in _imported_modules(path)
+        }
+        for requirement in plugins.requirements(point):
+            distribution = plugins.distribution_name(requirement)
+            if (point.key, distribution) in DECLARED_BUT_NOT_IMPORTED:
+                continue
+            if not (_modules_of(requirement) & imported):
+                found.append(f"{point.key}: ประกาศ {requirement} แต่ไม่มีไฟล์ไหน import")
+    return found
+
+
+def test_a_plug_point_declares_nothing_it_never_imports(app):
+    with app.app_context():
+        offenders = _unused_requirements(plugins.plug_points_on_disk())
+    assert not offenders, (
+        "manifest ประกาศไลบรารีที่ไม่มีใครใช้:\n"
+        + "\n".join(offenders)
+        + "\n\nเอาออกจาก `requires.pip` และจาก Pipfile ด้วย ไม่งั้นมันจะถูกติดตั้ง "
+        "ทุก deploy และต้องเฝ้า CVE ต่อไปโดยไม่มีใครได้ประโยชน์"
+        "\nถ้าถูกใช้โดยไม่ผ่าน import จริง ๆ ต้องเพิ่มใน DECLARED_BUT_NOT_IMPORTED พร้อมเหตุผล"
+    )
+
+
+def test_the_scanner_catches_a_library_that_nobody_uses(app, host_plugin):
+    """พิสูจน์ทิศทางกลับ — ประกาศแล้วไม่ใช้ต้องถูกจับเหมือนกัน"""
+    host_plugin(
+        "hoarder",
+        manifest={
+            "name": "hoarder",
+            "provides": "thing",
+            "requires": {"pip": ["some-library-nobody-declared~=1.0"]},
+        },
+        body="VALUE = 'ok'\n",
+    )
+    with app.app_context():
+        offenders = _unused_requirements(plugins.plug_points_on_disk())
+    assert [item for item in offenders if item.startswith("auth/hosty#hoarder:")], offenders
+
+
+def test_a_plug_point_may_lean_on_what_core_already_carries(app, host_plugin):
+    """ของที่ core แบกอยู่แล้วไม่ต้องประกาศซ้ำ เพราะถอด plugin ทิ้งก็ถอดมันไม่ได้
+
+    ถ้าด่านนี้เข้มกว่านี้ `models.py` ของ plugin จริงจะต้องประกาศ `sqlalchemy`
+    ไว้ในหมวดของตัวเอง ทั้งที่ pipenv จะติดตั้งมันให้อยู่แล้วในฐานะ dependency
+    ของ core — ได้ SBOM ที่บอกว่าถอด plugin แล้วจะเลิกใช้ sqlalchemy ซึ่งไม่จริง
+    """
+    host_plugin("leaning", body="import sqlalchemy\nfrom flask import current_app\n")
+    with app.app_context():
+        offenders = _undeclared_imports(plugins.plug_points_on_disk())
+    assert not [item for item in offenders if item.startswith("auth/hosty#leaning:")], offenders
 
 
 # --- CLI ของวงจรชีวิต plugin (Phase 4) ---
