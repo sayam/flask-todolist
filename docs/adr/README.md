@@ -30,3 +30,4 @@ ADR 0002–0008 เป็นการ backfill การตัดสินใจ
 | [0022](0022-minimal-rbac.md) | RBAC ขั้นต่ำ admin/user ตรวจที่ service | accepted |
 | [0023](0023-plugin-owns-its-own-table.md) | plugin ดูแลตารางของตัวเอง นอกสาย migration ของ core | accepted |
 | [0024](0024-mfa-as-an-auth-plugin.md) | MFA เป็น plugin ชนิด auth, TOTP เขียนเอง | accepted |
+| [0025](0025-plug-points-and-supply-chain-isolation.md) | จุด plug ซ้อนชั้น + แยก dependency ต่อ plugin | accepted |
