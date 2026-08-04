@@ -300,40 +300,49 @@ def enhancement_module(enhancement: Plugin) -> ModuleType | None:
         return None
 
 
+def _names_of(candidates: list[Plugin]) -> str:
+    """ไอดีของผู้ให้บริการเรียงแล้ว สำหรับใส่ในข้อความเตือน"""
+    return ", ".join(sorted(item.id for item in candidates))
+
+
+def _unpicked(plugin: Plugin, capability: str, candidates: list[Plugin]) -> Plugin | None:
+    """ไม่มีใครระบุตัวเลือกไว้ — เหลือตัวเดียวก็ใช้ตัวนั้น หลายตัวคือกำกวม
+
+    **กำกวมเมื่อไหร่ปิดไว้ก่อน (fail closed)** ไม่ใช่เดาให้ เพราะการเดาแปลว่า
+    วางไดเรกทอรีเพิ่มแล้วพฤติกรรมของระบบเปลี่ยนโดยไม่มีใครสั่ง
+    """
+    if len(candidates) == 1:
+        return candidates[0]
+    _warn(
+        f"{plugin.key}: มีส่วนเสริมที่ให้ความสามารถ {capability!r} หลายตัว "
+        f"({_names_of(candidates)}) "
+        f"แต่ PLUGIN_PICKS ไม่ได้ระบุว่าจะใช้ตัวไหน — ปิดไว้ทั้งหมด"
+    )
+    return None
+
+
 def provider(plugin: Plugin, capability: str) -> Plugin | None:
     """ส่วนเสริมที่ถูกเลือกให้ทำความสามารถนั้น — ไม่มีหรือกำกวมก็คืน None
-
-    **กำกวมเมื่อไหร่ปิดไว้ก่อน (fail closed)**: มีหลายตัวที่ให้ความสามารถเดียวกัน
-    แต่ config ไม่ได้ระบุว่าเอาตัวไหน = ปิดทั้งหมดพร้อมเตือน ไม่ใช่เดาให้
-    (การเดาแปลว่าวางไดเรกทอรีเพิ่มแล้วพฤติกรรมเปลี่ยนโดยไม่มีใครสั่ง)
 
     **ถ้า config ระบุตัวเลือกไว้ ตัวเลือกนั้นชนะเสมอ แม้จะเหลือตัวเดียว** —
     ไม่งั้นวันที่ตัวที่ถูกเลือกใช้ไม่ได้ (ปิดเพราะ CVE หรือไลบรารีหาย) ตัวที่
     ผู้ดูแล**ไม่ได้เลือก**จะถูกเลื่อนขึ้นมาแทนเงียบ ๆ ซึ่งเป็นสิ่งเดียวกับที่
-    กฎ fail closed มีไว้ป้องกัน
+    กฎ fail closed (ดู `_unpicked`) มีไว้ป้องกัน
     """
-    target = f"{plugin.key}#{capability}"
     candidates = [item for item in usable_enhancements(plugin) if item.provides == capability]
     if not candidates:
         return None
 
-    wanted = _picks().get(target)
+    wanted = _picks().get(f"{plugin.key}#{capability}")
     if wanted is None:
-        if len(candidates) == 1:
-            return candidates[0]
-        _warn(
-            f"{plugin.key}: มีส่วนเสริมที่ให้ความสามารถ {capability!r} หลายตัว "
-            f"({', '.join(sorted(item.id for item in candidates))}) "
-            f"แต่ PLUGIN_PICKS ไม่ได้ระบุว่าจะใช้ตัวไหน — ปิดไว้ทั้งหมด"
-        )
-        return None
+        return _unpicked(plugin, capability, candidates)
 
     chosen = next((item for item in candidates if item.id == wanted), None)
     if chosen is None:
         _warn(
             f"{plugin.key}: PLUGIN_PICKS เลือก {wanted!r} ไว้สำหรับความสามารถ "
             f"{capability!r} แต่ตัวนั้นใช้งานไม่ได้ตอนนี้ "
-            f"(มีอยู่: {', '.join(sorted(item.id for item in candidates)) or 'ไม่มีเลย'}) "
+            f"(มีอยู่: {_names_of(candidates) or 'ไม่มีเลย'}) "
             "— ปิดไว้ ไม่เลื่อนตัวอื่นขึ้นมาแทน"
         )
     return chosen
@@ -761,25 +770,20 @@ def _check_switch() -> None:
             )
 
 
-def check_installation() -> None:
-    """ตรวจตอนสร้างแอปว่าโครงสร้าง plugin ใช้ได้
-
-    ให้พังตั้งแต่ตอน start ดีกว่าไปพังตอน render หน้าแรก
-    """
-    _check_switch()
-    core_theme()
-    # โหลด model ของ plugin ที่มีข้อมูลของตัวเอง — ให้ prefix ที่ผิดพังตั้งแต่ตอน
-    # start ไม่ใช่ตอนที่มีคนกด install แล้วได้ตารางชื่อประหลาดค้างในฐานข้อมูล
-    load_models()
+def _check_themes() -> None:
+    """ธีมที่ไม่มีไฟล์สีคือธีมที่เลือกแล้วหน้าเว็บกลายเป็นขาวดำ"""
     for plugin in themes().values():
         if not plugin.stylesheet:
             raise PluginError(f"ธีม {plugin.id}: manifest ไม่ได้ระบุ stylesheet")
         if not plugin.file(plugin.stylesheet).is_file():
             raise PluginError(f"ธีม {plugin.id}: ไม่พบไฟล์ {plugin.stylesheet}")
-    # ปัจจัยที่สองที่ทำสัญญาไม่ครบ = ด่าน login ที่พังตอนมีคนพยายาม login จริง
-    # ให้พังตั้งแต่ตอน start ดีกว่า
-    # ส่วนเสริมที่มี manifest แต่ไม่มีโค้ดคือของที่แพ็กมาไม่ครบ — ให้ดังตั้งแต่ start
-    # (ต่างจาก "ไลบรารียังไม่ได้ติดตั้ง" ซึ่งเป็นสถานะปกติที่ตั้งใจให้เงียบ)
+
+
+def _check_enhancements() -> None:
+    """ส่วนเสริมที่มี manifest แต่ไม่มีโค้ดคือของที่แพ็กมาไม่ครบ — ให้ดังตั้งแต่ start
+
+    ต่างจาก "ไลบรารียังไม่ได้ติดตั้ง" ซึ่งเป็นสถานะปกติที่ตั้งใจให้เงียบ (ADR 0025)
+    """
     for plugin in installed():
         for enhancement in enhancements(plugin).values():
             if not (enhancement.directory / f"{PROVIDE_MODULE}.py").is_file():
@@ -787,6 +791,9 @@ def check_installation() -> None:
             if not enhancement.provides:
                 raise PluginError(f"{enhancement.key}: manifest ไม่ได้ระบุ `provides`")
 
+
+def _check_second_factors() -> None:
+    """ปัจจัยที่สองที่ทำสัญญาไม่ครบ = ด่าน login ที่พังตอนมีคนพยายาม login จริง"""
     for plugin in second_factors():
         module = factor_module(plugin)
         missing = [
@@ -794,3 +801,20 @@ def check_installation() -> None:
         ]
         if missing:
             raise PluginError(f"{plugin.key}: {FACTOR_MODULE}.py ต้องมีฟังก์ชัน {', '.join(missing)}")
+
+
+def check_installation() -> None:
+    """ตรวจตอนสร้างแอปว่าโครงสร้าง plugin ใช้ได้
+
+    ให้พังตั้งแต่ตอน start ดีกว่าไปพังตอน render หน้าแรก — รายการที่ตรวจอยู่ใน
+    `_check_*` ข้างบน ตัวนี้เป็นแค่ลำดับการเรียก **ลำดับสำคัญ**: สวิตช์ก่อน
+    (คีย์ผิดต้องบอกก่อนที่อย่างอื่นจะพังตามแบบชี้ผิดที่) แล้วธีมสำรองของ core
+    """
+    _check_switch()
+    core_theme()
+    # โหลด model ของ plugin ที่มีข้อมูลของตัวเอง — ให้ prefix ที่ผิดพังตั้งแต่ตอน
+    # start ไม่ใช่ตอนที่มีคนกด install แล้วได้ตารางชื่อประหลาดค้างในฐานข้อมูล
+    load_models()
+    _check_themes()
+    _check_enhancements()
+    _check_second_factors()
