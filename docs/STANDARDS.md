@@ -33,6 +33,8 @@
 - core: `tdl_` (สั้น, เป็นเอกลักษณ์) → `tdl_user`, `tdl_category`, `tdl_todo`
 - plugin: `tdl_<ชนิด>_<ไอดี>_*` เช่น MFA plugin → `tdl_auth_totp_secret`
   (บังคับใน plugin contract — core ตรวจได้ด้วย prefix ว่า table ไหนเป็นของใคร)
+  **ทำจริงแล้วใน Phase 4 (ADR 0023)** — registry บังคับ prefix ตอนโหลด และตาราง
+  ของ plugin ถูกกันออกจากสาย migration ของ core
 - ตาราง version ของ alembic เปลี่ยนเป็น `tdl_alembic_version` (ตั้งได้ผ่าน
   `version_table` ใน env.py)
 - **จังหวะ: ด่านแรกของ Phase 2** — ก่อนตาราง audit/temporal เกิด ทุกตารางใหม่

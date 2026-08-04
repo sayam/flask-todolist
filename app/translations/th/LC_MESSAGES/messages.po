@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-02 22:26+0700\n"
+"POT-Creation-Date: 2026-08-04 10:14+0700\n"
 "PO-Revision-Date: 2026-08-02 16:44+0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -18,114 +18,263 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: app/__init__.py:23
+#: app/__init__.py:58
 msgid "Please sign in first"
 msgstr "กรุณาเข้าสู่ระบบก่อน"
 
-#: app/auth.py:37
+#: app/admin.py:46
+#, python-format
+msgid "Role of %(name)s is now %(role)s"
+msgstr "บทบาทของ %(name)s เป็น %(role)s แล้ว"
+
+#: app/auth.py:82
 msgid "Incorrect username or password"
 msgstr "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง"
 
-#: app/routes.py:118 app/routes.py:173 app/routes.py:210
+#: app/auth.py:149 app/routes.py:415
+msgid "That code is not valid"
+msgstr "รหัสไม่ถูกต้อง"
+
+#: app/api/todos.py:52 app/routes.py:68 app/routes.py:88
 msgid "Invalid date format"
 msgstr "รูปแบบวันที่ไม่ถูกต้อง"
 
-#: app/routes.py:167
-msgid "Please enter a task name"
-msgstr "กรุณาใส่ชื่องาน"
-
-#: app/routes.py:204
-msgid "Task name cannot be empty"
-msgstr "ชื่องานว่างไม่ได้"
-
-#: app/routes.py:218
+#: app/routes.py:155
 msgid "Task saved"
 msgstr "บันทึกงานแล้ว"
 
-#: app/routes.py:263
-msgid "Please enter a category name"
-msgstr "กรุณาใส่ชื่อหมวด"
+#: app/routes.py:289
+msgid "Profile saved"
+msgstr "บันทึกโปรไฟล์แล้ว"
 
-#: app/routes.py:265 app/routes.py:284
+#: app/routes.py:303
+msgid "The two new passwords do not match"
+msgstr "รหัสผ่านใหม่สองช่องไม่ตรงกัน"
+
+#: app/routes.py:319
+msgid "Password changed"
+msgstr "เปลี่ยนรหัสผ่านแล้ว"
+
+#: app/routes.py:340 app/routes.py:428 app/services/passwords.py:168
+msgid "Current password is incorrect"
+msgstr "รหัสผ่านปัจจุบันไม่ถูกต้อง"
+
+#: app/routes.py:384
+msgid "Token revoked"
+msgstr "เพิกถอน token แล้ว"
+
+#: app/routes.py:415
+msgid "Two-step verification is on"
+msgstr "เปิดการยืนยันสองขั้นแล้ว"
+
+#: app/routes.py:435
+msgid "Two-step verification is off"
+msgstr "ปิดการยืนยันสองขั้นแล้ว"
+
+#: app/routes.py:460
+msgid "Settings saved"
+msgstr "บันทึกการตั้งค่าแล้ว"
+
+#: app/session_security.py:208 app/session_security.py:215
+msgid "Your session has expired — please sign in again"
+msgstr "หมดเวลาใช้งานแล้ว กรุณาเข้าสู่ระบบใหม่"
+
+#: app/session_security.py:218
+msgid "Your password was changed — please sign in again"
+msgstr "รหัสผ่านถูกเปลี่ยน กรุณาเข้าสู่ระบบใหม่"
+
+#: app/services/categories.py:33
+msgid "Category not found"
+msgstr "ไม่พบหมวด"
+
+#: app/services/categories.py:56
 #, python-format
 msgid "Category “%(name)s” already exists"
 msgstr "มีหมวด “%(name)s” อยู่แล้ว"
 
-#: app/routes.py:278
+#: app/services/categories.py:64
+msgid "Please enter a category name"
+msgstr "กรุณาใส่ชื่อหมวด"
+
+#: app/services/categories.py:75
 msgid "Category name cannot be empty"
 msgstr "ชื่อหมวดว่างไม่ได้"
 
-#: app/routes.py:301
+#: app/services/categories.py:92
 #, python-format
 msgid "Cannot delete “%(name)s” — it still has %(num)d task."
 msgid_plural "Cannot delete “%(name)s” — it still has %(num)d tasks."
 msgstr[0] "ลบ “%(name)s” ไม่ได้ — ยังมีงานอยู่ %(num)d รายการ"
 
-#: app/routes.py:368
-msgid "Profile saved"
-msgstr "บันทึกโปรไฟล์แล้ว"
+#: app/services/mfa.py:108
+msgid "Turn off two-step verification first"
+msgstr "ต้องปิดการยืนยันสองขั้นก่อน"
 
-#: app/routes.py:378
+#: app/services/passwords.py:108
+#, python-format
+msgid "Password must be at least %(count)d characters long"
+msgstr "รหัสผ่านต้องยาวอย่างน้อย %(count)d ตัว"
+
+#: app/services/passwords.py:114
+#, python-format
+msgid "Password must be at most %(count)d characters long"
+msgstr "รหัสผ่านต้องยาวไม่เกิน %(count)d ตัว"
+
+#: app/services/passwords.py:124
+msgid "Password must not contain your username"
+msgstr "รหัสผ่านต้องไม่มีชื่อผู้ใช้ของคุณอยู่ข้างใน"
+
+#: app/services/passwords.py:130
+msgid "This password has appeared in a data breach — choose a different one"
+msgstr "รหัสผ่านนี้เคยหลุดออกไปแล้ว กรุณาใช้รหัสอื่น"
+
+#: app/services/roles.py:43
+msgid "This page is for administrators only"
+msgstr "หน้านี้สำหรับผู้ดูแลระบบเท่านั้น"
+
+#: app/services/roles.py:60
+msgid "User not found"
+msgstr "ไม่พบผู้ใช้"
+
+#: app/services/roles.py:79 app/services/roles.py:98
+msgid "Unknown role"
+msgstr "ไม่รู้จักบทบาทนี้"
+
+#: app/services/roles.py:83 app/templates/admin_users.html:25
+msgid "You cannot change your own role"
+msgstr "เปลี่ยนบทบาทของตัวเองไม่ได้"
+
+#: app/services/settings.py:34 app/services/settings.py:67
 msgid "Unsupported language"
 msgstr "ไม่รองรับภาษานี้"
 
-#: app/routes.py:383
-msgid "Unsupported theme"
-msgstr "ไม่รองรับธีมนี้"
-
-#: app/routes.py:388
+#: app/services/settings.py:47 app/services/settings.py:71
 msgid "Unsupported mode"
 msgstr "ไม่รองรับโหมดนี้"
 
-#: app/routes.py:393
+#: app/services/settings.py:69
+msgid "Unsupported theme"
+msgstr "ไม่รองรับธีมนี้"
+
+#: app/services/settings.py:73
 msgid "Unsupported timezone"
 msgstr "ไม่รองรับ timezone นี้"
 
-#: app/routes.py:407
-msgid "Settings saved"
-msgstr "บันทึกการตั้งค่าแล้ว"
+#: app/services/todos.py:62
+msgid "Task not found"
+msgstr "ไม่พบงาน"
 
-#: app/templates/base.html:8 app/templates/base.html:44
+#: app/services/todos.py:81
+msgid "Invalid category"
+msgstr "หมวดไม่ถูกต้อง"
+
+#: app/services/todos.py:100
+msgid "Please enter a task name"
+msgstr "กรุณาใส่ชื่องาน"
+
+#: app/services/todos.py:116
+#, python-format
+msgid "Unknown field: %(name)s"
+msgstr "ไม่รู้จักฟิลด์ %(name)s"
+
+#: app/services/todos.py:123
+msgid "Task name cannot be empty"
+msgstr "ชื่องานว่างไม่ได้"
+
+#: app/services/tokens.py:49
+msgid "Please enter a token name"
+msgstr "กรุณาใส่ชื่อ token"
+
+#: app/services/tokens.py:52
+#, python-format
+msgid "Token name must be at most %(limit)d characters"
+msgstr "ชื่อ token ต้องยาวไม่เกิน %(limit)d ตัว"
+
+#: app/services/tokens.py:67
+msgid "Expiry must not be negative"
+msgstr "อายุต้องไม่เป็นค่าติดลบ"
+
+#: app/services/tokens.py:97
+msgid "Token not found"
+msgstr "ไม่พบ token"
+
+#: app/templates/admin_users.html:2 app/templates/admin_users.html:5
+#: app/templates/base.html:60
+msgid "Users"
+msgstr "ผู้ใช้"
+
+#: app/templates/admin_users.html:8
+msgid "Everyone with an account, and what they are allowed to do"
+msgstr "ทุกคนที่มีบัญชีในระบบ และสิทธิ์ที่แต่ละคนมี"
+
+#: app/templates/admin_users.html:11 app/templates/login.html:22
+#: app/templates/settings.html:15
+msgid "Username"
+msgstr "ชื่อผู้ใช้"
+
+#: app/templates/admin_users.html:12 app/templates/settings.html:64
+msgid "Name"
+msgstr "ชื่อ"
+
+#: app/templates/admin_users.html:13
+msgid "Role"
+msgstr "บทบาท"
+
+#: app/templates/admin_users.html:14
+msgid "Change role"
+msgstr "เปลี่ยนบทบาท"
+
+#: app/templates/admin_users.html:30
+#, python-format
+msgid "Role for %(name)s"
+msgstr "บทบาทของ %(name)s"
+
+#: app/templates/admin_users.html:37 app/templates/categories.html:26
+#: app/templates/edit_todo.html:34 app/templates/index.html:130
+msgid "Save"
+msgstr "บันทึก"
+
+#: app/templates/base.html:8 app/templates/base.html:51
 #: app/templates/index.html:2 app/templates/login.html:6
-#: app/templates/login.html:7
+#: app/templates/login.html:7 app/templates/login_verify.html:6
 msgid "Todolist"
 msgstr "รายการงาน"
 
-#: app/templates/base.html:15 app/templates/settings.html:52
+#: app/templates/base.html:22 app/templates/settings.html:189
 msgid "Mode"
 msgstr "โหมด"
 
-#: app/templates/base.html:17 app/templates/settings.html:56
+#: app/templates/base.html:24 app/templates/settings.html:193
 msgid "Light"
 msgstr "สว่าง"
 
-#: app/templates/base.html:17 app/templates/settings.html:56
+#: app/templates/base.html:24 app/templates/settings.html:193
 msgid "Dark"
 msgstr "มืด"
 
-#: app/templates/base.html:17 app/templates/settings.html:56
+#: app/templates/base.html:24 app/templates/settings.html:193
 msgid "Auto"
 msgstr "อัตโนมัติ"
 
-#: app/templates/base.html:28 app/templates/settings.html:36
+#: app/templates/base.html:35 app/templates/settings.html:173
 msgid "Language"
 msgstr "ภาษา"
 
-#: app/templates/base.html:48
+#: app/templates/base.html:55
 msgid "Tasks"
 msgstr "งาน"
 
-#: app/templates/base.html:49 app/templates/categories.html:2
+#: app/templates/base.html:56 app/templates/categories.html:2
 #: app/templates/categories.html:9
 msgid "Categories"
 msgstr "หมวดงาน"
 
-#: app/templates/base.html:50 app/templates/settings.html:2
+#: app/templates/base.html:57 app/templates/settings.html:2
 #: app/templates/settings.html:9
 msgid "Settings"
 msgstr "ตั้งค่า"
 
-#: app/templates/base.html:54
+#: app/templates/base.html:65
 msgid "Sign out"
 msgstr "ออกจากระบบ"
 
@@ -140,10 +289,6 @@ msgstr "เช่น งานส่วนตัว"
 #: app/templates/categories.html:17
 msgid "Add category"
 msgstr "เพิ่มหมวด"
-
-#: app/templates/categories.html:26 app/templates/edit_todo.html:34
-msgid "Save"
-msgstr "บันทึก"
 
 #: app/templates/categories.html:29
 #, python-format
@@ -160,7 +305,7 @@ msgstr "ลบหมวด “%(name)s” ใช่ไหม?"
 msgid "Move or delete its tasks first"
 msgstr "ย้ายหรือลบงานในหมวดนี้ออกก่อน"
 
-#: app/templates/categories.html:36 app/templates/index.html:154
+#: app/templates/categories.html:36 app/templates/index.html:157
 msgid "Delete"
 msgstr "ลบ"
 
@@ -187,7 +332,7 @@ msgid "No category"
 msgstr "ไม่มีหมวด"
 
 #: app/templates/edit_todo.html:25 app/templates/index.html:41
-#: app/templates/index.html:136
+#: app/templates/index.html:139
 msgid "Start"
 msgstr "วันเริ่ม"
 
@@ -197,7 +342,7 @@ msgid "optional"
 msgstr "ไม่ใส่ก็ได้"
 
 #: app/templates/edit_todo.html:30 app/templates/index.html:45
-#: app/templates/index.html:63 app/templates/index.html:141
+#: app/templates/index.html:63 app/templates/index.html:144
 msgid "Due"
 msgstr "กำหนดส่ง"
 
@@ -297,55 +442,72 @@ msgstr "ทำเครื่องหมายว่ายังไม่เส
 msgid "Mark as done"
 msgstr "ทำเครื่องหมายว่าเสร็จแล้ว"
 
-#: app/templates/index.html:145
+#: app/templates/index.html:148
 msgid "Overdue"
 msgstr "เลยกำหนดแล้ว"
 
-#: app/templates/index.html:146
+#: app/templates/index.html:149
 msgid "Due today"
 msgstr "ครบกำหนดวันนี้"
 
-#: app/templates/index.html:149
+#: app/templates/index.html:152
 msgid "Edit"
 msgstr "แก้ไข"
 
-#: app/templates/index.html:152
+#: app/templates/index.html:155
 #, python-format
 msgid "Delete “%(title)s”?"
 msgstr "ลบ “%(title)s” ใช่ไหม?"
 
-#: app/templates/index.html:158
+#: app/templates/index.html:161
 msgid "No tasks yet"
 msgstr "ยังไม่มีงาน"
 
-#: app/templates/index.html:158
+#: app/templates/index.html:161
 msgid "No tasks match this filter"
 msgstr "ไม่มีงานที่ตรงกับตัวกรอง"
 
-#: app/templates/index.html:163
+#: app/templates/index.html:166
 msgid "Delete all completed tasks? This cannot be undone."
 msgstr "ลบงานที่เสร็จแล้วทั้งหมดใช่ไหม? กู้คืนไม่ได้"
 
-#: app/templates/index.html:165
+#: app/templates/index.html:168
 msgid "Clear completed"
 msgstr "ลบงานที่เสร็จแล้วทั้งหมด"
 
 #: app/templates/login.html:2 app/templates/login.html:29
-#: tests/test_i18n.py:134
+#: tests/test_i18n.py:132
 msgid "Sign in"
 msgstr "เข้าสู่ระบบ"
 
-#: app/templates/login.html:16
+#: app/templates/login.html:16 app/templates/login_verify.html:16
 msgid "Too many sign-in attempts — please wait and try again."
 msgstr "พยายามเข้าสู่ระบบถี่เกินไป — รอสักครู่แล้วลองใหม่"
 
-#: app/templates/login.html:22 app/templates/settings.html:15
-msgid "Username"
-msgstr "ชื่อผู้ใช้"
-
-#: app/templates/login.html:26
+#: app/templates/login.html:26 app/templates/settings.html:32
 msgid "Password"
 msgstr "รหัสผ่าน"
+
+#: app/templates/login_verify.html:2 app/templates/login_verify.html:7
+#: app/templates/settings.html:118
+msgid "Two-step verification"
+msgstr "การยืนยันสองขั้น"
+
+#: app/templates/login_verify.html:19
+msgid "Enter the current code from your authenticator app."
+msgstr "กรอกรหัสล่าสุดจากแอป authenticator ของคุณ"
+
+#: app/templates/login_verify.html:24 app/templates/settings.html:149
+msgid "Code"
+msgstr "รหัส"
+
+#: app/templates/login_verify.html:28
+msgid "Verify"
+msgstr "ยืนยัน"
+
+#: app/templates/login_verify.html:31
+msgid "Start over"
+msgstr "เริ่มใหม่"
 
 #: app/templates/settings.html:11
 msgid "Profile"
@@ -353,7 +515,7 @@ msgstr "โปรไฟล์"
 
 #: app/templates/settings.html:17
 msgid "Used to sign in — cannot be changed here."
-msgstr "ใช้สำหรับเข้าสู่ระบบ เปลี่ยนที่นี่ไม่ได้"
+msgstr "ใช้ตอนเข้าสู่ระบบ แก้ที่นี่ไม่ได้"
 
 #: app/templates/settings.html:20
 msgid "First name"
@@ -367,29 +529,153 @@ msgstr "นามสกุล"
 msgid "Save profile"
 msgstr "บันทึกโปรไฟล์"
 
-#: app/templates/settings.html:32
+#: app/templates/settings.html:36 app/templates/settings.html:107
+#: app/templates/settings.html:129
+msgid "Current password"
+msgstr "รหัสผ่านปัจจุบัน"
+
+#: app/templates/settings.html:41
+msgid "New password"
+msgstr "รหัสผ่านใหม่"
+
+#: app/templates/settings.html:44
+#, python-format
+msgid ""
+"At least %(count)d characters. Passwords found in known data breaches are"
+" rejected."
+msgstr "อย่างน้อย %(count)d ตัว และต้องไม่ใช่รหัสที่เคยหลุดออกไปแล้ว"
+
+#: app/templates/settings.html:47
+msgid "Repeat new password"
+msgstr "ยืนยันรหัสผ่านใหม่"
+
+#: app/templates/settings.html:51
+msgid "Change password"
+msgstr "เปลี่ยนรหัสผ่าน"
+
+#: app/templates/settings.html:56
+msgid "API tokens"
+msgstr "API token"
+
+#: app/templates/settings.html:57
+msgid "Tokens let a script or another machine use the API on your behalf."
+msgstr "token ใช้ให้สคริปต์หรือเครื่องอื่นเรียก API แทนคุณได้"
+
+#: app/templates/settings.html:61
+msgid "Your active tokens"
+msgstr "token ที่ยังใช้งานได้ของคุณ"
+
+#: app/templates/settings.html:65
+msgid "Created"
+msgstr "วันที่ออก"
+
+#: app/templates/settings.html:66
+msgid "Expires"
+msgstr "วันหมดอายุ"
+
+#: app/templates/settings.html:67 app/templates/settings.html:83
+msgid "Revoke"
+msgstr "เพิกถอน"
+
+#: app/templates/settings.html:77
+msgid "never"
+msgstr "ไม่มีวันหมดอายุ"
+
+#: app/templates/settings.html:81
+msgid "Revoke this token? Anything using it stops working right away."
+msgstr "เพิกถอน token นี้ใช่ไหม? ทุกอย่างที่ใช้มันอยู่จะหยุดทำงานทันที"
+
+#: app/templates/settings.html:91
+msgid "You have no tokens yet."
+msgstr "คุณยังไม่มี token"
+
+#: app/templates/settings.html:97
+msgid "What is it for?"
+msgstr "เอาไปใช้ทำอะไร"
+
+#: app/templates/settings.html:101
+msgid "Days until it expires"
+msgstr "อายุกี่วัน"
+
+#: app/templates/settings.html:104
+msgid "Use 0 for a token that never expires."
+msgstr "ใส่ 0 ถ้าต้องการ token ที่ไม่มีวันหมดอายุ"
+
+#: app/templates/settings.html:110
+msgid "Asked again so that a stolen session cannot mint new keys."
+msgstr "ถามซ้ำเพื่อไม่ให้คนที่ยึด session ไปออกกุญแจใบใหม่ได้"
+
+#: app/templates/settings.html:112
+msgid "Create token"
+msgstr "ออก token"
+
+#: app/templates/settings.html:124
+msgid "On — you will be asked for a code after signing in."
+msgstr "เปิดอยู่ — ระบบจะถามรหัสจากแอปหลังใส่รหัสผ่านถูกต้อง"
+
+#: app/templates/settings.html:132
+msgid "Asked again so that a stolen session cannot turn this off."
+msgstr "ถามซ้ำเพื่อไม่ให้คนที่ยึด session ไปปิดการยืนยันสองขั้นได้"
+
+#: app/templates/settings.html:134
+msgid "Turn off"
+msgstr "ปิดใช้งาน"
+
+#: app/templates/settings.html:138
+msgid "Add this to your authenticator app, then enter the code it shows."
+msgstr "เพิ่มค่านี้ลงในแอป authenticator แล้วกรอกรหัสที่แอปแสดง"
+
+#: app/templates/settings.html:153
+msgid "Turn on"
+msgstr "เปิดใช้งาน"
+
+#: app/templates/settings.html:157
+msgid "Off — signing in needs only your password."
+msgstr "ปิดอยู่ — เข้าสู่ระบบด้วยรหัสผ่านอย่างเดียว"
+
+#: app/templates/settings.html:161
+msgid "Set up"
+msgstr "ตั้งค่า"
+
+#: app/templates/settings.html:169
 msgid "Preferences"
 msgstr "การตั้งค่าส่วนตัว"
 
-#: app/templates/settings.html:44
+#: app/templates/settings.html:181
 msgid "Theme"
 msgstr "ธีม"
 
-#: app/templates/settings.html:60
+#: app/templates/settings.html:197
 msgid "Auto follows sunrise and sunset in your timezone."
 msgstr "อัตโนมัติจะสลับตามเวลาดวงอาทิตย์ขึ้น-ตกของเขตเวลาที่คุณตั้งไว้"
 
-#: app/templates/settings.html:63
+#: app/templates/settings.html:200
 msgid "Timezone"
 msgstr "เขตเวลา"
 
-#: app/templates/settings.html:69
+#: app/templates/settings.html:206
 msgid "Due dates are shown and entered in this timezone."
 msgstr "กำหนดส่งจะแสดงและกรอกตามเขตเวลานี้"
 
-#: app/templates/settings.html:71
+#: app/templates/settings.html:208
 msgid "Save preferences"
 msgstr "บันทึกการตั้งค่า"
+
+#: app/templates/token_created.html:2 app/templates/token_created.html:5
+msgid "New API token"
+msgstr "API token ใบใหม่"
+
+#: app/templates/token_created.html:7
+msgid "Copy it now — it is not stored anywhere and cannot be shown again."
+msgstr "คัดลอกไว้ตอนนี้ — ระบบไม่ได้เก็บไว้ที่ไหน และจะไม่แสดงอีก"
+
+#: app/templates/token_created.html:10
+msgid "Send it as an Authorization header:"
+msgstr "ส่งมาใน header ชื่อ Authorization แบบนี้"
+
+#: app/templates/token_created.html:13
+msgid "Back to settings"
+msgstr "กลับไปหน้าตั้งค่า"
 
 #~ msgid "System"
 #~ msgstr "ตามระบบ"

@@ -17,6 +17,16 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app import db
 
+# ชั้นของคอลัมน์ของเราเองสำหรับ audit — **plugin ประกาศเอง core ไม่รู้จักชื่อพวกนี้**
+# (ดู ADR 0023: ชื่อคอลัมน์ของ plugin ที่ไปเขียนไว้ในโค้ด core จะกลายเป็นขยะ
+#  ค้างอยู่ที่นั่นทันทีที่มีคนถอน plugin ทิ้ง)
+# ค่า: "secret" = บันทึกได้แค่ว่าเปลี่ยน / "plain" = เก็บค่าจริง / "hashed" = HMAC
+AUDIT_POLICIES = {
+    "totp_secret": "secret",
+    "confirmed_at": "plain",
+    "last_counter": "plain",
+}
+
 
 def _utcnow() -> datetime:
     return datetime.now(UTC)

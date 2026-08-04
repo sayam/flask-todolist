@@ -100,8 +100,14 @@ def _is_plugin(entry):
     """
     from app import plugins
 
-    table = getattr(entry[1], "name", None) if isinstance(entry, tuple) else None
-    return table in plugins.owned_tables()
+    if not isinstance(entry, tuple):
+        return False
+    target = entry[1]
+    # index/constraint บอกชื่อของตัวเอง ไม่ใช่ชื่อตาราง ต้องถามผ่าน `.table` ก่อน
+    # (ไม่งั้น `ix_tdl_auth_totp_secret_user_id` จะไม่ถูกกรอง ทั้งที่ตารางถูกกรองแล้ว)
+    table = getattr(target, "table", None)
+    name = getattr(table, "name", None) or getattr(target, "name", None)
+    return name in plugins.owned_tables()
 
 
 def test_models_match_the_migrated_schema(migrated):

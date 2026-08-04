@@ -339,6 +339,80 @@ def test_dropping_in_a_plugin_with_tables_needs_no_core_change(app, data_plugin)
         assert "tdl_auth_extra_thing" in plugins.owned_tables()
 
 
+# --- CLI ของวงจรชีวิต plugin (Phase 4) ---
+
+
+def test_plugin_list_shows_who_owns_what(app):
+    result = app.test_cli_runner().invoke(args=["plugin-list"])
+    assert result.exit_code == 0, result.output
+    # ธีมไม่มีตารางของตัวเอง ส่วน auth/totp มี
+    assert "themes/system" in result.output
+    assert "no tables" in result.output
+    assert "tdl_auth_totp_secret" in result.output
+
+
+def test_plugin_list_says_when_a_table_is_missing(app):
+    from app import plugins
+
+    with app.app_context():
+        plugins.uninstall(plugins.find(TOTP_KEY))
+    result = app.test_cli_runner().invoke(args=["plugin-list"])
+    assert "NOT installed" in result.output
+
+
+def test_plugin_install_creates_the_table_and_repeats_safely(app):
+    from sqlalchemy import inspect
+
+    from app import plugins
+
+    with app.app_context():
+        plugins.uninstall(plugins.find(TOTP_KEY))
+
+    runner = app.test_cli_runner()
+    assert runner.invoke(args=["plugin-install", TOTP_KEY]).exit_code == 0
+    # คำสั่งติดตั้งที่รันซ้ำไม่ได้คือคำสั่งที่ไม่มีใครกล้ารัน จึงต้องรันซ้ำแล้วไม่พัง
+    result = runner.invoke(args=["plugin-install", TOTP_KEY])
+    assert result.exit_code == 0, result.output
+
+    with app.app_context():
+        assert "tdl_auth_totp_secret" in inspect(db.engine).get_table_names()
+
+
+def test_plugin_uninstall_drops_the_table(app):
+    from sqlalchemy import inspect
+
+    from app import plugins
+
+    result = app.test_cli_runner().invoke(args=["plugin-uninstall", TOTP_KEY, "--yes"])
+    assert result.exit_code == 0, result.output
+    with app.app_context():
+        assert "tdl_auth_totp_secret" not in inspect(db.engine).get_table_names()
+        plugins.install(plugins.find(TOTP_KEY))  # คืนสภาพให้เทสต์ตัวถัดไป
+
+
+def test_plugin_uninstall_asks_before_dropping(app):
+    from sqlalchemy import inspect
+
+    result = app.test_cli_runner().invoke(args=["plugin-uninstall", TOTP_KEY], input="n\n")
+    assert result.exit_code != 0, "ตอบ n แล้วต้องไม่ลบ"
+    with app.app_context():
+        assert "tdl_auth_totp_secret" in inspect(db.engine).get_table_names()
+
+
+def test_plugin_commands_on_a_plugin_without_tables(app):
+    runner = app.test_cli_runner()
+    assert "nothing to do" in runner.invoke(args=["plugin-install", "themes/system"]).output
+    assert "nothing to do" in runner.invoke(args=["plugin-uninstall", "themes/system"]).output
+
+
+def test_plugin_commands_reject_an_unknown_plugin(app):
+    runner = app.test_cli_runner()
+    for command in ("plugin-install", "plugin-uninstall"):
+        result = runner.invoke(args=[command, "auth/ไม่มีตัวนี้"])
+        assert result.exit_code != 0
+        assert "No plugin named" in result.output
+
+
 def test_core_python_does_not_name_the_second_factor_plugin():
     """ชื่อ plugin ของปัจจัยที่สองต้องไม่โผล่ในโค้ด core เลย (สัญญาเดียวกับธีม)"""
     app_dir = pathlib.Path(__file__).resolve().parent.parent / "app"

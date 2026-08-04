@@ -47,8 +47,15 @@ def test_every_column_has_an_audit_policy(app):
     เพราะคอลัมน์ชั้น C4 ที่ลืมประกาศจะถูกปิดบังโดยไม่มีใครตั้งใจ ทำให้ audit
     อ่านไม่รู้เรื่องแทนที่จะรั่ว — ผิดคนละทางแต่ก็ยังผิด
     """
-    known = audit.PLAIN_COLUMNS | audit.SECRET_COLUMNS | audit.HASHED_COLUMNS
     with app.app_context():
+        # คอลัมน์ของ core ประกาศใน app/audit.py ส่วนของ plugin ประกาศใน
+        # `models.py` ของตัวเอง (ADR 0023) — ทั้งสองทางรวมกันต้องครอบทุกคอลัมน์
+        known = (
+            audit.PLAIN_COLUMNS
+            | audit.SECRET_COLUMNS
+            | audit.HASHED_COLUMNS
+            | set(audit.plugin_column_policies())
+        )
         missing = [
             f"{table.name}.{column.name}"
             for table in db.metadata.sorted_tables
@@ -57,8 +64,9 @@ def test_every_column_has_an_audit_policy(app):
             if column.name not in known
         ]
     assert not missing, (
-        "คอลัมน์ที่ยังไม่มีนโยบาย audit ใน app/audit.py:\n"
+        "คอลัมน์ที่ยังไม่มีนโยบาย audit:\n"
         + "\n".join(missing)
+        + "\nของ core ประกาศใน app/audit.py ของ plugin ประกาศใน models.py ของ plugin นั้น"
         + "\nดูชั้นของมันใน docs/DATA-CLASSIFICATION.md ก่อนตัดสินใจ"
     )
 

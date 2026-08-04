@@ -44,7 +44,7 @@
 - i18n en/th ผ่าน gettext จริง + เทสต์ดัก fuzzy/untranslated
 - เวลาเก็บ UTC ทั้งระบบ แปลงตาม timezone ผู้ใช้ + ตารางดวงอาทิตย์ 598 โซน
 - **สถาปัตยกรรม plugin (theme) ที่พิสูจน์แล้วว่า purge ได้โดยไม่แตะ core** —
-  จะเป็นฐานของ auth plugin (MFA/SSO) ใน Phase 4
+  เป็นฐานของ auth plugin (MFA) ใน Phase 4 จริงตามที่วางไว้ และของ SSO ใน Phase 5
 - เทสต์ 211 ตัว + วัฒนธรรม mutation testing + migration ที่ทดสอบ round trip
 
 ## 4. กลยุทธ์ data layer แบบ plugin
@@ -79,7 +79,8 @@ relational ไม่ได้ ถ้าจะให้เป็น "ทางเ
 ของตัวเอง** เช่น "task relationship graph" เป็น plugin ที่ใช้ Neo4j ของตัวเอง
 core data ยังอยู่ relational — ตรงกับสัญญาเดิมเป๊ะ: plugin ดูแลข้อมูลตัวเองล้วน ๆ
 purge แล้ว store ของมันหายไปด้วยโดย core ไม่กระทบ (กลไก plugin-owns-its-own-data
-ที่จะออกแบบใน Phase 4 สำหรับ MFA ใช้ซ้ำกับชั้นนี้ได้เลย)
+**ออกแบบและทำจริงแล้วใน Phase 4 สำหรับ MFA — ADR 0023** ใช้ซ้ำกับชั้นนี้ได้เลย
+โดยส่วนที่ต้องเพิ่มคือ store ที่ไม่ใช่ตาราง SQL ในฐานข้อมูลเดียวกัน)
 
 ### 4.3 Cache (Redis/memcache) — interface ใน core, backend เป็น plugin
 core ประกาศ cache interface (get/set/invalidate) โดย default เป็น no-op
@@ -118,8 +119,8 @@ migration และโค้ดใหม่ทุกตัวจากนี้�
 | 1 ✅ | Cross-cutting inheritance | M | Security(headers), Interaction, Maintainability |
 | 2 ✅ | Data governance core | L | Audit Trail, Data Retention, PDPA |
 | 3 ✅ | Service layer + API v1 | M–L | Compatibility, Maintainability |
-| 4 | Identity & AuthN/AuthZ | L | Security(authn), Compatibility(SSO) |
-| 5 | Deployment parity + DB/cache plugins | M–L | Flexibility, Security(TLS/secrets), Compatibility |
+| 4 ✅ | Identity & AuthN/AuthZ | L | Security(authn), Compatibility(SSO) |
+| 5 | Deployment parity + DB/cache plugins **+ SSO** | M–L | Flexibility, Security(TLS/secrets), Compatibility |
 | 6 | Performance validation | M | Performance Efficiency |
 | 7 | Verification & compliance closure | M–L | Security(ASVS/pentest/PDPA), Interaction(WCAG), Audit(SIEM) |
 
@@ -280,30 +281,77 @@ storage ที่ไม่ใช่ `memory://` ก่อน ไม่งั้�
 หน้าเว็บสำหรับออก token → Phase 4 (ต้องคิดเรื่อง re-authentication ก่อน) /
 pagination กับ ETag → เพิ่มแบบ opt-in ได้โดยไม่ต้องขึ้น v2 (ตัดสินใจไว้ใน ADR 0018)
 
-## Phase 4 — Identity & AuthN/AuthZ
+## Phase 4 — Identity & AuthN/AuthZ ✅ (เสร็จ 2026-08-04 — ยกเว้น SSO ที่ย้ายไป Phase 5)
 
 **เป้าหมาย:** ยกระดับ authn ให้ถึง ASVS L2 และเปิดทาง identity กลางของมหาวิทยาลัย
 
-- Password policy ตาม NIST SP 800-63B: เน้นความยาว (มีขั้นต่ำ 8 แล้ว — เพิ่มเพดานยาว),
-  เช็ค breach list (bundled top-N offline หรือ HIBP k-anonymity), **ไม่มี** กฎ
-  complexity/บังคับเปลี่ยนตามรอบ
-- Session ตาม OWASP cheat sheet: rotate session ตอน login, idle + absolute timeout,
-  cookie flags (`Secure` ผูกกับ TLS ใน Phase 5, `HttpOnly`, `SameSite`)
-- ปิดช่องที่ documented ไว้: lockout ต่อ username (กัน brute force แบบเปลี่ยน IP)
-  แบบหน่วงเวลา ไม่ใช่ล็อกถาวร (กัน DoS บัญชีคนอื่น)
-- RBAC ขั้นต่ำ (admin/user) — ต้องมาก่อน SSO เพราะ SSO ต้อง map group → role
-- **Auth เป็น plugin ชนิดที่สอง** บน registry เดิม: `password` เป็น core plugin,
-  แล้วเพิ่ม `totp` (MFA) — **จุดที่ต้องออกแบบกลไก plugin-owns-its-own-table**
-  (migration แยกต่อ plugin, purge แล้ว table หายตามโดย core ไม่รู้จัก) — เป็น ADR
-  สำคัญที่ยังค้างจากงาน plugin เฟสแรก — กลไกเดียวกันนี้รองรับ feature plugin
-  ที่มี store ของตัวเอง (task-graph/Neo4j, ดูข้อ 4.2) ในอนาคตด้วย
-- SSO: OIDC (identity กลางมหาวิทยาลัย) เป็น plugin, LDAP เป็นอีก plugin —
-  ไม่แยก user store ใหม่ map เข้า `User` เดิม
+- **Password policy ✅ (ADR 0019):** ตาม NIST SP 800-63B ตรง ๆ — ความยาวขั้นต่ำ 8
+  เพดาน 128 (NIST บังคับให้รับอย่างน้อย 64), เทียบกับรายการรหัสที่หลุดแล้ว
+  **46,483 รายการแบบ bundled offline** (จากรายการ 100k ของ NCSC กรองเหลือเฉพาะที่
+  ยาวพอจะถูกเทียบจริง), กันรหัสที่มี username ของตัวเองอยู่ข้างใน
+  **ไม่มี**กฎ complexity, **ไม่**บังคับเปลี่ยนตามรอบ, **ไม่**ตัดปลาย/ช่องว่าง
+  normalize NFKC อยู่ที่ `User.set_password/check_password` ไม่ใช่ที่ผู้เรียก
+  (เกิดข้างเดียวเมื่อไหร่ คนที่ตั้งรหัสเป็นภาษาไทยจะ login ไม่ได้แบบหาสาเหตุไม่เจอ)
+  *ไม่เลือก HIBP k-anonymity* เพราะนโยบายที่ต้องตอบว่า "เน็ตล่มแล้วจะยังไง" มีแต่
+  คำตอบที่แย่ทั้งคู่
+- **Session ✅ (ADR 0020):** ล้าง session ทั้งใบตอน login (session fixation),
+  idle 30 นาที + absolute 12 ชม. **ตรวจที่ server ทุก request** ไม่ใช่พึ่งวันหมดอายุ
+  บนคุกกี้, ผูกคุกกี้กับเครื่อง (`session_protection="strong"`) และ**กับ credential
+  ปัจจุบันด้วย HMAC ของ `password_hash`** (วิธีเดียวกับ Django) — เปลี่ยนรหัสแล้ว
+  คุกกี้ทุกใบที่ออกก่อนหน้า **รวมใบที่อยู่ในมือคนอื่น** ตายพร้อมกัน
+  คุกกี้ **ไม่** permanent โดยตั้งใจ (ไม่งั้น strong protection เงียบไปเฉย ๆ)
+- **Lockout ต่อ username ✅ (ADR 0021):** โควตาชั้นที่สองที่นับตามบัญชีที่ถูกยิง
+  (10 ครั้ง/5 นาที) หน้าต่างสั้นและหลวมกว่าฝั่ง IP เพราะโควตานี้เป็นของ*เหยื่อ*
+  กุญแจเป็น hash ของชื่อ ไม่ใช่ชื่อดิบ (จะไปนอนใน redis วันหนึ่ง)
+  ปิดช่องที่ CLAUDE.md บันทึกไว้ตั้งแต่ Phase 0
+- **RBAC ✅ (ADR 0022):** `tdl_user.role` (admin/user) ตรวจสิทธิ์ **ใน service**
+  ไม่ใช่ที่ route (adapter มีสามทางแล้ว — ด่านที่ต้องแปะเองคือด่านที่ลืมแปะ),
+  403 ไม่ใช่ 404 (ต่างจาก ADR 0004 โดยตั้งใจ), ห้ามแก้บทบาทตัวเองบนหน้าเว็บ,
+  หน้า `/admin/users` + `flask set-role` (ทางเดียวที่ตั้งผู้ดูแลคนแรกได้)
+- **Auth เป็น plugin ชนิดที่สอง ✅ (ADR 0023 + 0024):** `password` เป็น core plugin
+  และ `totp` เป็นปัจจัยที่สองที่ **มีตารางของตัวเอง**
+  กลไก plugin-owns-its-own-table ที่ค้างจาก ADR 0006 ได้คำตอบแล้ว: ตารางของ plugin
+  **อยู่นอกสาย migration ของ core** (`include_object` ใน `env.py`) วงจรชีวิตเป็นของ
+  plugin เองผ่าน `flask plugin-install` / `plugin-uninstall` และ **ชั้นข้อมูลของ
+  คอลัมน์ plugin ก็ประกาศเอง** (core ไม่มีชื่อ `totp` อยู่ในโค้ดเลยแม้แต่ในคอมเมนต์
+  — มีเทสต์ grep บังคับ) ส่วน TOTP เขียนเองตาม RFC 6238 (ยืนยันด้วย test vector
+  ทางการทั้ง 6 ค่า) ไม่เพิ่ม dependency
+- **หน้าเว็บออก API token ✅** (ของค้างจาก ADR 0017): ออกใบใหม่ต้องกรอกรหัสผ่านซ้ำ
+  เพิกถอนไม่ต้อง (การเพิกถอนทำให้ปลอดภัยขึ้นเสมอ — ตั้งด่านขวางมีแต่ทำให้คนลังเล)
+  ความลับ render ในคำตอบ **ไม่ผ่าน flash** เพราะคุกกี้ session ถูกเซ็นแต่ไม่ได้เข้ารหัส
+- **SSO → ย้ายไป Phase 5** (ดูเหตุผลข้างล่าง)
 
 **ทำไมตรงนี้:** ใช้ของสามเฟสก่อนหน้าครบ — plugin registry (มีแล้ว), audit
 (บันทึก auth events ฟรี), API token seam (Phase 3) และ RBAC ต้องเสร็จก่อน SSO
-**DoD:** ติดตั้ง/ถอน MFA plugin แล้ว purge ได้ตามสัญญา plugin, เทสต์ lockout,
-login ผ่าน OIDC ได้จริงกับ IdP ทดสอบ
+**DoD:** ✅ ติดตั้ง/ถอน MFA plugin แล้วตารางหายตามจริง ✅ เทสต์ lockout (ทั้งต่อ IP
+และต่อ username) ⏭️ login ผ่าน OIDC — ยกไป Phase 5 พร้อม IdP ทดสอบ
+— เทสต์ 673 ผ่าน coverage 96.74% (ratchet 96 คงเดิม), interrogate 73→78
+
+**mutation test ของเฟสนี้** (ตามกติกาใน CLAUDE.md): รหัสผ่าน 10/10, session +
+โควตาต่อชื่อผู้ใช้ 16/16, RBAC 10/11, MFA/TOTP 15/15 — ตัวที่รอดของ RBAC เป็น
+equivalent mutant (มีด่านซ้อนสองชั้น) พิสูจน์แยกแล้วว่าถอดพร้อมกันทั้งสองที่แล้วแดง
+ส่วนของ MFA รอบแรกรอดหนึ่งตัวเพราะ**ยังไม่มีเทสต์ปักพฤติกรรมไว้จริง ๆ** จึงเติมเทสต์
+(ยืนยันซ้ำแล้วถอย `last_counter` กลับ = เปิดช่องใช้รหัสซ้ำ) แล้วมันตาย
+
+**สองบั๊กที่ gate ของเฟสก่อน ๆ จับได้ระหว่างปิดเฟส** (ไม่ใช่คนเห็นเอง):
+1. `include_object` ใน `env.py` กรองแค่ `type_ == "table"` — **index ของ plugin
+   ยังหลุดเข้า migration ของ core** (`tests/test_migrations.py` จับ)
+2. `app/audit.py` มีชื่อคอลัมน์ของ plugin (`totp_secret`) อยู่ในโค้ด core ซึ่งผิด
+   สัญญาข้อ "core ห้ามรู้จัก plugin ตัวใดตัวหนึ่ง" (`tests/test_plugins.py` จับ)
+   → แก้เป็นให้ plugin ประกาศชั้นข้อมูลของคอลัมน์ตัวเองใน `models.py` (ADR 0023)
+
+### ทำไม SSO ถึงย้ายไป Phase 5 (ตัดสิน 2026-08-04)
+
+DoD ของ SSO คือ **"login ผ่าน OIDC ได้จริงกับ IdP ทดสอบ"** ซึ่งต้องมี IdP ให้ยิงจริง
+(Keycloak หรือเทียบเท่า) — ของแบบนั้นมาพร้อม container stack ของ Phase 5 พอดี
+การทำตอนนี้จะได้ OIDC client ที่ผ่านแค่ IdP จำลองในเทสต์ ซึ่ง **ไม่ใช่สิ่งที่ DoD
+ข้อนี้ขอ** และการปล่อยเส้นทาง login ที่ยังไม่เคยยิงกับของจริงคือความเสี่ยงที่ไม่คุ้ม
+
+ที่สำคัญกว่า: **seam พร้อมแล้ว** — registry รองรับ plugin ชนิด `auth` ที่ประกาศ
+`"factor": "primary"` ได้ทันที และ RBAC (ADR 0022) ที่ SSO ต้องใช้ map group → role
+ก็เสร็จแล้ว งานที่เหลือจึงเป็น "เพิ่ม plugin หนึ่งตัว" ไม่ใช่ "รื้อ core"
+(หนี้ที่รู้ตัว: `password` ยังเป็น manifest เปล่า core ยังเรียก `check_password()`
+ตรง ๆ — จะยกขึ้นเป็นปัจจัยหลักแบบ plugin จริงตอนมีปัจจัยหลักตัวที่สอง ดู ADR 0024)
 
 ## Phase 5 — Deployment parity & flexibility
 
@@ -327,6 +375,13 @@ login ผ่าน OIDC ได้จริงกับ IdP ทดสอบ
   ขั้นตอนนี้เสร็จ** — ก่อนหน้านั้นต้องรันด้วยมือ ไม่งั้นเอกสารอ้างสิ่งที่ไม่เกิดขึ้น
 - Secrets: env → รองรับ Vault/KMS เป็น option / IaC ตาม infra เป้าหมายจริง
 - ADR "exit path" ต่อ managed service ทุกตัวก่อนผูกมัด
+- **SSO ที่ย้ายมาจาก Phase 4:** OIDC เป็น plugin ชนิด `auth` (`"factor": "primary"`)
+  LDAP เป็นอีกตัว — ไม่แยก user store ใหม่ map เข้า `User` เดิม และ map group → role
+  ที่มีอยู่แล้ว (ADR 0022) **ทำที่นี่เพราะ DoD ต้อง login กับ IdP ทดสอบจริง**
+  ซึ่งต้องมี compose stack ของเฟสนี้ (Keycloak หรือเทียบเท่า) — รายละเอียดใน
+  หัวข้อ Phase 4 ("ทำไม SSO ถึงย้ายไป Phase 5")
+- **rate limit ของ `/api/v1`** (ยกมาจาก Phase 3 ด้วยเหตุผลเดียวกัน: ต้องมี
+  storage ที่ไม่ใช่ `memory://` ก่อน ไม่งั้นเพดานจริงเป็น N เท่าตามจำนวน worker)
 
 **ทำไมตรงนี้:** additive ทั้งหมด ไม่รื้อโค้ดแอป — แต่ต้องเสร็จก่อน Phase 6
 เพราะ load test บน SQLite/dev server คือตัวเลขหลอก
@@ -368,10 +423,11 @@ app รัน ≥2 replica พฤติกรรมถูกต้อง (rate l
 
 ```
 0 → 1 → 2 → 3 → 4 → 7
-         │    └─ SSO ต้องมี RBAC + seam จาก 3
-         └────── API v1 ต้อง freeze หลัง semantics นิ่ง (2)
+         │    └─ API v1 ต้อง freeze หลัง semantics นิ่ง (2)
+         └────── audit hooks ทำให้ทุกฟีเจอร์หลังจากนี้ถูกบันทึกฟรี
 0 → 5 → 6 ─────────────→ 7
-    └─ load test ต้องมี parity ก่อน
+    │   └─ load test ต้องมี parity ก่อน
+    └─ SSO ย้ายมาที่นี่: ต้องมี RBAC + seam จาก 4 (มีแล้ว) **และ IdP ทดสอบจาก 5**
 ```
 
 - Phase 5 ขนานกับ 3–4 ได้ (ไม่แตะโค้ดแอป) ถ้ามีกำลังทำคู่
@@ -429,6 +485,8 @@ functional/non-functional ให้ครบตามแผนเท่านั
 
 | เรื่อง | สถานะ | เก็บเมื่อไหร่ |
 |---|---|---|
+| recovery code ของ MFA (ทำโทรศัพท์หายแล้วกู้เอง) | ยังไม่มี — ตอนนี้ต้องให้ผู้ดูแลปิดให้ ซึ่งยังไม่มีคำสั่ง CLI ของ plugin ด้วยซ้ำ | ตอนแตะ `app/plugins/auth/totp/` ครั้งหน้า |
+| `password` เป็น plugin ที่มีแต่ manifest (core ยังเรียก `check_password()` ตรง ๆ) | ตั้งใจ — ยกเป็นปัจจัยหลักแบบ plugin ตอนมีตัวที่สอง | Phase 5 พร้อม SSO |
 | ~~CI actions ยัง target Node.js 20 ที่ deprecated~~ | ✅ เก็บแล้ว 2026-08-03 — ขยับครบ 5 ตัวเป็น `checkout@v7`, `setup-python@v7`, `setup-node@v7`, `upload-artifact@v7`, `gitleaks-action@v3` ทุกตัวรันบน Node 24 แล้ว (เส้นตาย: GitHub ถอด Node 20 ออกจาก runner 2026-09-16) | — |
 | raw SQL 3 จุดใน migration เก่าอ้างตาราง `user` แบบไม่ quote | ยอมค้างไว้ ไม่เพิ่มจุดใหม่ (มี `tests/test_migration_lint.py` ดัก) | baseline squash ตอน Phase 5 |
 | WCAG audit ด้วยคน (focus order, ลำดับ heading, ข้อความ error) | automated ครอบได้ ~30–40% ของเกณฑ์เท่านั้น | Phase 7 |

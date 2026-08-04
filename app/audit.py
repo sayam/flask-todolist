@@ -83,15 +83,11 @@ PLAIN_COLUMNS = frozenset(
         "deleted_at",
         "purged_at",
         "expires_at",
-        # ของ plugin ที่มีตารางของตัวเอง (ADR 0023) — เวลาที่ยืนยันปัจจัยที่สอง
-        # กับหมายเลขช่วงเวลาล่าสุดที่ใช้รหัสไป ทั้งคู่เป็น metadata ไม่ใช่ความลับ
-        "confirmed_at",
-        "last_counter",
     }
 )
 
 # ชั้น C1 — ห้ามออกจากระบบทุกกรณี บันทึกได้แค่ว่า "มีการเปลี่ยน"
-SECRET_COLUMNS = frozenset({"password_hash", "token_hash", "totp_secret"})
+SECRET_COLUMNS = frozenset({"password_hash", "token_hash"})
 
 # ชั้น C2/C3 — เก็บชื่อคอลัมน์ + HMAC ของค่าเก่า/ใหม่
 HASHED_COLUMNS = frozenset(
@@ -105,6 +101,34 @@ HASHED_COLUMNS = frozenset(
         "due_date",
     }
 )
+
+# ชื่อของสามนโยบายข้างบน — ใช้เป็นค่าที่ **plugin ประกาศเอง** ได้ด้วย (ADR 0023)
+PLAIN = "plain"
+SECRET = "secret"  # noqa: S105  ชื่อของนโยบาย ไม่ใช่ความลับ
+HASHED = "hashed"
+
+
+def plugin_column_policies() -> dict[str, str]:
+    """ชั้นของคอลัมน์ที่ plugin ประกาศไว้ใน `models.py` ของตัวเอง
+
+    **core ไม่รู้จักชื่อคอลัมน์ของ plugin ตัวไหนเลย** ถามเอาตอนใช้งานจริง
+    ไม่ใช่เขียนรายชื่อไว้ในไฟล์นี้ — ชื่อที่เขียนไว้จะกลายเป็นขยะค้างอยู่ในโค้ด
+    core ทันทีที่มีคนถอน plugin ทิ้ง (และ `tests/test_plugins.py` ก็ห้ามไว้ด้วย)
+    """
+    from app import plugins
+
+    return plugins.audit_policies()
+
+
+def column_policy(column: str) -> str:
+    """คอลัมน์นี้ถูกบันทึกลง audit ยังไง — **ไม่รู้จักก็ปิดบังไว้ก่อน (HMAC)**"""
+    if column in SECRET_COLUMNS:
+        return SECRET
+    if column in PLAIN_COLUMNS:
+        return PLAIN
+    if column in HASHED_COLUMNS:
+        return HASHED
+    return plugin_column_policies().get(column, HASHED)
 
 
 class AuditImmutableError(RuntimeError):
@@ -347,9 +371,10 @@ def _column_change(column: str, old: Any, new: Any) -> dict[str, Any]:
     **ค่าเริ่มต้นคือ HMAC** — คอลัมน์ที่ไม่รู้จักถูกปิดบังไว้ก่อน ไม่ใช่เปิดเผยไว้ก่อน
     คอลัมน์ใหม่ที่ลืมจัดชั้นจึงรั่วไม่ได้ (แต่ก็ยังมีเทสต์บังคับให้ไปจัดชั้นอยู่ดี)
     """
-    if column in SECRET_COLUMNS:
+    policy = column_policy(column)
+    if policy == SECRET:
         return {"changed": True}
-    if column in PLAIN_COLUMNS:
+    if policy == PLAIN:
         return {"from": _plain(old), "to": _plain(new)}
     return {"from_hash": _hmac(old), "to_hash": _hmac(new)}
 

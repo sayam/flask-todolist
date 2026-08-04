@@ -174,6 +174,9 @@ def find(key: str) -> Plugin | None:
 # ผลของการ import models.py ของทุก plugin — cache ไว้เพราะ import ซ้ำจะไม่เห็น
 # ตารางใหม่อีก (โมดูลถูก cache ไว้แล้ว) การอ่านค่าจึงต้องมาจากที่นี่ที่เดียว
 _owned: dict[str, frozenset[str]] | None = None
+# โมดูล `models.py` ที่โหลดไปแล้ว เก็บไว้เพื่อถามค่าที่ plugin ประกาศ (เช่น
+# `AUDIT_POLICIES`) โดยไม่ต้อง import ซ้ำ
+_modules: dict[str, ModuleType] = {}
 
 
 def load_module(plugin: Plugin, module_name: str) -> ModuleType | None:
@@ -213,10 +216,15 @@ def load_models() -> dict[str, frozenset[str]]:
     from app import db
 
     found: dict[str, frozenset[str]] = {}
+    _modules.clear()
     for plugin in installed():
         before = set(db.metadata.tables)
-        if load_module(plugin, MODELS_MODULE) is None:
+        module = load_module(plugin, MODELS_MODULE)
+        if module is None:
             continue
+        _modules[plugin.key] = module
+        # ตารางที่ "เพิ่งโผล่" บอกได้ว่า plugin ตัวนี้ประกาศอะไรผิด prefix ไหม
+        # (ตรวจได้เฉพาะรอบที่ import จริง — รอบถัดไป python คืนโมดูลจาก cache)
         added = set(db.metadata.tables) - before
         wrong = sorted(name for name in added if not name.startswith(plugin.table_prefix))
         if wrong:
@@ -224,10 +232,30 @@ def load_models() -> dict[str, frozenset[str]]:
                 f"{plugin.key}: ตาราง {', '.join(wrong)} ต้องขึ้นต้นด้วย {plugin.table_prefix!r} "
                 "ไม่งั้นแยกไม่ออกว่าเป็นของ plugin ตัวไหนตอนถอน"
             )
-        if added:
-            found[plugin.key] = frozenset(added)
+        # **ความเป็นเจ้าของอ่านจาก prefix ไม่ใช่จาก delta** — ถ้าอ่านจาก delta
+        # รอบที่โมดูลถูก cache ไว้แล้ว (เช่นหลัง `forget_models()`) จะได้ผลว่า
+        # plugin ไม่มีตารางเลย แล้ว `owned_tables()` ที่ env.py กับ CLI ใช้จะว่าง
+        # → migration ของ core กลับมาเห็นตารางของ plugin อีก (เจอตอนเขียนเทสต์ CLI)
+        owned_now = frozenset(
+            name for name in db.metadata.tables if name.startswith(plugin.table_prefix)
+        )
+        if owned_now:
+            found[plugin.key] = owned_now
     _owned = found
     return _owned
+
+
+def audit_policies() -> dict[str, str]:
+    """ชั้น audit ของคอลัมน์ที่ plugin แต่ละตัวประกาศไว้ใน `models.py` ของตัวเอง
+
+    core เรียกตัวนี้ตอนตัดสินว่าจะบันทึกค่าคอลัมน์ลง audit ยังไง — ชื่อคอลัมน์
+    ของ plugin จึงไม่ต้องไปโผล่ในโค้ด core เลย (ADR 0023)
+    """
+    load_models()
+    merged: dict[str, str] = {}
+    for module in _modules.values():
+        merged.update(getattr(module, "AUDIT_POLICIES", {}))
+    return merged
 
 
 def forget_models() -> None:

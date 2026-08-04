@@ -475,6 +475,22 @@ def test_revoking_from_the_web_kills_the_token(app, user_id):
     assert api.get("/api/v1/todos").status_code == 401
 
 
+def test_a_rejected_token_name_comes_back_as_a_message(app, user_id):
+    """ข้อความจาก service ต้องถึงผู้ใช้ ไม่ใช่กลายเป็น 500"""
+    resp = _web_client(app).post(
+        "/settings/tokens",
+        data={"name": "   ", "password": PASSWORD},
+        follow_redirects=True,
+    )
+    assert "token" in resp.get_data(as_text=True).lower()
+    with app.app_context():
+        assert tokens_service.list_tokens(db.session.get(User, user_id)) == []
+
+
+def test_revoking_a_token_that_does_not_exist_is_a_404(app, user_id):
+    assert _web_client(app).post("/settings/tokens/999999/revoke").status_code == 404
+
+
 def test_revoking_someone_elses_token_is_a_404(app, user_id, other_user_id):
     issue_token(app, other_user_id, name="ของคนอื่น")
     with app.app_context():

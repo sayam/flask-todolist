@@ -139,6 +139,16 @@ def test_a_wrong_code_does_not_confirm_anything(person):
     assert not factor().is_enrolled(person)
 
 
+def test_verify_refuses_a_secret_that_was_never_confirmed(person):
+    """ใบที่ยังไม่ยืนยันต้องใช้ผ่านขั้นที่สองไม่ได้
+
+    ถ้ายอมรับ คนที่กดเปิดแล้วปิดหน้าจอทิ้งไว้จะมีปัจจัยที่สองที่ "ใช้ได้" อยู่
+    ทั้งที่ระบบไม่ได้นับว่าเขาเปิดใช้ — สองสถานะที่ขัดกันเองในบัญชีเดียว
+    """
+    secret = factor().start_enrollment(person)
+    assert not factor().verify(person, current_code(secret))
+
+
 def test_a_used_code_cannot_be_used_again(person):
     """คนที่แอบเห็นรหัสบนจอต้องเอาไปใช้ต่อไม่ได้ แม้ยังไม่ครบ 30 วินาที"""
     secret = factor().start_enrollment(person)
@@ -146,6 +156,26 @@ def test_a_used_code_cannot_be_used_again(person):
     factor().confirm(person, code)
 
     assert not factor().verify(person, code), "รหัสเดิมต้องใช้ซ้ำไม่ได้"
+
+
+def test_confirming_again_cannot_rewind_the_replay_guard(person):
+    """ยืนยันซ้ำใบที่เปิดใช้แล้วต้องไม่ผ่าน
+
+    `confirm()` ไม่ได้เช็คการใช้รหัสซ้ำเหมือน `verify()` ถ้ายอมให้ยืนยันซ้ำได้
+    การยิงรหัสของช่วงที่ผ่านมาเข้ามาจะถอย `last_counter` กลับไปข้างหลัง
+    แล้วรหัสที่ใช้ไปแล้วในช่วงระหว่างนั้นกลับมาใช้ได้อีก
+    """
+    secret = factor().start_enrollment(person)
+    now = 1_700_000_000
+    factor().confirm(person, current_code(secret, now), at=now)
+    factor().verify(person, current_code(secret, now + factor().PERIOD), at=now + factor().PERIOD)
+
+    older = now - factor().PERIOD
+    assert not factor().confirm(person, current_code(secret, older), at=older)
+    # นาฬิกาถอยหลังไม่ได้ รหัสของช่วงที่ใช้ไปแล้วจึงต้องยังใช้ไม่ได้
+    assert not factor().verify(
+        person, current_code(secret, now + factor().PERIOD), at=now + factor().PERIOD
+    )
 
 
 def test_the_next_window_still_works_after_a_used_code(person):
@@ -297,5 +327,39 @@ def test_turning_it_on_and_off_from_the_web(app, user_id):
 
 
 def test_an_unknown_factor_name_is_a_404(app, user_id):
+    """ค่าที่มาจากฟอร์มต้องถูกเทียบกับรายการที่ค้นเจอจริงเสมอ ไม่เอาไปประกอบ path"""
     client = _sign_in(app, "tester")
-    assert client.post("/settings/mfa/start", data={"factor": "auth/../../etc"}).status_code == 404
+    for path in ("start", "confirm", "disable"):
+        resp = client.post(
+            f"/settings/mfa/{path}",
+            data={"factor": "auth/../../etc", "code": "000000", "password": PASSWORD},
+        )
+        assert resp.status_code == 404, path
+
+
+def test_starting_over_from_the_web_is_refused_while_it_is_on(app, user_id):
+    """ข้อความจาก service ต้องถึงผู้ใช้ ไม่ใช่กลายเป็น 500"""
+    client = _sign_in(app, "tester")
+    client.post("/settings/mfa/start", data={"factor": TOTP_KEY})
+    with app.app_context():
+        secret = factor().secret_of(db.session.get(User, user_id))
+    client.post("/settings/mfa/confirm", data={"factor": TOTP_KEY, "code": current_code(secret)})
+
+    resp = client.post("/settings/mfa/start", data={"factor": TOTP_KEY}, follow_redirects=True)
+    assert "ปิดการยืนยันสองขั้นก่อน" in resp.get_data(as_text=True) or "Turn off" in resp.get_data(
+        as_text=True
+    )
+
+
+def test_a_wrong_code_on_the_settings_page_says_so(app, user_id):
+    client = _sign_in(app, "tester")
+    client.post("/settings/mfa/start", data={"factor": TOTP_KEY})
+
+    resp = client.post(
+        "/settings/mfa/confirm",
+        data={"factor": TOTP_KEY, "code": "000000"},
+        follow_redirects=True,
+    )
+    assert "That code is not valid" in resp.get_data(as_text=True)
+    with app.app_context():
+        assert not factor().is_enrolled(db.session.get(User, user_id))

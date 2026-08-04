@@ -16,6 +16,10 @@
 - เพิ่ม dependency: `pipenv install <pkg>` (ห้ามใช้ `pip install` ตรง ๆ — Pipfile/Pipfile.lock จะไม่ sync)
 - สร้าง user: `pipenv run flask create-user <ชื่อ>` (ไม่มีหน้าสมัครสมาชิก โดยตั้งใจ)
 - ดู user: `pipenv run flask list-users`
+- ตั้งรหัสผ่านให้คนอื่น (ทางกู้บัญชีทางเดียว): `pipenv run flask set-password <ชื่อ>`
+- ตั้งบทบาท: `pipenv run flask set-role <ชื่อ> admin|user` (ทางเดียวที่ตั้ง admin คนแรกได้)
+- plugin ที่มีตารางของตัวเอง: `pipenv run flask plugin-list` /
+  `plugin-install auth/totp` / `plugin-uninstall auth/totp` (**ถอนแล้วข้อมูลหายจริง**)
 - ออก API token: `pipenv run flask token-create <ชื่อผู้ใช้> --name "<ใช้ทำอะไร>"`
   (ดู `token-list` / เพิกถอน `token-revoke <ชื่อผู้ใช้> <id>`)
 - ล้างข้อมูลที่พ้นระยะ: `pipenv run flask purge-expired` (ดูก่อนด้วย `--dry-run`)
@@ -27,17 +31,24 @@
 ## Structure
 - `app/__init__.py` — app factory (`create_app`), init db/migrate/csrf/limiter/login_manager
   และ errorhandler ของ 429
-- `app/models.py` — SQLAlchemy models (`User`, `ApiToken`, `Category`, `Todo`) แบบ 2.0 typed (`Mapped[]`)
+- `app/models.py` — SQLAlchemy models ของ core (`User`, `ApiToken`, `Category`, `Todo`)
+  แบบ 2.0 typed (`Mapped[]`) — ของ plugin อยู่ใน `models.py` ของ plugin เอง
 - `app/services/` — **ตรรกะทั้งหมดอยู่ที่นี่ และไม่รู้จัก HTTP เลย** (ดูหัวข้อ service layer)
   `lookup.by_id()` เป็นทางเดียวที่หาแถวตาม id ที่มาจากภายนอก (กัน id เกิน 64 บิต → 500)
 - `app/routes.py` — view functions ของงาน/หมวด/ตั้งค่า ผูกกับ blueprint `main`
   เป็น **adapter บาง ๆ** เหนือ service ไม่ใช่ที่อยู่ของตรรกะ
 - `app/api/` — `/api/v1` (flask-smorest) adapter อีกตัวบน service ชุดเดียวกัน
-- `app/auth.py` — login/logout ผูกกับ blueprint `auth`
+- `app/auth.py` — login/logout + ขั้นที่สองของ MFA ผูกกับ blueprint `auth`
+- `app/admin.py` — หน้าของผู้ดูแลระบบ (blueprint `admin`) ทำงานกับข้อมูล **ของคนอื่น**
+  จึงแยกจาก `routes.py` ที่ทำงานกับข้อมูลของเจ้าของ session เท่านั้น
+- `app/session_security.py` — อายุ/การผูก/การล้าง session ทั้งหมด (ดูหัวข้อ session)
+- `app/password_blocklist.txt` — **ไฟล์ที่ generate มา ห้ามแก้ด้วยมือ**
+  (`scripts/build_password_blocklist.py`)
 - `app/cli.py` — custom flask CLI commands
 - `app/tz.py` — แปลงเวลา UTC ↔ เวลาท้องถิ่นของผู้ใช้
 - `app/theme.py` — เลือกชุดสีและโหมด, `app/sun_data.py` — ตารางดวงอาทิตย์ (generate)
-- `app/plugins/` — registry ของ plugin + ตัว plugin เอง (ดูหัวข้อ "สถาปัตยกรรม plugin")
+- `app/plugins/` — registry ของ plugin + ตัว plugin เอง (ชนิด `themes` กับ `auth`
+  — ดูหัวข้อ "สถาปัตยกรรม plugin")
 - `app/security_headers.py` — CSP + security header (Talisman), `app/logging_setup.py` — JSON log + request id
 - `app/db_engine.py` — ค่าระดับ connection (เปิดบังคับ foreign key ของ SQLite)
 - `app/soft_delete.py` — ตัวกรอง `deleted_at IS NULL` อัตโนมัติ, `app/purge.py` — จุดเดียวที่ลบจริง
@@ -144,7 +155,11 @@ POST ที่ทั้งไม่มี token และไม่ได้ logi
 | ไม่มี token + ไม่ได้ login | 400 |
 | มี token ถูกต้อง + ไม่ได้ login | 302 → `/login` |
 | มี token + login แล้ว + ของคนอื่น | 404 |
-| POST `/login` ผิดรหัสเกินโควตา | 429 |
+| POST `/login` ผิดรหัสเกินโควตา (ต่อ IP หรือต่อชื่อผู้ใช้) | 429 |
+| POST `/login` ถูก แต่เปิดการยืนยันสองขั้นไว้ | 302 → `/login/verify` (ยังไม่ถือว่า login) |
+| GET หน้าอื่นระหว่างรอขั้นที่สอง | 302 → `/login` (ยังไม่มีสิทธิ์อะไรเลย) |
+| session หมดอายุ / รหัสผ่านถูกเปลี่ยนจากที่อื่น | 302 → `/login` พร้อม flash |
+| เข้าหน้าผู้ดูแลโดยไม่ใช่ admin | 403 (ไม่ใช่ 404 — ดู ADR 0022) |
 
 ทั้งสองด่านยังอยู่ครบ แค่ CSRF มาก่อน — คนนอกขอ token จากหน้า `/login` ได้ก็จริง
 แต่ยิงต่อไปก็ยังติด `@login_required` อยู่ดี
@@ -253,6 +268,23 @@ session มาก่อนโปรไฟล์เพื่อให้กดส
 - ธีม `system` เป็น core (`"core": true` ใน manifest) **ต้องมีเสมอ**
   ถ้าหายแอปจะไม่ start (`plugins.check_installation()` เรียกใน `create_app`)
 - plugin ที่ต้องเก็บข้อมูลเพิ่มต้องดูแล table ของตัวเอง ห้ามแก้ table ของ core
+  (ทำจริงแล้วใน Phase 4 — ดูหัวข้อ "plugin ที่มีข้อมูลของตัวเอง")
+
+### plugin ที่มีข้อมูลของตัวเอง (Phase 4 — ADR 0023)
+- วาง `models.py` ในไดเรกทอรีของ plugin **ชื่อตารางต้องขึ้นต้น `tdl_<ชนิด>_<ไอดี>_`**
+  (บังคับตอนโหลด แอปไม่ start ถ้าผิด) core รู้ว่าตารางไหนของใครจากการดูว่า
+  มีอะไรโผล่เข้า metadata ระหว่าง import ไม่ใช่จากการประกาศซ้ำใน manifest
+- **ตารางของ plugin อยู่นอกสาย migration ของ core** — `include_object` ใน
+  `migrations/env.py` กรองออกทั้ง table/index/constraint ไม่งั้นวาง plugin แล้ว
+  `flask db migrate` ตัวถัดไปจะสร้างให้ และ**ถอน plugin แล้วตัวถัดไปจะ drop ทิ้งเงียบ ๆ**
+- วงจรชีวิตเป็นของ plugin เอง: `flask plugin-install` / `plugin-uninstall`
+  (ถอน = ลบตารางจริง ไม่ใช่ soft delete — ข้อมูลของความสามารถที่ไม่มีอยู่แล้ว
+  ไม่มีใครดูแล และ purge job ของ core ก็ไม่รู้จักตารางนั้น)
+- **ชั้นข้อมูลของคอลัมน์ plugin ประกาศใน `models.py` ของ plugin เอง**
+  (`AUDIT_POLICIES`) ไม่ใช่ใน `app/audit.py` — ชื่อคอลัมน์ของ plugin ที่ไปอยู่ใน
+  โค้ด core จะกลายเป็นขยะค้างทันทีที่ถอน plugin (และเทสต์ห้ามไว้อยู่แล้ว)
+- ข้อมูลของ plugin ยังอยู่ใต้กติกาเดิมทุกข้อ: ถูก audit อัตโนมัติ, ต้องถูกจำแนกใน
+  `docs/DATA-CLASSIFICATION.md`, และอยู่ใต้ `tests/test_write_discipline.py`
 
 ### ธีมเป็น plugin
 - สีทั้งหมดอยู่ใน `app/plugins/themes/<id>/theme.css` ส่วนเลย์เอาต์อยู่ใน
@@ -296,8 +328,9 @@ session มาก่อนโปรไฟล์เพื่อให้กดส
   ลองจิจูดมั่วโดยไม่มี error ตอนนี้ raise ทันทีถ้ารูปแบบไม่ตรง
 
 ## หน้า Settings
-- `/settings` รวม โปรไฟล์ + ภาษา + ธีม + โหมด + timezone ไว้ที่เดียว
-  nav มีแค่ลิงก์ Settings ส่วนหน้า login มีตัวสลับภาษา/โหมดของตัวเอง
+- `/settings` รวม โปรไฟล์ + **รหัสผ่าน** + **API token** + **การยืนยันสองขั้น** +
+  ภาษา + ธีม + โหมด + timezone ไว้ที่เดียว
+  nav มีแค่ลิงก์ Settings (กับ Users ถ้าเป็น admin) ส่วนหน้า login มีตัวสลับภาษา/โหมดของตัวเอง
   (route `/lang/<code>` และ `/mode/<value>` ใช้จากหน้า login ไม่ต้อง login)
 - `_safe_referrer()` ใน `routes.py` ใช้ร่วมกันทั้งสลับภาษาและสลับโหมด รับเฉพาะ path ในเว็บเรา
 - **username แก้ที่หน้านี้ไม่ได้** เพราะเป็นตัวระบุตอน login (ช่องเป็น `disabled`)
@@ -306,8 +339,48 @@ session มาก่อนโปรไฟล์เพื่อให้กดส
   เพราะ session ชนะโปรไฟล์ในลำดับการเลือก ถ้าลืมแล้วผู้ใช้เคยกดสลับไว้ที่หน้า login
   ค่าที่เพิ่งบันทึกจะไม่มีผลเลย — `tests/test_settings.py` ดักไว้
 
+## Identity (Phase 4 — ดู ADR 0019–0024)
+
+### รหัสผ่าน (ADR 0019)
+- นโยบายอยู่ที่ `app/services/passwords.py` **ที่เดียว** ทั้ง CLI และหน้าเว็บเรียกตัวเดียวกัน
+- ยาว 8–128, เทียบกับ `app/password_blocklist.txt` (46k รายการ), ห้ามมี username ตัวเอง
+  **ไม่มีกฎ complexity ไม่บังคับเปลี่ยนตามรอบ ไม่ตัดช่องว่าง** — สามข้อนี้ตั้งใจไม่มี
+- **normalize NFKC อยู่ใน `User.set_password`/`check_password`** ไม่ใช่ที่ผู้เรียก
+  เกิดข้างเดียวเมื่อไหร่ คนที่ตั้งรหัสเป็นภาษาไทย (สระอำ ถูกแตกเป็นสองอักขระ)
+  จะ login ไม่ได้ทั้งที่พิมพ์เหมือนเดิม
+- ไม่มี self-service reset โดยตั้งใจ (ไม่เก็บอีเมล) — กู้ผ่าน `flask set-password`
+- **รหัสในเทสต์ต้องผ่านนโยบายด้วย** เพราะบางเทสต์สร้าง user ผ่าน CLI จริง
+
+### session (ADR 0020)
+- ทุกอย่างอยู่ใน `app/session_security.py` ผูกเข้าทุก request ด้วย `before_request`
+- idle 30 นาที + absolute 12 ชม. **ตรวจที่ server** ไม่ใช่พึ่งวันหมดอายุบนคุกกี้
+- login/เปลี่ยนรหัส → `start_session()` ซึ่ง **ล้าง session ทั้งใบก่อน** (session fixation)
+- **ห้ามตั้ง `session.permanent = True`** — `session_protection="strong"` ของ Flask-Login
+  จะเลิกล้าง session ให้ทันที (มันแค่ mark ว่าไม่ fresh) การผูกคุกกี้กับเครื่องจะหายเงียบ ๆ
+- คุกกี้ผูกกับ **credential ปัจจุบัน** ด้วย HMAC ของ `password_hash` → เปลี่ยนรหัสแล้ว
+  คุกกี้ทุกใบที่ออกก่อนหน้า (รวมใบที่อยู่ในมือคนอื่น) ใช้ไม่ได้ทันที
+- ด่านนี้ **ไม่แตะคำขอที่ขึ้นต้นด้วย `/api/`** และไม่แตะไฟล์ static
+
+### บทบาท (ADR 0022)
+- `tdl_user.role` = `user` | `admin` — **ตรวจสิทธิ์ใน service (`roles.require_admin`)
+  ไม่ใช่ที่ route** เพราะมี adapter สามทางแล้ว (HTML/API/CLI)
+- บทบาทไม่ถึงตอบ **403** ไม่ใช่ 404 (ต่างจาก ADR 0004 ที่เป็นเรื่องความเป็นเจ้าของ)
+- แก้บทบาทตัวเองบนหน้าเว็บไม่ได้ (กันผู้ดูแลคนสุดท้ายถอดสิทธิ์ตัวเอง) ส่วน CLI ทำได้
+- เมนู "Users" บน nav โผล่เฉพาะ admin — **การซ่อนเมนูไม่ใช่การกันสิทธิ์**
+
+### MFA (ADR 0024)
+- core รู้จักปัจจัยที่สองผ่าน `app/services/mfa.py` เท่านั้น และรู้แค่
+  `is_enrolled(user)` / `verify(user, code)` — **ห้ามมีชื่อ plugin ในโค้ด core
+  แม้แต่ในคอมเมนต์** (`tests/test_plugins.py` grep บังคับ)
+- login ที่มีปัจจัยที่สอง **หยุดครึ่งทาง** ที่ `/login/verify` ไม่เรียก `login_user()`
+  ก่อน (ไม่งั้นคนที่รู้แค่รหัสผ่านเข้าถึงข้อมูลได้ทันทีด้วยการพิมพ์ URL อื่น)
+- สถานะครึ่งทางมีอายุ 5 นาที และขั้นที่สองมีโควตาต่อบัญชีเหมือนหน้า login
+
 ## Rate limit
-- จำกัดเฉพาะ `POST /login` GET ไม่โดน
+- จำกัดเฉพาะ `POST /login` (+ `POST /login/verify` ของขั้นที่สอง) GET ไม่โดน
+- **มีสองมิติ**: ต่อ IP (`LOGIN_RATE_LIMIT`) และ **ต่อชื่อผู้ใช้**
+  (`LOGIN_USERNAME_RATE_LIMIT` — ADR 0021) มิติหลังปิดช่องคนที่เปลี่ยน IP ไปเรื่อย ๆ
+  กุญแจเป็น sha256 ของชื่อที่ casefold แล้ว ไม่ใช่ชื่อดิบ (มันจะไปนอนใน redis วันหนึ่ง)
 - `deduct_when` หักโควตาเฉพาะตอนได้ 401 — login ถูกไม่กินโควตา
 - โดนกันแล้วต้องได้ 429 แม้จะใส่รหัสถูก ไม่งั้นคนไล่เดารหัสจะรู้ทันทีว่าเจอรหัสที่ใช่
 - เทสต์ทั่วไปปิด rate limit (`RATELIMIT_ENABLED = False`) ตัวจริงเทสต์ใน `tests/test_ratelimit.py`
@@ -523,4 +596,11 @@ log ขึ้น "Running upgrade" ครบทุกตัว exit code เป�
 
 ## ยังไม่ได้ทำ
 - หน้า login ไม่รองรับ `?next=` โดยตั้งใจ (กัน open redirect) login เสร็จเด้งไปหน้าแรกเสมอ
-- ยังไม่กันตาม username — คนเดารหัสที่เปลี่ยน IP ไปเรื่อย ๆ ยังไล่เดาได้
+- **ไม่มี recovery code ของ MFA** — ทำโทรศัพท์หายต้องให้ผู้ดูแลปิดให้ (ยังไม่มีคำสั่ง CLI
+  ของ plugin สำหรับข้อนี้ — งานที่เหลืออยู่จริง)
+- **SSO (OIDC/LDAP) ยกไป Phase 5** พร้อม container stack ที่มี IdP ทดสอบให้ยิงจริง
+  (seam พร้อมแล้ว: registry รองรับ plugin ชนิด `auth` ที่เป็น `"factor": "primary"`)
+- `password` เป็น plugin ที่มีแต่ manifest — core ยังเรียก `check_password()` ตรง ๆ
+  จะยกขึ้นเป็นปัจจัยหลักแบบ plugin จริงตอนมีปัจจัยหลักตัวที่สอง (ADR 0024)
+- ยังไม่มีหน้า "อุปกรณ์ที่ login อยู่" / ปุ่มออกจากระบบทีละเครื่อง — ต้องมี session
+  store ฝั่ง server ก่อน (ADR 0020) ตอนนี้ทำได้แค่เปลี่ยนรหัสผ่านซึ่งไล่ออกทุกใบพร้อมกัน

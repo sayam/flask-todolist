@@ -67,7 +67,14 @@ def include_object(object_, name, type_, reflected, compare_to):  # noqa: ARG001
     """
     from app import plugins
 
-    return not (type_ == "table" and name in plugins.owned_tables())
+    owned = plugins.owned_tables()
+    if type_ == "table":
+        return name not in owned
+    # index/column/constraint บอกชื่อของตัวเอง ไม่ใช่ชื่อตาราง — ต้องถามผ่าน
+    # `.table` ไม่งั้น index ของ plugin จะหลุดเข้า migration ของ core
+    # (เจอตอน Phase 4: ตารางถูกกรองแล้วแต่ `ix_..._user_id` ยังโผล่)
+    table = getattr(object_, "table", None)
+    return getattr(table, "name", None) not in owned
 
 
 def run_migrations_offline():

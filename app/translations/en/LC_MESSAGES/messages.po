@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-02 22:26+0700\n"
+"POT-Creation-Date: 2026-08-04 10:14+0700\n"
 "PO-Revision-Date: 2026-08-02 16:44+0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -18,115 +18,264 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: app/__init__.py:23
+#: app/__init__.py:58
 msgid "Please sign in first"
 msgstr ""
 
-#: app/auth.py:37
+#: app/admin.py:46
+#, python-format
+msgid "Role of %(name)s is now %(role)s"
+msgstr ""
+
+#: app/auth.py:82
 msgid "Incorrect username or password"
 msgstr ""
 
-#: app/routes.py:118 app/routes.py:173 app/routes.py:210
+#: app/auth.py:149 app/routes.py:415
+msgid "That code is not valid"
+msgstr ""
+
+#: app/api/todos.py:52 app/routes.py:68 app/routes.py:88
 msgid "Invalid date format"
 msgstr ""
 
-#: app/routes.py:167
-msgid "Please enter a task name"
-msgstr ""
-
-#: app/routes.py:204
-msgid "Task name cannot be empty"
-msgstr ""
-
-#: app/routes.py:218
+#: app/routes.py:155
 msgid "Task saved"
 msgstr ""
 
-#: app/routes.py:263
-msgid "Please enter a category name"
+#: app/routes.py:289
+msgid "Profile saved"
 msgstr ""
 
-#: app/routes.py:265 app/routes.py:284
+#: app/routes.py:303
+msgid "The two new passwords do not match"
+msgstr ""
+
+#: app/routes.py:319
+msgid "Password changed"
+msgstr ""
+
+#: app/routes.py:340 app/routes.py:428 app/services/passwords.py:168
+msgid "Current password is incorrect"
+msgstr ""
+
+#: app/routes.py:384
+msgid "Token revoked"
+msgstr ""
+
+#: app/routes.py:415
+msgid "Two-step verification is on"
+msgstr ""
+
+#: app/routes.py:435
+msgid "Two-step verification is off"
+msgstr ""
+
+#: app/routes.py:460
+msgid "Settings saved"
+msgstr ""
+
+#: app/session_security.py:208 app/session_security.py:215
+msgid "Your session has expired — please sign in again"
+msgstr ""
+
+#: app/session_security.py:218
+msgid "Your password was changed — please sign in again"
+msgstr ""
+
+#: app/services/categories.py:33
+msgid "Category not found"
+msgstr ""
+
+#: app/services/categories.py:56
 #, python-format
 msgid "Category “%(name)s” already exists"
 msgstr ""
 
-#: app/routes.py:278
+#: app/services/categories.py:64
+msgid "Please enter a category name"
+msgstr ""
+
+#: app/services/categories.py:75
 msgid "Category name cannot be empty"
 msgstr ""
 
-#: app/routes.py:301
+#: app/services/categories.py:92
 #, python-format
 msgid "Cannot delete “%(name)s” — it still has %(num)d task."
 msgid_plural "Cannot delete “%(name)s” — it still has %(num)d tasks."
 msgstr[0] ""
 msgstr[1] ""
 
-#: app/routes.py:368
-msgid "Profile saved"
+#: app/services/mfa.py:108
+msgid "Turn off two-step verification first"
 msgstr ""
 
-#: app/routes.py:378
+#: app/services/passwords.py:108
+#, python-format
+msgid "Password must be at least %(count)d characters long"
+msgstr ""
+
+#: app/services/passwords.py:114
+#, python-format
+msgid "Password must be at most %(count)d characters long"
+msgstr ""
+
+#: app/services/passwords.py:124
+msgid "Password must not contain your username"
+msgstr ""
+
+#: app/services/passwords.py:130
+msgid "This password has appeared in a data breach — choose a different one"
+msgstr ""
+
+#: app/services/roles.py:43
+msgid "This page is for administrators only"
+msgstr ""
+
+#: app/services/roles.py:60
+msgid "User not found"
+msgstr ""
+
+#: app/services/roles.py:79 app/services/roles.py:98
+msgid "Unknown role"
+msgstr ""
+
+#: app/services/roles.py:83 app/templates/admin_users.html:25
+msgid "You cannot change your own role"
+msgstr ""
+
+#: app/services/settings.py:34 app/services/settings.py:67
 msgid "Unsupported language"
 msgstr ""
 
-#: app/routes.py:383
-msgid "Unsupported theme"
-msgstr ""
-
-#: app/routes.py:388
+#: app/services/settings.py:47 app/services/settings.py:71
 msgid "Unsupported mode"
 msgstr ""
 
-#: app/routes.py:393
+#: app/services/settings.py:69
+msgid "Unsupported theme"
+msgstr ""
+
+#: app/services/settings.py:73
 msgid "Unsupported timezone"
 msgstr ""
 
-#: app/routes.py:407
-msgid "Settings saved"
+#: app/services/todos.py:62
+msgid "Task not found"
 msgstr ""
 
-#: app/templates/base.html:8 app/templates/base.html:44
+#: app/services/todos.py:81
+msgid "Invalid category"
+msgstr ""
+
+#: app/services/todos.py:100
+msgid "Please enter a task name"
+msgstr ""
+
+#: app/services/todos.py:116
+#, python-format
+msgid "Unknown field: %(name)s"
+msgstr ""
+
+#: app/services/todos.py:123
+msgid "Task name cannot be empty"
+msgstr ""
+
+#: app/services/tokens.py:49
+msgid "Please enter a token name"
+msgstr ""
+
+#: app/services/tokens.py:52
+#, python-format
+msgid "Token name must be at most %(limit)d characters"
+msgstr ""
+
+#: app/services/tokens.py:67
+msgid "Expiry must not be negative"
+msgstr ""
+
+#: app/services/tokens.py:97
+msgid "Token not found"
+msgstr ""
+
+#: app/templates/admin_users.html:2 app/templates/admin_users.html:5
+#: app/templates/base.html:60
+msgid "Users"
+msgstr ""
+
+#: app/templates/admin_users.html:8
+msgid "Everyone with an account, and what they are allowed to do"
+msgstr ""
+
+#: app/templates/admin_users.html:11 app/templates/login.html:22
+#: app/templates/settings.html:15
+msgid "Username"
+msgstr ""
+
+#: app/templates/admin_users.html:12 app/templates/settings.html:64
+msgid "Name"
+msgstr ""
+
+#: app/templates/admin_users.html:13
+msgid "Role"
+msgstr ""
+
+#: app/templates/admin_users.html:14
+msgid "Change role"
+msgstr ""
+
+#: app/templates/admin_users.html:30
+#, python-format
+msgid "Role for %(name)s"
+msgstr ""
+
+#: app/templates/admin_users.html:37 app/templates/categories.html:26
+#: app/templates/edit_todo.html:34 app/templates/index.html:130
+msgid "Save"
+msgstr ""
+
+#: app/templates/base.html:8 app/templates/base.html:51
 #: app/templates/index.html:2 app/templates/login.html:6
-#: app/templates/login.html:7
+#: app/templates/login.html:7 app/templates/login_verify.html:6
 msgid "Todolist"
 msgstr ""
 
-#: app/templates/base.html:15 app/templates/settings.html:52
+#: app/templates/base.html:22 app/templates/settings.html:189
 msgid "Mode"
 msgstr ""
 
-#: app/templates/base.html:17 app/templates/settings.html:56
+#: app/templates/base.html:24 app/templates/settings.html:193
 msgid "Light"
 msgstr ""
 
-#: app/templates/base.html:17 app/templates/settings.html:56
+#: app/templates/base.html:24 app/templates/settings.html:193
 msgid "Dark"
 msgstr ""
 
-#: app/templates/base.html:17 app/templates/settings.html:56
+#: app/templates/base.html:24 app/templates/settings.html:193
 msgid "Auto"
 msgstr ""
 
-#: app/templates/base.html:28 app/templates/settings.html:36
+#: app/templates/base.html:35 app/templates/settings.html:173
 msgid "Language"
 msgstr ""
 
-#: app/templates/base.html:48
+#: app/templates/base.html:55
 msgid "Tasks"
 msgstr ""
 
-#: app/templates/base.html:49 app/templates/categories.html:2
+#: app/templates/base.html:56 app/templates/categories.html:2
 #: app/templates/categories.html:9
 msgid "Categories"
 msgstr ""
 
-#: app/templates/base.html:50 app/templates/settings.html:2
+#: app/templates/base.html:57 app/templates/settings.html:2
 #: app/templates/settings.html:9
 msgid "Settings"
 msgstr ""
 
-#: app/templates/base.html:54
+#: app/templates/base.html:65
 msgid "Sign out"
 msgstr ""
 
@@ -140,10 +289,6 @@ msgstr ""
 
 #: app/templates/categories.html:17
 msgid "Add category"
-msgstr ""
-
-#: app/templates/categories.html:26 app/templates/edit_todo.html:34
-msgid "Save"
 msgstr ""
 
 #: app/templates/categories.html:29
@@ -162,7 +307,7 @@ msgstr ""
 msgid "Move or delete its tasks first"
 msgstr ""
 
-#: app/templates/categories.html:36 app/templates/index.html:154
+#: app/templates/categories.html:36 app/templates/index.html:157
 msgid "Delete"
 msgstr ""
 
@@ -189,7 +334,7 @@ msgid "No category"
 msgstr ""
 
 #: app/templates/edit_todo.html:25 app/templates/index.html:41
-#: app/templates/index.html:136
+#: app/templates/index.html:139
 msgid "Start"
 msgstr ""
 
@@ -199,7 +344,7 @@ msgid "optional"
 msgstr ""
 
 #: app/templates/edit_todo.html:30 app/templates/index.html:45
-#: app/templates/index.html:63 app/templates/index.html:141
+#: app/templates/index.html:63 app/templates/index.html:144
 msgid "Due"
 msgstr ""
 
@@ -301,54 +446,71 @@ msgstr ""
 msgid "Mark as done"
 msgstr ""
 
-#: app/templates/index.html:145
+#: app/templates/index.html:148
 msgid "Overdue"
 msgstr ""
 
-#: app/templates/index.html:146
+#: app/templates/index.html:149
 msgid "Due today"
 msgstr ""
 
-#: app/templates/index.html:149
+#: app/templates/index.html:152
 msgid "Edit"
 msgstr ""
 
-#: app/templates/index.html:152
+#: app/templates/index.html:155
 #, python-format
 msgid "Delete “%(title)s”?"
 msgstr ""
 
-#: app/templates/index.html:158
+#: app/templates/index.html:161
 msgid "No tasks yet"
 msgstr ""
 
-#: app/templates/index.html:158
+#: app/templates/index.html:161
 msgid "No tasks match this filter"
 msgstr ""
 
-#: app/templates/index.html:163
+#: app/templates/index.html:166
 msgid "Delete all completed tasks? This cannot be undone."
 msgstr ""
 
-#: app/templates/index.html:165
+#: app/templates/index.html:168
 msgid "Clear completed"
 msgstr ""
 
 #: app/templates/login.html:2 app/templates/login.html:29
-#: tests/test_i18n.py:134
+#: tests/test_i18n.py:132
 msgid "Sign in"
 msgstr ""
 
-#: app/templates/login.html:16
+#: app/templates/login.html:16 app/templates/login_verify.html:16
 msgid "Too many sign-in attempts — please wait and try again."
 msgstr ""
 
-#: app/templates/login.html:22 app/templates/settings.html:15
-msgid "Username"
+#: app/templates/login.html:26 app/templates/settings.html:32
+msgid "Password"
 msgstr ""
 
-#: app/templates/login.html:26
-msgid "Password"
+#: app/templates/login_verify.html:2 app/templates/login_verify.html:7
+#: app/templates/settings.html:118
+msgid "Two-step verification"
+msgstr ""
+
+#: app/templates/login_verify.html:19
+msgid "Enter the current code from your authenticator app."
+msgstr ""
+
+#: app/templates/login_verify.html:24 app/templates/settings.html:149
+msgid "Code"
+msgstr ""
+
+#: app/templates/login_verify.html:28
+msgid "Verify"
+msgstr ""
+
+#: app/templates/login_verify.html:31
+msgid "Start over"
 msgstr ""
 
 #: app/templates/settings.html:11
@@ -371,28 +533,152 @@ msgstr ""
 msgid "Save profile"
 msgstr ""
 
-#: app/templates/settings.html:32
-msgid "Preferences"
+#: app/templates/settings.html:36 app/templates/settings.html:107
+#: app/templates/settings.html:129
+msgid "Current password"
+msgstr ""
+
+#: app/templates/settings.html:41
+msgid "New password"
 msgstr ""
 
 #: app/templates/settings.html:44
+#, python-format
+msgid ""
+"At least %(count)d characters. Passwords found in known data breaches are"
+" rejected."
+msgstr ""
+
+#: app/templates/settings.html:47
+msgid "Repeat new password"
+msgstr ""
+
+#: app/templates/settings.html:51
+msgid "Change password"
+msgstr ""
+
+#: app/templates/settings.html:56
+msgid "API tokens"
+msgstr ""
+
+#: app/templates/settings.html:57
+msgid "Tokens let a script or another machine use the API on your behalf."
+msgstr ""
+
+#: app/templates/settings.html:61
+msgid "Your active tokens"
+msgstr ""
+
+#: app/templates/settings.html:65
+msgid "Created"
+msgstr ""
+
+#: app/templates/settings.html:66
+msgid "Expires"
+msgstr ""
+
+#: app/templates/settings.html:67 app/templates/settings.html:83
+msgid "Revoke"
+msgstr ""
+
+#: app/templates/settings.html:77
+msgid "never"
+msgstr ""
+
+#: app/templates/settings.html:81
+msgid "Revoke this token? Anything using it stops working right away."
+msgstr ""
+
+#: app/templates/settings.html:91
+msgid "You have no tokens yet."
+msgstr ""
+
+#: app/templates/settings.html:97
+msgid "What is it for?"
+msgstr ""
+
+#: app/templates/settings.html:101
+msgid "Days until it expires"
+msgstr ""
+
+#: app/templates/settings.html:104
+msgid "Use 0 for a token that never expires."
+msgstr ""
+
+#: app/templates/settings.html:110
+msgid "Asked again so that a stolen session cannot mint new keys."
+msgstr ""
+
+#: app/templates/settings.html:112
+msgid "Create token"
+msgstr ""
+
+#: app/templates/settings.html:124
+msgid "On — you will be asked for a code after signing in."
+msgstr ""
+
+#: app/templates/settings.html:132
+msgid "Asked again so that a stolen session cannot turn this off."
+msgstr ""
+
+#: app/templates/settings.html:134
+msgid "Turn off"
+msgstr ""
+
+#: app/templates/settings.html:138
+msgid "Add this to your authenticator app, then enter the code it shows."
+msgstr ""
+
+#: app/templates/settings.html:153
+msgid "Turn on"
+msgstr ""
+
+#: app/templates/settings.html:157
+msgid "Off — signing in needs only your password."
+msgstr ""
+
+#: app/templates/settings.html:161
+msgid "Set up"
+msgstr ""
+
+#: app/templates/settings.html:169
+msgid "Preferences"
+msgstr ""
+
+#: app/templates/settings.html:181
 msgid "Theme"
 msgstr ""
 
-#: app/templates/settings.html:60
+#: app/templates/settings.html:197
 msgid "Auto follows sunrise and sunset in your timezone."
 msgstr ""
 
-#: app/templates/settings.html:63
+#: app/templates/settings.html:200
 msgid "Timezone"
 msgstr ""
 
-#: app/templates/settings.html:69
+#: app/templates/settings.html:206
 msgid "Due dates are shown and entered in this timezone."
 msgstr ""
 
-#: app/templates/settings.html:71
+#: app/templates/settings.html:208
 msgid "Save preferences"
+msgstr ""
+
+#: app/templates/token_created.html:2 app/templates/token_created.html:5
+msgid "New API token"
+msgstr ""
+
+#: app/templates/token_created.html:7
+msgid "Copy it now — it is not stored anywhere and cannot be shown again."
+msgstr ""
+
+#: app/templates/token_created.html:10
+msgid "Send it as an Authorization header:"
+msgstr ""
+
+#: app/templates/token_created.html:13
+msgid "Back to settings"
 msgstr ""
 
 #~ msgid "Due today at %(time)s"
