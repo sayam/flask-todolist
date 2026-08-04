@@ -1095,6 +1095,33 @@ def test_plugin_list_prints_the_keys_the_switch_needs(app):
     assert "segno" in result.output, "ต้องบอกด้วยว่าจุดนั้นลากไลบรารีอะไรมา"
 
 
+def _listed(output, key):
+    """บรรทัดของคีย์นั้นใน `plugin-list` (ขึ้นต้นด้วยคีย์แล้วตามด้วย tab)"""
+    return next(line for line in output.splitlines() if line.startswith(f"{key}\t"))
+
+
+def test_plugin_list_says_which_enhancement_is_actually_serving(app, host_plugin):
+    """ไดเรกทอรีอยู่ครบ ไลบรารีก็ครบ ไม่ได้ปิดสวิตช์ แต่ความสามารถนั้นหายไป
+
+    เป็นสถานะที่ตั้งใจให้เกิดได้ (fail closed เมื่อมีผู้ให้บริการหลายตัวแต่
+    PLUGIN_PICKS ไม่ได้เลือก — ดู `_unpicked`) ถ้ารายการบอกแค่ว่า "ไม่ DISABLED
+    และไลบรารีครบ" คนอ่านจะสรุปว่ามันทำงานอยู่ แล้วไปตามหาสาเหตุผิดที่
+    """
+    runner = app.test_cli_runner()
+    host_plugin("basic")
+    assert "provides thing (serving)" in _listed(
+        runner.invoke(args=["plugin-list"]).output, "auth/hosty#basic"
+    )
+
+    # ผู้ให้บริการตัวที่สองของความสามารถเดียวกัน โดยไม่มีใครเลือกไว้ = ปิดทั้งคู่
+    host_plugin("other")
+    output = runner.invoke(args=["plugin-list"]).output
+    assert "provides thing (NOT serving)" in _listed(output, "auth/hosty#basic")
+    assert "provides thing (NOT serving)" in _listed(output, "auth/hosty#other")
+    # plugin แม่ไม่ได้ให้ความสามารถอะไรผ่านชั้นนี้ จึงต้องไม่มีคอลัมน์นั้นเลย
+    assert "provides" not in _listed(output, "auth/hosty")
+
+
 def test_switching_off_a_second_factor_says_so_in_plain_words(app, warnings_of):
     """ปิดปัจจัยยืนยันตัวตน = คนที่เปิดไว้ login ด้วยรหัสผ่านอย่างเดียวได้ทันที
 

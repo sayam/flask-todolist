@@ -120,6 +120,7 @@ migration และโค้ดใหม่ทุกตัวจากนี้�
 | 2 ✅ | Data governance core | L | Audit Trail, Data Retention, PDPA |
 | 3 ✅ | Service layer + API v1 | M–L | Compatibility, Maintainability |
 | 4 ✅ | Identity & AuthN/AuthZ | L | Security(authn), Compatibility(SSO) |
+| 4.5 ✅ | Supply-chain isolation ของจุด plug | M | Security(supply chain), Modularity |
 | 5 | Deployment parity + DB/cache plugins **+ SSO** | M–L | Flexibility, Security(TLS/secrets), Compatibility |
 | 6 | Performance validation | M | Performance Efficiency |
 | 7 | Verification & compliance closure | M–L | Security(ASVS/pentest/PDPA), Interaction(WCAG), Audit(SIEM) |
@@ -352,6 +353,49 @@ DoD ของ SSO คือ **"login ผ่าน OIDC ได้จริงก�
 ก็เสร็จแล้ว งานที่เหลือจึงเป็น "เพิ่ม plugin หนึ่งตัว" ไม่ใช่ "รื้อ core"
 (หนี้ที่รู้ตัว: `password` ยังเป็น manifest เปล่า core ยังเรียก `check_password()`
 ตรง ๆ — จะยกขึ้นเป็นปัจจัยหลักแบบ plugin จริงตอนมีปัจจัยหลักตัวที่สอง ดู ADR 0024)
+
+## Phase 4.5 — Supply-chain isolation ของจุด plug ✅ (เสร็จ 2026-08-05 — ADR 0025)
+
+**แทรกเข้ามาหลัง Phase 4** เพราะ Phase 5 กำลังจะเพิ่ม redis, driver ของ MySQL/MariaDB
+และ authlib (OIDC) — ทำฐานนี้ก่อนแปลว่าของพวกนั้นลงมาบนกติกาที่มีอยู่แล้ว
+ไม่ใช่ต้องย้อนมารื้อทีหลัง
+
+**ปัญหาตั้งต้น:** plugin มีไว้ลดความเสี่ยง แต่ตอนเพิ่ม QR ของ MFA ระบบต้องแบก
+`segno` ไว้ใน `[packages]` ของ core ตลอดไป — *ถอดโค้ดได้ แต่ถอด supply chain ไม่ได้*
+วันที่ CVE ออกโดยยังไม่มี patch คำตอบควรเป็น "ถอดออกก่อน ระบบยังเดินได้"
+
+- **ส่วนเสริมของ plugin ✅** — กติกาเดิมใช้ซ้ำอีกชั้น
+  (`<ชนิด>/<ไอดี>/enhancements/<ไอดี>` + `plugin.json` + `provide.py`)
+  host ขอด้วย**ชื่อความสามารถ** ไม่ใช่ไอดี · ส่วนเสริมห้ามมี `models.py`
+  (ไม่งั้นการสลับ implementation จะกลายเป็นการย้ายข้อมูล) ·
+  มีผู้ให้บริการหลายตัวแต่ไม่มี `PLUGIN_PICKS` = **ปิดทั้งหมด (fail closed)**
+  และถ้ามี pick อยู่ pick ชนะเสมอ แม้เหลือผู้ให้บริการตัวเดียว
+- **ไลบรารีแยกตาม category ของ pipenv ✅** — `auth/totp#qr-segno` →
+  `[plugin-auth-totp-qr-segno]` คำนวณจากคีย์ ไม่ได้ประกาศซ้ำ ·
+  `pipenv sync --dev` **ไม่ติดตั้งให้** โดยตั้งใจ (ใช้ `flask plugin-deps --categories`)
+- **สวิตช์ปิดตอน runtime ✅** — `DISABLED_PLUGINS` ปิดได้ทุกชั้นด้วยคีย์เดียวกับที่
+  `flask plugin-list` แสดง ไม่ต้องแก้โค้ด ไม่ต้องรอ deploy · กรองที่ `discover()`/
+  `enhancements()` **ที่เดียว** เพื่อให้ "ปิดอยู่" เหมือน "ไม่เคยวางไดเรกทอรี" จริง ·
+  **ปิดโค้ดไม่ได้ปิดข้อมูล** (`installed_on_disk()` ไม่สนสวิตช์ ไม่งั้น migrate
+  ตัวถัดไปของ core จะ drop ตารางของ plugin ที่ถูกปิดทิ้งเงียบ ๆ)
+- **เทสต์สแกน AST ✅** — โค้ดของจุด plug import ได้แค่ stdlib + ของที่ core แบกอยู่แล้ว
+  + ที่ manifest **ของตัวเอง** ประกาศ (plugin แม่ประกาศแทนส่วนเสริมไม่ได้)
+  บังคับสองทิศ: import ที่ไม่ประกาศ **และ** requirement ที่ไม่มีใคร import
+- **job `bare` ใน CI ✅** — รันชุดเทสต์โดย**ไม่ติดตั้ง category ของ plugin เลย**
+  ต้องเขียว นี่คือด่านเดียวที่ทำให้ "ถอดแล้วไม่พัง" เป็นข้อเท็จจริงที่วัดได้ทุก push
+  แทนที่จะเป็นความตั้งใจในเอกสาร (เทสต์ที่ต้องใช้ไลบรารีจริงมาร์ก `plugin_deps`
+  — **ไม่ใช้ `importorskip`** ซึ่งจะทำให้ job `test` ข้ามเงียบ ๆ ตอนไลบรารีหาย)
+- **pip-audit/SBOM แยกตาม category ✅** — CVE ของของที่ถอดได้ **ไม่ทำให้ job ของ
+  core แดง** แต่ยิง `::warning::` + สรุปของ run · artifact แยก `sbom-core.json`
+  กับ `sbom-<category>.json` จึงตอบได้ว่าถอด plugin ตัวนี้แล้ว component ไหนหายไป
+
+**ผลที่วัดได้:** CI 11 job · โหมด bare 730 passed / 5 deselected ·
+`segno` ไม่อยู่ใน SBOM ของ core อีกแล้ว (118 components) แต่ยังถูก audit ในสายของมันเอง
+
+**ที่ไม่ได้ทำ (โดยตั้งใจ):** venv/โปรเซสแยกต่อ plugin — เป็น isolation จริงทางเดียว
+ในภาษา python แต่ต้องมี IPC และสอง interpreter ในเครื่องเดียว เกินขนาดของแอปนี้
+(ต้องกลับมาทบทวนถ้าวันหนึ่งรับ plugin จากคนนอกจริง ๆ) · ยังไม่มี recovery code
+ของ MFA — ค้างจาก Phase 4 ทำโทรศัพท์หายต้องให้ผู้ดูแลปิดให้
 
 ## Phase 5 — Deployment parity & flexibility
 

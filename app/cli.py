@@ -236,6 +236,23 @@ def token_revoke(username, token_id):
     click.echo(f"Revoked token {token.id} ({token.name!r}) of {user.username!r}.")
 
 
+def _serving_state(plugin):
+    """ส่วนเสริมตัวนี้เป็นตัวที่ให้บริการความสามารถของมันอยู่จริงไหม
+
+    **ไม่คำนวณเหตุผลซ้ำเอง** — ถาม `provider()` ตัวเดียวกับที่ host เรียกจริง
+    ซึ่งจะ log บอกด้วยว่าทำไมถึงไม่ได้ให้บริการ (มีหลายตัวแต่ไม่มี pick จึงปิดไว้
+    ทั้งหมด / pick ชี้ไปตัวที่ตอนนี้ใช้ไม่ได้) ซึ่งคือคำถามของคนที่รันคำสั่งนี้
+    ตอนที่ความสามารถหนึ่งหายไปโดยที่ไดเรกทอรียังอยู่และไลบรารีก็ยังครบ
+    """
+    from app import plugins
+
+    if plugin.host is None or plugin.provides is None:
+        return ""
+    chosen = plugins.provider(plugin.host, plugin.provides)
+    verb = "serving" if chosen is not None and chosen.key == plugin.key else "NOT serving"
+    return f"provides {plugin.provides} ({verb}); "
+
+
 @click.command("plugin-list")
 @with_appcontext
 def plugin_list():
@@ -263,7 +280,7 @@ def plugin_list():
             state = "no tables"
         core = " (core)" if plugin.is_core else ""
         off = " DISABLED" if plugins.is_disabled(plugin) else ""
-        click.echo(f"{plugin.key}\tv{plugin.version}{core}{off}\t{state}")
+        click.echo(f"{plugin.key}\tv{plugin.version}{core}{off}\t{_serving_state(plugin)}{state}")
 
 
 @click.command("plugin-deps")
