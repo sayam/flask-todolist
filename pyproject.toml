@@ -87,6 +87,18 @@ ignore_missing_imports = true
 module = ["app.models", "app.audit"]
 disable_error_code = ["name-defined"]
 
+# โค้ดของ plugin import ไลบรารีที่ **ไม่ได้อยู่ในสภาพแวดล้อมของ core** ได้
+# (ADR 0025 — ไลบรารีของ plugin อยู่ใน category แยก `pipenv sync --dev` ไม่ติดตั้งให้)
+# ถ้าไม่ปิดข้อนี้ job `lint` จะบังคับให้ต้องติดตั้งไลบรารีของ plugin ทุกตัวก่อน
+# type check ได้ ซึ่งเท่ากับยกเลิกการแยก dependency ที่เพิ่งทำไปทั้งหมด
+#
+# **ราคาที่จ่าย:** ชื่อโมดูลที่พิมพ์ผิดในโค้ด plugin จะไม่ถูก mypy จับ — รับได้
+# เพราะเส้นทางนั้นถูกเทสต์จริงเรียกอยู่แล้ว และมีเทสต์สแกน import เทียบกับ
+# manifest อีกชั้น (Phase 4.5 step ถัดไป)
+[[tool.mypy.overrides]]
+module = ["app.plugins.*"]
+disable_error_code = ["import-not-found", "import-untyped"]
+
 # strict list — module ที่ pure (ไม่พึ่ง extension ที่ไม่มี type stub)
 [[tool.mypy.overrides]]
 module = [
