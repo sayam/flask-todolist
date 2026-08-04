@@ -135,7 +135,14 @@
   </form>
 
 {% elif factor.pending %}
-  <p>{{ _('Add this to your authenticator app, then enter the code it shows.') }}</p>
+  <p>{{ _('Scan this with your authenticator app, or type the key in by hand.') }}</p>
+  {% if factor.has_image %}
+  {# เสิร์ฟเป็นไฟล์ SVG จาก origin เดียวกัน — `img-src 'self'` เดิมรับได้
+     ไม่ต้องผ่อน CSP เป็น data: และไม่มีความลับอยู่ใน URL (ดู main.mfa_image)
+     alt ว่างเพราะเป็นรูปที่ซ้ำกับข้อความข้างล่างพอดี #}
+  <img class="setup-qr" src="{{ url_for('main.mfa_image', factor=factor.key) }}"
+       alt="" width="200" height="200">
+  {% endif %}
   <dl>
     {% for label, value in factor.details %}
     <dt>{{ label }}</dt>

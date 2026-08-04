@@ -81,9 +81,8 @@ def matching_counter(secret: str, code: str, at: float | None = None) -> int | N
 def provisioning_uri(secret: str, username: str) -> str:
     """`otpauth://` ที่แอป authenticator สแกนหรือวางเข้าไปได้
 
-    ไม่มี QR code ให้สแกนโดยตั้งใจ — การสร้างรูปต้องพึ่งไลบรารีวาดภาพ และ
-    CSP ของเรา (`img-src 'self'`) ก็ต้องเปิดทางให้ data URI เพิ่ม
-    ผู้ใช้กดคัดลอกข้อความนี้ไปวางในแอปได้เหมือนกัน (ทุกแอปรองรับ)
+    ผู้ใช้เลือกได้สองทาง: สแกน QR (ดู `setup_image()`) หรือกดคัดลอกข้อความนี้
+    ไปวางในแอป — ทุกแอปรองรับทั้งคู่ ทางที่สองสำคัญเพราะบางเครื่องไม่มีกล้อง
     """
     label = quote(f"{ISSUER}:{username}", safe="")
     return (
@@ -138,6 +137,43 @@ def setup_details(user: Any) -> list[tuple[str, str]]:
         ("Secret key", row.totp_secret),
         ("Setup link", provisioning_uri(row.totp_secret, user.username)),
     ]
+
+
+def setup_image(user: Any) -> tuple[str, bytes] | None:
+    """QR ของ `otpauth://` เป็น **SVG** — คืน `(mimetype, body)` หรือ None
+
+    **SVG ไม่ใช่ PNG โดยตั้งใจ:** เป็นข้อความล้วน ไม่ต้องพึ่งไลบรารีวาดภาพ
+    (segno ไม่มี dependency ต่อ) และคมทุกความละเอียดหน้าจอ
+
+    **คืนเป็น body ให้ core เอาไปเสิร์ฟเป็นไฟล์ ไม่ใช่ data URI ที่ฝังในหน้า**
+    เพราะ data URI ต้องผ่อน CSP เป็น `img-src 'self' data:` ซึ่งเป็นการแลก
+    ความเข้มของ CSP ทั้งเว็บกับความสะดวกของหน้าเดียว (ADR 0010/0024)
+
+    **แสดงเฉพาะใบที่ยังไม่ยืนยัน** ด้วยเหตุผลเดียวกับ `setup_details()` —
+    ใบที่เปิดใช้แล้วต้องไม่มีทางดูความลับซ้ำได้อีก ไม่ว่าจะในรูปข้อความหรือรูปภาพ
+    """
+    import io
+
+    import segno
+
+    row = _row(user)
+    if row is None or row.confirmed_at is not None:
+        return None
+
+    buffer = io.BytesIO()
+    segno.make(provisioning_uri(row.totp_secret, user.username), error="m").save(
+        buffer,
+        kind="svg",
+        scale=5,
+        border=2,
+        # **พื้นหลังขาวฝังมาในรูปเลย ไม่ปล่อยโปร่งใส** — ค่าเริ่มต้นของ segno คือ
+        # โปร่งใส ซึ่งบนธีมโหมดมืดจะกลายเป็นสี่เหลี่ยมดำบนพื้นดำ = สแกนไม่ได้
+        # สองสีนี้ **ไม่ใช่เรื่องของธีม** แต่เป็นข้อกำหนดของตัวสแกน (ต้องเป็น
+        # โมดูลเข้มบนพื้นอ่อนเสมอ) จึงตายตัวและอยู่ในรูป ไม่ได้อยู่ใน CSS ของ core
+        dark="#000000",
+        light="#ffffff",
+    )
+    return "image/svg+xml", buffer.getvalue()
 
 
 def start_enrollment(user: Any) -> str:

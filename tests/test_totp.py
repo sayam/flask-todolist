@@ -13,6 +13,8 @@
 """
 
 import base64
+import io
+import logging
 import time
 
 import pytest
@@ -220,6 +222,138 @@ def test_disabling_removes_the_secret_for_real(app, person):
     reloaded = db.session.get(User, user_id)
     assert factor().secret_of(reloaded) is None, "แถวต้องหายไปจริง"
     assert not factor().is_enrolled(reloaded)
+
+
+# ---------------------------------------------------------------- QR ของการลงทะเบียน
+# ข้ออ้างที่ต้องพิสูจน์ ไม่ใช่แค่เขียนไว้ในคอมเมนต์:
+# 1. ไม่มีความลับอยู่ใน URL (ไม่งั้นมันไปโผล่ใน log/ประวัติ/Referer)
+# 2. ไม่ต้องผ่อน CSP (`img-src 'self'` เดิมต้องยังเป็น 'self' ล้วน)
+# 3. เห็นได้เฉพาะเจ้าของ และเฉพาะตอนที่ยังไม่ยืนยัน
+
+
+def test_the_qr_encodes_exactly_the_same_uri_as_the_text(app, user_id):
+    """รูปกับข้อความต้องเป็นความลับเดียวกัน ไม่งั้นสแกนแล้วรหัสไม่ตรง
+
+    เทียบด้วยการ encode ซ้ำจาก URI ที่รู้ค่า แทนการอ่าน QR กลับ (ซึ่งต้องมี
+    ตัวถอดรหัสอีกตัว) — ถ้า payload ต่างกันแม้แต่บิตเดียว SVG จะไม่เหมือนกัน
+    """
+    import segno
+
+    client = _sign_in(app, "tester")
+    client.post("/settings/mfa/start", data={"factor": TOTP_KEY})
+
+    with app.app_context():
+        user = db.session.get(User, user_id)
+        expected_uri = factor().provisioning_uri(factor().secret_of(user), user.username)
+
+    resp = client.get(f"/settings/mfa/{TOTP_KEY}/image")
+    assert resp.status_code == 200
+    assert resp.mimetype == "image/svg+xml"
+
+    # ตัวเลือกการวาดต้องตรงกับใน factor.py — เปลี่ยนที่นั่นแล้วเทสต์นี้จะแดง
+    # ให้รู้ตัว (เจตนา: รูปที่เสิร์ฟออกไปคือ QR ของ URI ตัวนี้เป๊ะ ไม่ใช่ของอื่น)
+    buffer = io.BytesIO()
+    segno.make(expected_uri, error="m").save(
+        buffer, kind="svg", scale=5, border=2, dark="#000000", light="#ffffff"
+    )
+    assert resp.data == buffer.getvalue()
+
+    # และต้องไม่ตรงกับ QR ของ URI อื่น (กันเทสต์ที่เขียวเพราะเทียบของว่างกับของว่าง)
+    other = io.BytesIO()
+    segno.make(expected_uri + "x", error="m").save(
+        other, kind="svg", scale=5, border=2, dark="#000000", light="#ffffff"
+    )
+    assert resp.data != other.getvalue()
+
+
+def test_the_qr_carries_its_own_light_background(app, user_id):
+    """โหมดมืด: QR ที่พื้นหลังโปร่งใสจะกลายเป็นดำบนดำ = สแกนไม่ได้
+
+    ตัวสแกนต้องการโมดูลเข้มบนพื้นอ่อนเสมอ สีจึงฝังอยู่ในตัว SVG ไม่ได้ขึ้นกับธีม
+    (เป็นข้อกำหนดของตัวสแกน ไม่ใช่การตัดสินใจเรื่องสไตล์)
+    """
+    client = _sign_in(app, "tester")
+    client.post("/settings/mfa/start", data={"factor": TOTP_KEY})
+
+    svg = client.get(f"/settings/mfa/{TOTP_KEY}/image").get_data(as_text=True).lower()
+    # segno ย่อ #ffffff เป็น #fff ให้เอง — เทียบทั้งสองรูปแบบ
+    assert 'fill="#fff"' in svg or 'fill="#ffffff"' in svg, "QR ไม่มีพื้นหลังอ่อนฝังมาด้วย"
+    assert 'stroke="#000"' in svg or 'stroke="#000000"' in svg
+
+
+def test_the_qr_url_never_carries_the_secret(app, user_id, caplog):
+    """ความลับใน URL = ความลับใน log ของเรา (ชั้น C6 อายุ 90 วัน), ใน log ของ
+    reverse proxy, ในประวัติเบราว์เซอร์ และใน header `Referer` ของหน้าถัดไป"""
+    client = _sign_in(app, "tester")
+    client.post("/settings/mfa/start", data={"factor": TOTP_KEY})
+
+    with app.app_context():
+        secret = factor().secret_of(db.session.get(User, user_id))
+
+    url = f"/settings/mfa/{TOTP_KEY}/image"
+    assert secret not in url
+
+    with caplog.at_level(logging.INFO):
+        assert client.get(url).status_code == 200
+    assert secret not in caplog.text, "ความลับหลุดลง log"
+
+    # และหน้า settings ต้องไม่ฝังรูปเป็น data: URI (ซึ่งจะต้องผ่อน CSP)
+    body = client.get("/settings").get_data(as_text=True)
+    assert "data:image" not in body
+    assert url in body
+
+
+def test_serving_the_qr_does_not_loosen_the_csp(app, user_id):
+    """`img-src 'self'` ต้องยังเป็น 'self' ล้วน — ทั้งหน้า settings และตัวรูปเอง"""
+    client = _sign_in(app, "tester")
+    client.post("/settings/mfa/start", data={"factor": TOTP_KEY})
+
+    for path in ("/settings", f"/settings/mfa/{TOTP_KEY}/image"):
+        csp = client.get(path).headers["Content-Security-Policy"]
+        assert "img-src 'self'" in csp, path
+        assert "data:" not in csp, f"{path}: CSP ถูกผ่อนให้รับ data URI"
+
+
+def test_the_qr_is_not_cached_anywhere(app, user_id):
+    client = _sign_in(app, "tester")
+    client.post("/settings/mfa/start", data={"factor": TOTP_KEY})
+
+    resp = client.get(f"/settings/mfa/{TOTP_KEY}/image")
+    assert "no-store" in resp.headers["Cache-Control"]
+
+
+def test_the_qr_is_gone_once_the_factor_is_confirmed(app, user_id):
+    """ใบที่เปิดใช้แล้วต้องไม่มีทางดูความลับซ้ำได้ ไม่ว่าจะรูปหรือข้อความ"""
+    client = _sign_in(app, "tester")
+    client.post("/settings/mfa/start", data={"factor": TOTP_KEY})
+    with app.app_context():
+        secret = factor().secret_of(db.session.get(User, user_id))
+    client.post("/settings/mfa/confirm", data={"factor": TOTP_KEY, "code": current_code(secret)})
+
+    assert client.get(f"/settings/mfa/{TOTP_KEY}/image").status_code == 404
+
+
+def test_there_is_no_qr_before_enrollment_starts(app, user_id):
+    assert _sign_in(app, "tester").get(f"/settings/mfa/{TOTP_KEY}/image").status_code == 404
+
+
+def test_the_qr_belongs_to_whoever_is_signed_in(app, user_id, other_user_id):
+    """คนอื่นเรียก URL เดียวกันต้องไม่ได้ QR ของเรา — ตัวตนมาจาก session เท่านั้น"""
+    owner = _sign_in(app, "tester")
+    owner.post("/settings/mfa/start", data={"factor": TOTP_KEY})
+
+    intruder = _sign_in(app, "intruder")
+    assert intruder.get(f"/settings/mfa/{TOTP_KEY}/image").status_code == 404
+
+
+def test_the_qr_needs_a_signed_in_user(app, anon_client):
+    resp = anon_client.get(f"/settings/mfa/{TOTP_KEY}/image")
+    assert resp.status_code == 302
+    assert "/login" in resp.headers["Location"]
+
+
+def test_an_unknown_factor_has_no_image(app, user_id):
+    assert _sign_in(app, "tester").get("/settings/mfa/auth/nope/image").status_code == 404
 
 
 # ---------------------------------------------------------------- ทางเข้าเว็บ

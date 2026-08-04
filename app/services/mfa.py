@@ -98,9 +98,27 @@ def state(user: Any) -> list[dict[str, Any]]:
                 "enrolled": module.is_enrolled(user),
                 "pending": pending,
                 "details": module.setup_details(user) if pending else [],
+                # มีรูปให้แสดงไหม (core ไม่รู้ว่ารูปนั้นคืออะไร) — ใช้ตัดสินว่า
+                # จะวาง <img> ในหน้า settings หรือไม่ ไม่ได้สร้างรูปตรงนี้
+                "has_image": pending and callable(getattr(module, "setup_image", None)),
             }
         )
     return rows
+
+
+def setup_image(user: Any, key: str) -> tuple[str, bytes] | None:
+    """รูปสำหรับตั้งค่าปัจจัยนั้น (ถ้ามี) — คืน `(mimetype, body)` หรือ None
+
+    core ไม่รู้ว่ารูปนั้นคืออะไร รู้แค่ว่าเป็นไฟล์ที่ต้องเสิร์ฟด้วย mimetype ที่
+    plugin บอกมา ปัจจัยที่ไม่มีรูปให้แสดง (หรือไม่มีใบที่รอยืนยัน) คืน None
+    แล้ว adapter แปลงเป็น 404
+    """
+    _plugin, module = _module(key)
+    maker = getattr(module, "setup_image", None)
+    if maker is None:
+        return None
+    result: tuple[str, bytes] | None = maker(user)
+    return result
 
 
 def start(user: Any, key: str) -> None:

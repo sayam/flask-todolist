@@ -12,6 +12,7 @@ from flask import (
     Blueprint,
     abort,
     flash,
+    make_response,
     redirect,
     render_template,
     request,
@@ -401,6 +402,37 @@ def start_mfa():
     except ServiceError as error:
         flash(error.message)
     return redirect(url_for("main.settings"))
+
+
+@bp.route("/settings/mfa/<path:factor>/image")
+@login_required
+def mfa_image(factor):
+    """รูป QR ของการลงทะเบียนที่ค้างอยู่ **ของคนที่ login อยู่เท่านั้น**
+
+    กติกาสามข้อที่ทำให้ URL นี้ไม่ใช่ช่องรั่ว:
+
+    1. **ไม่มีความลับอยู่ใน URL เลย** — path มีแค่ไอดีของ plugin ตัวความลับ
+       ถูกอ่านจากฐานข้อมูลตาม `current_user` ถ้าใส่ความลับไว้ใน query string
+       มันจะไปโผล่ใน log ของเราเอง (`path` เป็นชั้น C6 เก็บ 90 วัน), log ของ
+       reverse proxy, ประวัติเบราว์เซอร์ และ header `Referer` ที่ส่งต่อไปหน้าอื่น
+    2. **เสิร์ฟเป็นไฟล์ SVG ไม่ใช่ data URI ที่ฝังในหน้า** — `img-src 'self'`
+       เดิมรับได้อยู่แล้ว ไม่ต้องผ่อน CSP ทั้งเว็บเพื่อหน้าเดียว (ADR 0010)
+    3. **`no-store`** — ไม่ให้ค้างในแคชของเบราว์เซอร์หรือ proxy หลังตั้งค่าเสร็จ
+
+    ใบที่ยืนยันแล้ว/ยังไม่ได้เริ่มลงทะเบียน ตอบ 404 เหมือนไม่มีอยู่
+    """
+    try:
+        image = mfa_service.setup_image(current_user, factor)
+    except LookupError:
+        abort(404)
+    if image is None:
+        abort(404)
+
+    mimetype, body = image
+    response = make_response(body)
+    response.mimetype = mimetype
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @bp.route("/settings/mfa/confirm", methods=["POST"])

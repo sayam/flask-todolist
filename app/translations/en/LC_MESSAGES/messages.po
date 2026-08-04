@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-04 10:14+0700\n"
+"POT-Creation-Date: 2026-08-04 12:02+0700\n"
 "PO-Revision-Date: 2026-08-02 16:44+0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -31,47 +31,47 @@ msgstr ""
 msgid "Incorrect username or password"
 msgstr ""
 
-#: app/auth.py:149 app/routes.py:415
+#: app/auth.py:149 app/routes.py:447
 msgid "That code is not valid"
 msgstr ""
 
-#: app/api/todos.py:52 app/routes.py:68 app/routes.py:88
+#: app/api/todos.py:52 app/routes.py:69 app/routes.py:89
 msgid "Invalid date format"
 msgstr ""
 
-#: app/routes.py:155
+#: app/routes.py:156
 msgid "Task saved"
 msgstr ""
 
-#: app/routes.py:289
+#: app/routes.py:290
 msgid "Profile saved"
 msgstr ""
 
-#: app/routes.py:303
+#: app/routes.py:304
 msgid "The two new passwords do not match"
 msgstr ""
 
-#: app/routes.py:319
+#: app/routes.py:320
 msgid "Password changed"
 msgstr ""
 
-#: app/routes.py:340 app/routes.py:428 app/services/passwords.py:168
+#: app/routes.py:341 app/routes.py:460 app/services/passwords.py:168
 msgid "Current password is incorrect"
 msgstr ""
 
-#: app/routes.py:384
+#: app/routes.py:385
 msgid "Token revoked"
 msgstr ""
 
-#: app/routes.py:415
+#: app/routes.py:447
 msgid "Two-step verification is on"
 msgstr ""
 
-#: app/routes.py:435
+#: app/routes.py:467
 msgid "Two-step verification is off"
 msgstr ""
 
-#: app/routes.py:460
+#: app/routes.py:492
 msgid "Settings saved"
 msgstr ""
 
@@ -107,7 +107,7 @@ msgid_plural "Cannot delete “%(name)s” — it still has %(num)d tasks."
 msgstr[0] ""
 msgstr[1] ""
 
-#: app/services/mfa.py:108
+#: app/services/mfa.py:136
 msgid "Turn off two-step verification first"
 msgstr ""
 
@@ -241,23 +241,23 @@ msgstr ""
 msgid "Todolist"
 msgstr ""
 
-#: app/templates/base.html:22 app/templates/settings.html:189
+#: app/templates/base.html:22 app/templates/settings.html:196
 msgid "Mode"
 msgstr ""
 
-#: app/templates/base.html:24 app/templates/settings.html:193
+#: app/templates/base.html:24 app/templates/settings.html:200
 msgid "Light"
 msgstr ""
 
-#: app/templates/base.html:24 app/templates/settings.html:193
+#: app/templates/base.html:24 app/templates/settings.html:200
 msgid "Dark"
 msgstr ""
 
-#: app/templates/base.html:24 app/templates/settings.html:193
+#: app/templates/base.html:24 app/templates/settings.html:200
 msgid "Auto"
 msgstr ""
 
-#: app/templates/base.html:35 app/templates/settings.html:173
+#: app/templates/base.html:35 app/templates/settings.html:180
 msgid "Language"
 msgstr ""
 
@@ -501,7 +501,7 @@ msgstr ""
 msgid "Enter the current code from your authenticator app."
 msgstr ""
 
-#: app/templates/login_verify.html:24 app/templates/settings.html:149
+#: app/templates/login_verify.html:24 app/templates/settings.html:156
 msgid "Code"
 msgstr ""
 
@@ -626,42 +626,42 @@ msgid "Turn off"
 msgstr ""
 
 #: app/templates/settings.html:138
-msgid "Add this to your authenticator app, then enter the code it shows."
+msgid "Scan this with your authenticator app, or type the key in by hand."
 msgstr ""
 
-#: app/templates/settings.html:153
+#: app/templates/settings.html:160
 msgid "Turn on"
 msgstr ""
 
-#: app/templates/settings.html:157
+#: app/templates/settings.html:164
 msgid "Off — signing in needs only your password."
 msgstr ""
 
-#: app/templates/settings.html:161
+#: app/templates/settings.html:168
 msgid "Set up"
 msgstr ""
 
-#: app/templates/settings.html:169
+#: app/templates/settings.html:176
 msgid "Preferences"
 msgstr ""
 
-#: app/templates/settings.html:181
+#: app/templates/settings.html:188
 msgid "Theme"
 msgstr ""
 
-#: app/templates/settings.html:197
+#: app/templates/settings.html:204
 msgid "Auto follows sunrise and sunset in your timezone."
 msgstr ""
 
-#: app/templates/settings.html:200
+#: app/templates/settings.html:207
 msgid "Timezone"
 msgstr ""
 
-#: app/templates/settings.html:206
+#: app/templates/settings.html:213
 msgid "Due dates are shown and entered in this timezone."
 msgstr ""
 
-#: app/templates/settings.html:208
+#: app/templates/settings.html:215
 msgid "Save preferences"
 msgstr ""
 
@@ -688,5 +688,8 @@ msgstr ""
 #~ msgstr ""
 
 #~ msgid "Delete category “%(name)s”? Tasks in it will become uncategorised."
+#~ msgstr ""
+
+#~ msgid "Add this to your authenticator app, then enter the code it shows."
 #~ msgstr ""
 

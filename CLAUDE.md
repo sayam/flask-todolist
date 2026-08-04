@@ -5,6 +5,7 @@
 - Flask-Migrate (alembic) จัดการ schema, Flask-Login จัดการ session, Flask-WTF จัดการ CSRF,
   Flask-Limiter จำกัดจำนวนครั้งที่หน้า login
 - flask-smorest + marshmallow ทำ `/api/v1` และ generate OpenAPI spec จากโค้ด
+- segno สร้าง QR ของ MFA (ไลบรารีเดียวที่เพิ่มมาใน Phase 4 — ไม่มี dependency ต่อ)
 - Python 3.13
 
 ## Commands
@@ -379,6 +380,11 @@ session มาก่อนโปรไฟล์เพื่อให้กดส
 - login ที่มีปัจจัยที่สอง **หยุดครึ่งทาง** ที่ `/login/verify` ไม่เรียก `login_user()`
   ก่อน (ไม่งั้นคนที่รู้แค่รหัสผ่านเข้าถึงข้อมูลได้ทันทีด้วยการพิมพ์ URL อื่น)
 - สถานะครึ่งทางมีอายุ 5 นาที และขั้นที่สองมีโควตาต่อบัญชีเหมือนหน้า login
+- **QR เสิร์ฟเป็นไฟล์ SVG ที่ `/settings/mfa/<ไอดี plugin>/image` ไม่ใช่ data URI**
+  เพราะ data URI ต้องผ่อน CSP เป็น `img-src 'self' data:` — และ **ห้ามมีความลับ
+  ใน URL** เด็ดขาด (`path` อยู่ใน log ทุกบรรทัด ชั้น C6 อายุ 90 วัน) ตัวรูปตอบ
+  `no-store` และหายเป็น 404 ทันทีที่ยืนยันเสร็จ สีฝังในตัว SVG เพราะตัวสแกน
+  ต้องการโมดูลเข้มบนพื้นอ่อนเสมอ ไม่ว่าธีมจะเป็นแบบไหน
 
 ## Rate limit
 - จำกัดเฉพาะ `POST /login` (+ `POST /login/verify` ของขั้นที่สอง) GET ไม่โดน

@@ -14,6 +14,7 @@ flask-limiter = "*"
 flask-babel = "*"
 flask-talisman = "*"
 flask-smorest = "*"
+segno = "*"
 
 [dev-packages]
 pytest = "*"
