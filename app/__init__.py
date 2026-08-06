@@ -1,3 +1,10 @@
+"""app factory — `create_app()` กับ extension ทุกตัวของ core อยู่ที่นี่ที่เดียว
+
+**การ import ในไฟล์นี้บางบรรทัดมีไว้เพื่อผลข้างเคียง ไม่ใช่เพื่อใช้ชื่อ**
+(เช่น `db_engine` ที่ผูก event listener เปิดบังคับ foreign key ของ SQLite)
+ลบทิ้งแล้วจะไม่มี error อะไรให้เห็น มีแต่ข้อมูลที่ค่อย ๆ เสีย — ดูคอมเมนต์กำกับ
+"""
+
 from pathlib import Path
 
 from flask import Flask, render_template
@@ -60,12 +67,17 @@ login_manager.login_message = _l("Please sign in first")
 
 @login_manager.user_loader
 def load_user(user_id):
+    """โหลด `User` จากไอดีในคุกกี้ session — Flask-Login เรียกให้เองทุก request"""
     from app.models import User
 
     return db.session.get(User, int(user_id))
 
 
 def create_app(config_class=Config):
+    """สร้างแอปหนึ่งตัวจาก config ที่ส่งมา แล้วผูก extension/blueprint/error handler
+
+    **ไม่เรียก `db.create_all()`** — schema มาจาก migration เท่านั้น
+    """
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_object(config_class)
     check_secret_key(app.config.get("SECRET_KEY"))

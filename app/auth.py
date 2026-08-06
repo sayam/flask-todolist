@@ -1,3 +1,9 @@
+"""login/logout และขั้นที่สองของการยืนยันตัวตน — blueprint `auth`
+
+core รู้จักปัจจัยที่สองผ่าน `app/services/mfa.py` เท่านั้น (`is_enrolled` /
+`verify`) **ไม่รู้จักชื่อ plugin ตัวไหนเลยแม้แต่ในคอมเมนต์** — ดู ADR 0024
+"""
+
 import hashlib
 from http import HTTPStatus
 
@@ -64,6 +70,11 @@ def username_bucket() -> str:
     deduct_when=_failed_login,
 )
 def login():
+    """หน้า login — บัญชีที่เปิดปัจจัยที่สองไว้จะหยุดครึ่งทางที่ `/login/verify`
+
+    ยังไม่เรียก `login_user()` ในขั้นนี้ ไม่งั้นคนที่รู้แค่รหัสผ่านเข้าถึงข้อมูล
+    ได้ทันทีด้วยการพิมพ์ URL อื่น (ADR 0024)
+    """
     if current_user.is_authenticated:
         return redirect(url_for("main.index"))
 
@@ -157,6 +168,7 @@ def verify():
 
 
 def session_language():
+    """ภาษาที่ผู้ใช้กดสลับไว้ใน session (None ถ้ายังไม่เคยกด หรือค่าที่ค้างอยู่เลิกรองรับแล้ว)"""
     from flask import session
 
     value = session.get(SESSION_KEY)
@@ -166,6 +178,7 @@ def session_language():
 @bp.route("/logout", methods=["POST"])
 @login_required
 def logout():
+    """ออกจากระบบ — บันทึก audit ก่อนล้าง session เสมอ"""
     # ต้องบันทึกก่อน end_session() ไม่งั้น actor_id กลายเป็นค่าว่างเพราะไม่มีใคร login แล้ว
     audit.record("auth.logout", table_name="tdl_user", row_id=current_user.id)
     db.session.commit()

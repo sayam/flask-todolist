@@ -82,6 +82,10 @@ def _todo_fields():
 @bp.route("/")
 @login_required
 def index():
+    """หน้าแรก: รายการงานของเจ้าของ session ตามตัวกรองใน query string
+
+    วันที่ที่ย่อยไม่ได้ = แสดงทุกงาน ไม่ใช่ 500 และไม่ใช่การเดาความหมายให้
+    """
     try:
         spec = FilterSpec.from_params(request.args)
     except ValueError:
@@ -120,6 +124,7 @@ def index():
 @bp.route("/add", methods=["POST"])
 @login_required
 def add():
+    """เพิ่มงานใหม่จากฟอร์มหน้าแรก"""
     try:
         todos_service.create_todo(current_user, **_todo_fields())
     except NotFoundError:
@@ -160,6 +165,7 @@ def edit(todo_id):
 @bp.route("/toggle/<int:todo_id>", methods=["POST"])
 @login_required
 def toggle(todo_id):
+    """สลับสถานะเสร็จ/ยังไม่เสร็จของงานหนึ่งชิ้น"""
     try:
         todos_service.toggle_todo(current_user, todo_id)
     except NotFoundError:
@@ -170,6 +176,7 @@ def toggle(todo_id):
 @bp.route("/delete/<int:todo_id>", methods=["POST"])
 @login_required
 def delete(todo_id):
+    """ลบงาน — soft delete (ตั้ง `deleted_at`) ไม่ได้ลบแถวจริง"""
     try:
         todos_service.delete_todo(current_user, todo_id)
     except NotFoundError:
@@ -180,6 +187,7 @@ def delete(todo_id):
 @bp.route("/clear-completed", methods=["POST"])
 @login_required
 def clear_completed():
+    """ลบงานที่ทำเสร็จแล้วทั้งหมดของเจ้าของ session"""
     todos_service.clear_completed(current_user)
     return redirect(url_for("main.index"))
 
@@ -187,6 +195,7 @@ def clear_completed():
 @bp.route("/categories")
 @login_required
 def categories():
+    """หน้าจัดการหมวดของเจ้าของ session"""
     return render_template(
         "categories.html",
         categories=categories_service.list_categories(current_user),
@@ -196,6 +205,7 @@ def categories():
 @bp.route("/categories/add", methods=["POST"])
 @login_required
 def add_category():
+    """เพิ่มหมวดใหม่"""
     try:
         categories_service.create_category(current_user, request.form.get("name"))
     except ServiceError as error:
@@ -206,6 +216,7 @@ def add_category():
 @bp.route("/categories/edit/<int:category_id>", methods=["POST"])
 @login_required
 def edit_category(category_id):
+    """เปลี่ยนชื่อหมวด"""
     try:
         categories_service.rename_category(current_user, category_id, request.form.get("name"))
     except NotFoundError:
@@ -218,6 +229,10 @@ def edit_category(category_id):
 @bp.route("/categories/delete/<int:category_id>", methods=["POST"])
 @login_required
 def delete_category(category_id):
+    """ลบหมวด — ทำได้เฉพาะตอนไม่มีงานอยู่เลย
+
+    ปุ่มบนหน้าเว็บถูก disable ไว้ด้วย แต่การกันจริงอยู่ที่ service อย่าเชื่อแค่ปุ่ม
+    """
     try:
         categories_service.delete_category(current_user, category_id)
     except NotFoundError:
@@ -267,6 +282,7 @@ def set_mode(value):
 @bp.route("/settings")
 @login_required
 def settings():
+    """หน้ารวม: โปรไฟล์ รหัสผ่าน API token การยืนยันสองขั้น ภาษา ธีม โหมด timezone"""
     return render_template(
         "settings.html",
         timezones=tz.all_timezones(),
@@ -438,6 +454,7 @@ def mfa_image(factor):
 @bp.route("/settings/mfa/confirm", methods=["POST"])
 @login_required
 def confirm_mfa():
+    """ยืนยันรหัสจากแอป authenticator เพื่อเปิดใช้ปัจจัยที่สองให้เสร็จ"""
     try:
         confirmed = mfa_service.confirm(
             current_user, request.form.get("factor", ""), request.form.get("code", "")
