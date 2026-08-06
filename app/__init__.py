@@ -19,13 +19,7 @@ from flask_wtf.csrf import CSRFProtect
 from sqlalchemy import MetaData
 from sqlalchemy.orm import DeclarativeBase
 
-# `db_engine` import ไว้เพื่อ **ผลข้างเคียง** — ตัวโมดูลผูก event listener ระดับ
-# Engine ที่เปิดบังคับ foreign key ของ SQLite ต้องถูก import ก่อนมี connection แรก
-# ถ้าลบบรรทัดนี้ FK จะไม่ถูกบังคับเลยโดยไม่มี error (tests/test_db_integrity.py ดักไว้)
-from app import (
-    db_engine,  # noqa: F401  — ดู app/db_engine.py
-    plugins,
-)
+from app import db_engine, plugins
 from app.logging_setup import init_logging
 from app.security_headers import init_security_headers
 from config import Config, check_secret_key
@@ -83,6 +77,12 @@ def create_app(config_class=Config):
     check_secret_key(app.config.get("SECRET_KEY"))
     # ให้พังตั้งแต่ตอน start ถ้าโครงสร้าง plugin ไม่ถูกต้อง
     plugins.check_installation()
+
+    # เลือก backend ของฐานข้อมูลจาก scheme ของ URL แล้วโหลดค่าเฉพาะยี่ห้อของมัน
+    # (ADR 0026) — **ต้องทำก่อน `db.init_app()`** เพราะ listener ที่ backend ผูกไว้
+    # ต้องอยู่ครบก่อน engine ตัวแรกถูกสร้าง ไม่งั้น connection ชุดแรกจะหลุดค่าที่
+    # ตั้งไว้ไปเงียบ ๆ (ของ SQLite คือ FK ไม่ถูกบังคับ — tests/test_db_integrity.py ดักไว้)
+    db_engine.load(app.config["SQLALCHEMY_DATABASE_URI"])
 
     Path(app.instance_path).mkdir(parents=True, exist_ok=True)
 

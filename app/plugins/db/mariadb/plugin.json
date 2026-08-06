@@ -1,0 +1,10 @@
+{
+  "type": "db",
+  "name": "MariaDB 11+",
+  "version": "1.0.0",
+  "schemes": ["mariadb", "mariadb+pymysql"],
+  "requires": {
+    "pip": ["pymysql~=1.1"]
+  },
+  "description": "คนละ dialect กับ MySQL ใน SQLAlchemy 2.0 แม้จะใช้ driver ตัวเดียวกัน"
+}

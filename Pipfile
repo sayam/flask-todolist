@@ -33,3 +33,9 @@ python_version = "3.13"
 
 [plugin-auth-totp-qr-segno]
 segno = "*"
+
+[plugin-db-mysql]
+pymysql = "~=1.1"
+
+[plugin-db-mariadb]
+pymysql = "~=1.1"

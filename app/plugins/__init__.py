@@ -60,6 +60,11 @@ class PluginError(RuntimeError):
 
 AUTH_TYPE = "auth"
 
+# backend ของฐานข้อมูล — **เป็นเจ้าของ *ทาง* ที่ข้อมูลวิ่งผ่าน ไม่ใช่เจ้าของ *ข้อมูล***
+# จึงห้ามมีตารางของตัวเอง (ADR 0026 ข้อ 3) ต่างจากชนิดอื่นตรงที่ต้องมีตัวที่ active
+# หนึ่งตัวเสมอ และการสลับตัวคือการย้ายข้อมูล ไม่ใช่การ plug
+DB_TYPE = "db"
+
 # ชื่อโมดูลที่ plugin ใช้ประกาศ model ของตัวเอง (ไม่มีก็ได้ = ไม่มีข้อมูลของตัวเอง)
 MODELS_MODULE = "models"
 # โมดูลที่ plugin ชนิด auth ต้องมี ถ้าประกาศตัวเองเป็นปัจจัยที่สอง
@@ -792,6 +797,22 @@ def _check_enhancements() -> None:
                 raise PluginError(f"{enhancement.key}: manifest ไม่ได้ระบุ `provides`")
 
 
+def _check_db_backends() -> None:
+    """backend ของฐานข้อมูลต้องไม่เป็นเจ้าของตารางใด ๆ (ADR 0026 ข้อ 3)
+
+    schema เดียวกันทุกยี่ห้อเป็น *ข้อกำหนด* ไม่ใช่ผลพลอยได้ — backend ที่มีตาราง
+    ของตัวเองแปลว่าการย้ายยี่ห้อกลายเป็นการย้ายข้อมูลที่ไม่มีใครเขียนทางไว้
+    และ migration ของ core จะมองไม่เห็นตารางนั้น (`owned_tables()` กรองออก)
+    """
+    for plugin in installed_on_disk():
+        if plugin.type == DB_TYPE and tables_of(plugin):
+            raise PluginError(
+                f"{plugin.key}: plugin ชนิด {DB_TYPE} ห้ามมีตารางของตัวเอง "
+                f"(เจอ {', '.join(sorted(tables_of(plugin)))}) — มันเป็นเจ้าของทางที่ข้อมูล "
+                "วิ่งผ่าน ไม่ใช่เจ้าของข้อมูล ดู ADR 0026"
+            )
+
+
 def _check_second_factors() -> None:
     """ปัจจัยที่สองที่ทำสัญญาไม่ครบ = ด่าน login ที่พังตอนมีคนพยายาม login จริง"""
     for plugin in second_factors():
@@ -817,4 +838,5 @@ def check_installation() -> None:
     load_models()
     _check_themes()
     _check_enhancements()
+    _check_db_backends()
     _check_second_factors()

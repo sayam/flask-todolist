@@ -655,7 +655,11 @@ def test_plugin_deps_can_print_categories_for_a_script(app):
     """CI ต้องติดตั้ง category ได้โดยไม่ต้องรู้จักชื่อ plugin ตัวไหนเป็นการเฉพาะ"""
     result = app.test_cli_runner().invoke(args=["plugin-deps", "--categories"])
     assert result.exit_code == 0
-    assert result.output.strip() == "plugin-auth-totp-qr-segno"
+    assert result.output.split() == [
+        "plugin-auth-totp-qr-segno",
+        "plugin-db-mariadb",
+        "plugin-db-mysql",
+    ], "เรียงแล้ว คั่นด้วยช่องว่าง ต่อท้าย `pipenv sync --categories` ได้เลย"
 
 
 def test_plugin_deps_rows_are_a_contract_that_ci_reads(app):
@@ -932,6 +936,13 @@ def test_declaring_the_library_makes_the_import_legal(app, host_plugin):
 # **เพิ่มรายการที่นี่ = ยอมรับว่าจะไม่มีอะไรบอกได้อีกว่าไลบรารีตัวนี้ยังถูกใช้อยู่ไหม**
 DECLARED_BUT_NOT_IMPORTED = {
     # (คีย์ของจุด plug, ชื่อแพ็กเกจ) พร้อมเหตุผลว่าใครเป็นคนเรียกมันแทน
+    #
+    # driver ของฐานข้อมูลถูกเรียกโดย **SQLAlchemy ตามชื่อใน URL** (`mysql+pymysql://`)
+    # ไม่มีไฟล์ไหนของ backend เขียน `import pymysql` เลย — และไม่ควรเขียนด้วย
+    # เพราะการ import ตรง ๆ จะทำให้ต้องมี driver ติดตั้งอยู่ถึงจะ *โหลดโมดูล* ได้
+    # ทั้งที่จริงต้องมีก็ต่อเมื่อจะ *ต่อ* ฐานข้อมูลยี่ห้อนั้น
+    ("db/mysql", "pymysql"),
+    ("db/mariadb", "pymysql"),
 }
 
 
@@ -1139,9 +1150,15 @@ def test_switching_something_off_takes_its_supply_chain_too(app):
     การปิดก็แค่ซ่อนปุ่ม ไม่ได้ลดพื้นที่ที่ต้องเฝ้า CVE เลย
     """
     runner = app.test_cli_runner()
-    assert "plugin-auth-totp" in runner.invoke(args=["plugin-deps", "--categories"]).output
+    before = runner.invoke(args=["plugin-deps", "--categories"]).output.split()
+    assert any(name.startswith("plugin-auth-totp") for name in before)
+
     app.config["DISABLED_PLUGINS"] = frozenset({TOTP_KEY})
-    assert runner.invoke(args=["plugin-deps", "--categories"]).output.strip() == ""
+    after = runner.invoke(args=["plugin-deps", "--categories"]).output.split()
+
+    assert not any(name.startswith("plugin-auth-totp") for name in after)
+    # และต้องหายไปเฉพาะของตัวที่ถูกปิด — ของยี่ห้ออื่นที่ไม่เกี่ยวต้องอยู่ครบ
+    assert after == [name for name in before if not name.startswith("plugin-auth-totp")]
 
 
 def test_a_switched_off_plugin_still_owns_its_tables(app):

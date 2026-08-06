@@ -53,10 +53,12 @@
 - `app/cli.py` — custom flask CLI commands
 - `app/tz.py` — แปลงเวลา UTC ↔ เวลาท้องถิ่นของผู้ใช้
 - `app/theme.py` — เลือกชุดสีและโหมด, `app/sun_data.py` — ตารางดวงอาทิตย์ (generate)
-- `app/plugins/` — registry ของ plugin + ตัว plugin เอง (ชนิด `themes` กับ `auth`
-  — ดูหัวข้อ "สถาปัตยกรรม plugin")
+- `app/plugins/` — registry ของ plugin + ตัว plugin เอง (ชนิด `themes`, `auth`
+  และ `db` — ดูหัวข้อ "สถาปัตยกรรม plugin")
 - `app/security_headers.py` — CSP + security header (Talisman), `app/logging_setup.py` — JSON log + request id
-- `app/db_engine.py` — ค่าระดับ connection (เปิดบังคับ foreign key ของ SQLite)
+- `app/db_engine.py` — **เลือก backend ของฐานข้อมูลจาก scheme ของ `DATABASE_URL`**
+  (ADR 0026) ค่าเฉพาะยี่ห้ออยู่ใน `backend.py` ของ plugin ชนิด `db` ไม่ใช่ที่นี่
+- `app/db_types.py` — `UTCDateTime` ที่คอลัมน์เวลาทุกตัวต้องใช้ (ดูหัวข้อวินัย dialect)
 - `app/soft_delete.py` — ตัวกรอง `deleted_at IS NULL` อัตโนมัติ, `app/purge.py` — จุดเดียวที่ลบจริง
 - `app/audit.py` — audit trail แบบเติมได้อย่างเดียว + hash chain (ดูหัวข้อ Audit trail)
 - `app/static/base.css` — เลย์เอาต์ของ core **ห้ามมีสีดิบ** สีมาจากธีมทั้งหมด
@@ -374,6 +376,22 @@ session มาก่อนโปรไฟล์เพื่อให้กดส
 - `/plugin/themes/<id>/style.css` เป็น route ของ core ที่เสิร์ฟไฟล์ของ plugin
   ตรวจไอดีกับรายการที่ค้นเจอจริงก่อนเสมอ จึง traverse ออกนอกไดเรกทอรีไม่ได้
 
+### ฐานข้อมูลเป็น plugin ชนิด `db` (Phase 5 — ADR 0026)
+- `app/plugins/db/<ไอดี>/plugin.json` ประกาศ `schemes` ที่รับได้ · **scheme ของ
+  `DATABASE_URL` เป็นตัวเลือก backend ตัวเดียว** ไม่มี config ตัวที่สอง
+- **scheme ที่ไม่ตรงกับ backend ตัวไหนเลย = แอปไม่ start** ห้ามตกกลับ SQLite เงียบ ๆ
+  (prod ที่ config ผิดจะ "ทำงานได้" จนถึงวันที่มีคนถามหาข้อมูลที่หายไป)
+- **ชนิดนี้ต่างจาก theme/auth สามข้อ**: ถอดตัวที่ใช้อยู่แล้วไม่มีระบบเหลือ ·
+  active ได้ทีละตัว · การสลับคือการย้ายข้อมูล ไม่ใช่การ plug
+- **ห้ามมี `models.py`** — เป็นเจ้าของ *ทาง* ที่ข้อมูลวิ่งผ่าน ไม่ใช่เจ้าของข้อมูล
+  **migration เป็นของ core** (ตรงข้ามกับ ADR 0023 โดยตั้งใจ ไม่งั้น schema แตกสามสาย)
+- ปิด backend ที่ active ด้วย `DISABLED_PLUGINS` ไม่ได้ และ `plugin-uninstall`
+  กับชนิดนี้ถูกปฏิเสธพร้อมบอกทางที่ถูก
+- ค่าเฉพาะยี่ห้ออยู่ใน `backend.py` ของ plugin นั้น (ไม่ต้องตั้งอะไรก็ไม่ต้องมีไฟล์)
+  โหลดโดย `db_engine.load()` ใน `create_app` **ก่อน `db.init_app()`**
+- driver อยู่ใน category ของตัวเอง (`plugin-db-mysql`) — คนที่รัน SQLite ไม่ต้อง
+  ติดตั้งและไม่ต้องเฝ้า CVE ของ driver ยี่ห้ออื่น
+
 ## ธีมกับโหมด (สว่าง/มืด/อัตโนมัติ)
 
 แยกสองแกน อย่าเอามาปนกัน:
@@ -650,10 +668,13 @@ log ขึ้น "Running upgrade" ครบทุกตัว exit code เป�
 
 ## Foreign key (Phase 2)
 - **SQLite ปิดการบังคับ FK เป็นค่าเริ่มต้น และเป็นค่าต่อ connection** ไม่ใช่ต่อไฟล์
-  `app/db_engine.py` ผูก listener ที่คลาส `Engine` เปิดให้ทุก connection
-- **`app/__init__.py` ต้อง import `db_engine` ไว้เสมอ** เป็น import เพื่อผลข้างเคียง
-  ลบทิ้งแล้ว FK เลิกถูกบังคับโดยไม่มี error อะไรให้เห็น
-  ผลคือลบหมวดแล้วงานจะเหลือ `category_id` ชี้ไปแถวที่ไม่มีอยู่ — ข้อมูลเสียแบบเงียบ
+  ตัว listener อยู่ที่ `app/plugins/db/sqlite/backend.py` (ย้ายมาจาก core ตอน P5-05
+  เพราะเป็นเรื่องของยี่ห้อนั้นล้วน ๆ) ผูกที่คลาส `Engine` จึงครอบทุก engine
+- **`create_app` ต้องเรียก `db_engine.load()` ก่อน `db.init_app()` เสมอ**
+  ตัวนั้นเป็นคนโหลด `backend.py` ของยี่ห้อที่ใช้อยู่ ถ้าลบทิ้งหรือย้ายไปหลัง
+  init FK จะเลิกถูกบังคับโดยไม่มี error อะไรให้เห็น ผลคือลบหมวดแล้วงานจะเหลือ
+  `category_id` ชี้ไปแถวที่ไม่มีอยู่ — ข้อมูลเสียแบบเงียบ
+  (`tests/test_db_integrity.py` ดักไว้ — ถอดบรรทัดนั้นออกแล้วแดงสามตัว)
 - `tests/test_db_integrity.py` วัด **ผล** ของการบังคับ (insert ที่ผิดต้อง IntegrityError,
   `ondelete="SET NULL"` ต้องทำงานจริง) ไม่ใช่แค่ค่า pragma — ห้ามลด assert เหลือแค่อ่าน pragma
 - batch migration ของ alembic กับ FK เปิดอยู่ ทดสอบแล้วว่าไป-กลับได้ข้อมูลครบ

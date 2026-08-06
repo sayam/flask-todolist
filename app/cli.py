@@ -383,6 +383,14 @@ def plugin_uninstall(key, yes):
     plugin = plugins.find_on_disk(key)
     if plugin is None:
         raise click.ClickException(f"No plugin named {key!r} (see `flask plugin-list`).")
+    if plugin.type == plugins.DB_TYPE:
+        # ตอบให้ชัดว่าทำไมคำสั่งนี้ไม่ใช่ทางที่ถูก แทนที่จะบอกว่า "ไม่มีตารางให้ลบ"
+        # ซึ่งจริงแต่ทำให้คนเข้าใจว่าถอนสำเร็จแล้ว (ADR 0026 ข้อ 3 กับ 4)
+        raise click.ClickException(
+            f"{plugin.key} is a database backend: it owns no data of its own, so there is "
+            "nothing to uninstall. Point DATABASE_URL at another backend and migrate the "
+            "data across, then remove the directory if you want its driver gone too."
+        )
     tables = sorted(plugins.tables_of(plugin))
     if not tables:
         click.echo(f"{plugin.key} has no tables of its own — nothing to do.")
