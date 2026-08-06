@@ -11,11 +11,12 @@ reserved word ของ PostgreSQL/Oracle/MSSQL อีกต่อไป
 from datetime import UTC, datetime
 
 from flask_login import UserMixin
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, UniqueConstraint
+from sqlalchemy import Boolean, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app import db, tz
+from app.db_types import UTCDateTime
 from app.soft_delete import SoftDeleteMixin
 
 # ค่าที่ใส่แทน hash เมื่อปิดบัญชีหรือเพิกถอน token — ไม่ใช่รูปแบบ hash ที่ถูกต้อง
@@ -35,7 +36,7 @@ class User(UserMixin, SoftDeleteMixin, db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     username: Mapped[str] = mapped_column(String(80), unique=True)
     password_hash: Mapped[str] = mapped_column(String(255))
-    created_at: Mapped[datetime | None] = mapped_column(DateTime, default=_utcnow)
+    created_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=_utcnow)
     # ภาษาที่ผู้ใช้เลือกไว้ NULL = ยังไม่เคยเลือก ให้ไปดู Accept-Language แทน
     locale: Mapped[str | None] = mapped_column(String(8))
     # ไอดีของ theme plugin ที่เลือก NULL = ใช้ธีม core
@@ -54,7 +55,7 @@ class User(UserMixin, SoftDeleteMixin, db.Model):
     role: Mapped[str] = mapped_column(String(16), default="user", server_default="user")
     # เวลาที่ PII ถูกล้างจริง (แถวยังอยู่เป็น tombstone ให้ audit อ้างถึงได้)
     # ดู docs/DATA-CLASSIFICATION.md — ต่างจาก deleted_at ที่แปลว่า 'ปิดบัญชีแล้ว'
-    purged_at: Mapped[datetime | None] = mapped_column(DateTime, default=None)
+    purged_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=None)
 
     categories: Mapped[list["Category"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
@@ -138,9 +139,9 @@ class ApiToken(SoftDeleteMixin, db.Model):
     name: Mapped[str] = mapped_column(String(80))
     # sha256 ของความลับ (hex 64 ตัว) — ดูเหตุผลที่ไม่ใช้ scrypt ใน app/services/tokens.py
     token_hash: Mapped[str] = mapped_column(String(64))
-    created_at: Mapped[datetime | None] = mapped_column(DateTime, default=_utcnow)
+    created_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=_utcnow)
     # NULL = ไม่มีวันหมดอายุ (ต้องขอเป็นพิเศษ ค่าเริ่มต้นคือมีอายุ)
-    expires_at: Mapped[datetime | None] = mapped_column(DateTime, default=None)
+    expires_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=None)
 
     user: Mapped["User"] = relationship(back_populates="api_tokens")
 
@@ -214,13 +215,15 @@ class Todo(SoftDeleteMixin, db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(String(200))
     is_done: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime | None] = mapped_column(DateTime, default=_utcnow)
-    updated_at: Mapped[datetime | None] = mapped_column(DateTime, default=_utcnow, onupdate=_utcnow)
+    created_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=_utcnow)
+    updated_at: Mapped[datetime | None] = mapped_column(
+        UTCDateTime, default=_utcnow, onupdate=_utcnow
+    )
     # **UTC แบบ naive** เหมือน created_at/updated_at
     # เวลาที่ผู้ใช้กรอกเข้ามาเป็นเวลาท้องถิ่นของเขา ต้องผ่าน tz.to_utc() ก่อนเก็บ
     # และผ่าน tz.to_local() ก่อนแสดง — ดู app/tz.py
-    start_date: Mapped[datetime | None] = mapped_column(DateTime)
-    due_date: Mapped[datetime | None] = mapped_column(DateTime)
+    start_date: Mapped[datetime | None] = mapped_column(UTCDateTime)
+    due_date: Mapped[datetime | None] = mapped_column(UTCDateTime)
     user_id: Mapped[int] = mapped_column(ForeignKey("tdl_user.id"), index=True)
     # ลบหมวดแล้ว todo ไม่หาย แค่กลับไปเป็น "ไม่มีหมวด"
     category_id: Mapped[int | None] = mapped_column(

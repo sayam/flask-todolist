@@ -20,7 +20,7 @@ soft delete แล้วอ่านซ้ำใน context เดียวก�
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, event
+from sqlalchemy import event
 from sqlalchemy.orm import (
     Mapped,
     ORMExecuteState,
@@ -30,6 +30,7 @@ from sqlalchemy.orm import (
 )
 
 from app import tz
+from app.db_types import UTCDateTime
 
 # ส่งเข้า execution_options เพื่อ "ขอเห็นของที่ถูกลบด้วย"
 INCLUDE_DELETED = {"include_deleted": True}
@@ -41,7 +42,7 @@ class SoftDeleteMixin:
     # NULL = ยังอยู่ / มีค่า = ถูกลบเมื่อไหร่ (UTC naive เหมือน timestamp อื่นทั้งระบบ)
     # `index=True` ต้องตรงกับ index ที่ migration สร้างไว้ — ถ้าไม่ประกาศตรงนี้
     # `flask db migrate` จะมองว่า index นั้นเกินแล้วออก migration ที่ drop ทิ้งเงียบ ๆ
-    deleted_at: Mapped[datetime | None] = mapped_column(DateTime, default=None, index=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=None, index=True)
 
     @property
     def is_deleted(self) -> bool:

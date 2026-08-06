@@ -12,10 +12,11 @@
 
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String
+from sqlalchemy import ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app import db
+from app.db_types import UTCDateTime
 
 # ชั้นของคอลัมน์ของเราเองสำหรับ audit — **plugin ประกาศเอง core ไม่รู้จักชื่อพวกนี้**
 # (ดู ADR 0023: ชื่อคอลัมน์ของ plugin ที่ไปเขียนไว้ในโค้ด core จะกลายเป็นขยะ
@@ -42,11 +43,11 @@ class TotpSecret(db.Model):  # type: ignore[name-defined]  # ดู pyproject: d
     user_id: Mapped[int] = mapped_column(ForeignKey("tdl_user.id"), unique=True, index=True)
     # base32 ตามที่แอป authenticator ทุกตัวคาดหวัง — **ชั้น C1**
     totp_secret: Mapped[str] = mapped_column(String(64))
-    created_at: Mapped[datetime | None] = mapped_column(DateTime, default=_utcnow)
+    created_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=_utcnow)
     # ค่าว่างแปลว่าออกความลับให้แล้วแต่ยังไม่ได้ยืนยันด้วยรหัสจริงสักครั้ง
     # ใบที่ยังไม่ยืนยัน **ไม่ถูกนับว่าเปิด MFA** ไม่งั้นคนที่สแกน QR ไม่ทันจะ
     # ล็อกตัวเองออกจากบัญชีทันทีที่กดเปิด
-    confirmed_at: Mapped[datetime | None] = mapped_column(DateTime, default=None)
+    confirmed_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=None)
     # ช่วงเวลาล่าสุดที่ใช้รหัสไปแล้ว — กันเอารหัสเดิมมาใช้ซ้ำภายในช่วงเดียวกัน
     last_counter: Mapped[int | None] = mapped_column(Integer, default=None)
 

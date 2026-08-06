@@ -664,7 +664,12 @@ log ขึ้น "Running upgrade" ครบทุกตัว exit code เป�
   (reserved ใน PostgreSQL/Oracle/MSSQL — migration เก่า 3 จุดปล่อยไว้ จะล้างด้วย
   baseline squash ตอน Phase 5 อย่าเพิ่มจุดใหม่)
   **ตารางปัจจุบันไม่มีชื่อนี้แล้ว** หลังใส่ prefix `tdl_` — เหลือแค่ใน migration เก่า
-- ห้ามเทียบ DATETIME แบบ exact ข้าม insert — MySQL default ตัด microsecond
+- **คอลัมน์เวลาต้องใช้ `UTCDateTime` จาก `app/db_types.py` ห้ามใช้ `DateTime` เปล่า**
+  (`DATETIME` ของ MySQL/MariaDB ตัดเศษวินาทีทิ้งเงียบ ๆ — ไม่มี warning ไม่มี error
+  งานที่สร้างห่างกันไม่กี่มิลลิวินาทีจะมีเวลาเท่ากันแล้วเรียงลำดับสลับกันเอง)
+  `tests/test_dialect_parity.py` บังคับทั้งฝั่ง model และฝั่ง migration
+  **`sa.DateTime()` ที่ `flask db migrate` ออกให้ ต้องแก้เป็น `UTCDateTime` ทุกครั้ง**
+- ห้ามเทียบ DATETIME แบบ exact ข้าม insert บนคอลัมน์ที่ไม่ได้ใช้ `UTCDateTime`
 - คอลัมน์ String ระบุความยาวเสมอ (MySQL บังคับ) — ตอนนี้ครบทุกคอลัมน์แล้ว
 
 ## แผนระยะยาว

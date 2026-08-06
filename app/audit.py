@@ -40,10 +40,11 @@ from typing import Any
 
 from flask import current_app, has_request_context
 from flask_login import current_user
-from sqlalchemy import DateTime, Integer, String, Text, UniqueConstraint, event, inspect, select
+from sqlalchemy import Integer, String, Text, UniqueConstraint, event, inspect, select
 from sqlalchemy.orm import Mapped, Session, mapped_column, scoped_session
 
 from app import db, tz
+from app.db_types import UTCDateTime
 from app.logging_setup import current_request_id
 
 # แถวแรกสุดของสายไม่มีแถวก่อนหน้าให้ชี้ — ใช้ค่าคงที่แทน
@@ -147,7 +148,7 @@ class AuditEntry(db.Model):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     # UTC naive ตัดเศษวินาทีทิ้งแล้ว (เหตุผลอยู่ใน docstring ของโมดูล)
-    created_at: Mapped[datetime] = mapped_column(DateTime, index=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, index=True)
     event: Mapped[str] = mapped_column(String(32), index=True)
     # เลขล้วน ไม่เก็บ username — ลบ PII ที่ตาราง user แล้วแถวนี้ไม่ต้องแก้
     actor_id: Mapped[int | None] = mapped_column(Integer, index=True)
