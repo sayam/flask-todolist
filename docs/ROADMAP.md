@@ -92,9 +92,9 @@ correctness) backend จริงเป็น plugin และ rate-limiter stor
 
 | จุด | ระเบิดกับ | แก้ที่ไหน |
 |---|---|---|
-| raw SQL `UPDATE user SET ...` ใน migration `296ab616c11b` — `user` เป็น reserved word | PostgreSQL/Oracle/MSSQL (fresh install ที่ replay migration) — **MySQL/MariaDB รอด** | Phase 2: rename เป็น `tdl_user` (หมดปัญหาถาวร) + Phase 5: squash ล้าง raw SQL เก่า |
+| ~~raw SQL `UPDATE user SET ...` ใน migration `296ab616c11b` — `user` เป็น reserved word~~ **ปิดแล้ว** | PostgreSQL/Oracle/MSSQL (fresh install ที่ replay migration) — **MySQL/MariaDB รอด** | Phase 2: rename เป็น `tdl_user` (หมดปัญหาถาวร) + **P5-02: ยุบสายเดิม 13 ตัวเป็น baseline `5ffefa218ed7` ✅ raw SQL หายไปทั้งหมด** |
 | MySQL `DATETIME` default ตัด microsecond แต่โค้ดเก็บ `datetime.now()` เต็ม precision | MySQL/MariaDB (silent truncation กระทบ ordering tie และ audit hash) | Phase 5: type variant `DATETIME(6)` + เทสต์ precision ใน CI matrix |
-| `batch_alter_table` + data fix เฉพาะ SQLite ใน migration เก่า | ไม่ระเบิด (no-op บนยี่ห้ออื่น) แต่รก | Phase 5: baseline squash ล้างทิ้งพร้อมกัน |
+| ~~`batch_alter_table` + data fix เฉพาะ SQLite ใน migration เก่า~~ **ปิดแล้ว** | ไม่ระเบิด (no-op บนยี่ห้ออื่น) แต่รก | **P5-02: หายไปพร้อมการยุบสาย ✅ baseline ไม่มี `batch_alter_table` เลยสักจุด** |
 | ชื่อคอลัมน์ String ระบุความยาวครบทุกตัวแล้ว | — | ทุนที่มีแล้ว (MySQL บังคับ) |
 
 **Baseline squash (Phase 5):** ณ จุดที่รองรับหลาย DB จะสร้าง migration ตั้งต้น

@@ -8,9 +8,10 @@ import re
 
 VERSIONS = pathlib.Path(__file__).resolve().parent.parent / "migrations" / "versions"
 
-# migration เก่าที่เขียนก่อนมีกติกา — จะถูกล้างด้วย baseline squash ตอน Phase 5
-# ห้ามเพิ่มรายการใหม่ใน allowlist นี้ (การเพิ่ม = ยอมรับหนี้ใหม่ ต้องมี ADR)
-LEGACY_ALLOWLIST = {"296ab616c11b_split_theme_into_theme_name_mode.py"}
+# **ว่างแล้วตั้งแต่ P5-02** — หนี้ก้อนเดิม (`296ab616c11b` ที่มี `UPDATE user SET ...`
+# สามจุด) ถูกล้างไปพร้อมกับการยุบสายเดิมเป็น baseline ตัวเดียว
+# ห้ามเพิ่มรายการใหม่ที่นี่ (การเพิ่ม = ยอมรับหนี้ใหม่ ต้องมี ADR)
+LEGACY_ALLOWLIST: set[str] = set()
 
 # ตาราง user เป็น reserved word ใน PostgreSQL/Oracle/MSSQL
 # raw SQL ที่อ้างแบบไม่ quote จะพังตอน fresh install บนยี่ห้อพวกนั้น

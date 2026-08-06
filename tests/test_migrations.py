@@ -176,3 +176,72 @@ def test_legacy_version_table_is_adopted(migrated):
     names = _tables(migrated)
     assert VERSION_TABLE in names
     assert "alembic_version" not in names
+
+
+# --- การยุบสายเดิม (Phase 5 — P5-02) ---
+# สายเดิม 13 ตัวถูกยุบเป็น baseline ตัวเดียวเพราะมี raw SQL สามจุดที่อ้างตาราง
+# `user` โดยไม่ quote (reserved word ของ PostgreSQL/Oracle/MSSQL)
+# ฐานข้อมูลที่มีอยู่แล้วจึงชี้ไปเวอร์ชันที่ไม่มีไฟล์อยู่จริงอีกต่อไป
+
+SQUASHED_HEAD = "401e0ce7011f"
+MID_CHAIN = "18dccb13a980"
+
+
+def _version_of(db_path):
+    with sqlite3.connect(db_path) as conn:
+        # S608 ปลอดภัยตรงนี้ — VERSION_TABLE เป็นค่าคงที่ในไฟล์นี้ ไม่ได้มาจากภายนอก
+        return conn.execute(f"SELECT version_num FROM {VERSION_TABLE}").fetchone()[0]  # noqa: S608
+
+
+def _stamp(db_path, revision):
+    """ตั้งเวอร์ชันที่ฐานข้อมูลอ้าง เพื่อจำลองฐานที่ค้างอยู่ที่จุดต่าง ๆ ของสายเดิม"""
+    with sqlite3.connect(db_path) as conn:
+        conn.execute(f"UPDATE {VERSION_TABLE} SET version_num = ?", (revision,))  # noqa: S608
+        conn.commit()
+
+
+def _upgrade_via_cli(db_path):
+    """รัน `flask db upgrade` ผ่าน CLI จริง เพื่อดู **สิ่งที่ผู้ดูแลเห็น**
+
+    ไม่เรียก `flask_migrate.upgrade()` ตรง ๆ เพราะมันถูกห่อด้วย `catch_errors`
+    ที่แปลง `RuntimeError` เป็น log + `sys.exit(1)` — การทดสอบที่ข้ามชั้นนั้นไป
+    จะพิสูจน์ว่ามี exception ขึ้น แต่ไม่ได้พิสูจน์ว่าคำสั่งจบด้วยรหัสที่ไม่ใช่ 0
+    และไม่ได้พิสูจน์ว่าข้อความบอกทางออกไว้ ซึ่งเป็นสองอย่างที่มีผลจริงตอนใช้งาน
+    """
+
+    class MigrationConfig(TestConfig):
+        SQLALCHEMY_DATABASE_URI = f"sqlite:///{db_path}"
+
+    return create_app(MigrationConfig).test_cli_runner().invoke(args=["db", "upgrade"])
+
+
+def test_a_database_at_the_old_head_is_adopted_without_asking(migrated):
+    """ฐานที่อยู่ปลายสายเดิมต้องอัปเกรดต่อได้เลย ไม่ต้องให้ใครไปพิมพ์ `db stamp`
+
+    ขั้นตอนที่ต้องทำด้วยมือคือขั้นตอนที่วันหนึ่งจะมีคนข้าม แล้วไปเจอ
+    "Can't locate revision" ตอนตีสามโดยไม่มีบริบทว่าต้องทำอะไรต่อ
+    (หลักเดียวกับ `test_legacy_version_table_is_adopted` ข้างบน)
+    """
+    _stamp(migrated, SQUASHED_HEAD)
+    before = _tables(migrated)
+
+    _upgrade_into(migrated)  # ต้องไม่ raise
+
+    assert _version_of(migrated) != SQUASHED_HEAD, "ต้องถูกรับช่วงไปเป็น baseline แล้ว"
+    assert _tables(migrated) == before, "การรับช่วงต้องไม่แตะโครงสร้างตาราง"
+
+
+def test_a_database_stuck_mid_chain_is_refused_not_stamped(migrated):
+    """ฐานที่ค้างกลางสายเดิมต้องถูกปฏิเสธ **ไม่ใช่ถูกดันไป baseline ให้**
+
+    ตารางของมันยังไม่ครบ การ stamp ให้คือการโกหกว่า schema พร้อมแล้ว
+    แล้วแอปจะไปพังตอน query ด้วย "no such column" ซึ่งไล่กลับมาหาต้นเหตุยากมาก
+    """
+    _stamp(migrated, MID_CHAIN)
+
+    result = _upgrade_via_cli(migrated)
+
+    assert result.exit_code != 0, "ต้องจบด้วยรหัสที่ไม่ใช่ 0 ไม่งั้นสคริปต์ deploy จะเดินต่อ"
+    assert "กลางสายเดิม" in result.output
+    assert SQUASHED_HEAD in result.output, "ต้องบอกด้วยว่าต้อง upgrade ไปถึงตัวไหนก่อน"
+    assert _version_of(migrated) == MID_CHAIN, "ถูกปฏิเสธแล้วต้องไม่แก้เวอร์ชันทิ้งไว้"

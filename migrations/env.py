@@ -135,6 +135,57 @@ def _adopt_legacy_version_table(engine):
             connection.execute(sa_text(f"ALTER TABLE alembic_version RENAME TO {VERSION_TABLE}"))
 
 
+# สายเดิม 13 ตัวของ Phase 1–4 ที่ถูกยุบเป็น baseline ตัวเดียวใน Phase 5
+# **ตัวสุดท้ายเท่านั้นที่รับช่วงได้** — ดู `_adopt_squashed_history()`
+SQUASHED_HEAD = "401e0ce7011f"
+BASELINE = "5ffefa218ed7"
+SQUASHED_HISTORY = {
+    "c98b7f2ca563", "cb0dcf2ef467", "89cd0c572bf9", "8caa5996801f", "81b7c3f4e01f",
+    "18dccb13a980", "296ab616c11b", "7de41b01a108", "a1f0c2d47b93", "b7e3d91c5a2f",
+    "c4d8e05a91f7", "c7f1db5e54e4", SQUASHED_HEAD,
+}
+
+
+def _adopt_squashed_history(engine):
+    """ฐานข้อมูลที่อยู่ปลายสายเดิม ให้ถือว่าอยู่ที่ baseline แทน
+
+    สายเดิมถูกยุบเป็น migration ตัวเดียว (`5ffefa218ed7`) ไฟล์ของมันจึงไม่มีอยู่
+    แล้ว ถ้าไม่ทำอะไร alembic จะหาเวอร์ชันที่ฐานข้อมูลอ้างไม่เจอแล้วหยุดด้วย
+    "Can't locate revision" ซึ่งเป็นข้อความที่ไม่ได้บอกว่าต้องทำอะไรต่อ
+
+    ทำให้อัตโนมัติแทนที่จะสั่งให้คนไปพิมพ์ `flask db stamp` เอง — หลักเดียวกับ
+    `_adopt_legacy_version_table()` ข้างบน: ขั้นตอนที่ต้องทำด้วยมือคือขั้นตอนที่
+    วันหนึ่งจะมีคนข้าม แล้วไปเจอ error ตอนตีสามโดยไม่มีบริบทอะไรเลย
+
+    **รับช่วงเฉพาะฐานที่อยู่ที่ปลายสายเดิมเท่านั้น** ฐานที่ค้างอยู่กลางสาย
+    (เช่นเพิ่ง upgrade ไปได้ครึ่งทางแล้วหยุด) ต้องไม่ถูกดันไป baseline เพราะ
+    ตารางของมันยังไม่ครบ — การ stamp ให้จะกลายเป็นการโกหกว่า schema พร้อมแล้ว
+    แล้วแอปจะพังตอน query ด้วย "no such column" ซึ่งไล่กลับมาหาต้นเหตุยากมาก
+    กรณีนั้นให้หยุดพร้อมบอกว่าต้อง upgrade ด้วยโค้ดเวอร์ชันก่อนหน้าให้จบก่อน
+    """
+    from sqlalchemy import inspect
+
+    with engine.begin() as connection:
+        if VERSION_TABLE not in set(inspect(connection).get_table_names()):
+            return  # ฐานใหม่เอี่ยม ไม่มีอะไรให้รับช่วง
+        rows = connection.execute(sa_text(f"SELECT version_num FROM {VERSION_TABLE}")).fetchall()
+        current = {row[0] for row in rows}
+        if not current & SQUASHED_HISTORY:
+            return  # อยู่ที่ baseline หรือใหม่กว่าอยู่แล้ว
+
+        if current != {SQUASHED_HEAD}:
+            raise RuntimeError(
+                f"ฐานข้อมูลนี้อยู่ที่ {', '.join(sorted(current))} ซึ่งเป็นเวอร์ชันกลางสายเดิม "
+                f"ที่ถูกยุบไปแล้ว — ให้ upgrade ด้วยโค้ดเวอร์ชันก่อน Phase 5 จนถึง "
+                f"{SQUASHED_HEAD} ก่อน แล้วค่อยกลับมารันตัวนี้"
+            )
+        logger.info("adopting squashed history: %s -> %s", SQUASHED_HEAD, BASELINE)
+        connection.execute(
+            sa_text(f"UPDATE {VERSION_TABLE} SET version_num = :new WHERE version_num = :old"),
+            {"new": BASELINE, "old": SQUASHED_HEAD},
+        )
+
+
 def run_migrations_online():
     """Run migrations in 'online' mode.
 
@@ -159,7 +210,9 @@ def run_migrations_online():
     conf_args.setdefault("include_object", include_object)
 
     connectable = get_engine()
+    # ลำดับสำคัญ: เปลี่ยนชื่อตารางก่อน แล้วค่อยอ่าน/แก้ค่าข้างในตารางนั้น
     _adopt_legacy_version_table(connectable)
+    _adopt_squashed_history(connectable)
 
     with connectable.connect() as connection:
         context.configure(
