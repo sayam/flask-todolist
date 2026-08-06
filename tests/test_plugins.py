@@ -691,6 +691,72 @@ def test_plugin_deps_rows_are_a_contract_that_ci_reads(app):
         assert category.startswith("[plugin-"), f"{key}: คอลัมน์ที่สี่ต้องเป็นชื่อ category"
 
 
+# job `bare` รันด้วย `-m "not plugin_deps"` ทุกตัวที่ถูกมาร์กจึงเป็นสิ่งที่ **job
+# นั้นไม่ได้พิสูจน์** เพดานนี้ทำให้การลดขอบเขตของด่านเป็นการตัดสินใจที่มีคนเห็น
+# ไม่ใช่ผลข้างเคียงของการมาร์กเพิ่มทีละตัวจนวันหนึ่ง `bare` เขียวเพราะแทบไม่ได้รันอะไร
+# **ratchet: ลดได้อย่างเดียว** เพิ่มต้องอธิบายให้ได้ว่าทำไมเทสต์นั้นถึงต้องมี
+# ไลบรารีของจุด plug จริง ๆ (ส่วนใหญ่เขียนใหม่ให้ไม่ต้องมีได้ — ดู `qr_unplugged`
+# ใน tests/test_totp.py ที่ทดสอบเส้นทาง "ไม่มีส่วนเสริม" โดยไม่ต้องมีไลบรารีเลย)
+PLUGIN_DEPS_BUDGET = 5  # วัดจริง 2026-08-06: test_totp 4 + test_plugins 1
+
+TESTS_DIR = pathlib.Path(__file__).resolve().parent
+
+
+def _marked_plugin_deps():
+    """ชื่อเทสต์ทุกตัวที่ประกาศตัวว่าต้องมีไลบรารีของจุด plug
+
+    ครอบทั้ง decorator ต่อตัวและ `pytestmark` ระดับโมดูล — อย่างหลังมาร์กทั้งไฟล์
+    ด้วยบรรทัดเดียว ซึ่งเป็นวิธีที่ขอบเขตของ job `bare` จะหดลงเยอะที่สุดต่อการ
+    แก้หนึ่งครั้ง จึงต้องถูกนับให้ครบทุกตัวในไฟล์นั้น ไม่ใช่นับเป็นหนึ่ง
+    """
+    marked = []
+    for path in sorted(TESTS_DIR.glob("test_*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        functions = [
+            node
+            for node in tree.body
+            if isinstance(node, ast.FunctionDef) and node.name.startswith("test_")
+        ]
+        module_wide = any(
+            isinstance(node, ast.Assign)
+            and any(getattr(target, "id", "") == "pytestmark" for target in node.targets)
+            and "plugin_deps" in ast.unparse(node.value)
+            for node in tree.body
+        )
+        for node in functions:
+            decorated = any(
+                ast.unparse(decorator).endswith("pytest.mark.plugin_deps")
+                for decorator in node.decorator_list
+            )
+            if module_wide or decorated:
+                marked.append(f"{path.name}::{node.name}")
+    return marked
+
+
+def test_the_bare_job_still_covers_almost_everything():
+    """**สิ่งที่ job `bare` ข้าม คือสิ่งที่มันไม่ได้พิสูจน์**
+
+    ด่านนั้นตอบคำถาม "ถอดไลบรารีของ plugin ออกแล้วระบบยังทำงานไหม" ได้ก็ต่อเมื่อ
+    ยังรันเกือบทั้งชุดอยู่ ถ้ามีคนมาร์กเพิ่มเรื่อย ๆ (หรือมาร์กทั้งไฟล์ด้วย
+    `pytestmark` บรรทัดเดียว) มันจะยังเขียวเหมือนเดิมทุกครั้ง โดยที่ความหมาย
+    ของคำว่าเขียวหดลงเงียบ ๆ — ไม่มีอะไรในระบบฟ้องเรื่องนี้นอกจากเพดานนี้
+    """
+    marked = _marked_plugin_deps()
+    assert len(marked) <= PLUGIN_DEPS_BUDGET, (
+        f"มีเทสต์ที่ job `bare` ไม่ได้รัน {len(marked)} ตัว เกินเพดาน {PLUGIN_DEPS_BUDGET}:\n"
+        + "\n".join(marked)
+        + "\n\nเขียนให้ไม่ต้องพึ่งไลบรารีของจุด plug ได้ไหม ถ้าจำเป็นจริง ๆ "
+        "ให้ขยับ PLUGIN_DEPS_BUDGET พร้อมเหตุผล (ratchet: ปกติลดได้อย่างเดียว)"
+    )
+
+
+def test_the_marker_scanner_sees_the_real_markers():
+    """กันเทสต์ข้างบนเขียวเพราะสแกนไม่เจออะไรเลย ไม่ใช่เพราะไม่มีใครมาร์กเกิน"""
+    marked = _marked_plugin_deps()
+    assert "test_plugins.py::test_the_shipped_qr_is_plugged_in_as_an_enhancement" in marked
+    assert sum(name.startswith("test_totp.py::") for name in marked) == 4
+
+
 # --- โค้ดของจุด plug ต้อง import แค่ของที่ประกาศไว้ (Phase 4.5 — ADR 0025 ข้อ 7) ---
 # manifest ที่ประกาศไลบรารีไม่ครบทำให้คำสัญญาหลักของเฟสนี้ ("ถอดไดเรกทอรีแล้ว
 # supply chain ของมันหายไปด้วย") เป็นจริงแค่บนกระดาษ — `plugin-deps` จะไม่รู้จัก

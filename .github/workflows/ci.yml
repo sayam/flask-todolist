@@ -82,7 +82,14 @@ jobs:
       # ไม่มี coverage gate ที่นี่ — โหมดนี้ไม่ได้เดินโค้ดของส่วนเสริมเลย
       # เพดาน coverage วัดจาก job `test` ที่ติดตั้งครบ ที่นี่วัดแค่ว่า "ไม่พัง"
       - name: pytest ทั้งชุด ยกเว้นเทสต์ที่ประกาศตัวว่าต้องมีไลบรารีของ plugin
-        run: pipenv run pytest -q -m "not plugin_deps"
+        run: |
+          set -o pipefail
+          pipenv run pytest -q -m "not plugin_deps" | tee bare.log
+          # **เขียวเฉย ๆ ไม่พอ ต้องบอกด้วยว่าตัดอะไรออกไป** — job นี้พิสูจน์ได้แค่
+          # ส่วนที่มันรันจริง จำนวนที่ถูกข้ามจึงเป็นตัวเลขที่ต้องมีคนเห็นทุกครั้ง
+          # ไม่ใช่ตัวเลขที่ต้องไปขุดหาใน log (เพดานของมันอยู่ที่ PLUGIN_DEPS_BUDGET
+          # ใน tests/test_plugins.py ซึ่งเป็นด่านที่ทำให้มันโตขึ้นเงียบ ๆ ไม่ได้)
+          echo "### โหมด bare: $(tail -1 bare.log)" >> "$GITHUB_STEP_SUMMARY"
         env:
           SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
 
