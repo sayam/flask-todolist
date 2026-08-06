@@ -53,10 +53,28 @@ jobs:
       # ถามสถานะจากตัวแอปเอง **ห้าม hardcode ชื่อ plugin หรือชื่อไลบรารีใน CI**
       - name: ยืนยันว่าไม่มีไลบรารีของ plugin ตัวไหนติดตั้งอยู่
         run: |
-          installed=$(pipenv run flask plugin-deps | awk -F'\t' '$3 == "ok"' | wc -l)
+          set -o pipefail
+          # **เก็บ output ก่อนแล้วค่อยนับ** ไม่ใช่ต่อท่อยาวเส้นเดียว — exit code
+          # ของ `x=$(cmd | awk | wc -l)` มาจาก `wc` เสมอ (= 0) คำสั่งที่พังจึง
+          # กลายเป็น "ไม่มีไลบรารีติดตั้งอยู่" ซึ่งคือคำว่า *ผ่าน* ของด่านนี้พอดี
+          # (ตระกูลเดียวกับ `if ! cmd; then status=$?` ใน scripts/purge_cron.sh)
+          deps=$(pipenv run flask plugin-deps)
+          categories=$(pipenv run flask plugin-deps --categories)
+          # ด่านนี้อ่านคอลัมน์ที่สามด้วย awk รูปแบบบรรทัดจึงเป็นสัญญา ไม่ใช่การจัดหน้า
+          # (ตรึงไว้ด้วย `test_plugin_deps_rows_are_a_contract_that_ci_reads`)
+          # ถ้ารูปแบบเปลี่ยนไปโดยไม่มีใครแก้ตรงนี้ awk จะนับได้ 0 แล้ว job นี้จะ
+          # เขียวโดยไม่ได้ตรวจอะไรเลย — เทียบกับ `--categories` เพื่อจับกรณีนั้น
+          readable=$(printf '%s\n' "$deps" | awk -F'\t' '$3 == "ok" || $3 == "MISSING"' | wc -l)
+          if [ -n "$categories" ] && [ "$readable" = "0" ]; then
+            echo "มีจุด plug ที่ประกาศไลบรารีไว้ ($categories) แต่อ่านสถานะจาก plugin-deps ไม่ได้"
+            echo "รูปแบบ output เปลี่ยนไปแล้วหรือเปล่า — ด่านนี้อ่านคอลัมน์ที่สามเป็น ok/MISSING"
+            printf '%s\n' "$deps"
+            exit 1
+          fi
+          installed=$(printf '%s\n' "$deps" | awk -F'\t' '$3 == "ok"' | wc -l)
           if [ "$installed" != "0" ]; then
             echo "โหมด bare แต่ยังมีไลบรารีของ plugin ติดตั้งอยู่ $installed รายการ"
-            pipenv run flask plugin-deps
+            printf '%s\n' "$deps"
             exit 1
           fi
         env:

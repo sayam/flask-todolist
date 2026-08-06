@@ -658,6 +658,39 @@ def test_plugin_deps_can_print_categories_for_a_script(app):
     assert result.output.strip() == "plugin-auth-totp-qr-segno"
 
 
+def test_plugin_deps_rows_are_a_contract_that_ci_reads(app):
+    """**รูปแบบบรรทัดนี้เป็นสัญญา ไม่ใช่การจัดหน้าให้คนอ่าน**
+
+    ด่านของ job `bare` นับบรรทัดที่คอลัมน์ที่สามเป็น `ok` เพื่อยืนยันว่า
+    *ไม่มี* ไลบรารีของจุด plug ตัวไหนติดตั้งอยู่ ก่อนจะเชื่อผลของชุดเทสต์
+    ถ้าชื่อสถานะเปลี่ยน สลับคอลัมน์ หรือเลิกคั่นด้วย tab — `awk` จะนับได้ 0
+    เสมอ แล้ว **job `bare` จะเขียวโดยไม่ได้พิสูจน์อะไรเลย** ซึ่งเป็นสิ่งเดียวกับ
+    ที่ด่านนั้นถูกเขียนขึ้นมากัน (ไม่มีอะไรฟ้อง เพราะมันคือคำว่า "ผ่าน" เหมือนกัน)
+
+    **ห้ามมาร์ก `plugin_deps`** — เทสต์นี้ต้องเดินได้ทั้งสองโหมด จึงไม่ยืนยันว่า
+    สถานะเป็น `ok` หรือ `MISSING` ยืนยันแค่ว่าเป็นคำที่ด่านนั้นอ่านออก
+    """
+    result = app.test_cli_runner().invoke(args=["plugin-deps"])
+    assert result.exit_code == 0, result.output
+    rows = [line.split("\t") for line in result.output.splitlines() if line]
+
+    assert {len(row) for row in rows} <= {2, 4}, (
+        f"บรรทัดต้องมี 2 ช่อง (ไม่พึ่งไลบรารี) หรือ 4 ช่อง (พึ่ง) เท่านั้น: {rows}"
+    )
+    declared = [row for row in rows if len(row) == 4]
+    assert declared, (
+        "ไม่มีจุด plug ไหนประกาศไลบรารีเลย — ด่านของ job `bare` จะไม่มีอะไรให้ตรวจ "
+        "และจะผ่านทุกครั้งโดยไม่ได้พิสูจน์อะไร"
+    )
+    for key, requirement, state, category in declared:
+        assert state in {"ok", "MISSING"}, (
+            f"{key}: คอลัมน์ที่สามต้องเป็น 'ok' หรือ 'MISSING' ไม่ใช่ {state!r} "
+            "— ด่านของ job `bare` ใน .github/workflows/ci.yml อ่านค่านี้ตรง ๆ"
+        )
+        assert requirement, f"{key}: คอลัมน์ที่สองต้องเป็นชื่อไลบรารี"
+        assert category.startswith("[plugin-"), f"{key}: คอลัมน์ที่สี่ต้องเป็นชื่อ category"
+
+
 # --- โค้ดของจุด plug ต้อง import แค่ของที่ประกาศไว้ (Phase 4.5 — ADR 0025 ข้อ 7) ---
 # manifest ที่ประกาศไลบรารีไม่ครบทำให้คำสัญญาหลักของเฟสนี้ ("ถอดไดเรกทอรีแล้ว
 # supply chain ของมันหายไปด้วย") เป็นจริงแค่บนกระดาษ — `plugin-deps` จะไม่รู้จัก
