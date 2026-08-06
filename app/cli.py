@@ -236,20 +236,43 @@ def token_revoke(username, token_id):
     click.echo(f"Revoked token {token.id} ({token.name!r}) of {user.username!r}.")
 
 
-def _serving_state(plugin):
-    """ส่วนเสริมตัวนี้เป็นตัวที่ให้บริการความสามารถของมันอยู่จริงไหม
+def _serving_keys(points):
+    """คีย์ของส่วนเสริมที่กำลังให้บริการความสามารถของมันอยู่จริง
 
     **ไม่คำนวณเหตุผลซ้ำเอง** — ถาม `provider()` ตัวเดียวกับที่ host เรียกจริง
     ซึ่งจะ log บอกด้วยว่าทำไมถึงไม่ได้ให้บริการ (มีหลายตัวแต่ไม่มี pick จึงปิดไว้
     ทั้งหมด / pick ชี้ไปตัวที่ตอนนี้ใช้ไม่ได้) ซึ่งคือคำถามของคนที่รันคำสั่งนี้
     ตอนที่ความสามารถหนึ่งหายไปโดยที่ไดเรกทอรียังอยู่และไลบรารีก็ยังครบ
+
+    **ถามครั้งเดียวต่อความสามารถ ไม่ใช่ครั้งเดียวต่อส่วนเสริม** — คำตอบเป็นของ
+    ความสามารถทั้งอัน (ใครได้ให้บริการ) ไม่ใช่ของผู้สมัครแต่ละราย ถามทีละราย
+    จึงได้คำเตือนข้อความเดียวกันซ้ำตามจำนวนผู้สมัคร แล้วคนอ่าน log จะนึกว่า
+    เป็นคนละเหตุการณ์กัน ทั้งที่เป็นเรื่องเดียวที่ถูกถามซ้ำ
     """
     from app import plugins
 
+    # (คีย์ของ host, ชื่อความสามารถ) → host — ตัวเดียวกันโผล่ได้หลายรอบตามจำนวนผู้สมัคร
+    capabilities: dict[tuple[str, str], plugins.Plugin] = {}
+    for point in points:
+        if point.host is not None and point.provides is not None:
+            capabilities.setdefault((point.host.key, point.provides), point.host)
+
+    serving = set()
+    for (_, capability), host in capabilities.items():
+        chosen = plugins.provider(host, capability)
+        if chosen is not None:
+            serving.add(chosen.key)
+    return serving
+
+
+def _serving_state(plugin, serving):
+    """คอลัมน์ `provides <ความสามารถ> (serving / NOT serving)` ของแถวนี้
+
+    ว่างเปล่าสำหรับ plugin ที่ไม่ได้ให้ความสามารถผ่านชั้นนี้ (ตัวแม่กับธีม)
+    """
     if plugin.host is None or plugin.provides is None:
         return ""
-    chosen = plugins.provider(plugin.host, plugin.provides)
-    verb = "serving" if chosen is not None and chosen.key == plugin.key else "NOT serving"
+    verb = "serving" if plugin.key in serving else "NOT serving"
     return f"provides {plugin.provides} ({verb}); "
 
 
@@ -267,7 +290,9 @@ def plugin_list():
     #
     # และต้องครบทุกชั้น (รวมส่วนเสริม) เพราะคีย์ที่ใส่ลง DISABLED_PLUGINS
     # มาจากรายการนี้ — คีย์ที่ไม่เคยถูกพิมพ์ออกมาคือคีย์ที่ไม่มีใครใส่ได้ถูก
-    for plugin in plugins.plug_points_on_disk():
+    points = plugins.plug_points_on_disk()
+    serving = _serving_keys(points)
+    for plugin in points:
         tables = sorted(plugins.tables_of(plugin))
         needed = plugins.requirements(plugin)
         if tables:
@@ -280,7 +305,8 @@ def plugin_list():
             state = "no tables"
         core = " (core)" if plugin.is_core else ""
         off = " DISABLED" if plugins.is_disabled(plugin) else ""
-        click.echo(f"{plugin.key}\tv{plugin.version}{core}{off}\t{_serving_state(plugin)}{state}")
+        column = _serving_state(plugin, serving)
+        click.echo(f"{plugin.key}\tv{plugin.version}{core}{off}\t{column}{state}")
 
 
 @click.command("plugin-deps")

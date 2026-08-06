@@ -1221,6 +1221,21 @@ def test_plugin_list_says_which_enhancement_is_actually_serving(app, host_plugin
     assert "provides" not in _listed(output, "auth/hosty")
 
 
+def test_the_reason_it_is_off_is_logged_once_not_once_per_candidate(app, host_plugin, warnings_of):
+    """เหตุผลเป็นของ *ความสามารถ* ไม่ใช่ของผู้สมัครแต่ละราย
+
+    `provider()` เป็นคนอธิบายลง log ว่าทำไมไม่มีตัวไหนได้ให้บริการ ถ้ารายการนี้
+    ถามมันทีละส่วนเสริม คนอ่าน log จะเห็นข้อความเดียวกันซ้ำตามจำนวนผู้สมัคร
+    แล้วนึกว่าเป็นคนละเหตุการณ์ — ยิ่งมีผู้สมัครเยอะยิ่งดูเหมือนปัญหาใหญ่ขึ้น
+    ทั้งที่เป็นเรื่องเดียวที่ถูกถามซ้ำ
+    """
+    host_plugin("basic")
+    host_plugin("other")
+    app.test_cli_runner().invoke(args=["plugin-list"])
+    ambiguous = [line for line in warnings_of if "PLUGIN_PICKS ไม่ได้ระบุ" in line]
+    assert len(ambiguous) == 1, f"ควรเตือนครั้งเดียวต่อความสามารถ แต่ได้ {len(ambiguous)}:\n{ambiguous}"
+
+
 def test_switching_off_a_second_factor_says_so_in_plain_words(app, warnings_of):
     """ปิดปัจจัยยืนยันตัวตน = คนที่เปิดไว้ login ด้วยรหัสผ่านอย่างเดียวได้ทันที
 
