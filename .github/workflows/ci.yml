@@ -49,12 +49,19 @@ jobs:
       fail-fast: false
       matrix:
         db:
+          # **คำสั่ง health ต่างกันตามยี่ห้อโดยจำเป็น** — `mysqladmin` ไม่มีใน image
+          # ของ MariaDB 11 แล้ว (ตัดชื่อเก่าออก เหลือ `mariadb-admin`) ใช้ตัวเดียวกัน
+          # ทั้งคู่แล้ว service container จะขึ้น unhealthy ทั้งที่ตัวฐานข้อมูลไม่ได้พัง
+          # — เจอจริงตอน push แรกของ job นี้ และเครื่อง dev ไม่เจอเพราะ Debian package
+          # ยังมี symlink ชื่อเก่าให้อยู่
           - name: mysql-8
             image: mysql:8
             scheme: mysql+pymysql
+            ping: mysqladmin
           - name: mariadb-11
             image: mariadb:11
             scheme: mariadb+pymysql
+            ping: mariadb-admin
     services:
       db:
         image: ${{ matrix.db.image }}
@@ -67,7 +74,7 @@ jobs:
         # ไม่มี health check = เทสต์เริ่มก่อน server พร้อม แล้วแดงด้วย
         # "Can't connect" ซึ่งอ่านแล้วนึกว่าโค้ดผิด
         options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pci-only-not-a-real-password"
+          --health-cmd="${{ matrix.db.ping }} ping -h 127.0.0.1 -uroot -pci-only-not-a-real-password"
           --health-interval=5s
           --health-timeout=5s
           --health-retries=20
