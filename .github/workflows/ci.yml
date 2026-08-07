@@ -34,6 +34,66 @@ jobs:
           git fetch origin ${{ github.base_ref }} --depth=50
           pipenv run diff-cover coverage.xml --compare-branch origin/${{ github.base_ref }} --fail-under 100
 
+  dialects:
+    # **ยิงชุดเทสต์ทั้งชุดใส่ MySQL กับ MariaDB จริง** (ADR 0026 · P5-04)
+    # job `test` รันบน SQLite ซึ่งให้อภัยหลายอย่างที่ยี่ห้ออื่นไม่ให้ — ที่เจอจริง
+    # ตอนเปิด job นี้ครั้งแรก: fixture สี่ตัวสร้างตารางเองแล้วไม่เก็บกวาด ซึ่งบน
+    # `sqlite:///:memory:` ไม่เคยเป็นปัญหาเพราะฐานตายไปพร้อม engine
+    #
+    # ใช้ service container ของ GitHub Actions จึงไม่ต้องมี runtime บนเครื่อง dev
+    # (ในเครื่องจะยิงเองก็ตั้ง MySQL/MariaDB ที่ไหนก็ได้แล้วส่ง TEST_DATABASE_URL มา)
+    name: dialect (${{ matrix.db.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      # **ห้าม fail-fast** — อยากเห็นว่าพังยี่ห้อเดียวหรือทั้งสอง ซึ่งเป็นคนละอาการ
+      fail-fast: false
+      matrix:
+        db:
+          - name: mysql-8
+            image: mysql:8
+            scheme: mysql+pymysql
+          - name: mariadb-11
+            image: mariadb:11
+            scheme: mariadb+pymysql
+    services:
+      db:
+        image: ${{ matrix.db.image }}
+        env:
+          # image ของ mariadb รับตัวแปรชื่อ MYSQL_* ด้วยเพื่อความเข้ากันได้
+          MYSQL_ROOT_PASSWORD: ci-only-not-a-real-password
+          MYSQL_DATABASE: todolist_test
+        ports:
+          - 3306:3306
+        # ไม่มี health check = เทสต์เริ่มก่อน server พร้อม แล้วแดงด้วย
+        # "Can't connect" ซึ่งอ่านแล้วนึกว่าโค้ดผิด
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pci-only-not-a-real-password"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pipenv
+      - run: pip install pipenv
+      - run: pipenv sync --dev
+      # driver ของยี่ห้อพวกนี้อยู่ใน category ของ plugin ชนิด `db` (ADR 0026)
+      # ถามชื่อจากตัวแอปเอง **ห้าม hardcode ชื่อ plugin ใน CI**
+      - name: ติดตั้ง category ของ plugin ทุกตัวที่ประกาศไว้
+        run: pipenv sync --categories="$(pipenv run flask plugin-deps --categories)"
+        env:
+          SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
+      # ไม่มี coverage gate ที่นี่ — เพดานวัดจาก job `test` ที่เดียว
+      # job นี้ตอบคำถามเดียว: พฤติกรรมเหมือนกันทุกยี่ห้อไหม
+      - name: pytest ทั้งชุดบน ${{ matrix.db.name }}
+        run: pipenv run pytest -q
+        env:
+          SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
+          TEST_DATABASE_URL: >-
+            ${{ matrix.db.scheme }}://root:ci-only-not-a-real-password@127.0.0.1:3306/todolist_test
+
   bare:
     # job `test` แต่ **ไม่มี step ติดตั้ง category ของ plugin** (ADR 0025 ข้อ 7)
     # นี่คือด่านเดียวที่ทำให้ "ถอดส่วนเสริมแล้วไม่พัง" เป็นข้อเท็จจริงที่วัดได้

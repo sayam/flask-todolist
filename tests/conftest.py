@@ -1,3 +1,5 @@
+import os
+
 import pytest
 
 from app import create_app, db, limiter
@@ -21,7 +23,11 @@ class TestConfig(Config):
 
     # ต้องยาวพอผ่าน check_secret_key() ค่าคงที่ได้ เพราะไม่ใช่คีย์จริง
     SECRET_KEY = "test-secret-key-for-pytest-only-not-a-real-key"
-    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
+    # **อ่านจาก `TEST_DATABASE_URL` เท่านั้น ไม่ใช่ `DATABASE_URL`** — `.env` ของ
+    # เครื่องที่รันต้องไม่มีผลกับเทสต์ (หลักเดียวกับ RATELIMIT_ENABLED/DISABLED_PLUGINS
+    # ข้างล่าง) ตัวแปรนี้ไม่ถูกตั้งไว้ที่ไหนโดยปริยาย มีไว้ให้ CI matrix กับคนที่
+    # อยากยิงยี่ห้ออื่นตั้งเองตอนรัน — ค่าเริ่มต้นยังเป็น SQLite ในหน่วยความจำ
+    SQLALCHEMY_DATABASE_URI = os.environ.get("TEST_DATABASE_URL", "sqlite:///:memory:")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     TESTING = True
     # ปิด CSRF ในเทสต์ทั่วไปเพื่อไม่ต้องแนบ token ทุกคำขอ
@@ -68,17 +74,28 @@ def _make_user(username):
     return user.id
 
 
-@pytest.fixture
-def app():
-    app = create_app(TestConfig)
-    # ไม่มี db.create_all() ใน create_app แล้ว (ใช้ Flask-Migrate) เทสต์จึงสร้างเอง
+def _app_with_tables(config_class):
+    """แอปพร้อมตารางเปล่า แล้วเก็บกวาดให้หลังเทสต์จบ
+
+    **ทุก fixture ที่สร้างแอปต้องเดินทางเส้นนี้** ไม่ใช่เรียก `create_all()` เอง —
+    `sqlite:///:memory:` ตายไปพร้อม engine จึงให้อภัยการลืมเก็บกวาดมาตลอด
+    แต่ยี่ห้ออื่นเก็บตารางไว้ข้ามเทสต์ ข้อมูลของตัวก่อนหน้าจะค้างมาให้ตัวถัดไปเห็น
+    (เจอจริงตอน P5-04: `Duplicate entry 'tester'` เพราะ fixture สามตัวสร้างเองแล้วไม่ลบ)
+    """
+    app = create_app(config_class)
     with app.app_context():
         db.create_all()
     yield app
-    # ปิด connection pool ทิ้งท้ายเทสต์ ไม่งั้น sqlite ในหน่วยความจำถูกเก็บโดย GC
-    # แล้วโผล่เป็น ResourceWarning เป็นร้อย ๆ อัน — เสียงรบกวนขนาดนั้นกลบ warning จริง
     with app.app_context():
+        db.drop_all()
+        # ปิด connection pool ทิ้งท้ายเทสต์ ไม่งั้น sqlite ในหน่วยความจำถูกเก็บโดย GC
+        # แล้วโผล่เป็น ResourceWarning เป็นร้อย ๆ อัน — เสียงรบกวนขนาดนั้นกลบ warning จริง
         db.engine.dispose()
+
+
+@pytest.fixture
+def app():
+    yield from _app_with_tables(TestConfig)
 
 
 @pytest.fixture
@@ -121,11 +138,10 @@ def anon_client(app):
 @pytest.fixture
 def csrf_app():
     """แอปที่เปิด CSRF จริง พร้อม user 'tester' หนึ่งคน"""
-    app = create_app(CsrfTestConfig)
-    with app.app_context():
-        db.create_all()
-        _make_user("tester")
-    return app
+    for app in _app_with_tables(CsrfTestConfig):
+        with app.app_context():
+            _make_user("tester")
+        yield app
 
 
 @pytest.fixture
@@ -136,14 +152,13 @@ def ratelimit_app():
     ต้อง reset ทั้งก่อนและหลัง ไม่งั้นเทสต์ที่รันทีหลังจะเริ่มด้วยโควตาที่ถูกใช้ไปแล้ว
     (reset ได้หลัง init_app เท่านั้น ก่อนหน้านั้น storage ยังไม่ถูกสร้าง)
     """
-    app = create_app(RateLimitTestConfig)
-    with app.app_context():
-        db.create_all()
-        _make_user("tester")
-        limiter.reset()
-    yield app
-    with app.app_context():
-        limiter.reset()
+    for app in _app_with_tables(RateLimitTestConfig):
+        with app.app_context():
+            _make_user("tester")
+            limiter.reset()
+        yield app
+        with app.app_context():
+            limiter.reset()
 
 
 @pytest.fixture
@@ -152,15 +167,14 @@ def username_ratelimit_app():
 
     reset ทั้งก่อนและหลังด้วยเหตุผลเดียวกับ `ratelimit_app`
     """
-    app = create_app(UsernameRateLimitTestConfig)
-    with app.app_context():
-        db.create_all()
-        _make_user("tester")
-        _make_user("somchai")
-        limiter.reset()
-    yield app
-    with app.app_context():
-        limiter.reset()
+    for app in _app_with_tables(UsernameRateLimitTestConfig):
+        with app.app_context():
+            _make_user("tester")
+            _make_user("somchai")
+            limiter.reset()
+        yield app
+        with app.app_context():
+            limiter.reset()
 
 
 def issue_token(app, user_id, name="pytest"):

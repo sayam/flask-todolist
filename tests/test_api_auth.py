@@ -14,13 +14,14 @@ API ถูกยกเว้น CSRF (ถูกต้อง เพราะ bear
 
 import pytest
 
-from app import create_app, db
+from app import db
 from app.api.base import API_PREFIX
 from app.models import User
 from app.services import tokens as tokens_service
 from tests.conftest import (
     PASSWORD,
     CsrfTestConfig,
+    _app_with_tables,
     bearer_client,
     issue_token,
 )
@@ -150,15 +151,14 @@ def test_html_errors_are_still_html(client):
 @pytest.fixture
 def csrf_api():
     """แอปที่เปิด CSRF จริง พร้อม user และ token หนึ่งใบ"""
-    app = create_app(CsrfTestConfig)
-    with app.app_context():
-        db.create_all()
-        user = User(username="tester")
-        user.set_password(PASSWORD)
-        db.session.add(user)
-        db.session.commit()
-        user_id = user.id
-    return app, issue_token(app, user_id)
+    for app in _app_with_tables(CsrfTestConfig):
+        with app.app_context():
+            user = User(username="tester")
+            user.set_password(PASSWORD)
+            db.session.add(user)
+            db.session.commit()
+            user_id = user.id
+        yield app, issue_token(app, user_id)
 
 
 def test_the_api_does_not_ask_for_a_csrf_token(csrf_api):

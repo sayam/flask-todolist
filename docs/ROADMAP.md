@@ -407,7 +407,9 @@ DoD ของ SSO คือ **"login ผ่าน OIDC ได้จริงก�
 - **DB backend plugin ชนิดใหม่บน registry เดิม** (ADR contract: ห้าม purge ตัว
   active, ต้องมี export path) — built-in: SQLite, MySQL 8+, MariaDB 11+
   ยี่ห้ออื่น (PostgreSQL, Oracle, MSSQL + cloud preset) เป็น plugin ภายหลัง
-- **CI matrix: SQLite + MySQL + MariaDB** — จับ dialect quirk ให้หมด
+- **CI matrix: SQLite + MySQL + MariaDB** ✅ (P5-04 — job `dialects`) จับ dialect quirk ให้หมด
+  **ยืนยันแล้วด้วยการรันจริง**: MySQL 8.0.46 และ MariaDB 11.8.6 ผ่านทั้งชุด
+  754 passed / 2 skipped (สอง `PRAGMA` ที่เป็นของ SQLite เท่านั้น)
   (DATETIME(6) variant, เทสต์ precision, batch mode)
 - **Baseline squash migration** สำหรับ fresh install (ล้าง landmine ข้อ 4.4)
 - Cache plugin interface (ข้อ 4.3): core no-op default + Redis backend plugin

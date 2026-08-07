@@ -94,7 +94,10 @@ def test_the_active_backend_cannot_be_switched_off(app):
     ซึ่งใช้กับ backend ที่ใช้อยู่ไม่ได้เลย — ปล่อยให้ปิดคือการเสนอปุ่มที่กดแล้วดับ
     """
     with app.app_context():
-        app.config["DISABLED_PLUGINS"] = frozenset({SQLITE_KEY})
+        # ถามว่าตอนนี้ใครคือตัวที่ใช้อยู่ แทนที่จะสมมติว่าเป็น sqlite — เทสต์นี้
+        # ต้องให้ผลเดียวกันตอน CI matrix ยิงด้วย TEST_DATABASE_URL ของยี่ห้ออื่น
+        in_use = db_engine.active(TestConfig.SQLALCHEMY_DATABASE_URI).key
+        app.config["DISABLED_PLUGINS"] = frozenset({in_use})
         with pytest.raises(plugins.PluginError, match="DATABASE_URL"):
             db_engine.active(TestConfig.SQLALCHEMY_DATABASE_URI)
 
@@ -102,8 +105,10 @@ def test_the_active_backend_cannot_be_switched_off(app):
 def test_a_backend_that_is_not_in_use_may_be_switched_off(app):
     """ตัวที่ไม่ได้ใช้ปิดได้ตามปกติ — ข้อห้ามข้างบนแคบเท่าที่จำเป็นเท่านั้น"""
     with app.app_context():
-        app.config["DISABLED_PLUGINS"] = frozenset({MYSQL_KEY})
-        assert db_engine.active(TestConfig.SQLALCHEMY_DATABASE_URI).key == SQLITE_KEY
+        in_use = db_engine.active(TestConfig.SQLALCHEMY_DATABASE_URI)
+        spare = next(key for key in {SQLITE_KEY, MYSQL_KEY} if key != in_use.key)
+        app.config["DISABLED_PLUGINS"] = frozenset({spare})
+        assert db_engine.active(TestConfig.SQLALCHEMY_DATABASE_URI).key == in_use.key
 
 
 def test_a_backend_may_not_own_tables(app, temp_backend):
@@ -152,7 +157,9 @@ def test_the_sqlite_pragma_lives_with_sqlite_not_in_core(app):
     assert "sqlite3" not in core
 
     with app.app_context():
-        module = db_engine.load(TestConfig.SQLALCHEMY_DATABASE_URI)
+        # ระบุ URL ของ sqlite ตรง ๆ ไม่ใช่ค่าที่ config ชี้อยู่ — เทสต์นี้ถามถึง
+        # backend ตัวนั้นโดยเฉพาะ ไม่ได้ถามถึงตัวที่บังเอิญถูกใช้ตอนรัน
+        module = db_engine.load("sqlite:///:memory:")
     assert module is not None, "backend ของ sqlite ต้องมี backend.py ให้โหลด"
     assert "PRAGMA foreign_keys=ON" in (
         plugins.PLUGIN_ROOT / "db" / "sqlite" / "backend.py"

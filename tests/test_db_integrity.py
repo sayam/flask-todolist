@@ -12,14 +12,25 @@ from sqlalchemy.exc import IntegrityError
 
 from app import db
 from app.models import Category, Todo
+from tests.conftest import TestConfig
+
+# `PRAGMA` เป็นคำสั่งของ SQLite เท่านั้น ยี่ห้ออื่นบังคับ FK อยู่แล้วโดยไม่ต้องสั่ง
+# **ข้ามอย่างเปิดเผยด้วย skipif ไม่ใช่ try/except** — pytest รายงานจำนวนที่ข้ามทุกครั้ง
+# ส่วนเทสต์ที่วัด *ผล* ของการบังคับ (ข้างล่าง) ไม่ข้าม เพราะเป็นข้อกำหนดของทุกยี่ห้อ
+sqlite_only = pytest.mark.skipif(
+    not TestConfig.SQLALCHEMY_DATABASE_URI.startswith("sqlite"),
+    reason="PRAGMA เป็นของ SQLite — ยี่ห้ออื่นบังคับ FK เองอยู่แล้ว",
+)
 
 
+@sqlite_only
 def test_pragma_is_on_for_a_fresh_connection(app):
     with app.app_context():
         value = db.session.execute(text("PRAGMA foreign_keys")).scalar()
     assert value == 1, "foreign_keys ต้องเป็น 1 ทุก connection ไม่ใช่แค่ตัวแรก"
 
 
+@sqlite_only
 def test_pragma_survives_a_new_connection(app):
     """connection pool สร้าง connection เพิ่มระหว่างทางได้ ตัวใหม่ต้องได้ค่าเดียวกัน"""
     with app.app_context():

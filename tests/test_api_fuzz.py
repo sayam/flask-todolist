@@ -27,9 +27,24 @@ from app.models import User
 from app.services import tokens as tokens_service
 from tests.conftest import PASSWORD, TestConfig
 
+
+class FuzzConfig(TestConfig):
+    """**ตรึงเป็น SQLite ในหน่วยความจำเสมอ แม้ `TEST_DATABASE_URL` จะชี้ยี่ห้ออื่น**
+
+    แอปของไฟล์นี้มีชีวิตข้ามเทสต์ทั้งไฟล์ (schemathesis ต้องอ่าน schema ตอน
+    import ไม่ใช่ตอนรัน) จึงใช้ฐานร่วมกับ fixture ที่ลบตารางทิ้งท้ายเทสต์ไม่ได้ —
+    teardown ของเทสต์ตัวอื่นจะลบตารางที่แอปตัวนี้ยังใช้อยู่กลางคัน
+
+    **ไม่เสียความครอบคลุมของ CI matrix** เพราะชุดนี้ตรวจว่า *คำตอบตรงกับ spec ไหม*
+    ซึ่งไม่ขึ้นกับยี่ห้อฐานข้อมูล (ของที่มันเคยจับได้คือตัวกรองวันที่ที่ย่อยไม่ได้,
+    id เกิน 64 บิต, คำขอที่ตกตั้งแต่ชั้น routing — ทั้งหมดเป็นเรื่องของชั้น HTTP)
+    """
+
+    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
+
+
 # แอปตัวเดียวใช้ทั้งไฟล์ — schemathesis ต้องอ่าน schema ตอน import ไม่ใช่ตอนรัน
-# จึงใช้ fixture ปกติไม่ได้ (ฐานข้อมูลเป็น :memory: จึงไม่ทิ้งอะไรไว้ข้างนอกอยู่ดี)
-_app = create_app(TestConfig)
+_app = create_app(FuzzConfig)
 with _app.app_context():
     db.create_all()
     _user = User(username="fuzz", timezone_name="Asia/Bangkok")
