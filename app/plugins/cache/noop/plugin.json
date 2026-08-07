@@ -1,0 +1,9 @@
+{
+  "type": "cache",
+  "name": "No cache",
+  "version": "1.0.0",
+  "core": true,
+  "shared": false,
+  "schemes": ["memory"],
+  "description": "ค่าเริ่มต้น ไม่เก็บอะไรเลย — cache เป็น optimization ห้ามเป็น correctness"
+}

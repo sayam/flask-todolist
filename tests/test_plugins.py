@@ -657,6 +657,7 @@ def test_plugin_deps_can_print_categories_for_a_script(app):
     assert result.exit_code == 0
     assert result.output.split() == [
         "plugin-auth-totp-qr-segno",
+        "plugin-cache-redis",
         "plugin-db-mariadb",
         "plugin-db-mysql",
     ], "เรียงแล้ว คั่นด้วยช่องว่าง ต่อท้าย `pipenv sync --categories` ได้เลย"
@@ -701,7 +702,11 @@ def test_plugin_deps_rows_are_a_contract_that_ci_reads(app):
 # **ratchet: ลดได้อย่างเดียว** เพิ่มต้องอธิบายให้ได้ว่าทำไมเทสต์นั้นถึงต้องมี
 # ไลบรารีของจุด plug จริง ๆ (ส่วนใหญ่เขียนใหม่ให้ไม่ต้องมีได้ — ดู `qr_unplugged`
 # ใน tests/test_totp.py ที่ทดสอบเส้นทาง "ไม่มีส่วนเสริม" โดยไม่ต้องมีไลบรารีเลย)
-PLUGIN_DEPS_BUDGET = 5  # วัดจริง 2026-08-06: test_totp 4 + test_plugins 1
+# ขยับ 5 → 6 ตอน P5-06: `test_redis_really_stores_and_forgets` ต้องมีไลบรารี redis
+# จริงถึงจะรันได้ และ **ตั้งใจไม่ใช้ mock** เพราะ mock พิสูจน์ได้แค่ว่าเราเรียก
+# ฟังก์ชันชื่อถูก ไม่ได้พิสูจน์ว่าค่าเดินทางไปถึง redis แล้วกลับมาได้จริง
+# ซึ่งคือทั้งหมดของ backend ตัวนั้น — ราคาที่จ่ายคือ job `bare` ไม่ได้รันมันหนึ่งตัว
+PLUGIN_DEPS_BUDGET = 6  # วัดจริง 2026-08-07: test_totp 4 + test_plugins 1 + test_cache 1
 
 TESTS_DIR = pathlib.Path(__file__).resolve().parent
 

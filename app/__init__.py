@@ -20,6 +20,7 @@ from sqlalchemy import MetaData
 from sqlalchemy.orm import DeclarativeBase
 
 from app import db_engine, plugins
+from app.cache import init_cache
 from app.logging_setup import init_logging
 from app.security_headers import init_security_headers
 from config import Config, check_secret_key
@@ -83,6 +84,9 @@ def create_app(config_class=Config):
     # ต้องอยู่ครบก่อน engine ตัวแรกถูกสร้าง ไม่งั้น connection ชุดแรกจะหลุดค่าที่
     # ตั้งไว้ไปเงียบ ๆ (ของ SQLite คือ FK ไม่ถูกบังคับ — tests/test_db_integrity.py ดักไว้)
     db_engine.load(app.config["SQLALCHEMY_DATABASE_URI"])
+    # cache ก็เลือก backend จาก scheme แบบเดียวกัน — ให้ config ที่ผิดพังตั้งแต่
+    # start ไม่ใช่ตอนมีคนเรียกใช้ครั้งแรก (ROADMAP ข้อ 4.3)
+    init_cache(app)
 
     Path(app.instance_path).mkdir(parents=True, exist_ok=True)
 

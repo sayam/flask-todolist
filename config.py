@@ -54,6 +54,13 @@ class Config:
     # ถ้ารันหลาย worker ต้องเปลี่ยนเป็น redis:// ไม่งั้นแต่ละ worker นับแยกกัน
     RATELIMIT_STORAGE_URI = os.environ.get("RATELIMIT_STORAGE_URI", "memory://")
 
+    # --- cache (Phase 5 · ROADMAP ข้อ 4.3 — ดู app/cache.py) ---
+    # **ค่าเริ่มต้นคือไม่มี cache จริง ๆ ไม่ใช่ dict ต่อ process** เพราะ cache ที่
+    # ไม่แชร์กันทำให้คำขอเหมือนกันได้คำตอบต่างกันตาม worker ที่รับ ซึ่งจากภายนอก
+    # แยกไม่ออกจากบั๊ก — cache ต้องเป็น optimization เท่านั้น ห้ามเป็น correctness
+    # scheme ของค่านี้เป็นตัวเลือก plugin ชนิด `cache` (หลักเดียวกับ DATABASE_URL)
+    CACHE_URL = os.environ.get("CACHE_URL", "memory://")
+
     # --- อายุของ session (Phase 4 — ดู app/session_security.py และ ADR 0020) ---
     # ค่าแรกคือ idle timeout สำหรับเครื่องที่ถูกทิ้งไว้
     # ค่าที่สองคือ absolute timeout ที่หมดอายุแม้จะใช้งานอยู่ตลอด

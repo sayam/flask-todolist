@@ -1,0 +1,11 @@
+{
+  "type": "cache",
+  "name": "Redis",
+  "version": "1.0.0",
+  "shared": true,
+  "schemes": ["redis", "rediss", "unix"],
+  "requires": {
+    "pip": ["redis~=5.0"]
+  },
+  "description": "เก็บใน redis แชร์ข้ามโปรเซสและข้าม replica ได้จริง"
+}

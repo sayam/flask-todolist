@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "fa570b150fada0ae897d055ca5e3932e526b8502932b63afa29854a518237d65"
+            "sha256": "e7eb199487e9487862b28857d2d32830229a5f65235fe317fd37d4ce9b43dd76"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -2384,6 +2384,25 @@
             "index": "pypi",
             "markers": "python_version >= '3.5'",
             "version": "==1.6.6"
+        }
+    },
+    "plugin-cache-redis": {
+        "pyjwt": {
+            "hashes": [
+                "sha256:41571c89ca91598c79e8ef18a2d07367d4810fbbd6f637794879baf1b7703423",
+                "sha256:66adcc2aff09b3f1bbd95fc1e1577df8ac8723c978552fd43304c8a290ac5728"
+            ],
+            "markers": "python_version >= '3.9'",
+            "version": "==2.13.0"
+        },
+        "redis": {
+            "hashes": [
+                "sha256:ca49577a531ea64039b5a36db3d6cd1a0c7a60c34124d46924a45b956e8cf14c",
+                "sha256:dc1909bd24669cc31b5f67a039700b16ec30571096c5f1f0d9d2324bff31af97"
+            ],
+            "index": "pypi",
+            "markers": "python_version >= '3.8'",
+            "version": "==5.3.1"
         }
     },
     "plugin-db-mariadb": {

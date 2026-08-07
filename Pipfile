@@ -39,3 +39,6 @@ pymysql = "~=1.1"
 
 [plugin-db-mariadb]
 pymysql = "~=1.1"
+
+[plugin-cache-redis]
+redis = "~=5.0"
