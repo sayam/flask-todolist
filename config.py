@@ -69,6 +69,19 @@ class Config:
     # จะเตือนตอน start ถ้ารู้ว่า store ที่เลือกไม่ได้แชร์ข้ามโปรเซส
     RATELIMIT_STORAGE_URI = os.environ.get("RATELIMIT_STORAGE_URI") or CACHE_URL
 
+    # โควตาของ `/api/v1` — **นับต่อ *ใบ token* ไม่ใช่ต่อ IP** (P5-08)
+    # client ของ API เป็นเครื่อง ซึ่งมักออกเน็ตผ่าน IP เดียวกัน (NAT, egress ของ
+    # cloud) การนับต่อ IP จึงทำให้ client ที่ยิงถี่ตัวเดียวกินโควตาของทุกคนที่อยู่
+    # หลัง gateway เดียวกัน และคนที่มี IP เยอะก็เดินผ่านได้สบาย
+    # คำขอที่ยังไม่ผ่านด่าน token ตกกลับไปนับต่อ IP เพื่อไม่ให้ยิงฟรีไม่จำกัด
+    API_RATE_LIMIT = os.environ.get("API_RATE_LIMIT", "120 per minute; 2000 per hour")
+
+    # **เปิด header ของโควตา** — `Retry-After` เป็นข้อบังคับของ RFC 9110 สำหรับ 429
+    # ไม่มีแล้ว client ต้องเดาว่าจะกลับมาเมื่อไหร่ ซึ่งส่วนใหญ่แปลว่ายิงซ้ำทันที
+    # ส่วน `X-RateLimit-*` ทำให้ client ชะลอตัวเองได้ *ก่อน* โดนกัน ซึ่งเป็นความ
+    # ต่างระหว่าง client ที่ถอยเป็นกับ client ที่ยิงชนกำแพงแล้วยิงต่อ
+    RATELIMIT_HEADERS_ENABLED = True
+
     # --- อายุของ session (Phase 4 — ดู app/session_security.py และ ADR 0020) ---
     # ค่าแรกคือ idle timeout สำหรับเครื่องที่ถูกทิ้งไว้
     # ค่าที่สองคือ absolute timeout ที่หมดอายุแม้จะใช้งานอยู่ตลอด

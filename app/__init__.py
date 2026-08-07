@@ -7,7 +7,7 @@
 
 from pathlib import Path
 
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 from flask_babel import Babel
 from flask_babel import lazy_gettext as _l
 from flask_limiter import Limiter
@@ -142,7 +142,18 @@ def create_app(config_class=Config):
 
     @app.errorhandler(429)
     def too_many_requests(error):
-        # คืนหน้า login พร้อมข้อความ ไม่ใช่หน้า error ดิบ ๆ แต่คง status 429 ไว้
+        # **ต้องเช็ค path เองที่นี่ด้วย** ถึงจะมี `_errors_stay_in_their_own_language`
+        # ของ app/api อยู่แล้ว — Flask ค้น error handler ด้วย **status code ก่อน**
+        # แล้วค่อยไล่ scope ตัวนี้ที่ผูกกับเลข 429 ตรง ๆ จึงชนะทั้ง handler ของ
+        # blueprint และ handler แบบ `HTTPException` ของ API เสมอ
+        # ปล่อยไว้ = client ของ API ได้หน้า login เป็น HTML กลับไปตอนโดนกันโควตา
+        # แล้ว JSON parser พังด้วยข้อความที่ไม่เกี่ยวกับสาเหตุจริงเลย (P5-08)
+        from app.api import API_PREFIX
+        from app.api.errors import http_error_response
+
+        if request.path.startswith(API_PREFIX):
+            return http_error_response(error)
+        # หน้าเว็บ: คืนหน้า login พร้อมข้อความ ไม่ใช่หน้า error ดิบ ๆ แต่คง status ไว้
         return render_template("login.html", rate_limited=str(error.description)), 429
 
     from app.admin import bp as admin_bp
