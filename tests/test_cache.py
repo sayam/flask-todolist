@@ -150,3 +150,106 @@ def test_redis_really_stores_and_forgets(app):
 
         shared.invalidate("pytest-probe")
         assert shared.get("pytest-probe") is None
+
+
+# --- โควตา rate limit ต้องไม่ถูกนับแยกต่อ process (P5-07) ---
+# หนี้เดิม: `RATELIMIT_STORAGE_URI` ตายตัวเป็น `memory://` วันที่ใครรันหลาย worker
+# เพดานจริงกลายเป็น N เท่าของที่ตั้งไว้ **โดยไม่มีอะไรฟ้อง** — ไม่มี error ไม่มี log
+# มีแต่คนไล่เดารหัสผ่านที่ได้โควตามากกว่าที่เราคิด
+
+
+def test_the_counter_store_follows_the_cache_by_default():
+    """ตั้ง store ที่แชร์ได้ครั้งเดียว แล้วโควตาย้ายตามเอง — ไม่มีทางลืมตั้งตัวใดตัวหนึ่ง"""
+    from config import Config
+
+    assert Config.RATELIMIT_STORAGE_URI == Config.CACHE_URL
+
+
+def test_an_explicit_setting_still_wins(monkeypatch):
+    """ตั้งแยกได้ถ้าตั้งใจให้ counter อยู่คนละที่กับ cache (เช่นคนละ redis db)"""
+    import importlib
+
+    import config
+
+    monkeypatch.setenv("CACHE_URL", "redis://cache:6379/0")
+    monkeypatch.setenv("RATELIMIT_STORAGE_URI", "redis://counters:6379/1")
+    importlib.reload(config)
+    try:
+        assert config.Config.RATELIMIT_STORAGE_URI == "redis://counters:6379/1"
+        assert config.Config.CACHE_URL == "redis://cache:6379/0"
+    finally:
+        monkeypatch.undo()
+        importlib.reload(config)
+
+
+def test_a_store_that_is_not_shared_says_so_on_every_start(app, warnings_of):
+    """**นี่คือส่วนที่ปิดหนี้จริง ๆ** — ระบบพูดออกมาแทนที่จะให้เป็นความรู้ในหัวคน
+
+    ไม่ refuse to start เพราะ `memory://` ถูกต้องสมบูรณ์สำหรับ dev/single worker
+    ซึ่งเป็นวิธีรันที่พบบ่อยที่สุด — สิ่งที่ผิดคือการ *ไม่รู้* ว่าตัวเองอยู่สภาพไหน
+    """
+    app.config["RATELIMIT_STORAGE_URI"] = "memory://"
+    cache.warn_if_counters_are_not_shared(app)
+    assert [line for line in warnings_of if "นับแยกต่อ process" in line]
+
+
+def test_a_shared_store_says_nothing(app, warnings_of):
+    """คำเตือนที่ขึ้นทุกครั้งไม่ว่าอะไรจะเกิดขึ้น คือคำเตือนที่คนเลิกอ่าน"""
+    app.config["RATELIMIT_STORAGE_URI"] = "redis://anywhere:6379/0"
+    cache.warn_if_counters_are_not_shared(app)
+    assert not [line for line in warnings_of if "นับแยกต่อ process" in line]
+
+
+def test_a_store_we_do_not_know_gets_no_false_claim(app, warnings_of):
+    """`limits` รองรับ store ที่เราไม่มี plugin ให้ (memcached, mongodb)
+
+    พวกนั้นแชร์ได้จริงแต่เราตอบแทนไม่ได้ — การเดาว่า "ไม่แชร์" จะกลายเป็นคำเตือน
+    ที่ผิด ซึ่งแพงกว่าการไม่เตือน เพราะมันสอนให้คนเลิกเชื่อคำเตือนอื่นด้วย
+    """
+    assert cache.is_shared_uri("memcached://host:11211") is None
+    app.config["RATELIMIT_STORAGE_URI"] = "memcached://host:11211"
+    cache.warn_if_counters_are_not_shared(app)
+    assert not [line for line in warnings_of if "นับแยกต่อ process" in line]
+
+
+@needs_redis
+@pytest.mark.plugin_deps
+def test_two_workers_share_one_quota(monkeypatch):
+    """**ข้อพิสูจน์จริงของ P5-07** — สองแอปที่ชี้ store เดียวกันต้องนับโควตารวมกัน
+
+    จำลอง worker สองตัวด้วย `Limiter` คนละตัว (ไม่ใช่ singleton ของแอป) ที่ชี้ไป
+    redis เดียวกัน — ถ้าโควตายังถูกนับแยก ตัวที่สองจะยังยิงได้ทั้งที่ตัวแรกใช้หมดแล้ว
+    ซึ่งคือหน้าตาของหนี้ที่ commit นี้ปิด: เพดานจริงเป็น N เท่าตามจำนวน worker
+
+    เทสต์นี้ไม่พึ่ง fixture `ratelimit_app` เพราะตัวนั้นใช้ limiter ตัวเดียวกับแอป
+    ซึ่งพิสูจน์ "แชร์ข้ามโปรเซส" ไม่ได้ตามนิยาม
+    """
+    import uuid
+
+    from flask import Flask
+    from flask_limiter import Limiter
+
+    # กุญแจใหม่ทุกครั้ง ไม่งั้นเทสต์ที่รันซ้ำจะเริ่มด้วยโควตาที่ถูกใช้ไปแล้ว
+    who = f"pytest-{uuid.uuid4()}"
+
+    def worker():
+        app = Flask(__name__)
+        app.config["RATELIMIT_STORAGE_URI"] = REDIS_URL
+        app.config["RATELIMIT_ENABLED"] = True
+        limits = Limiter(key_func=lambda: who, app=app, default_limits=["2 per minute"])
+
+        @app.route("/probe")
+        def probe():
+            return "ok"
+
+        assert limits  # ผูกกับแอปแล้ว
+        return app.test_client()
+
+    first, second = worker(), worker()
+
+    assert first.get("/probe").status_code == 200
+    assert first.get("/probe").status_code == 200
+    # โควตาหมดแล้วที่ worker ตัวแรก — ตัวที่สองต้องเห็นด้วย ไม่ใช่เริ่มนับใหม่
+    assert second.get("/probe").status_code == 429, (
+        "worker ตัวที่สองยังยิงได้ = โควตาถูกนับแยกต่อ process (เพดานจริง N เท่า)"
+    )

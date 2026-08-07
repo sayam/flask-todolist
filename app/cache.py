@@ -123,6 +123,42 @@ class Cache:
         self._module.invalidate(self._handle, key)
 
 
+def is_shared_uri(url: str) -> bool | None:
+    """URL นี้เก็บของไว้ที่ที่โปรเซสอื่นเห็นด้วยไหม — **`None` = ไม่รู้จัก**
+
+    แยกสามสถานะโดยตั้งใจ ไม่ยุบ `None` เข้ากับ `False`: `limits` (ตัวที่อยู่ใต้
+    Flask-Limiter) รองรับ store หลายตัวที่เราไม่มี cache plugin ให้ เช่น
+    `memcached://` หรือ `mongodb://` — พวกนั้นแชร์ได้จริงแต่เราตอบแทนไม่ได้
+    การเดาว่า "ไม่แชร์" จะกลายเป็นคำเตือนที่ผิด แล้วคำเตือนที่ผิดคือคำเตือนที่
+    คนเลิกอ่าน ซึ่งแพงกว่าการไม่เตือน
+    """
+    backend = backends().get(scheme_of(url))
+    if backend is None:
+        return None
+    return bool(backend.manifest.get("shared", False))
+
+
+def warn_if_counters_are_not_shared(app: Any) -> None:
+    """เตือนตอน start ถ้าโควตา rate limit จะถูกนับแยกต่อ process
+
+    **นี่คือส่วนที่ปิดหนี้จริง ๆ ของ P5-07** — การชี้ค่าเริ่มต้นไปที่ `CACHE_URL`
+    แก้ให้คนที่ตั้ง cache ไว้แล้ว แต่คนที่ยังไม่ได้ตั้งอะไรเลยยังอยู่ในสภาพเดิม
+    ต่างกันตรงที่ตอนนี้ระบบ *พูดออกมา* แทนที่จะให้เป็นความรู้ในหัวคนตั้ง config
+
+    ไม่ refuse to start เพราะ `memory://` ถูกต้องสมบูรณ์สำหรับ dev และ single
+    worker ซึ่งเป็นวิธีรันที่พบบ่อยที่สุด — สิ่งที่ผิดคือการ *ไม่รู้* ว่าตัวเอง
+    อยู่สภาพไหน ไม่ใช่การอยู่ในสภาพนั้น
+    """
+    uri = app.config["RATELIMIT_STORAGE_URI"]
+    if is_shared_uri(uri) is False:
+        app.logger.warning(
+            "rate limit ถูกนับแยกต่อ process เพราะ RATELIMIT_STORAGE_URI = %r "
+            "— รันหลาย worker เมื่อไหร่ เพดานจริงจะเป็น N เท่าของที่ตั้งไว้ "
+            "(ตั้ง CACHE_URL ไปที่ store ที่แชร์ได้ แล้วตัวนี้จะตามไปเอง)",
+            uri,
+        )
+
+
 def current() -> Cache:
     """cache ของแอปที่กำลังทำงานอยู่ — สร้างครั้งเดียวตอน `init_cache()`"""
     cache: Cache = current_app.extensions["todolist_cache"]

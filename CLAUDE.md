@@ -185,8 +185,13 @@ POST ที่ทั้งไม่มี token และไม่ได้ logi
 - `.env` ถูก gitignore — `.env.example` เป็นตัวที่ commit
 - `LOGIN_RATE_LIMIT` (default `5 per minute; 20 per hour`) และ `RATELIMIT_STORAGE_URI`
   (default `memory://`) ปรับผ่าน env ได้
-- **`memory://` นับแยกต่อ process** — ถ้าวันไหนรันหลาย worker (gunicorn ฯลฯ)
-  ต้องเปลี่ยนเป็น `redis://` ไม่งั้นเพดานจริงจะกลายเป็น N เท่าของที่ตั้งไว้
+- **`RATELIMIT_STORAGE_URI` ตามหลัง `CACHE_URL` โดยค่าเริ่มต้น** (P5-07) — ตั้ง store
+  ที่แชร์ได้ครั้งเดียวแล้วโควตาย้ายตามเอง ตั้งแยกได้ถ้าตั้งใจให้ counter อยู่คนละที่
+- **`memory://` นับแยกต่อ process** — รันหลาย worker (gunicorn ฯลฯ) แล้วเพดานจริง
+  จะเป็น N เท่าของที่ตั้งไว้ **ตอนนี้แอปเตือนตอน start ถ้ารู้ว่า store ไม่แชร์**
+  (`app/cache.py::warn_if_counters_are_not_shared`) ไม่ refuse to start เพราะ
+  `memory://` ถูกต้องสำหรับ dev/single worker — สิ่งที่ผิดคือการไม่รู้ว่าอยู่สภาพไหน
+  store ที่เราไม่มี cache plugin ให้ (memcached ฯลฯ) จะ**ไม่ถูกเดา**ว่าไม่แชร์
 
 ## กำหนดส่ง วันเริ่ม และตัวกรอง
 - **`Todo.due_date` ใน DB เป็น UTC แบบ naive เสมอ** เหมือน `created_at`/`updated_at`

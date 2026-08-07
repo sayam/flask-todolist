@@ -50,16 +50,24 @@ class Config:
     LOGIN_USERNAME_RATE_LIMIT = os.environ.get(
         "LOGIN_USERNAME_RATE_LIMIT", "10 per 5 minutes; 60 per hour"
     )
-    # memory:// เก็บใน process เดียว พอสำหรับ dev/single worker
-    # ถ้ารันหลาย worker ต้องเปลี่ยนเป็น redis:// ไม่งั้นแต่ละ worker นับแยกกัน
-    RATELIMIT_STORAGE_URI = os.environ.get("RATELIMIT_STORAGE_URI", "memory://")
-
     # --- cache (Phase 5 · ROADMAP ข้อ 4.3 — ดู app/cache.py) ---
     # **ค่าเริ่มต้นคือไม่มี cache จริง ๆ ไม่ใช่ dict ต่อ process** เพราะ cache ที่
     # ไม่แชร์กันทำให้คำขอเหมือนกันได้คำตอบต่างกันตาม worker ที่รับ ซึ่งจากภายนอก
     # แยกไม่ออกจากบั๊ก — cache ต้องเป็น optimization เท่านั้น ห้ามเป็น correctness
     # scheme ของค่านี้เป็นตัวเลือก plugin ชนิด `cache` (หลักเดียวกับ DATABASE_URL)
     CACHE_URL = os.environ.get("CACHE_URL", "memory://")
+
+    # **ตามหลัง `CACHE_URL` โดยค่าเริ่มต้น** (P5-07) — ตั้ง store ที่แชร์ได้ครั้งเดียว
+    # แล้วโควตา rate limit ย้ายตามเอง ไม่ต้องตั้งซ้ำและไม่มีทางลืมตั้งตัวใดตัวหนึ่ง
+    #
+    # หนี้ที่ปิดตรงนี้: เดิมค่าเริ่มต้นเป็น `memory://` ตายตัว ซึ่งนับ **แยกต่อ process**
+    # วันที่ใครรันหลาย worker เพดานจริงจะกลายเป็น N เท่าของที่ตั้งไว้เงียบ ๆ —
+    # ไม่มี error ไม่มี log มีแต่คนไล่เดารหัสผ่านที่ได้โควตามากกว่าที่เราคิด
+    #
+    # ตั้งแยกได้ถ้า**ตั้งใจ**ให้ counter อยู่คนละที่กับ cache (เช่นคนละ redis db
+    # หรือ store ที่ limits รองรับแต่เราไม่มี cache plugin ให้) — `create_app`
+    # จะเตือนตอน start ถ้ารู้ว่า store ที่เลือกไม่ได้แชร์ข้ามโปรเซส
+    RATELIMIT_STORAGE_URI = os.environ.get("RATELIMIT_STORAGE_URI") or CACHE_URL
 
     # --- อายุของ session (Phase 4 — ดู app/session_security.py และ ADR 0020) ---
     # ค่าแรกคือ idle timeout สำหรับเครื่องที่ถูกทิ้งไว้

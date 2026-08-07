@@ -702,11 +702,15 @@ def test_plugin_deps_rows_are_a_contract_that_ci_reads(app):
 # **ratchet: ลดได้อย่างเดียว** เพิ่มต้องอธิบายให้ได้ว่าทำไมเทสต์นั้นถึงต้องมี
 # ไลบรารีของจุด plug จริง ๆ (ส่วนใหญ่เขียนใหม่ให้ไม่ต้องมีได้ — ดู `qr_unplugged`
 # ใน tests/test_totp.py ที่ทดสอบเส้นทาง "ไม่มีส่วนเสริม" โดยไม่ต้องมีไลบรารีเลย)
-# ขยับ 5 → 6 ตอน P5-06: `test_redis_really_stores_and_forgets` ต้องมีไลบรารี redis
-# จริงถึงจะรันได้ และ **ตั้งใจไม่ใช้ mock** เพราะ mock พิสูจน์ได้แค่ว่าเราเรียก
-# ฟังก์ชันชื่อถูก ไม่ได้พิสูจน์ว่าค่าเดินทางไปถึง redis แล้วกลับมาได้จริง
-# ซึ่งคือทั้งหมดของ backend ตัวนั้น — ราคาที่จ่ายคือ job `bare` ไม่ได้รันมันหนึ่งตัว
-PLUGIN_DEPS_BUDGET = 6  # วัดจริง 2026-08-07: test_totp 4 + test_plugins 1 + test_cache 1
+# ขยับ 5 → 7 ระหว่าง P5-06/07: เทสต์ที่ยิง redis จริงสองตัว (`test_cache.py`)
+# **ตั้งใจไม่ใช้ mock** เพราะ mock พิสูจน์ได้แค่ว่าเราเรียกฟังก์ชันชื่อถูก
+# ไม่ได้พิสูจน์ว่าค่าเดินทางไปถึง redis แล้วกลับมา หรือว่า worker สองตัวเห็น
+# โควตาเดียวกันจริง ซึ่งคือทั้งหมดของสิ่งที่สองขั้นนั้นอ้างว่าทำได้
+#
+# **ราคาที่จ่ายแคบกว่าที่ตัวเลขบอก**: สองตัวนี้ job `bare` ไม่ได้รัน แต่ job `test`
+# รันจริงทุก push แล้ว (มี service container ของ redis ตั้งแต่ P5-07) — ก่อนหน้านั้น
+# มันข้ามตัวเองใน CI ทุกที่ ซึ่งแปลว่าไม่เคยถูกพิสูจน์นอกเครื่องคนเขียนเลย
+PLUGIN_DEPS_BUDGET = 7  # วัดจริง 2026-08-07: test_totp 4 + test_plugins 1 + test_cache 2
 
 TESTS_DIR = pathlib.Path(__file__).resolve().parent
 
@@ -1283,29 +1287,6 @@ def test_a_core_plugin_cannot_be_switched_off(app):
         _switch(app, f"{plugins.THEME_TYPE}/{plugins.CORE_THEME}")
         with pytest.raises(plugins.PluginError, match="เป็น plugin ของ core"):
             plugins.check_installation()
-
-
-@pytest.fixture
-def warnings_of(app):
-    """เก็บ log ระดับ WARNING จาก logger ของแอปตรง ๆ
-
-    ไม่ใช้ `caplog` ที่นี่โดยตั้งใจ — มันดักด้วย handler บน root logger ส่วน
-    `init_logging()` ตั้ง `root.handlers = [handler]` ทับทุกครั้งที่สร้างแอป
-    ผลคือเทสต์เขียวตอนรันไฟล์เดียวแต่แดงตอนรันทั้งชุด ขึ้นกับว่าแอปตัวไหน
-    ถูกสร้างตอนไหน (เจอจริงตอนเขียนเทสต์ชุดนี้)
-    """
-    import logging
-
-    lines: list[str] = []
-
-    class Grab(logging.Handler):
-        def emit(self, record):
-            lines.append(record.getMessage())
-
-    handler = Grab(level=logging.WARNING)
-    app.logger.addHandler(handler)
-    yield lines
-    app.logger.removeHandler(handler)
 
 
 def test_what_is_switched_off_is_written_to_the_log_on_every_start(app, warnings_of):

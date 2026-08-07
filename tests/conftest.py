@@ -99,6 +99,32 @@ def app():
 
 
 @pytest.fixture
+def warnings_of(app):
+    """เก็บ log ระดับ WARNING จาก logger ของแอปตรง ๆ
+
+    ไม่ใช้ `caplog` ที่นี่โดยตั้งใจ — มันดักด้วย handler บน root logger ส่วน
+    `init_logging()` ตั้ง `root.handlers = [handler]` ทับทุกครั้งที่สร้างแอป
+    ผลคือเทสต์เขียวตอนรันไฟล์เดียวแต่แดงตอนรันทั้งชุด ขึ้นกับว่าแอปตัวไหน
+    ถูกสร้างตอนไหน (เจอจริงตอนเขียนเทสต์ของ plugin)
+
+    **อยู่ใน conftest เพราะมีคนใช้สองไฟล์แล้ว** (plugin กับ cache) — คำเตือน
+    ที่ระบบพูดตอน start เป็นสิ่งที่หลายเรื่องต้องพิสูจน์ ไม่ใช่ของเฉพาะเรื่องเดียว
+    """
+    import logging
+
+    lines: list[str] = []
+
+    class Grab(logging.Handler):
+        def emit(self, record):
+            lines.append(record.getMessage())
+
+    handler = Grab(level=logging.WARNING)
+    app.logger.addHandler(handler)
+    yield lines
+    app.logger.removeHandler(handler)
+
+
+@pytest.fixture
 def user_id(app):
     with app.app_context():
         return _make_user("tester")

@@ -20,7 +20,7 @@ from sqlalchemy import MetaData
 from sqlalchemy.orm import DeclarativeBase
 
 from app import db_engine, plugins
-from app.cache import init_cache
+from app.cache import init_cache, warn_if_counters_are_not_shared
 from app.logging_setup import init_logging
 from app.security_headers import init_security_headers
 from config import Config, check_secret_key
@@ -105,6 +105,9 @@ def create_app(config_class=Config):
     # คุมทุก POST/PUT/PATCH/DELETE ทั้งแอป ไม่ต้องไปใส่ทีละ route
     csrf.init_app(app)
     limiter.init_app(app)
+    # โควตาที่นับแยกต่อ process = เพดานจริงเป็น N เท่าตามจำนวน worker
+    # ให้ระบบพูดออกมาตอน start แทนที่จะเป็นความรู้ในหัวคนตั้ง config (P5-07)
+    warn_if_counters_are_not_shared(app)
     login_manager.init_app(app)
 
     from app.i18n import select_locale
