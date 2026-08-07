@@ -6,6 +6,7 @@
 
 import json
 import logging
+import pathlib
 import sys
 import uuid
 
@@ -143,3 +144,47 @@ def test_log_uses_username_not_real_name(app, client, logged):
     dumped = json.dumps(logged(), ensure_ascii=False)
     assert "สยาม" not in dumped
     assert "ศรีผัว" not in dumped
+
+
+# --- log ต้องไม่ปนกับ output ที่เครื่องอ่าน (P5-08) ---
+
+
+def test_machine_readable_output_is_not_polluted_by_logs(tmp_path):
+    """`flask plugin-deps --categories` ถูกใส่ใน `$(...)` ของ CI — stdout จึงเป็นสัญญา
+
+    **ต้องรันเป็น subprocess จริง** เพราะ `CliRunner` ของ click จับ stdout กับ
+    stderr รวมกันเป็นก้อนเดียว มันจึงไม่มีวันเห็นความต่างที่เทสต์นี้ตรวจอยู่
+    (เจอจริงตอน P5-07: เทสต์ที่ตรึงรูปแบบ output ผ่านหมด แต่ CI พังเพราะ log
+    บรรทัดหนึ่งไปโผล่ใน `$(...)` แล้ว `pipenv sync` ได้ชื่อ category เป็น
+    `'memory://'` — เทสต์ที่ใช้ CliRunner มองไม่เห็นชั้นนั้นเลย)
+
+    ตั้ง `CACHE_URL=memory://` เพื่อ**บังคับให้มีคำเตือนดังแน่ ๆ** ระหว่างที่รัน
+    ถ้าคำเตือนนั้นไปออก stdout เทสต์นี้จะจับได้ทันที
+    """
+    import os
+    import subprocess
+    import sys
+
+    root = pathlib.Path(__file__).resolve().parent.parent
+    env = {
+        **os.environ,
+        "SECRET_KEY": "test-secret-key-for-pytest-only-not-a-real-key",
+        "CACHE_URL": "memory://",
+        "DATABASE_URL": f"sqlite:///{tmp_path / 'probe.db'}",
+    }
+    result = subprocess.run(
+        [sys.executable, "-m", "flask", "plugin-deps", "--categories"],
+        cwd=root,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    assert result.stdout.strip(), "ต้องมีชื่อ category ออกมาจริง ไม่ใช่ว่างเปล่า"
+    for line in result.stdout.splitlines():
+        assert not line.lstrip().startswith("{"), (
+            f"มี log ปนใน stdout: {line[:80]!r} — CI อ่านช่องนี้ด้วย `$(...)`"
+        )
+    for name in result.stdout.split():
+        assert name.startswith("plugin-"), f"stdout มีของที่ไม่ใช่ชื่อ category: {name!r}"

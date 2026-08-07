@@ -65,8 +65,22 @@ def _actor() -> str | None:
 
 
 def init_logging(app):
-    """ตั้ง JSON log ออก stdout + ผูก request id เข้าทุก request"""
-    handler = logging.StreamHandler(sys.stdout)
+    """ตั้ง JSON log ออก **stderr** + ผูก request id เข้าทุก request
+
+    **ทำไม stderr ไม่ใช่ stdout** (เปลี่ยนตอน P5-08 — ดูหมายเหตุท้าย ADR 0011):
+    แอปนี้เป็น CLI ด้วย และ output ของบางคำสั่งถูก *เครื่อง* อ่าน — `flask
+    plugin-deps --categories` ถูกใส่ใน `$(...)` ของ CI ถ้า log ใช้ช่องเดียวกับ
+    output นั้น log บรรทัดเดียวก็ทำให้ค่าที่ถูกอ่านเพี้ยนทันที
+
+    เจอจริงตอน P5-07 เพิ่มคำเตือนที่ดังทุกครั้งที่ start: CI ได้ชื่อ category
+    เป็น `'memory://'` แล้ว `pipenv sync` พังทั้งห้า job — เทสต์ที่ตรึงรูปแบบ
+    output ไว้แล้วมองไม่เห็น เพราะมันใช้ `CliRunner` ซึ่งรวมสองช่องเป็นก้อนเดียว
+
+    ไม่ขัดกับเจตนาของ 12-factor ที่ ADR 0011 อ้าง — ข้อนั้นห้ามแอปหมุนไฟล์ log เอง
+    ส่วน stdout/stderr runtime เก็บทั้งคู่อยู่แล้ว (docker, k8s, systemd)
+    **สิ่งที่ 12-factor ไม่ได้พูดถึงคือแอปที่เป็น CLI ด้วย ซึ่งเป็นกรณีของเรา**
+    """
+    handler = logging.StreamHandler(sys.stderr)
     handler.setFormatter(JsonFormatter())
 
     root = logging.getLogger()

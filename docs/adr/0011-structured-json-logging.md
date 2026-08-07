@@ -26,3 +26,19 @@ proxy ได้ทำหน้าที่ correlate ได้พอในตอ
 
 **ผล:** `tests/test_logging.py` ล็อก contract ของ field ไว้ ถ้ามีใครเปลี่ยนชื่อ
 หรือถอด field ออก เทสต์แดงทันที — ไม่ใช่ไปรู้ตอน dashboard ว่างเปล่า
+
+## หมายเหตุเพิ่มเติม (2026-08-07 · Phase 5 · P5-08)
+
+**log ย้ายจาก stdout ไป stderr** — คำตัดสินเดิมข้างบนเขียนว่า "ออก stdout อย่างเดียว"
+โดยอ้าง 12-factor ซึ่งถูกต้องสำหรับแอปที่เป็น *server* อย่างเดียว แต่แอปนี้เป็น
+**CLI ด้วย** และ output ของบางคำสั่งถูกเครื่องอ่าน (`flask plugin-deps --categories`
+อยู่ใน `$(...)` ของ CI) — สองอย่างนั้นใช้ช่องเดียวกันไม่ได้
+
+สิ่งที่เกิดขึ้นจริงตอน P5-07: เพิ่มคำเตือนที่ดังทุกครั้งที่ start แล้ว CI พังห้า job
+เพราะได้ชื่อ category เป็น `'memory://'` (บรรทัด JSON ของ log ถูกอ่านปนมาด้วย)
+**เทสต์ที่ตรึงรูปแบบ output ไว้แล้วมองไม่เห็น** เพราะใช้ `CliRunner` ซึ่งรวม
+stdout กับ stderr เป็นก้อนเดียว — ด่านใหม่จึงต้องรันเป็น subprocess จริง
+(`tests/test_logging.py::test_machine_readable_output_is_not_polluted_by_logs`)
+
+เจตนาของ 12-factor ยังอยู่ครบ: แอปไม่หมุนไฟล์ log เอง ปล่อยให้ runtime จัดการ
+ซึ่ง docker/k8s/systemd เก็บทั้ง stdout และ stderr อยู่แล้ว
