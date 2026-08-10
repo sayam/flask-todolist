@@ -1,0 +1,52 @@
+# stack พื้นฐาน: app + redis (Phase 5 · P5-10)
+#
+# **เลือกยี่ห้อฐานข้อมูลด้วยไฟล์ override ไม่ใช่ตัวแปร** —
+#   docker compose up                                        # SQLite (ค่าเริ่มต้น)
+#   docker compose -f compose.yaml -f compose.mysql.yaml up   # MySQL 8
+#   docker compose -f compose.yaml -f compose.mariadb.yaml up # MariaDB 11
+#
+# ทำไมไม่ใช้ตัวแปรตัวเดียวใน `.env`: การเลือกยี่ห้อต้องเปลี่ยนสองอย่างพร้อมกัน
+# (service ที่ต้อง start กับ `DATABASE_URL` ที่ app ใช้) ถ้าแยกเป็นสองตัวแปร
+# วันหนึ่งจะมีคนแก้ตัวเดียว แล้วได้ stack ที่ start MySQL ขึ้นมาแต่ app ยังเขียน
+# ลง SQLite — ไฟล์ override ทำให้สองอย่างนั้นอยู่ในไฟล์เดียวกันเสมอ
+# (หลักเดียวกับ ADR 0026: อย่ามี config ตัวที่สองที่ขัดกันเองได้)
+
+services:
+  app:
+    build:
+      context: .
+      args:
+        # stack นี้ใช้ redis เป็น cache จึงต้องมีไลบรารีของมันใน image
+        # (image พื้นฐานไม่มี ตาม ADR 0025 — ดูคอมเมนต์ใน Dockerfile)
+        PLUGIN_CATEGORIES: plugin-cache-redis
+    environment:
+      # **ไม่มีค่าเริ่มต้นโดยตั้งใจ** — `:?` ทำให้ compose ไม่ start พร้อมบอกว่าขาดอะไร
+      # หลักเดียวกับ `check_secret_key()` ในแอป: คีย์ที่มี default คือคีย์ที่ทุกคนใช้ค่าเดียวกัน
+      SECRET_KEY: ${SECRET_KEY:?ต้องตั้ง SECRET_KEY ก่อน — สร้างด้วย python -c "import secrets; print(secrets.token_urlsafe(32))"}
+      # ข้อมูลอยู่ใน volume ไม่ใช่ในตัว image — `/app` ทั้งก้อนเขียนไม่ได้อยู่แล้ว
+      DATABASE_URL: sqlite:////data/todolist.db
+      # store ที่แชร์ข้ามโปรเซสได้ **ตั้งไว้ตั้งแต่ต้น** ไม่ใช่รอตอนขึ้นหลาย replica
+      # โควตา rate limit ตามมาเองจากค่านี้ (P5-07) — ไม่งั้นเพดานจริงเป็น N เท่า
+      CACHE_URL: redis://redis:6379/0
+    ports:
+      - "8000:8000"
+    volumes:
+      - app-data:/data
+    depends_on:
+      redis:
+        # รอให้ redis ตอบ ping ได้จริง ไม่ใช่แค่ container ถูกสร้าง —
+        # `depends_on` เปล่า ๆ รอแค่ "เริ่มแล้ว" ซึ่ง app จะต่อไม่ติดในวินาทีแรก
+        condition: service_healthy
+
+  redis:
+    image: redis:7
+    # ไม่เปิด port ออกนอก stack — มีแต่ app ที่ต้องใช้ และการเปิดทิ้งไว้คือ
+    # การเปิด store ที่ไม่มีรหัสผ่านให้ทั้งเครื่อง
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  app-data:

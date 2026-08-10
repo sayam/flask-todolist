@@ -471,6 +471,78 @@ jobs:
             echo "ไม่เจอ log ของแอปใน stderr"; exit 1; }
           echo "log อยู่ถูกช่อง"
 
+  stack:
+    # **ยิง `docker compose up` จริงแล้วใช้งานแอปผ่าน stack นั้น** (P5-10)
+    # DoD ของ Phase 5 คือ "`docker compose up` เลือก backend ได้" ซึ่งพิสูจน์ได้
+    # ทางเดียวคือขึ้น stack จริงแล้วเดินเส้นทางจริง: migrate → สร้าง user → login
+    #
+    # ครอบ override ของ MySQL เพราะเป็นตัวที่มีชิ้นส่วนมากที่สุด (service เพิ่ม,
+    # healthcheck เฉพาะยี่ห้อ, `DATABASE_URL` ที่ต้องตรงกับ service นั้น)
+    # ส่วน MariaDB ต่างกันแค่ชื่อ image กับคำสั่ง healthcheck ซึ่ง job `dialects`
+    # พิสูจน์พฤติกรรมของยี่ห้อนั้นอยู่แล้ว — ที่นี่ตรวจ *การต่อสาย* ของ compose
+    #
+    # **Keycloak (compose.sso.yaml) ยังไม่อยู่ใน CI** — ยังไม่มีอะไรต่อกับมันจนกว่า
+    # จะถึง P5-13 ด่านที่พิสูจน์แค่ "มันขึ้นได้" จ่ายเวลาทุก push โดยไม่ตอบคำถามที่
+    # สำคัญ จะเพิ่มพร้อมกับ SSO ตอนที่มีอะไรให้ login ผ่านมันจริง ๆ
+    runs-on: ubuntu-latest
+    env:
+      SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
+      DB_PASSWORD: ci-only-db-password
+      DB_ROOT_PASSWORD: ci-only-root-password
+      COMPOSE: docker compose -f compose.yaml -f compose.mysql.yaml
+    steps:
+      - uses: actions/checkout@v7
+      - name: up
+        run: |
+          $COMPOSE up -d --build --quiet-pull
+          $COMPOSE ps
+      - name: ทุก service ต้อง healthy
+        run: |
+          for _ in $(seq 1 40); do
+            unhealthy=$($COMPOSE ps --format '{{.Service}}:{{.Health}}' | grep -v ':healthy' || true)
+            [ -z "$unhealthy" ] && break
+            sleep 5
+          done
+          left=$($COMPOSE ps --format '{{.Service}}:{{.Health}}' | grep -v ':healthy' || true)
+          if [ -n "$left" ]; then
+            echo "ยังไม่ healthy: $left"
+            $COMPOSE logs
+            exit 1
+          fi
+      - name: migrate เป็นขั้นตอนแยก ไม่ใช่ผลข้างเคียงของ start
+        run: |
+          # ก่อน migrate ตารางต้องยังไม่มี — พิสูจน์ว่า image ไม่ได้แอบ migrate ให้เอง
+          if $COMPOSE exec -T db mysql -uroot -p"$DB_ROOT_PASSWORD" -N \
+               -e "select 1 from todolist.tdl_user limit 1" 2>/dev/null; then
+            echo "ตารางมีอยู่แล้วก่อนสั่ง migrate — image migrate ให้เองหรือเปล่า"
+            exit 1
+          fi
+          $COMPOSE run --rm app flask db upgrade
+      - name: เดินเส้นทางจริง — สร้าง user แล้ว login ผ่าน CSRF
+        run: |
+          printf 'ci-stack-verification-phrase\nci-stack-verification-phrase\n' \
+            | $COMPOSE run --rm -T app flask create-user somchai
+          jar=$(mktemp)
+          # หน้า login ต้องเสิร์ฟได้ก่อน แล้วค่อยดึง CSRF token จากฟอร์มจริง
+          token=$(curl -sf -c "$jar" http://127.0.0.1:8000/login \
+            | grep -oP 'name="csrf_token"[^>]*value="\K[^"]+' | head -1)
+          [ -n "$token" ] || { echo "ไม่เจอ csrf_token ในหน้า login"; exit 1; }
+          code=$(curl -s -b "$jar" -c "$jar" -o /dev/null -w '%{http_code}' -X POST \
+            -d "username=somchai&password=ci-stack-verification-phrase&csrf_token=$token" \
+            http://127.0.0.1:8000/login)
+          [ "$code" = "302" ] || { echo "POST /login → $code (ควรเป็น 302)"; $COMPOSE logs app; exit 1; }
+          home=$(curl -s -b "$jar" -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/)
+          [ "$home" = "200" ] || { echo "GET / หลัง login → $home"; exit 1; }
+      - name: ข้อมูลต้องลงฐานข้อมูลของ stack จริง ไม่ใช่ SQLite ที่ติดมากับ image
+        run: |
+          rows=$($COMPOSE exec -T db mysql -uroot -p"$DB_ROOT_PASSWORD" -N \
+            -e "select count(*) from todolist.tdl_user" 2>/dev/null | tr -d '[:space:]')
+          echo "แถวใน tdl_user ของ MySQL: $rows"
+          [ "$rows" = "1" ] || { echo "ข้อมูลไม่ได้ลง MySQL"; exit 1; }
+      - name: เก็บกวาด
+        if: always()
+        run: $COMPOSE down -v
+
   secret-scan:
     runs-on: ubuntu-latest
     steps:

@@ -1,0 +1,37 @@
+# override: ใช้ MariaDB 11 แทน SQLite (P5-10)
+#   docker compose -f compose.yaml -f compose.mariadb.yaml up
+#
+# **ไฟล์เดียวเปลี่ยนทั้งสองอย่าง** — เพิ่ม service `db` และชี้ `DATABASE_URL` ของ app
+# มาที่มัน จึงไม่มีทางที่ stack จะ start MySQL ขึ้นมาแต่ app ยังเขียนลง SQLite
+
+services:
+  app:
+    build:
+      args:
+        # ต้องมี driver ของยี่ห้อนี้ใน image ด้วย ไม่ใช่แค่ของ cache
+        PLUGIN_CATEGORIES: plugin-cache-redis plugin-db-mariadb
+    environment:
+      DATABASE_URL: mariadb+pymysql://todolist:${DB_PASSWORD:?ต้องตั้ง DB_PASSWORD}@db/todolist
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mariadb:11
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?ต้องตั้ง DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: todolist
+      MYSQL_USER: todolist
+      MYSQL_PASSWORD: ${DB_PASSWORD:?ต้องตั้ง DB_PASSWORD}
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      # **`mariadb-admin` ไม่ใช่ `mysqladmin`** — MariaDB 11 ตัดชื่อเก่าออกแล้ว
+      # ใช้ผิดแล้ว healthcheck ไม่ผ่านทั้งที่ตัวฐานข้อมูลไม่ได้พัง (เจอจริงตอน P5-04)
+      test: ["CMD", "mariadb-admin", "ping", "-h", "127.0.0.1", "-uroot", "-p${DB_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  db-data:

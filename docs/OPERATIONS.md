@@ -220,6 +220,43 @@ USER todolist
 - start แล้ว healthcheck ขึ้น healthy และ `GET /login` ตอบ 200
 - log ของแอปออก stderr ส่วน access log ออก stdout (ADR 0011 หมายเหตุท้ายไฟล์)
 
+## รัน stack ทั้งชุดด้วย compose (Phase 5 · P5-10)
+
+```
+export SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
+
+docker compose up                                          # SQLite (เร็วที่สุด)
+docker compose -f compose.yaml -f compose.mysql.yaml up     # MySQL 8
+docker compose -f compose.yaml -f compose.mariadb.yaml up   # MariaDB 11
+docker compose -f compose.yaml -f compose.sso.yaml up       # + Keycloak (สำหรับ SSO)
+```
+
+ยี่ห้อที่ไม่ใช่ SQLite ต้องตั้ง `DB_PASSWORD` กับ `DB_ROOT_PASSWORD` ด้วย
+ส่วน Keycloak ต้องมี `KEYCLOAK_ADMIN_PASSWORD` — **ทุกตัวไม่มีค่าเริ่มต้น**
+compose จะไม่ start พร้อมบอกว่าขาดอะไร แทนที่จะขึ้นมาด้วยรหัสที่ทุกคนรู้
+
+**เลือกยี่ห้อด้วยไฟล์ override ไม่ใช่ตัวแปร** เพราะการเลือกต้องเปลี่ยนสองอย่าง
+พร้อมกัน (service ที่ start กับ `DATABASE_URL` ที่ app ใช้) แยกเป็นสองตัวแปร
+เมื่อไหร่ วันหนึ่งจะมีคนแก้ตัวเดียวแล้วได้ stack ที่ start MySQL ขึ้นมาแต่ app
+ยังเขียนลง SQLite — ไฟล์ override ทำให้สองอย่างนั้นอยู่ด้วยกันเสมอ (ADR 0026)
+
+**ต้อง migrate เองหลัง `up` ครั้งแรก** — image ไม่ทำให้ตามเหตุผลข้างบน:
+
+```
+docker compose -f compose.yaml -f compose.mysql.yaml run --rm app flask db upgrade
+docker compose -f compose.yaml -f compose.mysql.yaml run --rm app flask create-user somchai
+```
+
+**ไลบรารีของ plugin เข้ามาทาง build arg** — `compose.yaml` ส่ง `PLUGIN_CATEGORIES`
+ให้ image ตามยี่ห้อที่เลือก (เช่น `plugin-cache-redis plugin-db-mysql`)
+image พื้นฐานไม่มีของพวกนี้ตาม ADR 0025 และ backend ที่ถูกเลือกจะ `import`
+ไลบรารีของมันตอนโหลด — **ไม่มีของ = แอปไม่ start** ซึ่งตั้งใจให้เป็นแบบนั้น
+เพราะผู้ดูแลตั้งใจชี้ config มาที่ยี่ห้อนั้น การเงียบแล้วไม่ใช้ให้คือการโกหก
+
+**ที่ CI ตรวจให้ทุก push (`job: stack`)**: stack ขึ้นครบและ healthy ทุก service ·
+ตารางยังไม่มีก่อนสั่ง migrate (พิสูจน์ว่า image ไม่แอบ migrate) · สร้าง user แล้ว
+login ผ่าน CSRF ได้ 302 · ข้อมูลลงฐานข้อมูลของ stack จริงไม่ใช่ SQLite ใน image
+
 ## เวลาที่งานล้มเหลว
 
 **อย่าปล่อยผ่าน** — งานตามรอบที่ล้มเหลวเงียบ ๆ แย่กว่าไม่มีงานตามรอบเลย

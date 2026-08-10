@@ -35,11 +35,17 @@ COPY Pipfile Pipfile.lock ./
 # ซึ่งเป็นของ `install` — เคยเขียนผิดแล้ว build พังตั้งแต่บรรทัดแรกของ job `image`)
 # image ที่ build จาก lock ที่ล้าสมัยคือ image ที่ไม่มีใครรู้ว่าข้างในมีอะไร
 #
-# **ติดตั้งเฉพาะ category ที่ image ต้องใช้**: core + `deploy` (gunicorn)
-# ไลบรารีของ plugin ไม่ได้ติดตั้งที่นี่ตามหลักของ ADR 0025 — ใครใช้ยี่ห้อไหน
-# ค่อยต่อ image ตัวนี้แล้ว sync category ของตัวเองเพิ่ม
+# **ไลบรารีของ plugin เป็น opt-in ผ่าน build arg** (ADR 0025) — ค่าเริ่มต้นว่าง
+# image พื้นฐานจึงไม่แบก supply chain ของยี่ห้อ/ส่วนเสริมที่คนส่วนใหญ่ไม่ได้ใช้
+# ใครต้องการก็ส่งชื่อ category มา เช่น `--build-arg PLUGIN_CATEGORIES="plugin-cache-redis"`
+# (compose ของ stack ส่งให้เองตามยี่ห้อที่เลือก — ดู compose.yaml)
+#
+# ทำไมต้องมี: backend ของ cache/db ที่ถูกเลือกจะ `import` ไลบรารีของมันตอนโหลด
+# และ **ตั้งใจให้ ImportError ทำให้แอปไม่ start** เพราะผู้ดูแลตั้งใจชี้ config มาที่
+# ยี่ห้อนั้น การเงียบแล้วไม่ใช้ให้คือการโกหก — image จึงต้องมีของที่ config เรียกหา
+ARG PLUGIN_CATEGORIES=""
 ENV PIPENV_VENV_IN_PROJECT=1
-RUN pipenv verify && pipenv sync --categories="packages deploy"
+RUN pipenv verify && pipenv sync --categories="packages deploy ${PLUGIN_CATEGORIES}"
 
 # ---------------------------------------------------------------- ชั้นที่รันจริง
 FROM python:3.13-slim AS runtime
@@ -68,6 +74,13 @@ COPY config.py run.py ./
 # `sqlite:///todolist.db` เก็บข้อมูลลง layer ของ container ซึ่ง **หายเงียบ ๆ
 # ตอน restart** — พังดัง ๆ ตอนตั้ง config ผิด ดีกว่าข้อมูลหายโดยไม่มีใครรู้
 RUN mkdir -p /app/instance
+
+# **ที่เดียวที่เขียนได้ และอยู่นอก `/app`** — named volume ที่ถูก mount ทับตรงนี้
+# จะรับสิทธิ์กับเจ้าของจากไดเรกทอรีใน image มาให้เอง ถ้าไม่สร้างไว้ก่อน docker
+# จะสร้าง volume ที่เป็นของ root แล้ว process (uid 10001) เขียนไม่ได้
+# — SQLite จะล้มด้วย "unable to open database file" ซึ่งอ่านแล้วนึกว่า path ผิด
+RUN install -d -o todolist -g todolist -m 0775 /data
+VOLUME /data
 
 # โค้ดเป็นของ root และ process รันเป็น todolist — **เขียนทับตัวเองไม่ได้**
 RUN chown -R root:root /app && chmod -R a-w /app

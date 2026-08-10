@@ -1,0 +1,37 @@
+# override: ใช้ MySQL 8 แทน SQLite (P5-10)
+#   docker compose -f compose.yaml -f compose.mysql.yaml up
+#
+# **ไฟล์เดียวเปลี่ยนทั้งสองอย่าง** — เพิ่ม service `db` และชี้ `DATABASE_URL` ของ app
+# มาที่มัน จึงไม่มีทางที่ stack จะ start MySQL ขึ้นมาแต่ app ยังเขียนลง SQLite
+
+services:
+  app:
+    build:
+      args:
+        # ต้องมี driver ของยี่ห้อนี้ใน image ด้วย ไม่ใช่แค่ของ cache
+        PLUGIN_CATEGORIES: plugin-cache-redis plugin-db-mysql
+    environment:
+      DATABASE_URL: mysql+pymysql://todolist:${DB_PASSWORD:?ต้องตั้ง DB_PASSWORD}@db/todolist
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?ต้องตั้ง DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: todolist
+      MYSQL_USER: todolist
+      MYSQL_PASSWORD: ${DB_PASSWORD:?ต้องตั้ง DB_PASSWORD}
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      # **คำสั่งนี้ต่างกันตามยี่ห้อโดยจำเป็น** — MariaDB 11 ไม่มี `mysqladmin` แล้ว
+      # (เจอจริงตอน P5-04) จึงแยกเป็นคนละไฟล์แทนที่จะพยายามใช้ตัวเดียวกัน
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${DB_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  db-data:

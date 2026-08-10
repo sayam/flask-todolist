@@ -1,0 +1,31 @@
+# override: เพิ่ม IdP สำหรับทดสอบ SSO (P5-10 เตรียมไว้ให้ P5-13)
+#   docker compose -f compose.yaml -f compose.sso.yaml up
+#   (ต่อกับยี่ห้ออื่นได้ด้วย: -f compose.yaml -f compose.mysql.yaml -f compose.sso.yaml)
+#
+# **แยกไฟล์เพราะยังไม่มีใครใช้** — ADR 0018/0024 วาง seam ของ auth ไว้แล้วแต่
+# ตัว OIDC เป็นงานของ P5-13 การใส่ Keycloak ลง stack หลักตั้งแต่ตอนนี้แปลว่า
+# ทุกคนที่แค่อยากรันแอปต้องจ่ายค่า RAM ให้ IdP ที่ไม่มีอะไรต่อกับมัน
+#
+# **DoD ของ P5-13 คือ login กับ IdP ตัวนี้ได้จริง** ไม่ใช่ mock — เหตุผลที่ SSO
+# ถูกเลื่อนจาก Phase 4 มาที่นี่ก็เพราะต้องมี stack นี้ก่อน (ดู ROADMAP)
+
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    # `start-dev` ใช้ฐานข้อมูลในตัวและปิด https — **สำหรับ dev เท่านั้น**
+    # prod ต้องใช้ `start` พร้อมฐานข้อมูลจริงและ TLS (จะแตะตอน P5-12)
+    command: ["start-dev", "--http-port=8080"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?ต้องตั้ง KEYCLOAK_ADMIN_PASSWORD}
+      KC_HEALTH_ENABLED: "true"
+    ports:
+      - "8080:8080"
+    healthcheck:
+      # image ของ Keycloak ไม่มี curl/wget — ใช้ /dev/tcp ของ bash ที่มีอยู่ในตัว
+      # (เจอตอนทดสอบจริง: `curl: not found` ทำให้ healthcheck ไม่ผ่านทั้งที่ตัวมันขึ้นแล้ว)
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '\"status\": \"UP\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s

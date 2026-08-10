@@ -67,6 +67,9 @@
 - `Dockerfile` + `.dockerignore` — image ที่รันจริง (multi-stage, ไม่ใช่ root)
   **ไม่ migrate ให้เอง** โดยตั้งใจ · ไลบรารีของ plugin ไม่อยู่ใน image (ADR 0025)
   job `image` ใน CI build จริงแล้วยิงใส่มันทุก push — ดู docs/OPERATIONS.md
+- `compose.yaml` + `compose.{mysql,mariadb,sso}.yaml` — stack ที่รันจริง
+  **เลือกยี่ห้อด้วยไฟล์ override ไม่ใช่ตัวแปร** (ไฟล์เดียวเปลี่ยนทั้ง service และ
+  `DATABASE_URL` จึงขัดกันเองไม่ได้) · job `stack` ใน CI ยิงจริงทุก push
 - `scripts/` — สคริปต์ที่รันมือ ไม่ได้ถูกเรียกตอนแอปทำงาน
 - `docs/openapi.json` — **ไฟล์ที่ generate มา ห้ามแก้ด้วยมือ** (ดูหัวข้อ API v1)
 - `app/templates/` — Jinja2 templates (ทุกหน้า extend `base.html`)
