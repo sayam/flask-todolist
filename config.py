@@ -114,6 +114,12 @@ class Config:
     # เปิดตอนยังรัน http อยู่จะ redirect วนจน login ไม่ได้
     HTTPS_ENABLED = os.environ.get("HTTPS_ENABLED", "") == "1"
 
+    # URL สาธารณะของแอปนี้ เช่น `https://todolist.example.com` (ไม่มี / ปิดท้าย)
+    # **จำเป็นเมื่อใช้ SSO** เพราะ redirect_uri ที่ส่งให้ IdP ต้องเป็นค่าคงที่ที่
+    # ผู้ดูแลลงทะเบียนไว้ ไม่ใช่ค่าที่คำนวณจาก header `Host` ของคำขอ ซึ่งคนยิง
+    # ตั้งเองได้ (semgrep: flask-url-for-external-true)
+    EXTERNAL_URL = os.environ.get("EXTERNAL_URL", "").rstrip("/")
+
     # จำนวนชั้นของ reverse proxy ที่เชื่อ header ของมันได้ (0 = ไม่เชื่อเลย)
     # **ต้องตั้งเมื่อรันหลัง proxy** ไม่งั้น rate limit ต่อไอพีจะกลายเป็นก้อนเดียว
     # สำหรับคนทั้งโลก และ `remote_addr` ใน log จะเป็นไอพีของ proxy ทุกบรรทัด

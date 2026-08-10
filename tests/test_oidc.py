@@ -16,7 +16,11 @@
 
 import base64
 import json
+import logging
+import threading
 import time
+from datetime import UTC, datetime
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from types import SimpleNamespace
 
 import pytest
@@ -25,7 +29,7 @@ from app import db, plugins
 from app.models import User
 from app.services import sso
 from app.services.errors import ServiceError
-from tests.conftest import TestConfig, _app_with_tables, _make_user
+from tests.conftest import PASSWORD, TestConfig, _app_with_tables, _make_user
 
 OIDC_KEY = "auth/oidc"
 ISSUER = "https://idp.example.test/realms/todolist"
@@ -47,6 +51,8 @@ class OidcConfig(TestConfig):
     OIDC_ISSUER = ISSUER
     OIDC_CLIENT_ID = CLIENT_ID
     OIDC_CLIENT_SECRET = "test-client-secret-not-a-real-one"
+    # redirect_uri ประกอบจากค่านี้ **ไม่ใช่จาก header `Host` ของคำขอ**
+    EXTERNAL_URL = "https://todolist.example.test"
 
 
 def factor():
@@ -315,3 +321,217 @@ def test_a_pending_handshake_is_spent_even_when_the_attempt_fails(oidc_app):
     oidc_app.config["_next_id_token"] = id_token()
     right = client.get(f"/login/sso/{OIDC_KEY}/callback?state=state-value&code=the-code")
     assert right.status_code == 401, "state ชุดเดิมต้องใช้ซ้ำไม่ได้แม้ครั้งก่อนจะล้มเหลว"
+
+
+# ------------------------------- 4. ตัวที่คุยกับเครือข่ายจริง (ไม่ได้ถูกปลอม)
+#
+# **เทสต์ข้างบนปลอม `_fetch` ทิ้งทุกตัว** ซึ่งแปลว่าโค้ดที่คุยกับ IdP จริง —
+# การตรวจ scheme, การตั้ง header, การย่อย JSON, และเส้นทางตอนต่อไม่ติด —
+# ไม่เคยถูกเดินเลยในชุดนี้ (ratchet ของ coverage เป็นตัวที่บังคับให้มาดู)
+# ที่นี่จึงยิงใส่ HTTP server จริงในเครื่อง ไม่ใช่ mock
+
+
+class _Handler(BaseHTTPRequestHandler):
+    def _reply(self):
+        body = json.dumps({"ok": True, "method": self.command}).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    # ชื่อของ BaseHTTPRequestHandler เป็น mixedCase ตามสัญญาของ stdlib
+    # เปลี่ยนชื่อไม่ได้ ต้องขอยกเว้นตรงนี้ (N815)
+    do_GET = _reply  # noqa: N815
+    do_POST = _reply  # noqa: N815
+
+    def log_message(self, *args):
+        """เงียบไว้ ไม่งั้น log ของ server ปนกับผลของ pytest"""
+
+
+@pytest.fixture
+def local_idp():
+    """HTTP server จริงในเครื่อง — ใช้ทดสอบตัว `_fetch` เอง"""
+    server = HTTPServer(("127.0.0.1", 0), _Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    yield f"http://127.0.0.1:{server.server_port}"
+    server.shutdown()
+
+
+@pytest.fixture
+def http_app():
+    """แอปที่ยอมให้ issuer เป็น http — สภาพเดียวกับ stack ทดสอบที่มี Keycloak"""
+
+    class InsecureConfig(OidcConfig):
+        OIDC_INSECURE_ISSUER = "1"
+
+    yield from _app_with_tables(InsecureConfig)
+
+
+def test_fetch_talks_to_a_real_server(http_app, local_idp):
+    with http_app.test_request_context():
+        assert factor()._fetch(local_idp) == {"ok": True, "method": "GET"}
+        # มี body = POST พร้อม content-type ของฟอร์ม (token endpoint ต้องการแบบนี้)
+        assert factor()._fetch(local_idp, b"grant_type=x")["method"] == "POST"
+
+
+def test_a_provider_that_cannot_be_reached_is_reported_not_crashed(http_app):
+    """ต่อไม่ติดเป็นสถานะที่ต้องรายงาน ไม่ใช่ 500 ที่ผู้ใช้อ่านไม่รู้เรื่อง"""
+    with http_app.test_request_context(), pytest.raises(ServiceError) as caught:
+        # พอร์ตที่ไม่มีใครฟัง — `URLError` จากชั้น socket
+        factor()._fetch("http://127.0.0.1:1/nothing-here")
+    assert caught.value.code == "sso_provider_unreachable"
+
+
+def test_an_http_issuer_that_is_opted_in_warns_every_time(http_app, local_idp, caplog):
+    """เปิดโหมด IdP ทดสอบแล้วต้องดังทุกครั้งที่ใช้ ไม่ใช่ครั้งเดียวตอน start
+
+    เพราะข้อนี้ทำให้คำตัดสินข้อ 4 ของ ADR 0028 ตกทั้งข้อ — คนที่เผลอเปิด
+    ค้างไว้ใน prod ต้องเห็นมันในทุกบรรทัดที่เกี่ยวข้อง
+    """
+    http_app.config["OIDC_ISSUER"] = local_idp
+    with http_app.test_request_context(), caplog.at_level(logging.WARNING):
+        factor()._issuer()
+    assert any("OIDC_INSECURE_ISSUER" in record.message for record in caplog.records)
+
+
+# ------------------------------------------- 5. เส้นทางที่เหลือของความล้มเหลว
+
+
+def test_missing_configuration_is_reported_with_the_key_that_is_missing(oidc_app):
+    oidc_app.config["OIDC_CLIENT_ID"] = ""
+    with oidc_app.test_request_context(), pytest.raises(ServiceError) as caught:
+        factor().begin("https://todolist.example.test/cb")
+    assert caught.value.code == "sso_not_configured"
+    assert caught.value.field == "OIDC_CLIENT_ID"
+
+
+def test_a_callback_without_a_code_is_refused(oidc_app):
+    with pytest.raises(ServiceError) as caught:
+        finish(oidc_app, params={"state": "state-value"})
+    assert caught.value.code == "sso_no_code"
+
+
+def test_a_token_response_without_an_id_token_is_refused(oidc_app, monkeypatch):
+    def always_discovery(_url, data=None):
+        # รับพารามิเตอร์ให้ตรงสัญญาของ `_fetch` แม้จะไม่ได้ใช้
+        return dict(DISCOVERY)
+
+    monkeypatch.setattr(factor(), "_fetch", always_discovery)
+    with oidc_app.test_request_context(), pytest.raises(ServiceError) as caught:
+        factor().finish({"state": "state-value", "code": "c"}, pending())
+    assert caught.value.code == "sso_no_id_token"
+
+
+def test_a_token_without_a_username_cannot_be_linked(oidc_app):
+    """ผูกครั้งแรกต้องมีชื่อให้เทียบ — ไม่มี = ปฏิเสธ ไม่ใช่เดา"""
+    with pytest.raises(ServiceError) as caught:
+        finish(oidc_app, token=id_token(preferred_username=""))
+    assert caught.value.code == "sso_no_username"
+
+
+def test_a_deleted_account_cannot_be_resurrected_by_signing_in(oidc_app):
+    """บัญชีที่ถูกลบ (soft delete) แล้ว login ผ่าน IdP ไม่ได้อีก
+
+    **ลบจริงไม่ใช่กรณีที่ต้องกัน** — FK เป็น `ondelete="CASCADE"` แถวผูกจึง
+    หายตามไปด้วย กรณีที่เกิดขึ้นจริงคือ soft delete ซึ่งแถวผูกยังอยู่แต่
+    ตัวผู้ใช้ถูกกรองออกจากทุก query แล้ว (app/soft_delete.py) — ถ้าไม่ปฏิเสธ
+    ตรงนี้ การลบบัญชีจะกลายเป็นการ *คืน* บัญชีให้ทันทีที่เจ้าตัว login อีกครั้ง
+    """
+    oidc_app.config["OIDC_AUTO_CREATE"] = "1"
+    user = finish(oidc_app)
+    with oidc_app.app_context():
+        db.session.get(User, user.id).deleted_at = datetime.now(UTC)
+        db.session.commit()
+        db.session.expunge_all()
+    with pytest.raises(ServiceError) as caught:
+        finish(oidc_app)
+    assert caught.value.code == "sso_user_missing"
+
+
+def test_a_single_group_claim_is_accepted_as_well_as_a_list(oidc_app):
+    """IdP บางเจ้าส่ง claim เป็นสตริงเดี่ยวเมื่อมีกลุ่มเดียว"""
+    oidc_app.config["OIDC_AUTO_CREATE"] = "1"
+    oidc_app.config["OIDC_ADMIN_GROUP"] = "todolist-admins"
+    user = finish(oidc_app, token=id_token(groups="todolist-admins"))
+    assert user.role == "admin"
+
+
+# ---------------------------------------------- 6. เส้นทางบนเว็บจริง (ผ่าน HTTP)
+
+
+def test_starting_sso_redirects_the_browser_to_the_provider(oidc_app):
+    response = oidc_app.test_client().get(f"/login/sso/{OIDC_KEY}")
+    assert response.status_code == 302
+    assert response.headers["Location"].startswith(DISCOVERY["authorization_endpoint"])
+    # **redirect_uri ต้องมาจาก config ไม่ใช่จาก Host ของคำขอ** (semgrep จับข้อนี้)
+    assert "redirect_uri=https%3A%2F%2Ftodolist.example.test%2F" in response.headers["Location"]
+
+
+def test_starting_sso_without_a_public_url_is_refused(oidc_app):
+    """ไม่มี `EXTERNAL_URL` = ไม่รู้ว่าจะให้ IdP ส่งกลับมาที่ไหน — ห้ามเดา"""
+    oidc_app.config["EXTERNAL_URL"] = ""
+    response = oidc_app.test_client().get(f"/login/sso/{OIDC_KEY}")
+    assert response.status_code == 400
+
+
+def test_an_unknown_provider_key_is_refused(oidc_app):
+    assert oidc_app.test_client().get("/login/sso/auth/nope").status_code == 400
+
+
+def test_a_signed_in_user_is_sent_home_instead_of_to_the_provider(oidc_app):
+    with oidc_app.app_context():
+        _make_user("somchai")
+    client = oidc_app.test_client()
+    client.post("/login", data={"username": "somchai", "password": PASSWORD})
+    assert client.get(f"/login/sso/{OIDC_KEY}").headers["Location"] == "/"
+
+
+def _walk_through_sso(app, client=None):
+    """เดินเส้นทางจริงบนเว็บ: เริ่ม → IdP ตอบกลับ → callback"""
+    client = client or app.test_client()
+    client.get(f"/login/sso/{OIDC_KEY}")
+    app.config["_next_id_token"] = id_token()
+    with client.session_transaction() as stored:
+        state = stored["_sso_pending"]["state"]
+        # nonce ที่ `begin()` สุ่มมาไม่ตรงกับใน token ปลอม — ปรับให้ตรงกัน
+        # **ต้องเขียนทับทั้งก้อน ไม่ใช่แก้คีย์ข้างใน** — session ของ Flask ตั้ง
+        # แฟล็ก modified จาก `__setitem__` ของตัวมันเอง การแก้ dict ที่ซ้อนอยู่
+        # ข้างในจึงไม่ถูกบันทึก แล้วเทสต์จะได้ 401 จาก nonce ที่ไม่ตรงแทน
+        stored["_sso_pending"] = {**stored["_sso_pending"], "nonce": "nonce-value"}
+    return client, client.get(f"/login/sso/{OIDC_KEY}/callback?state={state}&code=c")
+
+
+def test_a_full_round_trip_signs_the_user_in(oidc_app):
+    with oidc_app.app_context():
+        _make_user("somchai")
+    client, response = _walk_through_sso(oidc_app)
+    assert response.status_code == 302
+    assert response.headers["Location"] == "/"
+    assert client.get("/").status_code == 200
+
+
+def test_a_second_factor_still_stands_between_sso_and_the_app(oidc_app, monkeypatch):
+    """ปัจจัยที่สองเป็นของแอป ไม่ใช่ของ IdP (ADR 0028 ข้อ 6)
+
+    ผ่าน IdP มาแล้วก็ยังต้องหยุดครึ่งทางถ้าผู้ใช้เปิดปัจจัยที่สองไว้ — ไม่งั้น
+    การเปิด SSO จะกลายเป็นทางลัดที่ข้าม MFA ของทุกคนไปเงียบ ๆ
+    """
+    with oidc_app.app_context():
+        _make_user("somchai")
+    monkeypatch.setattr("app.auth.mfa.is_required", lambda user: True)  # noqa: ARG005
+    _client, response = _walk_through_sso(oidc_app)
+    assert response.headers["Location"] == "/login/verify"
+
+
+def test_a_provider_missing_part_of_the_contract_says_who_and_what(oidc_app, monkeypatch):
+    """สัญญาของความสามารถเป็นเรื่องของ host — registry ไม่รู้ (ADR 0025)"""
+
+    class Incomplete:
+        def begin(self, redirect_uri):
+            """มี begin แต่ไม่มี finish"""
+
+    monkeypatch.setattr(plugins, "factor_module", lambda plugin: Incomplete())  # noqa: ARG005
+    with oidc_app.app_context(), pytest.raises(plugins.PluginError, match="finish"):
+        sso.begin(plugins.find(OIDC_KEY), "https://todolist.example.test/cb")

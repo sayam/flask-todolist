@@ -244,7 +244,9 @@ def _user_for(claims: dict[str, Any]) -> User:
     if identity is not None:
         user = db.session.get(User, identity.user_id)
         if user is None:
-            # แถวผูกที่ชี้ไปยังผู้ใช้ที่ถูก purge ไปแล้ว — ปฏิเสธ ไม่ใช่สร้างใหม่ให้
+            # ผู้ใช้ถูกลบไปแล้ว (soft delete — ตัวกรองของ app/soft_delete.py
+            # ทำให้หาไม่เจอ) **ปฏิเสธ ไม่ใช่สร้างใหม่ให้** ไม่งั้นการลบบัญชี
+            # จะกลายเป็นการคืนบัญชีให้ทันทีที่เจ้าตัว login อีกครั้ง
             raise ValidationError(_("Sign-in failed"), code="sso_user_missing")
         return user
 

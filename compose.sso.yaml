@@ -17,6 +17,10 @@ services:
       # `127.0.0.1:8080` แต่แอปคุยกับ `keycloak:8080` จะได้ token ที่ `iss`
       # ไม่ตรงกับที่เราคาดตลอดกาล · ฝั่ง browser แก้ด้วย `--resolve` ไม่ใช่
       # แก้ที่นี่ (ดู job `stack` ใน CI)
+      # **redirect_uri ประกอบจากค่านี้ ไม่ใช่จาก header `Host` ของคำขอ**
+      # ซึ่งคนยิงตั้งเองได้ (semgrep: flask-url-for-external-true) — ค่านี้ต้อง
+      # ตรงกับที่ลงทะเบียนไว้ใน realm ของ IdP เป๊ะ ๆ อยู่แล้ว จึงไม่มีอะไรให้เดา
+      EXTERNAL_URL: http://127.0.0.1:8000
       OIDC_ISSUER: http://keycloak:8080/realms/todolist
       OIDC_CLIENT_ID: todolist
       OIDC_CLIENT_SECRET: ci-only-client-secret-not-a-real-one

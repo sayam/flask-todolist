@@ -146,6 +146,24 @@ SSO_PENDING_KEY = "_sso_pending"
 SSO_PROVIDER_KEY = "_sso_provider"
 
 
+def _callback_url(key):
+    """URL ที่ IdP จะส่งผู้ใช้กลับมา — **ประกอบจาก config ไม่ใช่จาก header `Host`**
+
+    `url_for(..., _external=True)` สร้าง URL จาก `Host` ของคำขอ ซึ่งคนยิงตั้งเองได้
+    (semgrep จับข้อนี้ให้) ผลคือ redirect_uri ที่ส่งให้ IdP ชี้ไปโดเมนของคนอื่นได้
+    — ในทางปฏิบัติ IdP ที่ตั้งค่าถูกจะปฏิเสธเพราะไม่ตรงรายการที่ลงทะเบียนไว้
+    แต่การพึ่งการตั้งค่าที่ *ปลายทาง* ไม่ใช่การป้องกันที่ฝั่งเรา
+
+    **ไม่มีค่าเริ่มต้นให้เดา** — redirect_uri ต้องตรงเป๊ะกับที่ลงทะเบียนไว้ที่ IdP
+    อยู่แล้ว ผู้ดูแลจึงรู้ค่านี้แน่นอน ส่วนการเดาจาก request แปลว่าวันที่เดาผิด
+    จะได้ข้อความจาก IdP ว่า redirect_uri ไม่ถูกต้อง ซึ่งชี้ไปผิดที่
+    """
+    base = current_app.config.get("EXTERNAL_URL", "")
+    if not base:
+        raise ValidationError(_("Single sign-on is not configured"), code="sso_no_external_url")
+    return f"{base}{url_for('auth.sso_callback', key=key)}"
+
+
 @bp.route("/login/sso/<path:key>")
 def sso_begin(key):
     """ส่งผู้ใช้ไปยืนยันตัวตนที่ผู้ให้บริการภายนอก
@@ -157,7 +175,7 @@ def sso_begin(key):
         return redirect(url_for("main.index"))
     try:
         plugin = sso.find(key)
-        target, pending = sso.begin(plugin, url_for("auth.sso_callback", key=key, _external=True))
+        target, pending = sso.begin(plugin, _callback_url(key))
     except ServiceError as error:
         flash(error.message)
         return _login_page(), HTTPStatus.BAD_REQUEST

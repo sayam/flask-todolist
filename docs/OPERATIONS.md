@@ -343,11 +343,17 @@ docker compose -f compose.yaml -f compose.sso.yaml run --rm app flask create-use
 
 | ตัวแปร | ความหมาย |
 |---|---|
+| `EXTERNAL_URL` | URL สาธารณะของแอปนี้ — **จำเป็น** redirect_uri ประกอบจากค่านี้ |
 | `OIDC_ISSUER` | URL ของ realm/tenant — **ต้องเป็น https** |
 | `OIDC_CLIENT_ID` / `OIDC_CLIENT_SECRET` | client แบบ confidential ที่เปิดเฉพาะ code flow |
 | `OIDC_ADMIN_GROUP` | ชื่อกลุ่มที่แปลว่า admin ที่นี่ · ไม่ตั้ง = ไม่แตะบทบาทเลย |
 | `OIDC_AUTO_CREATE` | `1` = ให้ IdP เป็นคนตัดสินว่าใครมีบัญชี · **ค่าเริ่มต้นคือปิด** |
 | `OIDC_INSECURE_ISSUER` | `1` = ยอมให้ issuer เป็น http — **สำหรับ IdP ทดสอบเท่านั้น** |
+
+**`EXTERNAL_URL` ไม่มีค่าเริ่มต้นให้เดา** — ถ้าประกอบ redirect_uri จาก header
+`Host` ของคำขอ (`url_for(_external=True)`) คนยิงตั้งค่านั้นเองได้ ในทางปฏิบัติ
+IdP ที่ตั้งค่าถูกจะปฏิเสธเพราะไม่ตรงรายการที่ลงทะเบียน แต่การพึ่งการตั้งค่าที่
+*ปลายทาง* ไม่ใช่การป้องกันที่ฝั่งเรา (semgrep จับข้อนี้ให้ตอน P5-13)
 
 **`OIDC_INSECURE_ISSUER=1` ทำให้คำตัดสินข้อ 4 ของ ADR 0028 ตกทั้งข้อ** เพราะ
 สิ่งที่มาแทนการตรวจลายเซ็น ID token คือการยืนยันตัวตนของ server ด้วย TLS
