@@ -10,11 +10,43 @@
 # ถูกเลื่อนจาก Phase 4 มาที่นี่ก็เพราะต้องมี stack นี้ก่อน (ดู ROADMAP)
 
 services:
+  app:
+    environment:
+      # **ชื่อโฮสต์ต้องเป็นตัวเดียวกันทั้งจากในและนอก stack** — `issuer` เป็นสตริง
+      # ที่ถูกเทียบตรง ๆ กับ `iss` ใน ID token (ADR 0028) ถ้า browser ไปที่
+      # `127.0.0.1:8080` แต่แอปคุยกับ `keycloak:8080` จะได้ token ที่ `iss`
+      # ไม่ตรงกับที่เราคาดตลอดกาล · ฝั่ง browser แก้ด้วย `--resolve` ไม่ใช่
+      # แก้ที่นี่ (ดู job `stack` ใน CI)
+      OIDC_ISSUER: http://keycloak:8080/realms/todolist
+      OIDC_CLIENT_ID: todolist
+      OIDC_CLIENT_SECRET: ci-only-client-secret-not-a-real-one
+      # IdP ทดสอบพูด http — **ต้องเปิดข้อนี้อย่างชัดเจน** ไม่งั้นแอปปฏิเสธเอง
+      # และแอปจะเตือนทุกครั้งที่ถูกใช้ เพราะมันทำให้ ADR 0028 ข้อ 4 ตกทั้งข้อ
+      OIDC_INSECURE_ISSUER: "1"
+      # กลุ่มใน realm ที่แปลว่า admin ที่นี่ (ADR 0028 ข้อ 5)
+      OIDC_ADMIN_GROUP: todolist-admins
+    depends_on:
+      keycloak:
+        condition: service_healthy
+
   keycloak:
     image: quay.io/keycloak/keycloak:26.0
     # `start-dev` ใช้ฐานข้อมูลในตัวและปิด https — **สำหรับ dev เท่านั้น**
     # prod ต้องใช้ `start` พร้อมฐานข้อมูลจริงและ TLS (จะแตะตอน P5-12)
-    command: ["start-dev", "--http-port=8080"]
+    # `--import-realm` อ่านไฟล์ใน /opt/keycloak/data/import ตอน start
+    command: ["start-dev", "--http-port=8080", "--import-realm"]
+    volumes:
+      # **realm ของการทดสอบ ห้ามใช้กับ IdP จริง** — ทั้ง client secret และ
+      # รหัสผ่านในไฟล์นั้นเป็นค่าสาธารณะโดยตั้งใจ และ `sslRequired` เป็น `none`
+      # เพราะ IdP ตัวนี้พูด http (คู่กับ `OIDC_INSECURE_ISSUER=1` ข้างบน)
+      #
+      # **ไฟล์นั้นห้ามมีคอมเมนต์** — Keycloak ปฏิเสธคีย์ที่ไม่รู้จักแล้ว *ไม่ start*
+      # (`Unrecognized field "_comment"`) คำอธิบายจึงต้องอยู่ที่นี่แทน สิ่งที่
+      # realm นั้นประกาศไว้: client `todolist` แบบ confidential ที่เปิดเฉพาะ
+      # standard (code) flow ตามข้อจำกัดของ ADR 0028 · กลุ่ม `todolist-admins`
+      # พร้อม mapper ที่ส่ง claim `groups` แบบชื่อเปล่า ๆ (ไม่ใช่ path เต็ม) ·
+      # ผู้ใช้ `somchai` ที่อยู่ในกลุ่มนั้น
+      - ./deploy/keycloak-realm.json:/opt/keycloak/data/import/todolist-realm.json:ro
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?ต้องตั้ง KEYCLOAK_ADMIN_PASSWORD}

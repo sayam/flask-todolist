@@ -324,6 +324,45 @@ login ไม่ได้ · มี TLS แต่ไม่เปิดแฟล�
 เพราะสองที่จะเพี้ยนจากกันวันที่มีคนแก้ `max-age` ที่เดียว · ด่านใน CI ตรวจว่า
 header นี้มีมา **หนึ่งบรรทัดพอดี**
 
+## เปิด SSO ด้วย OIDC (Phase 5 · P5-13)
+
+```
+export SECRET_KEY=... KEYCLOAK_ADMIN_PASSWORD=...
+docker compose -f compose.yaml -f compose.sso.yaml up -d
+docker compose -f compose.yaml -f compose.sso.yaml run --rm app flask db upgrade
+# **ตารางของ plugin อยู่นอกสาย migration ของ core** ต้องสั่งเอง (ADR 0023)
+docker compose -f compose.yaml -f compose.sso.yaml run --rm app flask plugin-install auth/oidc
+docker compose -f compose.yaml -f compose.sso.yaml run --rm app flask create-user somchai
+```
+
+แล้วเปิด `http://127.0.0.1:8000/login` จะเห็นปุ่มของ IdP เพิ่มขึ้นมาข้างฟอร์ม
+รหัสผ่าน (ผู้ใช้ทดสอบใน realm คือ `somchai` — ดูรหัสใน `deploy/keycloak-realm.json`
+ซึ่งเป็นค่าสาธารณะโดยตั้งใจ **ห้ามใช้ realm นั้นกับของจริง**)
+
+### ค่าที่ต้องตั้งเมื่อใช้ IdP จริง
+
+| ตัวแปร | ความหมาย |
+|---|---|
+| `OIDC_ISSUER` | URL ของ realm/tenant — **ต้องเป็น https** |
+| `OIDC_CLIENT_ID` / `OIDC_CLIENT_SECRET` | client แบบ confidential ที่เปิดเฉพาะ code flow |
+| `OIDC_ADMIN_GROUP` | ชื่อกลุ่มที่แปลว่า admin ที่นี่ · ไม่ตั้ง = ไม่แตะบทบาทเลย |
+| `OIDC_AUTO_CREATE` | `1` = ให้ IdP เป็นคนตัดสินว่าใครมีบัญชี · **ค่าเริ่มต้นคือปิด** |
+| `OIDC_INSECURE_ISSUER` | `1` = ยอมให้ issuer เป็น http — **สำหรับ IdP ทดสอบเท่านั้น** |
+
+**`OIDC_INSECURE_ISSUER=1` ทำให้คำตัดสินข้อ 4 ของ ADR 0028 ตกทั้งข้อ** เพราะ
+สิ่งที่มาแทนการตรวจลายเซ็น ID token คือการยืนยันตัวตนของ server ด้วย TLS
+แอปจะ log เตือนทุกครั้งที่ค่านี้ถูกใช้ ไม่ใช่ครั้งเดียวตอน start
+
+### ชื่อโฮสต์ของ IdP ต้องเป็นตัวเดียวกันจากทุกทาง
+
+`issuer` เป็นสตริงที่ถูกเทียบตรง ๆ กับ `iss` ใน ID token ถ้า browser เข้าถึง IdP
+ด้วยชื่อหนึ่งแต่แอปคุยด้วยอีกชื่อหนึ่ง จะได้ token ที่ `iss` ไม่ตรงตลอดกาล
+ใน stack ทดสอบแก้ที่ฝั่ง client (`curl --resolve keycloak:8080:127.0.0.1`)
+**ไม่ใช่ตั้ง issuer ให้ต่างกันสองที่** ซึ่งคือการทำให้มันไม่มีวันตรง
+
+**job `sso` ใน CI เดินเส้นทางนี้จริงทุก push** — ไปหน้า login ของ Keycloak,
+กรอกรหัส, กลับมาที่แอปแล้วได้ 200 และผู้ใช้ต้องถูกยกเป็น admin ตามกลุ่มใน realm
+
 ## เวลาที่งานล้มเหลว
 
 **อย่าปล่อยผ่าน** — งานตามรอบที่ล้มเหลวเงียบ ๆ แย่กว่าไม่มีงานตามรอบเลย

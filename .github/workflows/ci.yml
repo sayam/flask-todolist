@@ -690,6 +690,78 @@ jobs:
         if: always()
         run: $TLS down -v --remove-orphans
 
+  sso:
+    # **login กับ IdP จริง ไม่ใช่ mock** (P5-13 · ADR 0028)
+    # DoD ของ P5-13 เขียนไว้แบบนั้นตั้งแต่ ROADMAP และเป็นเหตุผลที่ SSO ถูกเลื่อน
+    # จาก Phase 4 มาที่นี่ — `tests/test_oidc.py` ตรวจ *ตรรกะ* ด้วย IdP ปลอม
+    # ส่วน job นี้ตอบคนละคำถาม: โพรโทคอลที่เราเขียนเองคุยกับของจริงรู้เรื่องไหม
+    #
+    # **แยก job ไม่รวมกับ `stack`** เพราะเป็นคนละ topology (ที่นั่น app ไม่ได้
+    # publish พอร์ตของตัวเองแล้วตั้งแต่เฟส scale) และตอบคนละคำถาม
+    runs-on: ubuntu-latest
+    env:
+      SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
+      KEYCLOAK_ADMIN_PASSWORD: ci-only-keycloak-admin-password
+      IDP_PASSWORD: ci-only-idp-password-not-a-real-one
+      COMPOSE: docker compose -f compose.yaml -f compose.sso.yaml
+    steps:
+      - uses: actions/checkout@v7
+      - name: up
+        run: |
+          $COMPOSE up -d --build --quiet-pull
+          for _ in $(seq 1 60); do
+            unhealthy=$($COMPOSE ps --format '{{.Service}}:{{.Health}}' | grep -v ':healthy' || true)
+            [ -z "$unhealthy" ] && break
+            sleep 5
+          done
+          left=$($COMPOSE ps --format '{{.Service}}:{{.Health}}' | grep -v ':healthy' || true)
+          [ -z "$left" ] || { echo "ยังไม่ healthy: $left"; $COMPOSE logs; exit 1; }
+      - name: เตรียมฝั่งแอป — migrate, ติดตั้งตารางของ plugin, สร้างบัญชี
+        run: |
+          $COMPOSE run --rm app flask db upgrade
+          # **ตารางของ plugin อยู่นอกสาย migration ของ core** ต้องสั่งเอง (ADR 0023)
+          # ไม่สั่งแล้ว plugin ถูกข้ามไปเงียบ ๆ และ job นี้จะพังที่ step ถัดไป
+          # ด้วย "หน้า login ไม่มีปุ่มของ IdP" ซึ่งเป็นอาการที่ถูกต้อง
+          $COMPOSE run --rm app flask plugin-install auth/oidc
+          # บัญชีที่นี่ต้องมีอยู่ก่อน เพราะ OIDC_AUTO_CREATE ปิดไว้ (ADR 0028 ข้อ 3)
+          printf 'ci-stack-verification-phrase\nci-stack-verification-phrase\n' \
+            | $COMPOSE run --rm -T app flask create-user somchai
+      - name: หน้า login ต้องเสนอผู้ให้บริการที่ติดตั้งอยู่
+        run: |
+          curl -sf http://127.0.0.1:8000/login | grep -q '/login/sso/auth/oidc' \
+            || { echo "ไม่มีปุ่มของ IdP บนหน้า login"; exit 1; }
+      - name: login ผ่าน IdP จริงทั้งเส้น
+        run: |
+          jar=$(mktemp)
+          # **`--resolve` ไม่ใช่การแก้ config** — `issuer` ต้องเป็นสตริงเดียวกัน
+          # ทั้งจากในและนอก stack เพราะมันถูกเทียบตรง ๆ กับ `iss` ใน ID token
+          # ฝั่งแอปคุยกับ `keycloak:8080` ผ่าน DNS ของ docker ส่วน curl (ที่ทำตัว
+          # เป็น browser) ต้องถูกบอกว่าชื่อนั้นอยู่ที่ไหน มิฉะนั้นต้องไปแก้ issuer
+          # ให้ต่างกันสองที่ ซึ่งคือการทำให้ `iss` ไม่มีวันตรง
+          resolve="--resolve keycloak:8080:127.0.0.1"
+          page=$(curl -sSL $resolve -c "$jar" -b "$jar" http://127.0.0.1:8000/login/sso/auth/oidc)
+          # ฟอร์ม login ของ Keycloak — action มี session code ที่ใช้ได้ครั้งเดียว
+          action=$(printf '%s' "$page" | grep -oP 'action="\K[^"]+' | head -1 | sed 's/&amp;/\&/g')
+          [ -n "$action" ] || { echo "ไม่เจอฟอร์ม login ของ IdP"; printf '%s' "$page" | head -40; exit 1; }
+          landed=$(curl -sSL $resolve -c "$jar" -b "$jar" -o /dev/null -w '%{url_effective}' \
+            -d "username=somchai&password=$IDP_PASSWORD&credentialId=" "$action")
+          echo "ปลายทางหลังใส่รหัสที่ IdP: $landed"
+          case "$landed" in
+            http://127.0.0.1:8000/*) ;;
+            *) echo "ไม่ได้กลับมาที่แอป — ค้างอยู่ที่ IdP"; $COMPOSE logs app | tail -30; exit 1 ;;
+          esac
+          home=$(curl -s -b "$jar" -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/)
+          [ "$home" = "200" ] || { echo "GET / หลัง SSO → $home"; $COMPOSE logs app | tail -30; exit 1; }
+      - name: กลุ่มใน IdP ต้องกลายเป็นบทบาทที่นี่
+        run: |
+          # ผู้ใช้ถูกสร้างเป็น `user` ธรรมดา แล้วต้องถูกยกเป็น admin ตอน login
+          # เพราะอยู่ในกลุ่ม `todolist-admins` ของ realm (ADR 0028 ข้อ 5)
+          $COMPOSE run --rm -T app flask list-users | grep -q 'somchai.*admin' \
+            || { echo "บทบาทไม่ได้ตามกลุ่มของ IdP"; $COMPOSE run --rm -T app flask list-users; exit 1; }
+      - name: เก็บกวาด
+        if: always()
+        run: $COMPOSE down -v --remove-orphans
+
   secret-scan:
     runs-on: ubuntu-latest
     steps:

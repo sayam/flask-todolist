@@ -1,0 +1,62 @@
+{
+  "realm": "todolist",
+  "enabled": true,
+  "sslRequired": "none",
+  "groups": [
+    {
+      "name": "todolist-admins"
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "todolist",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "ci-only-client-secret-not-a-real-one",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "http://127.0.0.1:8000/login/sso/*"
+      ],
+      "webOrigins": [
+        "http://127.0.0.1:8000"
+      ],
+      "protocolMappers": [
+        {
+          "name": "groups",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "config": {
+            "claim.name": "groups",
+            "full.path": "false",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "somchai",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ci-only-idp-password-not-a-real-one",
+          "temporary": false
+        }
+      ],
+      "groups": [
+        "/todolist-admins"
+      ],
+      "email": "somchai@example.test",
+      "firstName": "Somchai",
+      "lastName": "Tester"
+    }
+  ]
+}
