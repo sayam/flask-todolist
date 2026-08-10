@@ -569,16 +569,27 @@ jobs:
           [ "$served" = "2" ] || { echo "มี replica ที่ไม่เคยรับคำขอเลย"; exit 1; }
       - name: แอปต้องเห็นไอพีของ client ไม่ใช่ของ proxy
         run: |
-          gateway=$(docker network inspect todolist_default \
-            --format '{{range .IPAM.Config}}{{.Gateway}}{{end}}')
-          echo "ไอพีของ client ที่แท้จริง: $gateway"
+          # **ถามจาก container ไม่ใช่จากชื่อ network** — ชื่อ network มี prefix เป็น
+          # ชื่อ project ของ compose ซึ่งมาจากชื่อไดเรกทอรี (ในเครื่องคือ `todolist`
+          # แต่ที่ checkout มาคือ `flask-todolist`) การเดาชื่อจึงพังเฉพาะบน CI
+          proxy=$($SCALED ps -q proxy)
+          proxy_ip=$(docker inspect "$proxy" --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
+          gateway=$(docker inspect "$proxy" --format '{{range .NetworkSettings.Networks}}{{.Gateway}}{{end}}')
+          echo "proxy = $proxy_ip / client ที่แท้จริง = $gateway"
+          # ถ้า ProxyFix ไม่ทำงาน ทุกบรรทัดจะเป็นไอพีของ container `proxy` แทน
+          # แล้ว rate limit ต่อไอพีจะกลายเป็นก้อนเดียวสำหรับคนทั้งโลก (ADR 0027)
           found=0
           for c in $($SCALED ps -q app); do
-            docker logs "$c" 2>&1 | grep http_request \
-              | grep -q "\"remote_addr\": \"$gateway\"" && found=1
+            # เขียนด้วย `if` เพราะ "grep ไม่เจอ" เป็นสถานะปกติของ replica ที่ไม่ได้
+            # รับคำขอนั้น ไม่ใช่ความผิดพลาด — ให้เห็นชัดว่าตั้งใจปล่อยผ่าน
+            if docker logs "$c" 2>&1 | grep http_request | grep -q "\"remote_addr\": \"$gateway\""; then
+              found=1
+            fi
+            if docker logs "$c" 2>&1 | grep http_request | grep -q "\"remote_addr\": \"$proxy_ip\""; then
+              echo "มี log ที่เห็นไอพีของ proxy เป็นไอพีของผู้ใช้ — ProxyFix ไม่ทำงาน"
+              exit 1
+            fi
           done
-          # ถ้า ProxyFix ไม่ทำงาน ทุกบรรทัดจะเป็นไอพีของ container `proxy` แทน
-          # แล้ว rate limit ต่อไอพีจะกลายเป็นก้อนเดียวสำหรับคนทั้งโลก (app/proxy.py)
           [ "$found" = "1" ] || {
             echo "ไม่มี log บรรทัดไหนเห็นไอพีของ client เลย"
             $SCALED logs app | grep http_request | tail -5
