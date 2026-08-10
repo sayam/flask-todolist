@@ -14,3 +14,7 @@ coverage.xml
 .ruff_cache/
 .mypy_cache/
 htmlcov/
+
+# ใบรับรอง TLS ของ dev (ออกด้วย scripts/dev_tls_cert.sh) — คีย์ไม่ควรอยู่ใน git
+# แม้จะเป็นของ dev เพราะวันหนึ่งจะมีคนคัดลอกไปใช้ที่อื่นด้วยเหตุผลว่า "มันมีอยู่แล้ว"
+deploy/tls/

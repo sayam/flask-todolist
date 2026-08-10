@@ -1,0 +1,43 @@
+# override: จบ TLS ที่ reverse proxy แล้วเปิด HSTS (Phase 5 · P5-12)
+#
+#   ./scripts/dev_tls_cert.sh          # ครั้งแรกเท่านั้น
+#   docker compose -f compose.yaml -f compose.mysql.yaml \
+#       -f compose.scale.yaml -f compose.tls.yaml up -d --scale app=2
+#
+# **ต้องต่อจาก compose.scale.yaml** เพราะไฟล์นั้นเป็นคนวาง proxy ลงไป และ TLS
+# เป็นคุณสมบัติของ proxy ไม่ใช่ของ app (app ยังพูด http อยู่หลัง proxy เหมือนเดิม)
+# ใช้กับ replica เดียวก็ได้ — proxy มีอยู่ไม่ว่าจะ scale เท่าไหร่
+#
+# **`HTTPS_ENABLED=1` กับใบรับรองต้องมาพร้อมกันเสมอ** จึงอยู่ในไฟล์เดียวกัน
+# (หลักเดียวกับที่ compose.mysql.yaml ถือทั้ง service และ `DATABASE_URL`)
+# เปิดตัวใดตัวหนึ่งอย่างเดียวคือสองอาการที่แก้ยากพอกัน: เปิดแฟล็กแต่ไม่มี TLS
+# = redirect วนจน login ไม่ได้ · มี TLS แต่ไม่เปิดแฟล็ก = คุกกี้ไม่มี `Secure`
+# และไม่มี HSTS ทั้งที่ผู้ใช้เข้าใจว่าปลอดภัยแล้ว
+
+services:
+  app:
+    environment:
+      # เปิดพร้อมกันสามอย่าง: บังคับ https, HSTS, cookie `Secure` (ADR 0010)
+      # ทำงานถูกได้เพราะ `X-Forwarded-Proto` ถูกแปลงแล้วตาม TRUSTED_PROXY_HOPS
+      # ที่ compose.scale.yaml ตั้งไว้ — ไม่มีตัวนั้น Talisman จะเห็น scheme เป็น
+      # http แล้วสั่ง redirect ไป https ทุกคำขอ = วนไม่รู้จบ (ADR 0027)
+      HTTPS_ENABLED: "1"
+
+  proxy:
+    ports:
+      # ขา http เหลือไว้เพื่อ **ส่งต่อไป https เท่านั้น** ไม่ได้เสิร์ฟเนื้อหา
+      - "8080:8080"
+      - "8443:8443"
+    volumes:
+      - ./deploy/nginx-tls.conf:/etc/nginx/nginx.conf:ro
+      - ./deploy/nginx-location.conf:/etc/nginx/todolist-location.conf:ro
+      # ออกด้วย ./scripts/dev_tls_cert.sh — ของจริงวางที่เดียวกันชื่อเดียวกัน
+      - ./deploy/tls:/etc/nginx/tls:ro
+    healthcheck:
+      # `--no-check-certificate` เพราะใบของ dev เป็น self-signed — **ตัวนี้ตรวจว่า
+      # nginx ยังมีชีวิตอยู่ ไม่ได้ตรวจความถูกต้องของใบ** ส่วนการตรวจใบเป็นงาน
+      # ของ client จริงและของด่านใน CI
+      test: ["CMD-SHELL", "wget -qO- --no-check-certificate https://127.0.0.1:8443/login >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12

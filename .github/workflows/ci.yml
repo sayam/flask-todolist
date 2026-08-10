@@ -491,6 +491,7 @@ jobs:
       DB_ROOT_PASSWORD: ci-only-root-password
       COMPOSE: docker compose -f compose.yaml -f compose.mysql.yaml
       SCALED: docker compose -f compose.yaml -f compose.mysql.yaml -f compose.scale.yaml
+      TLS: docker compose -f compose.yaml -f compose.mysql.yaml -f compose.scale.yaml -f compose.tls.yaml
     steps:
       - uses: actions/checkout@v7
       - name: up
@@ -614,9 +615,74 @@ jobs:
             echo "ยิงผิด 7 ครั้งแล้วโดนกันแค่ $blocked ครั้ง — counter ไม่ได้แชร์ข้าม replica"
             exit 1
           }
+      # ---------------------------------------------------------------- P5-12
+      - name: จบ TLS ที่ proxy แล้วเปิด HSTS
+        run: |
+          ./scripts/dev_tls_cert.sh
+          $TLS up -d --scale app=2 --quiet-pull
+          for _ in $(seq 1 40); do
+            unhealthy=$($TLS ps --format '{{.Service}}:{{.Health}}' | grep -v ':healthy' || true)
+            [ -z "$unhealthy" ] && break
+            sleep 5
+          done
+          left=$($TLS ps --format '{{.Service}}:{{.Health}}' | grep -v ':healthy' || true)
+          [ -z "$left" ] || { echo "ยังไม่ healthy: $left"; $TLS logs; exit 1; }
+      - name: ขา http ต้องส่งต่อไป https ไม่ใช่เสิร์ฟเนื้อหา
+        run: |
+          # พอ `HTTPS_ENABLED=1` คุกกี้ session มีแฟล็ก `Secure` ซึ่ง browser จะไม่
+          # ส่งกลับมาทาง http เลย การเสิร์ฟหน้า login ทาง http จึงเป็นหน้าที่
+          # "ทำงานได้" แต่ login ไม่ติด และไม่มี error ให้เห็นทั้งสองฝั่ง
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/login)
+          [ "$code" = "301" ] || { echo "http → $code (ควรเป็น 301)"; exit 1; }
+      - name: รับเฉพาะ TLS 1.2 กับ 1.3
+        run: |
+          # **ตรวจตัวที่ต้องผ่านก่อนเสมอ** — `openssl s_client` ล้มเหลวเหมือนกันหมด
+          # ไม่ว่าจะเพราะ server ปฏิเสธเวอร์ชันนั้น หรือเพราะไม่มีใครฟังพอร์ตนั้นเลย
+          # ถ้าเรียงกลับกัน วันที่ proxy ไม่ขึ้น ด่านนี้จะ "ผ่าน" อย่างสมบูรณ์แบบ
+          for new in tls1_2 tls1_3; do
+            echo | openssl s_client -connect 127.0.0.1:8443 -$new >/dev/null 2>&1 \
+              || { echo "$new ต่อไม่ได้"; exit 1; }
+          done
+          # ค่าเริ่มต้นของ nginx บางเวอร์ชันยังเปิด 1.0/1.1 อยู่ — การไม่ประกาศ
+          # `ssl_protocols` ไม่ใช่ "ใช้ค่าที่ปลอดภัยตามสมัย" แต่คือปล่อยให้ image ตัดสินแทน
+          # **`@SECLEVEL=0` จำเป็น ไม่ใช่การผ่อนความเข้ม** — openssl 3 บน ubuntu
+          # ปิด TLS 1.0/1.1 ที่ตัว *client* ไว้แล้ว ยิงเปล่า ๆ จะได้ "no protocols
+          # available" ซึ่งแปลว่าด่านนี้พิสูจน์แค่ว่า openssl ปฏิเสธเอง ไม่ได้พิสูจน์
+          # ว่า nginx ปฏิเสธเลย — ผ่านทุกครั้งแม้ลบ `ssl_protocols` ทิ้ง
+          # เปิดแล้วจะได้ `alert protocol version` (alert 70) จาก *server* จริง ๆ
+          for old in tls1 tls1_1; do
+            if echo | openssl s_client -connect 127.0.0.1:8443 -$old \
+                 -cipher 'DEFAULT@SECLEVEL=0' >/dev/null 2>&1; then
+              echo "$old ยังต่อได้ — ต้องถูกปฏิเสธ (RFC 8996)"
+              exit 1
+            fi
+          done
+      - name: HSTS ต้องมี และมาจากเจ้าของเดียว
+        run: |
+          n=$(curl -sIk https://127.0.0.1:8443/login | grep -ci 'strict-transport-security' || true)
+          # **สองบรรทัดแปลว่ามีสองเจ้าของ** (แอปกับ nginx) ซึ่งจะเพี้ยนจากกันวันที่
+          # มีคนแก้ค่าที่เดียว — เจ้าของคือ Talisman ที่เดียวตาม ADR 0010
+          [ "$n" = "1" ] || { echo "เจอ header HSTS $n บรรทัด (ต้องเป็น 1)"; exit 1; }
+      - name: login ผ่าน https ได้ทั้งเส้น
+        run: |
+          jar=$(mktemp)
+          token=$(curl -sfk -c "$jar" https://127.0.0.1:8443/login \
+            | grep -oP 'name="csrf_token"[^>]*value="\K[^"]+' | head -1)
+          # **ต้องส่ง Referer** — Flask-WTF ตรวจ Referer เทียบกับ url_root เฉพาะคำขอ
+          # ที่เป็น https (ขา http ไม่เคยแสดงอาการนี้) browser ส่งให้เองอยู่แล้ว
+          # ตัวที่ทำให้ผ่านคือ nginx ส่ง `Host $http_host` ที่มีพอร์ตติดมาด้วย
+          code=$(curl -sk -b "$jar" -c "$jar" -o /dev/null -w '%{http_code}' \
+            -e https://127.0.0.1:8443/login -X POST \
+            -d "username=somchai&password=ci-stack-verification-phrase&csrf_token=$token" \
+            https://127.0.0.1:8443/login)
+          [ "$code" = "302" ] || { echo "POST /login ทาง https → $code"; $TLS logs app; exit 1; }
+          home=$(curl -sk -b "$jar" -o /dev/null -w '%{http_code}' https://127.0.0.1:8443/)
+          [ "$home" = "200" ] || { echo "GET / ทาง https → $home"; exit 1; }
+          # คุกกี้ต้องมีแฟล็ก Secure (คอลัมน์ที่ 4 ของ cookie jar แบบ netscape)
+          grep -i session "$jar" | awk '{ if ($4 != "TRUE") { print "คุกกี้ไม่มีแฟล็ก Secure"; exit 1 } }'
       - name: เก็บกวาด
         if: always()
-        run: $SCALED down -v --remove-orphans
+        run: $TLS down -v --remove-orphans
 
   secret-scan:
     runs-on: ubuntu-latest

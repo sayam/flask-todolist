@@ -91,8 +91,17 @@ EXPOSE 8000
 # healthcheck ยิงหน้า login เพราะเป็นหน้าเดียวที่ตอบได้โดยไม่ต้อง login
 # และการที่มันตอบ 200 แปลว่า config ผ่าน, ต่อฐานข้อมูลได้, template render ได้
 # (endpoint `/healthz` แยกจะบอกน้อยกว่านี้ — มันตอบ 200 ได้แม้ฐานข้อมูลล่ม)
+#
+# **`X-Forwarded-Proto: https` จำเป็นตอน `HTTPS_ENABLED=1`** — ไม่งั้น Talisman
+# เห็น scheme เป็น http แล้วเด้ง 302 ไป `https://127.0.0.1:8000` ซึ่งเป็นพอร์ตที่
+# ไม่ได้พูด TLS (TLS จบที่ proxy) urllib ตามไปแล้วล้ม → container ถูกมาร์ค
+# unhealthy ตลอดกาลทั้งที่แอปเสิร์ฟผู้ใช้อยู่ปกติ orchestrator จะ restart วนไม่จบ
+# (เจอจริงตอนเปิด compose.tls.yaml ครั้งแรก — P5-12)
+#
+# ตอน `HTTPS_ENABLED=0` header นี้ไม่มีผลอะไร เพราะ `TRUSTED_PROXY_HOPS=0`
+# ทำให้ ProxyFix ไม่ถูกผูกเลย (ADR 0027) จึงใส่ไว้ตายตัวได้ ไม่ต้องมีสองสูตร
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD python -c "import urllib.request as u; u.urlopen('http://127.0.0.1:8000/login').read()"
+    CMD python -c "import urllib.request as u; u.urlopen(u.Request('http://127.0.0.1:8000/login', headers={'X-Forwarded-Proto': 'https'})).read()"
 
 # `--access-logfile -` ส่ง access log ออก stdout ส่วน log ของแอปออก stderr
 # (ADR 0011 หมายเหตุท้ายไฟล์) runtime เก็บทั้งสองช่อง
