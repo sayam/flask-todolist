@@ -712,6 +712,20 @@ def second_factors() -> list[Plugin]:
     ]
 
 
+def primary_factors() -> list[Plugin]:
+    """ปัจจัยหลักที่ **ไม่ใช่รหัสผ่าน** (ADR 0028)
+
+    `password` ถูกกันออกด้วย `"core": true` ไม่ใช่ด้วยชื่อ — core จึงยังไม่รู้จัก
+    ชื่อ plugin ตัวไหนเลย และวันที่มีปัจจัยหลักของ core ตัวอื่นก็ไม่ต้องมาแก้ที่นี่
+    (ตัวที่เป็น core คือตัวที่ core เรียกเองอยู่แล้ว ไม่ต้องผ่าน seam นี้)
+    """
+    return [
+        plugin
+        for plugin in discover(AUTH_TYPE).values()
+        if plugin.manifest.get("factor") == "primary" and not plugin.manifest.get("core")
+    ]
+
+
 def factor_module(plugin: Plugin) -> ModuleType:
     """โมดูลที่ทำงานจริงของปัจจัยตัวนั้น — ต้องมีเสมอ (ตรวจตอน start)"""
     module = load_module(plugin, FACTOR_MODULE)

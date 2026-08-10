@@ -28,5 +28,20 @@
     </p>
     <button type="submit">{{ _('Sign in') }}</button>
   </form>
+
+  {# ปุ่มของผู้ให้บริการภายนอก — ไม่มีตัวไหนติดตั้งอยู่ก็ไม่มีอะไรโผล่ #}
+  {# **ฟอร์มรหัสผ่านยังอยู่เสมอ ไม่มีโหมด "SSO เท่านั้น"** (ADR 0028 ข้อ 7) #}
+  {% if sso_providers %}
+    <p class="sso-divider">{{ _('or') }}</p>
+    <ul class="sso-providers">
+      {% for provider in sso_providers %}
+        <li>
+          <a href="{{ url_for('auth.sso_begin', key=provider.key) }}">
+            {{ _('Sign in with %(provider)s', provider=provider.manifest['name']) }}
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
 </div>
 {% endblock %}

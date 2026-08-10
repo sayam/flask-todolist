@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-04 12:02+0700\n"
+"POT-Creation-Date: 2026-08-10 21:02+0700\n"
 "PO-Revision-Date: 2026-08-02 16:44+0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: app/__init__.py:58
+#: app/__init__.py:61
 msgid "Please sign in first"
 msgstr ""
 
@@ -27,51 +27,55 @@ msgstr ""
 msgid "Role of %(name)s is now %(role)s"
 msgstr ""
 
-#: app/auth.py:82
+#: app/auth.py:107
 msgid "Incorrect username or password"
 msgstr ""
 
-#: app/auth.py:149 app/routes.py:447
+#: app/auth.py:186
+msgid "Sign-in session expired — please try again"
+msgstr ""
+
+#: app/auth.py:239 app/routes.py:464
 msgid "That code is not valid"
 msgstr ""
 
-#: app/api/todos.py:52 app/routes.py:69 app/routes.py:89
+#: app/api/todos.py:52 app/routes.py:69 app/routes.py:93
 msgid "Invalid date format"
 msgstr ""
 
-#: app/routes.py:156
+#: app/routes.py:161
 msgid "Task saved"
 msgstr ""
 
-#: app/routes.py:290
+#: app/routes.py:306
 msgid "Profile saved"
 msgstr ""
 
-#: app/routes.py:304
+#: app/routes.py:320
 msgid "The two new passwords do not match"
 msgstr ""
 
-#: app/routes.py:320
+#: app/routes.py:336
 msgid "Password changed"
 msgstr ""
 
-#: app/routes.py:341 app/routes.py:460 app/services/passwords.py:168
+#: app/routes.py:357 app/routes.py:477 app/services/passwords.py:168
 msgid "Current password is incorrect"
 msgstr ""
 
-#: app/routes.py:385
+#: app/routes.py:401
 msgid "Token revoked"
 msgstr ""
 
-#: app/routes.py:447
+#: app/routes.py:464
 msgid "Two-step verification is on"
 msgstr ""
 
-#: app/routes.py:467
+#: app/routes.py:484
 msgid "Two-step verification is off"
 msgstr ""
 
-#: app/routes.py:492
+#: app/routes.py:509
 msgid "Settings saved"
 msgstr ""
 
@@ -107,7 +111,7 @@ msgid_plural "Cannot delete “%(name)s” — it still has %(num)d tasks."
 msgstr[0] ""
 msgstr[1] ""
 
-#: app/services/mfa.py:136
+#: app/services/mfa.py:144
 msgid "Turn off two-step verification first"
 msgstr ""
 
@@ -159,6 +163,10 @@ msgstr ""
 
 #: app/services/settings.py:73
 msgid "Unsupported timezone"
+msgstr ""
+
+#: app/services/sso.py:57
+msgid "Unknown sign-in provider"
 msgstr ""
 
 #: app/services/todos.py:62
@@ -490,6 +498,15 @@ msgstr ""
 
 #: app/templates/login.html:26 app/templates/settings.html:32
 msgid "Password"
+msgstr ""
+
+#: app/templates/login.html:35
+msgid "or"
+msgstr ""
+
+#: app/templates/login.html:40
+#, python-format
+msgid "Sign in with %(provider)s"
 msgstr ""
 
 #: app/templates/login_verify.html:2 app/templates/login_verify.html:7

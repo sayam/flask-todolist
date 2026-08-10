@@ -1,7 +1,9 @@
 """login/logout และขั้นที่สองของการยืนยันตัวตน — blueprint `auth`
 
 core รู้จักปัจจัยที่สองผ่าน `app/services/mfa.py` เท่านั้น (`is_enrolled` /
-`verify`) **ไม่รู้จักชื่อ plugin ตัวไหนเลยแม้แต่ในคอมเมนต์** — ดู ADR 0024
+`verify`) และรู้จักปัจจัยหลักที่ไม่ใช่รหัสผ่านผ่าน `app/services/sso.py`
+(`begin` / `finish`) **ไม่รู้จักชื่อ plugin ตัวไหนเลยแม้แต่ในคอมเมนต์**
+— ดู ADR 0024 และ ADR 0028
 """
 
 import hashlib
@@ -14,6 +16,7 @@ from flask import (
     redirect,
     render_template,
     request,
+    session,
     url_for,
 )
 from flask_babel import gettext as _
@@ -23,7 +26,8 @@ from sqlalchemy import select
 from app import audit, db, limiter
 from app.i18n import SESSION_KEY, is_supported
 from app.models import User
-from app.services import mfa
+from app.services import mfa, sso
+from app.services.errors import ServiceError, ValidationError
 from app.session_security import (
     begin_pending,
     clear_pending,
@@ -33,6 +37,16 @@ from app.session_security import (
 )
 
 bp = Blueprint("auth", __name__)
+
+
+def _login_page():
+    """หน้า login พร้อมรายชื่อผู้ให้บริการภายนอกที่ติดตั้งอยู่จริง
+
+    **ส่งจาก view ไม่ใช่ context processor** เพราะการหาว่ามีปัจจัยหลักตัวไหน
+    ติดตั้งอยู่ต้องอ่านดิสก์และถามฐานข้อมูลว่าตารางของ plugin มีจริงไหม —
+    งานเท่านั้นไม่ควรเกิดกับทุกหน้าของทั้งเว็บเพียงเพราะหน้า login ต้องใช้
+    """
+    return render_template("login.html", sso_providers=sso.available())
 
 
 def _failed_login(response):
@@ -91,7 +105,7 @@ def login():
             )
             db.session.commit()
             flash(_("Incorrect username or password"))
-            return render_template("login.html"), 401
+            return _login_page(), 401
         # รหัสผ่านถูกแล้วก็จริง แต่ถ้ามีปัจจัยที่สองต้องหยุดไว้ครึ่งทางก่อน
         # **ห้ามเรียก start_session() ตรงนี้** ไม่งั้นคนที่รู้แค่รหัสผ่านเข้าถึง
         # ข้อมูลได้ทันที = มี MFA ไว้เฉย ๆ โดยไม่ได้บังคับอะไรเลย
@@ -104,7 +118,7 @@ def login():
         _complete_login(user)
         return redirect(url_for("main.index"))
 
-    return render_template("login.html")
+    return _login_page()
 
 
 def _complete_login(user):
@@ -123,6 +137,71 @@ def _complete_login(user):
     if chosen and chosen != user.locale:
         user.locale = chosen
     db.session.commit()
+
+
+# ---------------------------------------------------- ปัจจัยหลักที่ไม่ใช่รหัสผ่าน
+# คีย์ของ session ที่เก็บของฝากระหว่างทางไป IdP — core **ไม่ตีความข้างใน**
+# มันเป็น state/nonce/PKCE ของ plugin ซึ่งเป็นรายละเอียดของโพรโทคอลที่ core ไม่ควรรู้
+SSO_PENDING_KEY = "_sso_pending"
+SSO_PROVIDER_KEY = "_sso_provider"
+
+
+@bp.route("/login/sso/<path:key>")
+def sso_begin(key):
+    """ส่งผู้ใช้ไปยืนยันตัวตนที่ผู้ให้บริการภายนอก
+
+    เป็น GET เพราะเป็นการเดินทางออกไป ไม่ใช่การส่งข้อมูล — ตัวที่กัน CSRF ของ
+    ขากลับคือ `state` ที่ plugin สร้างและเราเก็บไว้ใน session (ADR 0028)
+    """
+    if current_user.is_authenticated:
+        return redirect(url_for("main.index"))
+    try:
+        plugin = sso.find(key)
+        target, pending = sso.begin(plugin, url_for("auth.sso_callback", key=key, _external=True))
+    except ServiceError as error:
+        flash(error.message)
+        return _login_page(), HTTPStatus.BAD_REQUEST
+    session[SSO_PENDING_KEY] = pending
+    session[SSO_PROVIDER_KEY] = key
+    return redirect(target)
+
+
+@bp.route("/login/sso/<path:key>/callback")
+def sso_callback(key):
+    """ผู้ใช้กลับมาจากผู้ให้บริการแล้ว
+
+    **ของฝากถูกใช้ได้ครั้งเดียว** (`pop`) ไม่ว่าจะสำเร็จหรือไม่ — ปล่อยค้างไว้
+    แปลว่า code หรือ state ชุดเดิมถูกยิงซ้ำได้เรื่อย ๆ
+    """
+    if current_user.is_authenticated:
+        return redirect(url_for("main.index"))
+    pending = session.pop(SSO_PENDING_KEY, None)
+    started_with = session.pop(SSO_PROVIDER_KEY, None)
+    try:
+        plugin = sso.find(key)
+        if pending is None or started_with != key:
+            # ไม่ได้เริ่มจากที่นี่ หรือเริ่มกับผู้ให้บริการคนละเจ้า
+            raise ValidationError(
+                _("Sign-in session expired — please try again"), code="sso_no_pending"
+            )
+        user = sso.finish(plugin, request.args.to_dict(), pending)
+    except ServiceError as error:
+        # **ไม่บันทึกค่าที่ผู้ใช้/IdP ส่งมา** ด้วยเหตุผลเดียวกับ login ที่ผิดรหัส
+        audit.record("auth.sso_failed", table_name="tdl_user", row_id=None)
+        db.session.commit()
+        flash(error.message)
+        return _login_page(), HTTPStatus.UNAUTHORIZED
+
+    # **ด่านที่เหลือเหมือนทางรหัสผ่านเป๊ะ** รวมทั้งปัจจัยที่สอง (ADR 0028 ข้อ 6)
+    # ปัจจัยที่สองเป็นของแอป ไม่ใช่ของ IdP — ใครที่เปิดไว้ยังต้องผ่านมัน
+    if mfa.is_required(user):
+        begin_pending(user, current_app.config["MFA_PENDING_SECONDS"])
+        audit.record("auth.mfa_pending", table_name="tdl_user", row_id=user.id)
+        db.session.commit()
+        return redirect(url_for("auth.verify"))
+
+    _complete_login(user)
+    return redirect(url_for("main.index"))
 
 
 def pending_bucket() -> str:

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-04 12:02+0700\n"
+"POT-Creation-Date: 2026-08-10 21:02+0700\n"
 "PO-Revision-Date: 2026-08-02 16:44+0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: app/__init__.py:58
+#: app/__init__.py:61
 msgid "Please sign in first"
 msgstr "กรุณาเข้าสู่ระบบก่อน"
 
@@ -27,51 +27,55 @@ msgstr "กรุณาเข้าสู่ระบบก่อน"
 msgid "Role of %(name)s is now %(role)s"
 msgstr "บทบาทของ %(name)s เป็น %(role)s แล้ว"
 
-#: app/auth.py:82
+#: app/auth.py:107
 msgid "Incorrect username or password"
 msgstr "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง"
 
-#: app/auth.py:149 app/routes.py:447
+#: app/auth.py:186
+msgid "Sign-in session expired — please try again"
+msgstr "การเข้าสู่ระบบหมดอายุแล้ว กรุณาลองใหม่"
+
+#: app/auth.py:239 app/routes.py:464
 msgid "That code is not valid"
 msgstr "รหัสไม่ถูกต้อง"
 
-#: app/api/todos.py:52 app/routes.py:69 app/routes.py:89
+#: app/api/todos.py:52 app/routes.py:69 app/routes.py:93
 msgid "Invalid date format"
 msgstr "รูปแบบวันที่ไม่ถูกต้อง"
 
-#: app/routes.py:156
+#: app/routes.py:161
 msgid "Task saved"
 msgstr "บันทึกงานแล้ว"
 
-#: app/routes.py:290
+#: app/routes.py:306
 msgid "Profile saved"
 msgstr "บันทึกโปรไฟล์แล้ว"
 
-#: app/routes.py:304
+#: app/routes.py:320
 msgid "The two new passwords do not match"
 msgstr "รหัสผ่านใหม่สองช่องไม่ตรงกัน"
 
-#: app/routes.py:320
+#: app/routes.py:336
 msgid "Password changed"
 msgstr "เปลี่ยนรหัสผ่านแล้ว"
 
-#: app/routes.py:341 app/routes.py:460 app/services/passwords.py:168
+#: app/routes.py:357 app/routes.py:477 app/services/passwords.py:168
 msgid "Current password is incorrect"
 msgstr "รหัสผ่านปัจจุบันไม่ถูกต้อง"
 
-#: app/routes.py:385
+#: app/routes.py:401
 msgid "Token revoked"
 msgstr "เพิกถอน token แล้ว"
 
-#: app/routes.py:447
+#: app/routes.py:464
 msgid "Two-step verification is on"
 msgstr "เปิดการยืนยันสองขั้นแล้ว"
 
-#: app/routes.py:467
+#: app/routes.py:484
 msgid "Two-step verification is off"
 msgstr "ปิดการยืนยันสองขั้นแล้ว"
 
-#: app/routes.py:492
+#: app/routes.py:509
 msgid "Settings saved"
 msgstr "บันทึกการตั้งค่าแล้ว"
 
@@ -106,7 +110,7 @@ msgid "Cannot delete “%(name)s” — it still has %(num)d task."
 msgid_plural "Cannot delete “%(name)s” — it still has %(num)d tasks."
 msgstr[0] "ลบ “%(name)s” ไม่ได้ — ยังมีงานอยู่ %(num)d รายการ"
 
-#: app/services/mfa.py:136
+#: app/services/mfa.py:144
 msgid "Turn off two-step verification first"
 msgstr "ต้องปิดการยืนยันสองขั้นก่อน"
 
@@ -159,6 +163,10 @@ msgstr "ไม่รองรับธีมนี้"
 #: app/services/settings.py:73
 msgid "Unsupported timezone"
 msgstr "ไม่รองรับ timezone นี้"
+
+#: app/services/sso.py:57
+msgid "Unknown sign-in provider"
+msgstr "ไม่รู้จักผู้ให้บริการนี้"
 
 #: app/services/todos.py:62
 msgid "Task not found"
@@ -487,6 +495,15 @@ msgstr "พยายามเข้าสู่ระบบถี่เกิน
 #: app/templates/login.html:26 app/templates/settings.html:32
 msgid "Password"
 msgstr "รหัสผ่าน"
+
+#: app/templates/login.html:35
+msgid "or"
+msgstr "หรือ"
+
+#: app/templates/login.html:40
+#, python-format
+msgid "Sign in with %(provider)s"
+msgstr "เข้าสู่ระบบด้วย %(provider)s"
 
 #: app/templates/login_verify.html:2 app/templates/login_verify.html:7
 #: app/templates/settings.html:118
