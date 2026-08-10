@@ -257,8 +257,11 @@ def _user_for(claims: dict[str, Any]) -> User:
             # ค่าเริ่มต้นคือ "ผู้ดูแลสร้างบัญชีไว้ก่อน" — ADR 0028 ข้อ 3
             raise ValidationError(_("No account here for that sign-in"), code="sso_no_account")
         user = User(username=username)
-        # **ไม่ตั้งรหัสผ่านให้** — บัญชีที่เกิดจาก IdP ยังไม่มีรหัสผ่านของที่นี่
-        # จนกว่าผู้ดูแลจะตั้งให้ (`flask set-password`) ซึ่งเป็นสิ่งที่ควรเป็น
+        # **บัญชีที่เกิดจาก IdP ไม่มีรหัสผ่านของที่นี่** จนกว่าผู้ดูแลจะตั้งให้
+        # (`flask set-password`) — ใช้กลไกเดิมที่มีอยู่แล้วสำหรับ "credential
+        # ที่ใช้ไม่ได้" ไม่ใช่สุ่มรหัสทิ้งไว้: `check_password()` รู้จัก sentinel
+        # ตัวนี้และปฏิเสธก่อนถึง werkzeug อยู่แล้ว
+        user.disable_password()
         db.session.add(user)
         db.session.flush()
 
