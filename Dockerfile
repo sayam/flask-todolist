@@ -25,13 +25,16 @@ RUN pip install --no-cache-dir pipenv
 # (คัดลอกโค้ดมาก่อนแปลว่าแก้โค้ดหนึ่งบรรทัดแล้วต้องติดตั้ง dependency ใหม่ทั้งหมด)
 COPY Pipfile Pipfile.lock ./
 
-# `--deploy` ล้มทันทีถ้า Pipfile.lock ไม่ตรงกับ Pipfile — image ที่ build จาก
-# lock ที่ล้าสมัยคือ image ที่ไม่มีใครรู้ว่าข้างในมีอะไร
+# **สองคำสั่งเพราะเป็นคนละคำถาม** — `verify` ตอบว่า Pipfile.lock ยังตรงกับ Pipfile
+# ไหม ส่วน `sync` ติดตั้งตามล็อกเป๊ะ ๆ (`pipenv sync` ไม่มี flag `--deploy` ให้ใช้
+# ซึ่งเป็นของ `install` — เคยเขียนผิดแล้ว build พังตั้งแต่บรรทัดแรกของ job `image`)
+# image ที่ build จาก lock ที่ล้าสมัยคือ image ที่ไม่มีใครรู้ว่าข้างในมีอะไร
+#
 # **ติดตั้งเฉพาะ category ที่ image ต้องใช้**: core + `deploy` (gunicorn)
 # ไลบรารีของ plugin ไม่ได้ติดตั้งที่นี่ตามหลักของ ADR 0025 — ใครใช้ยี่ห้อไหน
 # ค่อยต่อ image ตัวนี้แล้ว sync category ของตัวเองเพิ่ม
 ENV PIPENV_VENV_IN_PROJECT=1
-RUN pipenv sync --deploy --categories="packages deploy"
+RUN pipenv verify && pipenv sync --categories="packages deploy"
 
 # ---------------------------------------------------------------- ชั้นที่รันจริง
 FROM python:3.13-slim AS runtime
@@ -52,6 +55,14 @@ COPY --from=builder /build/.venv /app/.venv
 COPY app ./app
 COPY migrations ./migrations
 COPY config.py run.py ./
+
+# `create_app()` เรียก `mkdir(instance_path)` เสมอ ต้องมีไดเรกทอรีนี้อยู่ก่อน
+# ไม่งั้น container พังตั้งแต่ start ด้วย PermissionError (เจอตอนทดสอบก่อน push)
+# **สร้างแล้วปล่อยให้เขียนไม่ได้เหมือนที่อื่น** — `mkdir(exist_ok=True)` ผ่านได้
+# โดยไม่ต้องมีสิทธิ์เขียน และการยอมให้เขียนได้จะเปิดทางให้ค่าเริ่มต้น
+# `sqlite:///todolist.db` เก็บข้อมูลลง layer ของ container ซึ่ง **หายเงียบ ๆ
+# ตอน restart** — พังดัง ๆ ตอนตั้ง config ผิด ดีกว่าข้อมูลหายโดยไม่มีใครรู้
+RUN mkdir -p /app/instance
 
 # โค้ดเป็นของ root และ process รันเป็น todolist — **เขียนทับตัวเองไม่ได้**
 RUN chown -R root:root /app && chmod -R a-w /app

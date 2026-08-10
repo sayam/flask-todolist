@@ -419,10 +419,15 @@ jobs:
         run: |
           # process ที่ถูกยึดต้องแก้โค้ดของตัวเองไม่ได้ — ถ้าเขียนได้แปลว่า
           # `chmod a-w` ใน Dockerfile หลุดไปโดยไม่มีอะไรฟ้อง
-          if docker run --rm todolist:ci sh -c 'echo x > /app/run.py' 2>/dev/null; then
-            echo "เขียนทับโค้ดใน image ได้ — ไม่ควรเป็นแบบนั้น"
-            exit 1
-          fi
+          for target in /app/run.py /app/instance/probe.db; do
+            if docker run --rm todolist:ci sh -c "echo x > $target" 2>/dev/null; then
+              echo "เขียน $target ได้ — ไม่ควรเป็นแบบนั้น"
+              exit 1
+            fi
+          done
+          # `/app/instance` ตั้งใจให้เขียนไม่ได้ด้วย — ยอมให้เขียนเมื่อไหร่ ค่าเริ่มต้น
+          # `sqlite:///todolist.db` จะเก็บข้อมูลลง layer ของ container แล้วหายเงียบ ๆ
+          # ตอน restart · พังดัง ๆ ตอน config ผิด ดีกว่าข้อมูลหายโดยไม่มีใครรู้
       - name: ของที่ไม่ควรอยู่ใน image ต้องไม่อยู่
         run: |
           # .dockerignore เป็นด่านเดียวที่กัน .env กับ instance/ ไม่ให้หลุดเข้า layer
