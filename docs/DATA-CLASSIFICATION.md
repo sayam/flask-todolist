@@ -20,9 +20,9 @@
 | ชั้น | ชื่อ | ฟิลด์จริงในระบบ |
 |---|---|---|
 | **C1** | ความลับ (secret) | `tdl_user.password_hash`, `tdl_api_token.token_hash`, `tdl_auth_totp_secret.totp_secret` |
-| **C2** | ระบุตัวบุคคล (PII) | `tdl_user.username`, `first_name`, `last_name` |
+| **C2** | ระบุตัวบุคคล (PII) | `tdl_user.username`, `first_name`, `last_name`, `tdl_auth_oidc_identity.subject` |
 | **C3** | เนื้อหาของผู้ใช้ | `tdl_todo.title`, `tdl_category.name`, `tdl_api_token.name`, `start_date`, `due_date` |
-| **C4** | การตั้งค่า/metadata | `confirmed_at`, `last_counter`, `locale`, `theme`, `mode`, `timezone_name`, `role`, `is_done`, `created_at`, `updated_at`, `deleted_at`, `purged_at`, `expires_at`, `id`, `*_id` |
+| **C4** | การตั้งค่า/metadata | `confirmed_at`, `last_counter`, `locale`, `theme`, `mode`, `timezone_name`, `role`, `is_done`, `created_at`, `updated_at`, `deleted_at`, `purged_at`, `expires_at`, `linked_at`, `issuer`, `id`, `*_id` |
 | **C5** | หลักฐาน (audit) | `tdl_audit.id`, `created_at`, `event`, `actor_id`, `source`, `request_id`, `table_name`, `row_id`, `changes`, `prev_hash`, `row_hash` |
 | **C6** | log ปฏิบัติการ | JSON log ทาง stdout (`actor`, `remote_addr`, `path`, …) |
 
@@ -49,6 +49,12 @@
   เพราะต้องเอาไปคำนวณรหัสเทียบทุกครั้ง (นั่นคือธรรมชาติของ TOTP ไม่ใช่ทางลัด)
   ผลที่ตามมา: ปิด MFA = ลบแถวทิ้งจริง ไม่ใช่ soft delete และ purge job ของ core
   ไม่รู้จักตารางนี้ — วงจรชีวิตเป็นของ plugin เอง
+- **`tdl_auth_oidc_identity.subject` เป็น C2 ไม่ใช่ C1** (ADR 0028) — `sub`
+  ของ IdP ไม่ใช่ความลับ (มันไม่ได้ให้สิทธิ์อะไรกับคนที่รู้) แต่มันระบุตัวบุคคล
+  ได้ในระบบของ IdP จึงอยู่ชั้นเดียวกับ username · ผลที่ตามมาตามกติกา C1–C3:
+  **audit บันทึกได้แค่ HMAC ไม่ใช่ค่าจริง** (ประกาศไว้ใน `AUDIT_POLICIES` ของ
+  plugin เอง) ส่วน `issuer` เป็น C4 เพราะเป็น URL ของ*ระบบ* ไม่ใช่ของคน —
+  และการรู้ว่า audit แถวนี้มาจาก IdP เจ้าไหนคือคำถามแรก ๆ ตอนสืบเหตุ
 - **`tdl_api_token.token_hash` เป็น C1 เท่ากับรหัสผ่าน** ต่างกันแค่วิธี hash
   (sha256 เพราะความลับสุ่ม 256 บิต — ดูเหตุผลใน `app/services/tokens.py`)
   ตัวความลับจริงไม่เคยถูกเก็บ แสดงครั้งเดียวตอนออกใบแล้วหายไปจากระบบ
