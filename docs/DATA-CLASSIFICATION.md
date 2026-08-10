@@ -20,9 +20,9 @@
 | ชั้น | ชื่อ | ฟิลด์จริงในระบบ |
 |---|---|---|
 | **C1** | ความลับ (secret) | `tdl_user.password_hash`, `tdl_api_token.token_hash`, `tdl_auth_totp_secret.totp_secret` |
-| **C2** | ระบุตัวบุคคล (PII) | `tdl_user.username`, `first_name`, `last_name`, `tdl_auth_oidc_identity.subject` |
+| **C2** | ระบุตัวบุคคล (PII) | `tdl_user.username`, `first_name`, `last_name`, `tdl_auth_oidc_identity.subject`, `tdl_auth_ldap_identity.external_id` |
 | **C3** | เนื้อหาของผู้ใช้ | `tdl_todo.title`, `tdl_category.name`, `tdl_api_token.name`, `start_date`, `due_date` |
-| **C4** | การตั้งค่า/metadata | `confirmed_at`, `last_counter`, `locale`, `theme`, `mode`, `timezone_name`, `role`, `is_done`, `created_at`, `updated_at`, `deleted_at`, `purged_at`, `expires_at`, `linked_at`, `issuer`, `id`, `*_id` |
+| **C4** | การตั้งค่า/metadata | `confirmed_at`, `last_counter`, `locale`, `theme`, `mode`, `timezone_name`, `role`, `is_done`, `created_at`, `updated_at`, `deleted_at`, `purged_at`, `expires_at`, `linked_at`, `issuer`, `directory`, `id`, `*_id` |
 | **C5** | หลักฐาน (audit) | `tdl_audit.id`, `created_at`, `event`, `actor_id`, `source`, `request_id`, `table_name`, `row_id`, `changes`, `prev_hash`, `row_hash` |
 | **C6** | log ปฏิบัติการ | JSON log ทาง stdout (`actor`, `remote_addr`, `path`, …) |
 
@@ -55,6 +55,10 @@
   **audit บันทึกได้แค่ HMAC ไม่ใช่ค่าจริง** (ประกาศไว้ใน `AUDIT_POLICIES` ของ
   plugin เอง) ส่วน `issuer` เป็น C4 เพราะเป็น URL ของ*ระบบ* ไม่ใช่ของคน —
   และการรู้ว่า audit แถวนี้มาจาก IdP เจ้าไหนคือคำถามแรก ๆ ตอนสืบเหตุ
+- **`tdl_auth_ldap_identity.external_id` เป็น C2 ด้วยเหตุผลเดียวกับ `subject`
+  ของ OIDC** — `dn` (หรือ uuid) ของผู้ใช้ใน directory ไม่ใช่ความลับ แต่ระบุ
+  ตัวบุคคลได้ และ `dn` ยัง**บอกโครงสร้างองค์กร**เพิ่มมาอีก (OU ที่สังกัด)
+  จึงเก็บเป็น HMAC ใน audit ไม่ใช่ค่าจริง · `directory` เป็น C4 (URL ของระบบ)
 - **`tdl_api_token.token_hash` เป็น C1 เท่ากับรหัสผ่าน** ต่างกันแค่วิธี hash
   (sha256 เพราะความลับสุ่ม 256 บิต — ดูเหตุผลใน `app/services/tokens.py`)
   ตัวความลับจริงไม่เคยถูกเก็บ แสดงครั้งเดียวตอนออกใบแล้วหายไปจากระบบ

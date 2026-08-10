@@ -14,19 +14,21 @@
 
 from typing import Any
 
+from flask import current_app
 from flask_babel import gettext as _
 
 from app import plugins
-from app.services.errors import ValidationError
+from app.services.errors import ServiceError, ValidationError
 
-# ฟังก์ชันที่ปัจจัยหลักต้องมีครบ — **host เป็นคนตรวจ ไม่ใช่ registry**
-# (registry ไม่รู้ว่าความสามารถแต่ละอย่างต้องมีอะไร — ADR 0025)
+# ฟังก์ชันที่ปัจจัยหลักต้องมีครบ **ต่อรูปแบบ** — host เป็นคนตรวจ ไม่ใช่ registry
+# (registry ไม่รู้ว่าความสามารถแต่ละอย่างต้องมีอะไร — ADR 0025/0029)
 CONTRACT = ("begin", "finish")
+CREDENTIAL_CONTRACT = ("authenticate",)
 
 
-def _module(plugin: plugins.Plugin) -> Any:
+def _module(plugin: plugins.Plugin, contract: tuple[str, ...] = CONTRACT) -> Any:
     module = plugins.factor_module(plugin)
-    missing = [name for name in CONTRACT if not hasattr(module, name)]
+    missing = [name for name in contract if not hasattr(module, name)]
     if missing:
         # บอกว่า *ใคร* ผิดสัญญา *ข้อไหน* — ข้อความที่บอกแค่ "plugin พัง"
         # ทำให้คนเขียน plugin ต้องเดาว่าตกอะไร
@@ -34,15 +36,74 @@ def _module(plugin: plugins.Plugin) -> Any:
     return module
 
 
+def _usable(plugin: plugins.Plugin, contract: tuple[str, ...]) -> Any | None:
+    """โมดูลของปัจจัยนั้น หรือ `None` ถ้ามันปิดตัวเองอยู่
+
+    **ไลบรารีที่ขาดไป = ปิดตัวเอง ไม่ใช่พัง** (ADR 0025) — `ImportError` เป็น
+    สถานะปกติที่ออกแบบไว้ หลักเดียวกับตารางที่ยังไม่ถูกสร้าง ส่วนข้อผิดพลาด
+    อื่น (syntax ผิด, ตัวแปรไม่มี) **ต้องดัง** เพราะเป็นบั๊กของ plugin ไม่ใช่
+    สถานะปกติ · ไม่ cache ผลของความล้มเหลวไว้ ไม่งั้นการติดตั้งไลบรารีเพิ่ม
+    จะไม่มีผลจนกว่าจะ restart
+    """
+    try:
+        return _module(plugin, contract)
+    except ImportError:
+        current_app.logger.info("ปัจจัยหลักปิดตัวเองเพราะไลบรารีไม่ครบ", extra={"plugin": plugin.key})
+        return None
+
+
+def _installed(style: str, contract: tuple[str, ...]) -> list[plugins.Plugin]:
+    return [
+        plugin
+        for plugin in plugins.primary_factors(style)
+        if plugins.is_installed(plugin) and _usable(plugin, contract) is not None
+    ]
+
+
 def available() -> list[plugins.Plugin]:
-    """ปัจจัยหลักทางเลือกที่ **ติดตั้งครบแล้ว** ตอนนี้ (อ่านดิสก์ใหม่ทุกครั้ง)
+    """ปัจจัยหลักแบบ `redirect` ที่ **ติดตั้งครบแล้ว** ตอนนี้ (อ่านดิสก์ใหม่ทุกครั้ง)
 
     ตัวที่วางไดเรกทอรีไว้แต่ยังไม่ได้ `flask plugin-install` ถูกข้ามไป
     ด้วยเหตุผลเดียวกับปัจจัยที่สอง: ตารางที่ยังไม่ถูกสร้างแปลว่ายังไม่มีใคร
     ผูกบัญชีไว้เลย การข้ามจึงเป็นคำตอบที่ถูก ไม่ใช่การปิดด่านความปลอดภัย
     — และถ้าไม่ข้าม **หน้า login ทั้งหน้าจะพัง** ด้วย "no such table"
     """
-    return [plugin for plugin in plugins.primary_factors() if plugins.is_installed(plugin)]
+    return _installed(plugins.REDIRECT_STYLE, CONTRACT)
+
+
+def directories() -> list[plugins.Plugin]:
+    """ปัจจัยหลักแบบ `credential` ที่ติดตั้งแล้ว — ไม่มีปุ่มบนหน้า login
+
+    ต่างจากแบบ `redirect` ตรงที่ผู้ใช้ไม่ต้องเลือกอะไร: กรอกชื่อกับรหัสผ่าน
+    ในฟอร์มเดิม แล้วระบบเป็นคนไล่ถามให้เอง (ADR 0029 ข้อ 2)
+    """
+    return _installed(plugins.CREDENTIAL_STYLE, CREDENTIAL_CONTRACT)
+
+
+def authenticate(username: str, password: str) -> Any:
+    """ถาม directory ภายนอกทีละตัวว่ารู้จักคู่นี้ไหม — คืน `User` หรือ `None`
+
+    **เรียกหลังรหัสผ่านของที่นี่ไม่ผ่านเท่านั้น** (ADR 0029 ข้อ 2) — วันที่
+    directory ล่ม ผู้ดูแลที่มีรหัสผ่านของที่นี่ต้องยังเข้าได้
+
+    ความล้มเหลวของตัวหนึ่งไม่ตัดโอกาสของตัวถัดไป: directory ที่ต่อไม่ติดคือ
+    "ตอบไม่ได้" ไม่ใช่ "ตอบว่าไม่ใช่" — แต่ถ้าไม่มีตัวไหนตอบว่าใช่เลย ผลลัพธ์
+    ก็คือ login ไม่ผ่านอยู่ดี ซึ่งเป็นฝั่งที่ปลอดภัยของความไม่แน่นอนนี้
+    """
+    for plugin in directories():
+        try:
+            user = _module(plugin, CREDENTIAL_CONTRACT).authenticate(username, password)
+        except ServiceError as error:
+            # **ต้องดังใน log** — directory ที่ config ผิดจะเงียบสนิทจากมุมของ
+            # ผู้ใช้ (เห็นแค่ "รหัสผ่านไม่ถูกต้อง") ซึ่งแยกไม่ออกจากการพิมพ์ผิด
+            current_app.logger.warning(
+                "ถาม directory ภายนอกไม่สำเร็จ",
+                extra={"plugin": plugin.key, "reason": error.code},
+            )
+            continue
+        if user is not None:
+            return user
+    return None
 
 
 def find(key: str) -> plugins.Plugin:

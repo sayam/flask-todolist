@@ -40,6 +40,9 @@ pymysql = "~=1.1"
 [plugin-db-mariadb]
 pymysql = "~=1.1"
 
+[plugin-auth-ldap]
+ldap3 = "~=2.9"
+
 [plugin-cache-redis]
 redis = "~=5.0"
 

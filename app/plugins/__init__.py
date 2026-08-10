@@ -712,8 +712,25 @@ def second_factors() -> list[Plugin]:
     ]
 
 
-def primary_factors() -> list[Plugin]:
-    """ปัจจัยหลักที่ **ไม่ใช่รหัสผ่าน** (ADR 0028)
+# รูปแบบของปัจจัยหลัก (ADR 0029) — **manifest ประกาศเอง core ไม่เดา**
+# `redirect` = พาผู้ใช้ออกไปยืนยันตัวตนที่อื่นแล้วเดินกลับมา (`begin`/`finish`)
+# `credential` = รับชื่อกับรหัสผ่านมาตรวจให้ตรง ๆ (`authenticate`)
+REDIRECT_STYLE = "redirect"
+CREDENTIAL_STYLE = "credential"
+
+
+def factor_style(plugin: Plugin) -> str:
+    """รูปแบบของปัจจัยหลักตัวนี้ — ไม่ประกาศ = `redirect`
+
+    ค่าเริ่มต้นเป็น `redirect` เพื่อความเข้ากันได้กับ plugin ที่เขียนไว้ก่อน
+    ADR 0029 (และเพราะตอนนั้นมีอยู่แบบเดียว) — **ไม่ใช่การเดาจากฟังก์ชันที่มี**
+    ซึ่งจะทำให้ชื่อฟังก์ชันที่พิมพ์ผิดกลายเป็นการเปลี่ยนรูปแบบเงียบ ๆ
+    """
+    return str(plugin.manifest.get("style", REDIRECT_STYLE))
+
+
+def primary_factors(style: str | None = None) -> list[Plugin]:
+    """ปัจจัยหลักที่ **ไม่ใช่รหัสผ่าน** (ADR 0028) กรองตามรูปแบบได้ (ADR 0029)
 
     `password` ถูกกันออกด้วย `"core": true` ไม่ใช่ด้วยชื่อ — core จึงยังไม่รู้จัก
     ชื่อ plugin ตัวไหนเลย และวันที่มีปัจจัยหลักของ core ตัวอื่นก็ไม่ต้องมาแก้ที่นี่
@@ -722,7 +739,9 @@ def primary_factors() -> list[Plugin]:
     return [
         plugin
         for plugin in discover(AUTH_TYPE).values()
-        if plugin.manifest.get("factor") == "primary" and not plugin.manifest.get("core")
+        if plugin.manifest.get("factor") == "primary"
+        and not plugin.manifest.get("core")
+        and (style is None or factor_style(plugin) == style)
     ]
 
 

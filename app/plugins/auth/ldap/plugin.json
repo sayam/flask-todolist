@@ -1,0 +1,10 @@
+{
+  "type": "auth",
+  "name": "Directory",
+  "version": "1.0.0",
+  "factor": "primary",
+  "style": "credential",
+  "requires": {
+    "pip": ["ldap3~=2.9"]
+  }
+}

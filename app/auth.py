@@ -95,13 +95,19 @@ def login():
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
-        user = db.session.scalars(select(User).where(User.username == username)).first()
+        known = db.session.scalars(select(User).where(User.username == username)).first()
+        user = known if known is not None and known.check_password(password) else None
+        if user is None:
+            # **รหัสผ่านของที่นี่มาก่อนเสมอ** แล้วค่อยถาม directory ภายนอก
+            # (ADR 0029 ข้อ 2) — วันที่ directory ล่ม ผู้ดูแลที่มีรหัสผ่าน
+            # ของที่นี่ต้องยังเข้าได้ ไม่ใช่ถูกกันออกพร้อมคนทั้งองค์กร
+            user = sso.authenticate(username, password)
         # ไม่แยกว่า user ผิดหรือรหัสผิด กัน username enumeration
-        if user is None or not user.check_password(password):
+        if user is None:
             # **ห้ามบันทึก username ที่กรอกมา** เป็นชั้น C2 และเป็นของคนนอกด้วยซ้ำ
             # บันทึกได้แค่ว่าเป้าหมายเป็นบัญชีไหน (เลข = C4) หรือไม่มีอยู่จริง
             audit.record(
-                "auth.login_failed", table_name="tdl_user", row_id=user.id if user else None
+                "auth.login_failed", table_name="tdl_user", row_id=known.id if known else None
             )
             db.session.commit()
             flash(_("Incorrect username or password"))
