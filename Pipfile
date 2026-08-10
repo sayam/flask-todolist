@@ -42,3 +42,6 @@ pymysql = "~=1.1"
 
 [plugin-cache-redis]
 redis = "~=5.0"
+
+[deploy]
+gunicorn = "~=23.0"

@@ -182,6 +182,44 @@ systemctl list-timers todolist-purge.timer
 `Persistent=true` สำคัญ — เครื่องปิดอยู่ตอนถึงเวลาแล้วเปิดมาใหม่ มันจะรันชดเชยให้
 ไม่ใช่ข้ามไปทั้งวัน (cron ธรรมดาไม่ชดเชยให้ ถ้า host ปิด ๆ เปิด ๆ ให้ใช้ anacron แทน)
 
+## รันด้วย container image (Phase 5 · P5-09)
+
+```
+docker build -t todolist .
+docker run -p 8000:8000 \
+  -e SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')" \
+  -e DATABASE_URL="mysql+pymysql://user:pass@dbhost/todolist" \
+  todolist
+```
+
+**image ไม่ migrate ฐานข้อมูลให้เอง** และไม่ใช่เพราะลืม — การเปลี่ยน schema เป็น
+การตัดสินใจของผู้ดูแล ไม่ใช่ผลข้างเคียงของการ start container ถ้า migrate อัตโนมัติ:
+deploy ที่ rollback แล้วจะเจอฐานข้อมูลที่ล้ำหน้าโค้ดอยู่ และการ start หลาย replica
+พร้อมกันจะแย่งกัน migrate — รัน `flask db upgrade` เป็นขั้นตอนแยกก่อนปล่อยของใหม่
+(ดูหัวข้อ "ขั้นตอนหลัง deploy ทุกครั้ง")
+
+**ไลบรารีของ plugin ไม่ได้อยู่ใน image** ตามหลักของ ADR 0025 — ใครใช้ยี่ห้อไหน
+หรือเปิดส่วนเสริมตัวไหน ต่อ image นี้แล้วติดตั้ง category ของตัวเองเพิ่ม:
+
+```dockerfile
+FROM todolist
+USER root
+RUN pipenv sync --categories="plugin-db-mysql"
+USER todolist
+```
+
+**รันหลาย worker/replica ต้องตั้ง `CACHE_URL` ให้ชี้ store ที่แชร์ได้ด้วย**
+ไม่งั้นเพดาน rate limit จะเป็น N เท่าตามจำนวน process (แอปเตือนตอน start
+ถ้ารู้ว่า store ไม่แชร์ — ดู `app/cache.py`) จำนวน worker ตั้งด้วย
+`WEB_CONCURRENCY` หรือ `GUNICORN_CMD_ARGS`
+
+**สิ่งที่ image รับประกันและมีด่านใน CI (`job: image`) ตรวจทุก push**
+- รันในนามผู้ใช้ `todolist` ไม่ใช่ root
+- โค้ดใน `/app` เขียนทับไม่ได้ (process ที่ถูกยึดแก้โค้ดตัวเองไม่ได้)
+- ไม่มี `tests/`, `docs/`, `.env`, `instance/` อยู่ข้างใน
+- start แล้ว healthcheck ขึ้น healthy และ `GET /login` ตอบ 200
+- log ของแอปออก stderr ส่วน access log ออก stdout (ADR 0011 หมายเหตุท้ายไฟล์)
+
 ## เวลาที่งานล้มเหลว
 
 **อย่าปล่อยผ่าน** — งานตามรอบที่ล้มเหลวเงียบ ๆ แย่กว่าไม่มีงานตามรอบเลย

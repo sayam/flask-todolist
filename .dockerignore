@@ -1,0 +1,38 @@
+# ของที่ไม่ควรเข้าไปอยู่ใน build context (Phase 5 · P5-09)
+#
+# **สองเหตุผล ไม่ใช่แค่ขนาด**: ทุกอย่างใน context ถูกส่งให้ daemon และของที่
+# `COPY` เข้าไปจะอยู่ใน layer ตลอดไป — ลบทีหลังก็ยังขุดออกมาได้จาก layer เก่า
+# `.env` กับ `instance/` จึงต้องไม่มีทางหลุดเข้าไป แม้จะไม่มี `COPY` บรรทัดไหน
+# พาดถึงมันตอนนี้ก็ตาม (Dockerfile เปลี่ยนได้ ไฟล์นี้คือด่านที่ไม่เปลี่ยนตาม)
+
+# ความลับและข้อมูลจริง — ห้ามหลุดเข้า image เด็ดขาด
+.env
+.env.*
+!.env.example
+instance/
+*.db
+*.sqlite3
+
+# ของที่ build เอง / ของเฉพาะเครื่อง
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# ประวัติและเครื่องมือ ไม่เกี่ยวกับตอนรัน
+.git/
+.github/
+.gitignore
+.pre-commit-config.yaml
+
+# เอกสารและเทสต์ — image ที่รันจริงไม่ต้องใช้
+docs/
+tests/
+scripts/
+*.md
+!README.md

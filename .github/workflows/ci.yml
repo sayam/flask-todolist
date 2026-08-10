@@ -401,6 +401,66 @@ jobs:
           SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
           DATABASE_URL: sqlite:////tmp/a11y.db
 
+  image:
+    # **build image จริงแล้วยิงใส่มัน** — Dockerfile ที่ไม่มีใครเคย build คือไฟล์
+    # ข้อความธรรมดา และ image ที่ build ผ่านแต่ไม่เคยถูกรัน ก็บอกได้แค่ว่า syntax ถูก
+    # (P5-09 · เครื่อง dev ไม่มี container runtime — CI จึงเป็นที่พิสูจน์)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: build
+        run: docker build -t todolist:ci .
+      - name: ต้องไม่รันเป็น root
+        run: |
+          who=$(docker run --rm todolist:ci id -un)
+          echo "รันในนามของ: $who"
+          [ "$who" = "todolist" ] || { echo "image รันเป็น $who ไม่ใช่ todolist"; exit 1; }
+      - name: โค้ดใน image ต้องเขียนทับไม่ได้
+        run: |
+          # process ที่ถูกยึดต้องแก้โค้ดของตัวเองไม่ได้ — ถ้าเขียนได้แปลว่า
+          # `chmod a-w` ใน Dockerfile หลุดไปโดยไม่มีอะไรฟ้อง
+          if docker run --rm todolist:ci sh -c 'echo x > /app/run.py' 2>/dev/null; then
+            echo "เขียนทับโค้ดใน image ได้ — ไม่ควรเป็นแบบนั้น"
+            exit 1
+          fi
+      - name: ของที่ไม่ควรอยู่ใน image ต้องไม่อยู่
+        run: |
+          # .dockerignore เป็นด่านเดียวที่กัน .env กับ instance/ ไม่ให้หลุดเข้า layer
+          # ลบทีหลังไม่ช่วย เพราะขุดออกมาจาก layer เก่าได้เสมอ
+          for path in /app/tests /app/docs /app/.env /app/instance; do
+            if docker run --rm todolist:ci sh -c "test -e $path"; then
+              echo "เจอ $path ใน image"
+              exit 1
+            fi
+          done
+      - name: start จริงแล้วต้องตอบ 200
+        run: |
+          docker run -d --name probe -p 8000:8000 \
+            -e SECRET_KEY=ci-only-secret-key-not-used-in-production-1234 \
+            -e DATABASE_URL=sqlite:////tmp/ci.db \
+            todolist:ci
+          # รอ healthcheck ของ image เอง ไม่ใช่ sleep แบบเดา
+          for _ in $(seq 1 30); do
+            state=$(docker inspect -f '{{.State.Health.Status}}' probe)
+            [ "$state" = "healthy" ] && break
+            [ "$state" = "unhealthy" ] && { docker logs probe; exit 1; }
+            sleep 2
+          done
+          [ "$(docker inspect -f '{{.State.Health.Status}}' probe)" = "healthy" ] || {
+            echo "ไม่ healthy ภายในเวลาที่รอ"; docker logs probe; exit 1; }
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/login)
+          echo "GET /login → $code"
+          [ "$code" = "200" ] || { docker logs probe; exit 1; }
+      - name: log ของแอปต้องออก stderr ไม่ใช่ stdout
+        run: |
+          # กติกาเดียวกับที่ commit e5d3e57 ตั้งไว้ — ในคอนเทนเนอร์ก็ต้องจริง
+          # (`--access-logfile -` ของ gunicorn ออก stdout ส่วน log ของแอปออก stderr)
+          docker logs probe 2>/dev/null | grep -q '"logger": "app"' && {
+            echo "log ของแอปโผล่ใน stdout"; exit 1; }
+          docker logs probe 2>&1 1>/dev/null | grep -q '"logger"' || {
+            echo "ไม่เจอ log ของแอปใน stderr"; exit 1; }
+          echo "log อยู่ถูกช่อง"
+
   secret-scan:
     runs-on: ubuntu-latest
     steps:
