@@ -432,12 +432,17 @@ jobs:
         run: |
           # .dockerignore เป็นด่านเดียวที่กัน .env กับ instance/ ไม่ให้หลุดเข้า layer
           # ลบทีหลังไม่ช่วย เพราะขุดออกมาจาก layer เก่าได้เสมอ
-          for path in /app/tests /app/docs /app/.env /app/instance; do
+          for path in /app/tests /app/docs /app/.env /app/scripts; do
             if docker run --rm todolist:ci sh -c "test -e $path"; then
               echo "เจอ $path ใน image"
               exit 1
             fi
           done
+          # ตรงข้ามกัน: `/app/instance` **ต้องมี** เพราะ `create_app()` เรียก
+          # `mkdir(instance_path)` เสมอ — ไม่มีแล้ว container พังตั้งแต่ start
+          # (ส่วนที่ว่ามันต้องเขียนไม่ได้ ถูกตรวจไปแล้วใน step ก่อนหน้า)
+          docker run --rm todolist:ci sh -c 'test -d /app/instance' || {
+            echo "ไม่มี /app/instance — create_app() จะพังตอน start"; exit 1; }
       - name: start จริงแล้วต้องตอบ 200
         run: |
           docker run -d --name probe -p 8000:8000 \
