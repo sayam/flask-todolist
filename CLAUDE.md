@@ -67,9 +67,14 @@
 - `Dockerfile` + `.dockerignore` — image ที่รันจริง (multi-stage, ไม่ใช่ root)
   **ไม่ migrate ให้เอง** โดยตั้งใจ · ไลบรารีของ plugin ไม่อยู่ใน image (ADR 0025)
   job `image` ใน CI build จริงแล้วยิงใส่มันทุก push — ดู docs/OPERATIONS.md
-- `compose.yaml` + `compose.{mysql,mariadb,sso}.yaml` — stack ที่รันจริง
+- `app/proxy.py` — แปลง header ของ reverse proxy **ตามจำนวนชั้นที่ประกาศ**
+  (`TRUSTED_PROXY_HOPS` ค่าเริ่มต้น 0 = ไม่เชื่อเลย — ADR 0027) ผูก**ก่อน**
+  `init_security_headers` เพราะ Talisman ตัดสิน redirect จาก `request.scheme`
+- `deploy/nginx.conf` — reverse proxy หน้า replica หลายตัว
+- `compose.yaml` + `compose.{mysql,mariadb,scale,sso}.yaml` — stack ที่รันจริง
   **เลือกยี่ห้อด้วยไฟล์ override ไม่ใช่ตัวแปร** (ไฟล์เดียวเปลี่ยนทั้ง service และ
   `DATABASE_URL` จึงขัดกันเองไม่ได้) · job `stack` ใน CI ยิงจริงทุก push
+  **`compose.scale.yaml` ต้องใช้กับยี่ห้อที่ไม่ใช่ SQLite** (ไฟล์เดียวล็อกทั้งไฟล์)
 - `scripts/` — สคริปต์ที่รันมือ ไม่ได้ถูกเรียกตอนแอปทำงาน
 - `docs/openapi.json` — **ไฟล์ที่ generate มา ห้ามแก้ด้วยมือ** (ดูหัวข้อ API v1)
 - `app/templates/` — Jinja2 templates (ทุกหน้า extend `base.html`)

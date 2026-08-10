@@ -1,0 +1,37 @@
+# override: app หลายตัวหลัง reverse proxy (Phase 5 · P5-11)
+#
+#   docker compose -f compose.yaml -f compose.mysql.yaml -f compose.scale.yaml \
+#       up -d --scale app=2
+#
+# **ต้องใช้คู่กับ backend ที่ไม่ใช่ SQLite** — SQLite เป็นไฟล์เดียวที่ล็อกทั้งไฟล์
+# ตอนเขียน สอง replica ที่เขียนพร้อมกันจะได้ "database is locked" เป็นระยะ
+# ตัวเลือกยี่ห้อจึงไม่ใช่รสนิยมอีกต่อไปเมื่อขึ้นหลาย replica
+#
+# **ทางเข้าย้ายไปที่ 8080 ของ proxy** — app เลิก publish port ของตัวเอง เพราะ
+# host มีพอร์ตเดียวแต่ replica มีหลายตัว (`!reset` ล้างค่าที่มาจาก compose.yaml
+# ทิ้ง ไม่ใช่ต่อท้าย — list ของ compose ปกติจะ *รวม* กัน ไม่ใช่ทับ)
+
+services:
+  app:
+    ports: !reset []
+    environment:
+      # **หนึ่งชั้นเพราะมี proxy ตัวเดียว** ตัวเลขนี้ต้องตรงกับความจริงเสมอ
+      # ตั้งเกินคือการเชื่อค่าที่ client ปลอมมา ตั้งขาดคือทุกคนใช้โควตาก้อนเดียว
+      # (ดู app/proxy.py — ค่าเริ่มต้นคือ 0 = ไม่เชื่ออะไรเลย)
+      TRUSTED_PROXY_HOPS: "1"
+
+  proxy:
+    image: nginx:1.27-alpine
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "8080:8080"
+    depends_on:
+      # แค่ "เริ่มแล้ว" พอ — nginx ถาม DNS ใหม่ตามอายุที่ตั้งไว้อยู่แล้ว
+      # จึงรับ replica ที่เพิ่งขึ้นทีหลังได้เอง โดยไม่ต้องรอตอน start
+      - app
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/login >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12

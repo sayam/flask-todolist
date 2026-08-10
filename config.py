@@ -113,6 +113,13 @@ class Config:
     # บังคับ https, HSTS, และ cookie flag Secure
     # เปิดตอนยังรัน http อยู่จะ redirect วนจน login ไม่ได้
     HTTPS_ENABLED = os.environ.get("HTTPS_ENABLED", "") == "1"
+
+    # จำนวนชั้นของ reverse proxy ที่เชื่อ header ของมันได้ (0 = ไม่เชื่อเลย)
+    # **ต้องตั้งเมื่อรันหลัง proxy** ไม่งั้น rate limit ต่อไอพีจะกลายเป็นก้อนเดียว
+    # สำหรับคนทั้งโลก และ `remote_addr` ใน log จะเป็นไอพีของ proxy ทุกบรรทัด
+    # **ตั้งเกินจำนวนจริงคือการเชื่อค่าที่ client ปลอมมา** — ดู app/proxy.py
+    TRUSTED_PROXY_HOPS = int(os.environ.get("TRUSTED_PROXY_HOPS", "0") or 0)
+
     LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
 
     # --- OpenAPI / API v1 (ดู app/api/__init__.py และ ADR 0018) ---

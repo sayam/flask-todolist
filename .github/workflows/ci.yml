@@ -490,6 +490,7 @@ jobs:
       DB_PASSWORD: ci-only-db-password
       DB_ROOT_PASSWORD: ci-only-root-password
       COMPOSE: docker compose -f compose.yaml -f compose.mysql.yaml
+      SCALED: docker compose -f compose.yaml -f compose.mysql.yaml -f compose.scale.yaml
     steps:
       - uses: actions/checkout@v7
       - name: up
@@ -539,9 +540,72 @@ jobs:
             -e "select count(*) from todolist.tdl_user" 2>/dev/null | tr -d '[:space:]')
           echo "แถวใน tdl_user ของ MySQL: $rows"
           [ "$rows" = "1" ] || { echo "ข้อมูลไม่ได้ลง MySQL"; exit 1; }
+      # ---------------------------------------------------------------- P5-11
+      # ต่อจาก stack เดิมเพราะ image ถูก build ไปแล้ว — และการ scale ของจริงก็คือ
+      # การเพิ่ม replica ให้ stack ที่รันอยู่ ไม่ใช่การขึ้นใหม่ทั้งชุด
+      - name: scale เป็น 2 replica หลัง reverse proxy
+        run: |
+          $SCALED up -d --scale app=2 --quiet-pull
+          for _ in $(seq 1 40); do
+            unhealthy=$($SCALED ps --format '{{.Service}}:{{.Health}}' | grep -v ':healthy' || true)
+            [ -z "$unhealthy" ] && break
+            sleep 5
+          done
+          left=$($SCALED ps --format '{{.Service}}:{{.Health}}' | grep -v ':healthy' || true)
+          [ -z "$left" ] || { echo "ยังไม่ healthy: $left"; $SCALED logs; exit 1; }
+          [ "$($SCALED ps -q app | wc -l)" = "2" ] || { echo "ไม่ได้ 2 replica"; exit 1; }
+      - name: ทั้งสอง replica ต้องได้รับคำขอจริง
+        run: |
+          # `?probe=` เพื่อแยกออกจาก healthcheck ที่ยิง /login เปล่า ๆ ทุก 30 วิ
+          for _ in $(seq 30); do curl -sf -o /dev/null "http://127.0.0.1:8080/login?probe=p5-11"; done
+          served=0
+          for c in $($SCALED ps -q app); do
+            n=$(docker logs "$c" 2>&1 | grep -c 'probe=p5-11' || true)
+            echo "$(docker inspect --format '{{.Name}}' "$c") = $n คำขอ"
+            [ "$n" -gt 0 ] && served=$((served + 1))
+          done
+          # **ไม่ได้ตรวจว่าแบ่งเท่ากัน** — nginx cache DNS ตามอายุที่ตั้งไว้ สัดส่วน
+          # จึงไม่คงที่ สิ่งที่ต้องจริงคือ replica ที่สอง *ถูกใช้* ไม่ใช่ขึ้นมาเฉย ๆ
+          [ "$served" = "2" ] || { echo "มี replica ที่ไม่เคยรับคำขอเลย"; exit 1; }
+      - name: แอปต้องเห็นไอพีของ client ไม่ใช่ของ proxy
+        run: |
+          gateway=$(docker network inspect todolist_default \
+            --format '{{range .IPAM.Config}}{{.Gateway}}{{end}}')
+          echo "ไอพีของ client ที่แท้จริง: $gateway"
+          found=0
+          for c in $($SCALED ps -q app); do
+            docker logs "$c" 2>&1 | grep http_request \
+              | grep -q "\"remote_addr\": \"$gateway\"" && found=1
+          done
+          # ถ้า ProxyFix ไม่ทำงาน ทุกบรรทัดจะเป็นไอพีของ container `proxy` แทน
+          # แล้ว rate limit ต่อไอพีจะกลายเป็นก้อนเดียวสำหรับคนทั้งโลก (app/proxy.py)
+          [ "$found" = "1" ] || {
+            echo "ไม่มี log บรรทัดไหนเห็นไอพีของ client เลย"
+            $SCALED logs app | grep http_request | tail -5
+            exit 1
+          }
+      - name: โควตา rate limit ต้องเป็นก้อนเดียวข้าม replica
+        run: |
+          # ค่าเริ่มต้นคือ 5 ครั้ง/นาที **ต่อทั้ง stack** — ถ้า counter อยู่ใน
+          # หน่วยความจำของแต่ละ process เพดานจริงจะกลายเป็น 10 (P5-07)
+          codes=""
+          for _ in $(seq 7); do
+            jar=$(mktemp)
+            token=$(curl -sf -c "$jar" http://127.0.0.1:8080/login \
+              | grep -oP 'name="csrf_token"[^>]*value="\K[^"]+' | head -1)
+            codes="$codes $(curl -s -b "$jar" -c "$jar" -o /dev/null -w '%{http_code}' -X POST \
+              -d "username=somchai&password=wrong-on-purpose&csrf_token=$token" \
+              http://127.0.0.1:8080/login)"
+          done
+          echo "status ที่ได้:$codes"
+          blocked=$(echo "$codes" | tr ' ' '\n' | grep -c '^429$' || true)
+          [ "$blocked" -ge 2 ] || {
+            echo "ยิงผิด 7 ครั้งแล้วโดนกันแค่ $blocked ครั้ง — counter ไม่ได้แชร์ข้าม replica"
+            exit 1
+          }
       - name: เก็บกวาด
         if: always()
-        run: $COMPOSE down -v
+        run: $SCALED down -v --remove-orphans
 
   secret-scan:
     runs-on: ubuntu-latest

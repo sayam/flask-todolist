@@ -22,6 +22,7 @@ from sqlalchemy.orm import DeclarativeBase
 from app import db_engine, plugins
 from app.cache import init_cache, warn_if_counters_are_not_shared
 from app.logging_setup import init_logging
+from app.proxy import init_proxy_fix
 from app.security_headers import init_security_headers
 from config import Config, check_secret_key
 
@@ -92,6 +93,10 @@ def create_app(config_class=Config):
 
     # ตั้ง log ก่อนอย่างอื่น จะได้เห็น log ของขั้นตอน init ที่เหลือด้วย
     init_logging(app)
+    # **ต้องมาก่อน `init_security_headers`** เพราะ Talisman ตัดสินใจ redirect ไป
+    # https จาก `request.scheme` — ถ้า proxy เป็นคนจบ TLS แล้วเรายังไม่แปลง
+    # `X-Forwarded-Proto` การเปิด HTTPS_ENABLED จะได้ redirect วนแทน (P5-11/P5-12)
+    init_proxy_fix(app)
     init_security_headers(app)
 
     db.init_app(app)
