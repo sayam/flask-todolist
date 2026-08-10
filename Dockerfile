@@ -17,7 +17,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 
-WORKDIR /build
+# **ต้องเป็น path เดียวกับชั้นที่รันจริง** (`/app`) ไม่ใช่ `/build` — script ใน venv
+# มี shebang เป็น path เต็มของ python ตอนที่ venv ถูกสร้าง ย้าย venv ไปที่อื่นแล้ว
+# shebang ยังชี้ที่เดิมซึ่งไม่มีอยู่ในชั้นสุดท้าย ผลคือ container ตายตอน start ด้วย
+# `exec /app/.venv/bin/gunicorn: no such file or directory` — **ข้อความนี้หลอก**
+# ไฟล์นั้นมีอยู่จริง สิ่งที่หายคือ *interpreter* ที่ shebang ชี้ไป (เจอจริงใน CI)
+WORKDIR /app
 
 RUN pip install --no-cache-dir pipenv
 
@@ -50,7 +55,7 @@ RUN useradd --system --no-create-home --shell /usr/sbin/nologin --uid 10001 todo
 
 WORKDIR /app
 
-COPY --from=builder /build/.venv /app/.venv
+COPY --from=builder /app/.venv /app/.venv
 # คัดลอกเฉพาะของที่ runtime ต้องใช้ — ส่วนที่เหลือถูกกันไว้ด้วย .dockerignore
 COPY app ./app
 COPY migrations ./migrations
