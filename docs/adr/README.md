@@ -32,3 +32,11 @@ ADR 0002–0008 เป็นการ backfill การตัดสินใจ
 | [0024](0024-mfa-as-an-auth-plugin.md) | MFA เป็น plugin ชนิด auth, TOTP เขียนเอง | accepted |
 | [0025](0025-plug-points-and-supply-chain-isolation.md) | จุด plug ซ้อนชั้น + แยก dependency ต่อ plugin | accepted |
 | [0026](0026-db-backend-as-a-plugin.md) | DB backend เป็น plugin ชนิด `db`, migration เป็นของ core | accepted |
+| [0027](0027-trusting-reverse-proxy-headers.md) | เชื่อ header ของ proxy ตามจำนวนชั้นที่ประกาศ | accepted |
+| [0028](0028-oidc-as-a-primary-auth-factor.md) | OIDC เป็นปัจจัยหลัก ยืนยัน ID token ด้วย TLS | accepted |
+| [0029](0029-credential-style-primary-factors.md) | ปัจจัยหลักมีสองรูปแบบ: redirect กับ credential | accepted |
+| [0030](0030-secrets-come-from-a-declared-source.md) | ความลับมาจากแหล่งที่ประกาศด้วย scheme | accepted |
+| [0031](0031-performance-targets-and-what-they-mean.md) | เป้าประสิทธิภาพเป็นตัวเลขที่มีที่มา | accepted |
+| [0032](0032-serialising-audit-appends.md) | ต่อสาย audit ให้เป็นลำดับด้วยการล็อกแถวท้าย | accepted |
+| [0033](0033-mfa-is-offered-not-required.md) | ไม่บังคับ MFA พร้อมเหตุผลและมาตรการชดเชย | accepted |
+| [0034](0034-data-subject-rights.md) | เจ้าของข้อมูล export/ลบบัญชีตัวเองได้ | accepted |
