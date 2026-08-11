@@ -981,6 +981,87 @@ jobs:
             exit 1
           fi
 
+  dast:
+    # **ยิง ZAP baseline ใส่ stack ที่รันจริง แบบที่ login แล้ว** (P7-03)
+    #
+    # แยกจาก job `stack` เพราะถามคนละคำถาม — `stack` ถามว่า "compose ต่อสายถูกไหม"
+    # ส่วนที่นี่ถามว่า "แอปที่เสิร์ฟจริงคายอะไรออกไปบ้าง" · การรวมกันแปลว่าเวลา
+    # แดงต้องไปไล่ดูก่อนว่าแดงด้วยเรื่องไหน
+    #
+    # **การสแกนโดยไม่ login เห็นแค่หน้า login** ซึ่งเป็นหน้าเดียวที่ไม่มีข้อมูล
+    # ของใครเลย — ด่านแบบนั้นเขียวได้ตลอดโดยไม่ได้ตรวจอะไร (บทเรียนของ Phase 5)
+    runs-on: ubuntu-latest
+    env:
+      SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
+      DB_PASSWORD: ci-only-db-password
+      DB_ROOT_PASSWORD: ci-only-root-password
+      TODOLIST_USER: somchai
+      TODOLIST_PASSWORD: ci-dast-verification-phrase
+      TLS: docker compose -f compose.yaml -f compose.mysql.yaml -f compose.scale.yaml -f compose.tls.yaml
+    steps:
+      - uses: actions/checkout@v7
+      - name: ขึ้น stack ที่มี TLS และ 2 replica
+        run: |
+          ./scripts/dev_tls_cert.sh
+          $TLS up -d --build --quiet-pull --scale app=2
+          for _ in $(seq 1 40); do
+            bad=$($TLS ps --format '{{.Service}}:{{.Health}}' | grep -v ':healthy' || true)
+            [ -z "$bad" ] && break
+            sleep 5
+          done
+          left=$($TLS ps --format '{{.Service}}:{{.Health}}' | grep -v ':healthy' || true)
+          [ -z "$left" ] || { echo "ยังไม่ healthy: $left"; $TLS logs; exit 1; }
+      - name: migrate แล้วใส่ข้อมูลให้มีอะไรให้ crawl
+        run: |
+          $TLS run --rm app flask db upgrade
+          printf '%s\n%s\n' "$TODOLIST_PASSWORD" "$TODOLIST_PASSWORD" \
+            | $TLS run --rm -T app flask create-user "$TODOLIST_USER"
+          jar=$(mktemp)
+          ua=todolist-dast-scanner/1
+          # **ต้องใช้ทั้ง -b และ -c ทุกครั้ง** — login ล้าง session ทั้งใบ (กัน session
+          # fixation) คุกกี้ในถังจึงยังไม่มี csrf_token จนกว่าจะโหลดหน้าถัดไปแล้วเก็บใหม่
+          t=$(curl -sfk -A "$ua" -c "$jar" https://127.0.0.1:8443/login \
+            | grep -oP 'name="csrf_token"[^>]*value="\K[^"]+' | head -1)
+          curl -sk -A "$ua" -b "$jar" -c "$jar" -o /dev/null -e https://127.0.0.1:8443/login \
+            -X POST -d "username=$TODOLIST_USER&password=$TODOLIST_PASSWORD&csrf_token=$t" \
+            https://127.0.0.1:8443/login
+          t2=$(curl -sk -A "$ua" -b "$jar" -c "$jar" https://127.0.0.1:8443/ \
+            | grep -oP 'name="csrf_token"[^>]*value="\K[^"]+' | head -1)
+          for n in 1 2 3; do
+            curl -sk -A "$ua" -b "$jar" -c "$jar" -o /dev/null -e https://127.0.0.1:8443/ \
+              -X POST -d "title=dast-task-$n&csrf_token=$t2" https://127.0.0.1:8443/add
+          done
+      - name: ZAP baseline (login แล้ว)
+        run: ./scripts/dast_scan.sh https://127.0.0.1:8443
+      - name: การสแกนต้องไปถึงหน้าที่ต้อง login จริง
+        # **วัดจากฝั่ง server ไม่ใช่จากรายงานของตัวสแกนเอง** — รายงานของ ZAP มีแค่
+        # URL ที่มี alert ถ้าวันหนึ่งเราแก้จนไม่มี alert เหลือ การเช็คจากรายงาน
+        # จะกลายเป็น "ไม่เจอ = ไม่ได้สแกน" ทั้งที่สแกนแล้ว · log ของแอปบอกตรง ๆ
+        # ว่ามันเสิร์ฟอะไรให้ใครด้วยสถานะอะไร
+        if: ${{ !cancelled() }}
+        run: |
+          for path in /settings /categories; do
+            n=$($TLS logs app 2>&1 \
+              | grep -c "\"path\": \"$path\", \"status\": 200" || true)
+            [ "$n" -gt 0 ] || { echo "แอปไม่เคยตอบ 200 ที่ $path ให้ตัวสแกนเลย"; exit 1; }
+          done
+      - name: แอปต้องไม่ระเบิดระหว่างถูกสแกน
+        # กฎ 10023/90022 ของ ZAP จับได้เฉพาะตอนที่ข้อความ error หลุดออกไปถึง
+        # client · traceback ที่ถูกกลบด้วยหน้า error สวย ๆ ยังเป็นบั๊กอยู่ดี
+        if: ${{ !cancelled() }}
+        run: |
+          n=$($TLS logs app 2>&1 | grep -c "Traceback" || true)
+          [ "$n" = "0" ] || { echo "แอปพ่น traceback $n ครั้งระหว่างถูกสแกน"; \
+            $TLS logs app 2>&1 | grep -A20 "Traceback" | head -60; exit 1; }
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: zap-report
+          path: .zap/out/
+      - name: เก็บกวาด
+        if: always()
+        run: $TLS down -v --remove-orphans
+
   secret-scan:
     runs-on: ubuntu-latest
     steps:
