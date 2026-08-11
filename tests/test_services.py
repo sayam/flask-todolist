@@ -170,6 +170,37 @@ def test_a_category_with_finished_tasks_still_cannot_be_deleted(owner):
     assert category.deleted_at is None
 
 
+def test_reusing_the_name_of_a_deleted_category_brings_it_back(owner):
+    """ลบหมวดแล้วสร้างชื่อเดิมอีกครั้ง ต้อง **กู้ของเดิม** ไม่ใช่ระเบิด
+
+    `uq_category_user_name` ไม่รู้จัก `deleted_at` การถามด้วยตัวกรองปกติจึงตอบว่า
+    "ยังไม่มีชื่อนี้" แล้ว INSERT ไปชนกุญแจ unique เป็น **500** — job `dast`
+    เป็นคนหาเจอตอน ZAP ลบหมวดแล้วกดสร้างใหม่ ไม่มีเทสต์ตัวไหนเดินเส้นทางนี้มาก่อน
+    """
+    original = categories_service.create_category(owner, "งานบ้าน")
+    categories_service.delete_category(owner, original.id)
+
+    again = categories_service.create_category(owner, "งานบ้าน")
+
+    assert again.id == original.id, "ต้องเป็นแถวเดิมที่ถูกกู้คืน ไม่ใช่แถวใหม่"
+    assert again.deleted_at is None
+    assert [category.name for category in categories_service.list_categories(owner)] == ["งานบ้าน"]
+
+
+def test_renaming_onto_a_deleted_categorys_name_is_refused_not_a_crash(owner):
+    """ชื่อที่ถูกจองโดยหมวดที่ถูกลบ ยังชนกุญแจ unique อยู่ — ต้องปฏิเสธอย่างสุภาพ"""
+    taken = categories_service.create_category(owner, "งานบ้าน")
+    categories_service.delete_category(owner, taken.id)
+    other = categories_service.create_category(owner, "งานออฟฟิศ")
+
+    with pytest.raises(ConflictError) as raised:
+        categories_service.rename_category(owner, other.id, "งานบ้าน")
+    assert raised.value.code == "category_exists"
+    # ข้อความต้องบอกทางออก เพราะหมวดที่ชนอยู่มองไม่เห็นบนหน้าเว็บ
+    assert "bring it back" in raised.value.message or "กู้" in raised.value.message
+    assert other.name == "งานออฟฟิศ", "ชื่อเดิมต้องไม่ถูกแตะเมื่อการเปลี่ยนถูกปฏิเสธ"
+
+
 def test_a_deleted_task_no_longer_blocks_deleting_its_category(owner):
     category = categories_service.create_category(owner, "งานบ้าน")
     todo = todos_service.create_todo(owner, title="ล้างจาน", category_id=category.id)

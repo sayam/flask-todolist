@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-10 21:02+0700\n"
+"POT-Creation-Date: 2026-08-11 20:40+0700\n"
 "PO-Revision-Date: 2026-08-02 16:44+0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: app/__init__.py:61
+#: app/__init__.py:63
 msgid "Please sign in first"
 msgstr "กรุณาเข้าสู่ระบบก่อน"
 
@@ -27,15 +27,20 @@ msgstr "กรุณาเข้าสู่ระบบก่อน"
 msgid "Role of %(name)s is now %(role)s"
 msgstr "บทบาทของ %(name)s เป็น %(role)s แล้ว"
 
-#: app/auth.py:107
+#: app/auth.py:113
 msgid "Incorrect username or password"
 msgstr "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง"
 
-#: app/auth.py:186
+#: app/auth.py:169 app/plugins/auth/oidc/factor.py:72
+#: app/plugins/auth/oidc/factor.py:82
+msgid "Single sign-on is not configured"
+msgstr "ยังไม่ได้ตั้งค่าการเข้าสู่ระบบแบบรวมศูนย์"
+
+#: app/auth.py:209
 msgid "Sign-in session expired — please try again"
 msgstr "การเข้าสู่ระบบหมดอายุแล้ว กรุณาลองใหม่"
 
-#: app/auth.py:239 app/routes.py:464
+#: app/auth.py:263 app/routes.py:464
 msgid "That code is not valid"
 msgstr "รหัสไม่ถูกต้อง"
 
@@ -87,24 +92,63 @@ msgstr "หมดเวลาใช้งานแล้ว กรุณาเ�
 msgid "Your password was changed — please sign in again"
 msgstr "รหัสผ่านถูกเปลี่ยน กรุณาเข้าสู่ระบบใหม่"
 
-#: app/services/categories.py:33
+#: app/plugins/auth/ldap/factor.py:58 app/plugins/auth/ldap/factor.py:69
+#: app/plugins/auth/ldap/factor.py:119
+msgid "The directory is not configured"
+msgstr "ยังไม่ได้ตั้งค่าไดเรกทอรีผู้ใช้"
+
+#: app/plugins/auth/ldap/factor.py:104 app/plugins/auth/ldap/factor.py:132
+#: app/plugins/auth/ldap/factor.py:164
+msgid "Could not reach the directory"
+msgstr "ติดต่อไดเรกทอรีผู้ใช้ไม่ได้"
+
+#: app/plugins/auth/oidc/factor.py:111 app/plugins/auth/oidc/factor.py:190
+#: app/plugins/auth/oidc/factor.py:195 app/plugins/auth/oidc/factor.py:200
+#: app/plugins/auth/oidc/factor.py:206 app/plugins/auth/oidc/factor.py:209
+#: app/plugins/auth/oidc/factor.py:213 app/plugins/auth/oidc/factor.py:216
+#: app/plugins/auth/oidc/factor.py:250 app/plugins/auth/oidc/factor.py:255
+#: app/plugins/auth/oidc/factor.py:281 app/plugins/auth/oidc/factor.py:284
+#: app/plugins/auth/oidc/factor.py:301
+msgid "Sign-in failed"
+msgstr "เข้าสู่ระบบไม่สำเร็จ"
+
+#: app/plugins/auth/oidc/factor.py:133
+msgid "Could not reach the sign-in provider"
+msgstr "ติดต่อผู้ให้บริการเข้าสู่ระบบไม่ได้"
+
+#: app/plugins/auth/oidc/factor.py:260
+msgid "No account here for that sign-in"
+msgstr "ไม่มีบัญชีในระบบนี้สำหรับการเข้าสู่ระบบดังกล่าว"
+
+#: app/plugins/auth/oidc/factor.py:279
+msgid "Sign-in was cancelled"
+msgstr "การเข้าสู่ระบบถูกยกเลิก"
+
+#: app/services/categories.py:34
 msgid "Category not found"
 msgstr "ไม่พบหมวด"
 
-#: app/services/categories.py:56
+#: app/services/categories.py:72
+msgid "Please enter a category name"
+msgstr "กรุณาใส่ชื่อหมวด"
+
+#: app/services/categories.py:77 app/services/categories.py:100
 #, python-format
 msgid "Category “%(name)s” already exists"
 msgstr "มีหมวด “%(name)s” อยู่แล้ว"
 
-#: app/services/categories.py:64
-msgid "Please enter a category name"
-msgstr "กรุณาใส่ชื่อหมวด"
-
-#: app/services/categories.py:75
+#: app/services/categories.py:93
 msgid "Category name cannot be empty"
 msgstr "ชื่อหมวดว่างไม่ได้"
 
-#: app/services/categories.py:92
+#: app/services/categories.py:103
+#, python-format
+msgid ""
+"The name “%(name)s” belongs to a category you deleted. Create a category "
+"with that name to bring it back."
+msgstr "ชื่อ “%(name)s” เป็นของหมวดที่คุณลบไปแล้ว สร้างหมวดชื่อนี้ใหม่เพื่อกู้คืนหมวดนั้น"
+
+#: app/services/categories.py:125
 #, python-format
 msgid "Cannot delete “%(name)s” — it still has %(num)d task."
 msgid_plural "Cannot delete “%(name)s” — it still has %(num)d tasks."
@@ -164,7 +208,7 @@ msgstr "ไม่รองรับธีมนี้"
 msgid "Unsupported timezone"
 msgstr "ไม่รองรับ timezone นี้"
 
-#: app/services/sso.py:57
+#: app/services/sso.py:118
 msgid "Unknown sign-in provider"
 msgstr "ไม่รู้จักผู้ให้บริการนี้"
 

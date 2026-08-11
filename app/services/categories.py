@@ -18,6 +18,7 @@ from app import db
 from app.models import Category, Todo, User
 from app.services.errors import ConflictError, NotFoundError, ValidationError
 from app.services.lookup import by_id
+from app.soft_delete import INCLUDE_DELETED
 
 
 def list_categories(user: User) -> list[Category]:
@@ -47,22 +48,39 @@ def _clean_name(raw: str | None, message: str) -> str:
     return name
 
 
-def _reject_duplicate(user: User, name: str, exclude_id: int | None = None) -> None:
-    statement = select(Category.id).where(Category.user_id == user.id, Category.name == name)
+def _named(user: User, name: str, exclude_id: int | None = None) -> Category | None:
+    """หมวดชื่อนี้ของผู้ใช้คนนี้ **รวมที่ถูกลบไปแล้ว**
+
+    **ต้องมองเห็นแถวที่ถูกลบด้วย** เพราะ `uq_category_user_name` ไม่รู้จัก
+    `deleted_at` — การถามด้วยตัวกรองปกติจึงตอบว่า "ยังไม่มีชื่อนี้" แล้ว INSERT
+    ไปชนกุญแจ unique เป็น 500 · เจอด้วย job `dast` ตอนที่ ZAP ลบหมวดแล้วสร้างใหม่
+    ด้วยชื่อเดิม (ไม่มีเทสต์ตัวไหนเดินเส้นทางนั้นมาก่อน)
+    """
+    statement = select(Category).where(Category.user_id == user.id, Category.name == name)
     if exclude_id is not None:
         statement = statement.where(Category.id != exclude_id)
-    if db.session.scalars(statement).first() is not None:
-        raise ConflictError(
-            _("Category “%(name)s” already exists", name=name),
-            code="category_exists",
-            field="name",
-        )
+    return db.session.scalars(statement.execution_options(**INCLUDE_DELETED)).first()
 
 
 def create_category(user: User, name: str | None) -> Category:
-    """สร้างหมวดใหม่ให้ผู้ใช้"""
+    """สร้างหมวดใหม่ — ชื่อที่ตรงกับหมวดที่ถูกลบไปแล้ว **กู้หมวดนั้นคืนมา**
+
+    ไม่ใช่การสร้างแถวใหม่ เพราะการลบหมวดทำได้เฉพาะตอนไม่มีงานเหลืออยู่แล้ว
+    ของที่กู้คืนจึงว่างเปล่าเท่ากับของใหม่ทุกประการ ต่างกันแค่ id เดิมและประวัติ
+    ใน audit ที่ยังต่อกัน — ซึ่งดีกว่าการมี id ใหม่ที่ไม่มีใครอธิบายได้
+    """
     cleaned = _clean_name(name, _("Please enter a category name"))
-    _reject_duplicate(user, cleaned)
+    existing = _named(user, cleaned)
+    if existing is not None:
+        if not existing.is_deleted:
+            raise ConflictError(
+                _("Category “%(name)s” already exists", name=cleaned),
+                code="category_exists",
+                field="name",
+            )
+        existing.deleted_at = None  # audit บันทึกเป็น category.restore ให้เอง
+        db.session.commit()
+        return existing
     category = Category(name=cleaned, user_id=user.id)
     db.session.add(category)
     db.session.commit()
@@ -73,7 +91,22 @@ def rename_category(user: User, category_id: int, name: str | None) -> Category:
     """เปลี่ยนชื่อหมวด — ชื่อเดิมของตัวเองไม่นับว่าซ้ำ"""
     category = get_category(user, category_id)
     cleaned = _clean_name(name, _("Category name cannot be empty"))
-    _reject_duplicate(user, cleaned, exclude_id=category.id)
+    existing = _named(user, cleaned, exclude_id=category.id)
+    if existing is not None:
+        # **ชื่อที่ถูกจองโดยหมวดที่ถูกลบไปแล้วก็ยังชนกุญแจ unique** จึงต้องปฏิเสธ
+        # ตรงนี้ ไม่ใช่ปล่อยให้ไปพังที่ฐานข้อมูล · บอกทางออกไปด้วยเพราะหมวดนั้น
+        # มองไม่เห็นบนหน้าเว็บ คนอ่านข้อความจึงไม่มีทางเดาได้ว่าเกิดอะไรขึ้น
+        raise ConflictError(
+            _("Category “%(name)s” already exists", name=cleaned)
+            if not existing.is_deleted
+            else _(
+                "The name “%(name)s” belongs to a category you deleted. "
+                "Create a category with that name to bring it back.",
+                name=cleaned,
+            ),
+            code="category_exists",
+            field="name",
+        )
     category.name = cleaned
     db.session.commit()
     return category
