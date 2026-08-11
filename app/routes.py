@@ -36,7 +36,7 @@ from app.services import personal_data as personal_data_service
 from app.services import settings as settings_service
 from app.services import todos as todos_service
 from app.services import tokens as tokens_service
-from app.session_security import renew_session
+from app.session_security import end_session, renew_session
 from app.theme import (
     MODE_SESSION_KEY,
     THEME_SESSION_KEY,
@@ -493,6 +493,31 @@ def export_my_data():
     # ทั้งก้อนเป็นข้อมูลส่วนบุคคล ห้ามค้างในแคชของใครทั้งสิ้น (ASVS V14.3.2)
     response.headers["Cache-Control"] = "no-store"
     return response
+
+
+@bp.route("/settings/close", methods=["POST"])
+@login_required
+def close_my_account():
+    """ปิดบัญชีของตัวเอง — **ต้องกรอกรหัสผ่านซ้ำ** (ADR 0034)
+
+    หลังจากนี้คุกกี้ทุกใบตายเองเพราะมันผูกกับ password_hash ที่เพิ่งถูกล้าง
+    แต่ยัง `end_session()` ให้ชัดเจน ไม่ปล่อยให้พึ่งผลข้างเคียงของอย่างอื่น
+    """
+    if not current_user.check_password(request.form.get("password", "")):
+        flash(_("Current password is incorrect"))
+        return redirect(url_for("main.settings"))
+
+    try:
+        personal_data_service.close_account(current_user, actor=current_user)
+    except ServiceError as error:
+        flash(error.message)
+        return redirect(url_for("main.settings"))
+
+    audit.record("user.close_account", table_name="tdl_user", row_id=current_user.id)
+    db.session.commit()
+    end_session()
+    flash(_("Your account is closed. Sign-in no longer works."))
+    return redirect(url_for("auth.login"))
 
 
 @bp.route("/settings/mfa/disable", methods=["POST"])

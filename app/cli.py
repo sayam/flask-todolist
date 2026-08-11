@@ -105,23 +105,17 @@ def delete_user(username, yes):
     if not yes:
         click.confirm("Delete?", abort=True)
 
-    # soft delete: แถวยังอยู่แต่ถูกซ่อนทุก query จนกว่า purge job จะล้างเมื่อพ้น
-    # 30 วัน (ดู docs/DATA-CLASSIFICATION.md) — ต้องไล่ทำเองทั้งงานและหมวดด้วย
-    # เพราะ cascade ของ ORM ผูกกับการลบจริงเท่านั้น ไม่ทำงานกับการตั้ง deleted_at
-    for todo in user.todos:
-        todo.soft_delete()
-    for category in user.categories:
-        category.soft_delete()
-    user.soft_delete()
-    # credential เป็นชั้น C1 ล้างทันที ไม่รอ grace — กู้บัญชีได้แต่ต้องตั้งรหัสใหม่
-    user.disable_password()
-    # token ที่ยังไม่หมดอายุคือกุญแจที่ยังเปิดประตูได้ ต้องตายไปพร้อมบัญชี
-    # (ตัวกรอง soft delete ซ่อนเจ้าของไปแล้วก็จริง แต่ "ปิดสองชั้น" ถูกกว่าการ
-    # ต้องพิสูจน์ว่าชั้นเดียวไม่มีทางพลาด)
-    for token in user.api_tokens:
-        token.soft_delete()
-        token.disable()
-    db.session.commit()
+    # **ทางเดียวที่ปิดบัญชีได้คือ service ตัวนี้** — ตอนที่ CLI ไล่ลบเอง มันลืม
+    # ล้างความลับของปัจจัยที่สองไปทั้งดุ้น ทั้งที่คอมเมนต์ตรงนี้อ้างกติกา C1 อยู่
+    # (ADR 0034 ข้อ 4) หน้าเว็บที่เพิ่มทีหลังจะไม่มีทางลืมซ้ำ เพราะไม่มีที่ให้ลืม
+    try:
+        summary = personal_data_service.close_account(user)
+    except ServiceError as error:
+        raise click.ClickException(error.message) from error
+
+    erased = sum(summary["plugins"].values())
+    if erased:
+        click.echo(f"Erased {erased} row(s) held by plugins.")
     click.echo(
         f"Deleted {username!r} (soft delete — purged for real after "
         f"{PURGE_AFTER_DAYS} days; run `flask purge-expired`)."

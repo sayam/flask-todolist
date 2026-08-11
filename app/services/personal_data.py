@@ -1,4 +1,4 @@
-"""สำเนาข้อมูลของเจ้าของข้อมูล — ADR 0034
+"""สิทธิ์ของเจ้าของข้อมูล: ขอสำเนา และปิดบัญชี — ADR 0034
 
 **เส้นแบ่งว่าอะไรอยู่ในไฟล์คือชั้นข้อมูล ไม่ใช่ความสะดวก**
 (`docs/DATA-CLASSIFICATION.md`) — C1 ไม่ออกจากระบบเลยแม้ในรูป hash,
@@ -6,21 +6,24 @@ C5 ออกเฉพาะ "เกิดอะไรขึ้นเมื่อ
 C6 ออกไม่ได้เลยเพราะแอปไม่มีทางค้น log ที่ไปอยู่นอกตัวมันตั้งแต่วินาทีแรก
 
 **ข้อมูลของ plugin ให้ plugin ตอบเอง** — core ถามผ่านโมดูล `personal_data.py`
-ของ plugin แต่ละตัวและไม่รู้จักชื่อใครเลย (ADR 0023 · ADR 0025) ถอด plugin
-ทิ้งแล้วส่วนนั้นหายไปจากไฟล์เอง ไม่มีโค้ดของมันค้างอยู่ใน core
+ของ plugin แต่ละตัว (`export_for` / `erase_for`) และไม่รู้จักชื่อใครเลย
+(ADR 0023 · ADR 0025) ถอด plugin ทิ้งแล้วส่วนนั้นหายไปเอง ไม่มีโค้ดของมันค้างใน core
+
+**ทางเดียวที่ปิดบัญชีได้คือ `close_account()` ตัวนี้** — ทั้งหน้าเว็บและ CLI
+เรียกตัวเดียวกัน เพราะตอนที่ต่างคนต่างไล่ลบ `flask delete-user` ลืมล้างความลับ
+ของปัจจัยที่สองไปทั้งดุ้น ทั้งที่คอมเมนต์ในฟังก์ชันนั้นอ้างกติกา C1 อยู่ (ADR 0034 ข้อ 4)
 """
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from flask import current_app
-from sqlalchemy import and_, or_, select
+from flask_babel import gettext as _
+from sqlalchemy import and_, func, or_, select
 
 from app import db, plugins
 from app.audit import AuditEntry
-from app.models import ApiToken, Category, Todo
-
-if TYPE_CHECKING:  # pragma: no cover
-    from app.models import User
+from app.models import ApiToken, Category, Todo, User
+from app.services.errors import ConflictError
 
 # ชื่อโมดูลที่ plugin ต้องมีถ้ามันเก็บข้อมูลของผู้ใช้ไว้
 CONTRIBUTOR_MODULE = "personal_data"
@@ -190,3 +193,80 @@ def filename_for(user: "User", *, now: Any = None) -> str:
     stamp = (now or tz.now_utc()).strftime("%Y%m%d")
     safe = "".join(ch for ch in user.username if ch.isalnum() or ch in "-_") or "user"
     return f"todolist-{safe}-{stamp}.json"
+
+
+# ---------------------------------------------------------------- ปิดบัญชี
+
+
+def _erase_from_plugins(user: "User") -> dict[str, int]:
+    """สั่ง plugin ทุกตัวลบข้อมูลของผู้ใช้คนนี้ — คืนจำนวนแถวที่แต่ละตัวลบไป
+
+    **ตรงข้ามกับ export: ตัวนี้ปล่อยให้ล้มดังได้** ถ้า plugin ลบไม่สำเร็จแล้ว
+    เรากลืน exception ไว้ ผลคือบัญชี "ปิดแล้ว" ในสายตาผู้ใช้ แต่ความลับของเขา
+    ยังอยู่ในฐานข้อมูล ซึ่งแย่กว่าการบอกว่าปิดไม่สำเร็จให้ไปลองใหม่
+    """
+    erased: dict[str, int] = {}
+    for plugin in plugins.installed():
+        module = plugins.load_module(plugin, CONTRIBUTOR_MODULE)
+        erase = getattr(module, "erase_for", None) if module else None
+        if callable(erase):
+            erased[plugin.key] = int(erase(user))
+    return erased
+
+
+def close_account(user: "User", *, actor: "User | None" = None) -> dict[str, Any]:
+    """ปิดบัญชีตามนโยบายที่อนุมัติไว้ (ADR 0034 ข้อ 4)
+
+    ทันที: ล้างรหัสผ่าน · ลบความลับของทุก plugin · เพิกถอน token ทุกใบ
+    ตามระยะ: แถวถูก soft delete แล้ว `flask purge-expired` ล้างจริงเมื่อพ้น 30 วัน
+
+    `actor` มีไว้ให้ผู้ดูแลปิดบัญชีของคนอื่นได้ — เมื่อไม่ส่งมาถือว่าเจ้าตัวทำเอง
+    """
+    from app.services.roles import ROLE_ADMIN
+
+    # **ด่านนี้ใช้กับการปิดบัญชีตัวเองเท่านั้น** — `actor` เป็น None แปลว่าคำสั่ง
+    # มาจาก CLI ซึ่งเป็นตัวตนที่แรงกว่า (คนที่เข้าถึงเครื่องได้) และเป็นทางกู้ระบบ
+    # ทางเดียวที่เหลือ · หลักเดียวกับ ADR 0022: แก้บทบาทตัวเองบนเว็บไม่ได้ แต่ CLI ได้
+    if user.role == ROLE_ADMIN and actor is not None and actor.id == user.id:
+        # **ระบบที่ไม่เหลือผู้ดูแลคือระบบที่ไม่มีใครสร้างบัญชีหรือกู้รหัสให้ใครได้อีก**
+        # ข้อความต้องบอกทางออก ไม่ใช่บอกแค่ว่าทำไม่ได้ (หลักเดียวกับ ADR 0022)
+        remaining = db.session.scalar(
+            select(func.count(User.id)).where(User.role == ROLE_ADMIN, User.id != user.id)
+        )
+        if not remaining:
+            raise ConflictError(
+                _(
+                    "You are the only administrator. Make someone else an "
+                    "administrator first, then close your account."
+                ),
+                code="last_administrator",
+            )
+
+    erased = _erase_from_plugins(user)
+
+    # credential เป็นชั้น C1 — ล้างทันที ไม่รอ grace (ADR 0014)
+    # ผลพลอยได้ที่ตั้งใจ: คุกกี้ทุกใบตายทันทีเพราะผูกกับ password_hash (ADR 0020)
+    user.disable_password()
+
+    # ใบที่ยังไม่หมดอายุคือกุญแจที่ยังเปิดประตูได้ ต้องตายไปพร้อมบัญชี
+    tokens = list(db.session.scalars(select(ApiToken).where(ApiToken.user_id == user.id)))
+    for token in tokens:
+        token.soft_delete()
+        token.disable()
+
+    # cascade ของ ORM ผูกกับการลบจริงเท่านั้น ไม่ทำงานกับการตั้ง deleted_at
+    todos = list(db.session.scalars(select(Todo).where(Todo.user_id == user.id)))
+    categories = list(db.session.scalars(select(Category).where(Category.user_id == user.id)))
+    for todo in todos:
+        todo.soft_delete()
+    for category in categories:
+        category.soft_delete()
+    user.soft_delete()
+
+    db.session.commit()
+    return {
+        "todos": len(todos),
+        "categories": len(categories),
+        "tokens": len(tokens),
+        "plugins": erased,
+    }

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-12 00:42+0700\n"
+"POT-Creation-Date: 2026-08-12 01:13+0700\n"
 "PO-Revision-Date: 2026-08-02 16:44+0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -64,7 +64,7 @@ msgstr "รหัสผ่านใหม่สองช่องไม่ตร
 msgid "Password changed"
 msgstr "เปลี่ยนรหัสผ่านแล้ว"
 
-#: app/routes.py:360 app/routes.py:480 app/routes.py:507
+#: app/routes.py:360 app/routes.py:480 app/routes.py:507 app/routes.py:532
 #: app/services/passwords.py:168
 msgid "Current password is incorrect"
 msgstr "รหัสผ่านปัจจุบันไม่ถูกต้อง"
@@ -77,11 +77,15 @@ msgstr "เพิกถอน token แล้ว"
 msgid "Two-step verification is on"
 msgstr "เปิดการยืนยันสองขั้นแล้ว"
 
-#: app/routes.py:514
+#: app/routes.py:519
+msgid "Your account is closed. Sign-in no longer works."
+msgstr "บัญชีของคุณถูกปิดแล้ว เข้าสู่ระบบไม่ได้อีกต่อไป"
+
+#: app/routes.py:539
 msgid "Two-step verification is off"
 msgstr "ปิดการยืนยันสองขั้นแล้ว"
 
-#: app/routes.py:539
+#: app/routes.py:564
 msgid "Settings saved"
 msgstr "บันทึกการตั้งค่าแล้ว"
 
@@ -178,6 +182,12 @@ msgstr "รหัสผ่านต้องไม่มีชื่อผู้
 #: app/services/passwords.py:130
 msgid "This password has appeared in a data breach — choose a different one"
 msgstr "รหัสผ่านนี้เคยหลุดออกไปแล้ว กรุณาใช้รหัสอื่น"
+
+#: app/services/personal_data.py:239
+msgid ""
+"You are the only administrator. Make someone else an administrator first,"
+" then close your account."
+msgstr "คุณเป็นผู้ดูแลระบบคนเดียวที่เหลืออยู่ ตั้งให้คนอื่นเป็นผู้ดูแลระบบก่อน แล้วจึงปิดบัญชีของคุณ"
 
 #: app/services/roles.py:43
 msgid "This page is for administrators only"
@@ -739,15 +749,44 @@ msgstr "ดาวน์โหลดสำเนาของทุกอย่า
 msgid ""
 "The file explains what is not included and why. Secrets such as your "
 "password are never included."
-msgstr "ไฟล์นี้อธิบายว่าอะไรไม่ได้อยู่ในนั้นและทำไม ความลับอย่างรหัสผ่านของคุณไม่เคยอยู่ในไฟล์"
+msgstr ""
+"ไฟล์นี้อธิบายว่าอะไรไม่ได้อยู่ในนั้นและทำไม "
+"ความลับอย่างรหัสผ่านของคุณไม่เคยอยู่ในไฟล์"
 
-#: app/templates/settings.html:224
+#: app/templates/settings.html:224 app/templates/settings.html:237
 msgid "Confirm with your current password"
 msgstr "ยืนยันด้วยรหัสผ่านปัจจุบันของคุณ"
 
 #: app/templates/settings.html:227
 msgid "Download my data"
 msgstr "ดาวน์โหลดข้อมูลของฉัน"
+
+#: app/templates/settings.html:230
+msgid "Close your account"
+msgstr "ปิดบัญชีของคุณ"
+
+#: app/templates/settings.html:232
+msgid ""
+"Close your account? Your tasks and categories will be removed and sign-in"
+" will stop working."
+msgstr "ปิดบัญชีของคุณใช่ไหม งานและหมวดของคุณจะถูกลบ และจะเข้าสู่ระบบไม่ได้อีก"
+
+#: app/templates/settings.html:234
+msgid ""
+"Your tasks, categories and API keys are removed, and sign-in stops "
+"working immediately."
+msgstr "งาน หมวด และ API key ของคุณจะถูกลบ และเข้าสู่ระบบไม่ได้ทันที"
+
+#: app/templates/settings.html:235
+msgid ""
+"A record that changes happened is kept, as required for security "
+"auditing. It holds no personal details — only which rows changed and "
+"when."
+msgstr "บันทึกว่ามีการเปลี่ยนแปลงเกิดขึ้นจะยังถูกเก็บไว้ตามที่การตรวจสอบความปลอดภัยกำหนด บันทึกนั้นไม่มีรายละเอียดส่วนบุคคล มีเพียงว่าแถวไหนเปลี่ยนเมื่อไหร่"
+
+#: app/templates/settings.html:240
+msgid "Close my account"
+msgstr "ปิดบัญชีของฉัน"
 
 #: app/templates/token_created.html:2 app/templates/token_created.html:5
 msgid "New API token"

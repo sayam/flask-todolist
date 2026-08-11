@@ -38,3 +38,18 @@ def export_for(user: Any) -> dict[str, Any] | None:
             for row in rows
         ]
     }
+
+
+def erase_for(user: Any) -> int:
+    """ลบการผูกบัญชีกับไดเรกทอรีของผู้ใช้คนนี้ทิ้ง **จริง ๆ ไม่ใช่ soft delete**
+
+    ตารางของ plugin อยู่นอกวงจร purge ของ core (ADR 0023) การซ่อนแถวไว้จึงแปลว่า
+    ไม่มีใครมาล้างมันเลยตลอดกาล · คืนจำนวนแถวที่ลบไป เพื่อให้ผู้เรียกรายงานได้
+    ว่าเกิดอะไรขึ้นบ้าง แทนที่จะเชื่อว่าทำงานแล้ว
+    """
+    rows = list(
+        db.session.scalars(select(DirectoryIdentity).where(DirectoryIdentity.user_id == user.id))
+    )
+    for row in rows:
+        db.session.delete(row)
+    return len(rows)

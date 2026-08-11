@@ -227,4 +227,17 @@
   <button type="submit">{{ _('Download my data') }}</button>
 </form>
 
+<h3>{{ _('Close your account') }}</h3>
+<form action="{{ url_for('main.close_my_account') }}" method="post"
+      data-confirm="{{ _('Close your account? Your tasks and categories will be removed and sign-in will stop working.') }}">
+  {{ csrf_field() }}
+  <p>{{ _('Your tasks, categories and API keys are removed, and sign-in stops working immediately.') }}</p>
+  <p><small>{{ _('A record that changes happened is kept, as required for security auditing. It holds no personal details — only which rows changed and when.') }}</small></p>
+  <p>
+    <label for="close-password">{{ _('Confirm with your current password') }}</label><br>
+    <input id="close-password" type="password" name="password" autocomplete="current-password" required>
+  </p>
+  <button type="submit">{{ _('Close my account') }}</button>
+</form>
+
 {% endblock %}

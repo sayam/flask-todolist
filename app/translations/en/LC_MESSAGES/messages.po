@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-12 00:42+0700\n"
+"POT-Creation-Date: 2026-08-12 01:13+0700\n"
 "PO-Revision-Date: 2026-08-02 16:44+0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -64,7 +64,7 @@ msgstr ""
 msgid "Password changed"
 msgstr ""
 
-#: app/routes.py:360 app/routes.py:480 app/routes.py:507
+#: app/routes.py:360 app/routes.py:480 app/routes.py:507 app/routes.py:532
 #: app/services/passwords.py:168
 msgid "Current password is incorrect"
 msgstr ""
@@ -77,11 +77,15 @@ msgstr ""
 msgid "Two-step verification is on"
 msgstr ""
 
-#: app/routes.py:514
-msgid "Two-step verification is off"
+#: app/routes.py:519
+msgid "Your account is closed. Sign-in no longer works."
 msgstr ""
 
 #: app/routes.py:539
+msgid "Two-step verification is off"
+msgstr ""
+
+#: app/routes.py:564
 msgid "Settings saved"
 msgstr ""
 
@@ -176,6 +180,12 @@ msgstr ""
 
 #: app/services/passwords.py:130
 msgid "This password has appeared in a data breach — choose a different one"
+msgstr ""
+
+#: app/services/personal_data.py:239
+msgid ""
+"You are the only administrator. Make someone else an administrator first,"
+" then close your account."
 msgstr ""
 
 #: app/services/roles.py:43
@@ -743,12 +753,39 @@ msgid ""
 "password are never included."
 msgstr ""
 
-#: app/templates/settings.html:224
+#: app/templates/settings.html:224 app/templates/settings.html:237
 msgid "Confirm with your current password"
 msgstr ""
 
 #: app/templates/settings.html:227
 msgid "Download my data"
+msgstr ""
+
+#: app/templates/settings.html:230
+msgid "Close your account"
+msgstr ""
+
+#: app/templates/settings.html:232
+msgid ""
+"Close your account? Your tasks and categories will be removed and sign-in"
+" will stop working."
+msgstr ""
+
+#: app/templates/settings.html:234
+msgid ""
+"Your tasks, categories and API keys are removed, and sign-in stops "
+"working immediately."
+msgstr ""
+
+#: app/templates/settings.html:235
+msgid ""
+"A record that changes happened is kept, as required for security "
+"auditing. It holds no personal details — only which rows changed and "
+"when."
+msgstr ""
+
+#: app/templates/settings.html:240
+msgid "Close my account"
 msgstr ""
 
 #: app/templates/token_created.html:2 app/templates/token_created.html:5
