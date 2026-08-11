@@ -8,6 +8,7 @@ import json
 import logging
 import pathlib
 import sys
+import time
 import uuid
 
 import pytest
@@ -64,6 +65,30 @@ def test_log_records_the_status_and_path(app, anon_client, logged):
     assert entry["path"] == "/login"
     assert entry["status"] == 200
     assert entry["method"] == "GET"
+
+
+def test_timestamp_is_utc_not_local_time(monkeypatch):
+    """เวลาใน log ต้องเป็น UTC เสมอ ไม่ว่าเครื่องที่รันตั้งโซนอะไรไว้ (ASVS V16.2.2)
+
+    เครื่องที่ตั้งโซนต่างกันแล้วเขียนเวลาท้องถิ่นลง log **โดยไม่มี offset**
+    ทำให้การเรียงลำดับเหตุการณ์ข้ามเครื่องผิดโดยไม่มีอะไรฟ้อง — และเดือนที่มี
+    การเปลี่ยน DST จะมีชั่วโมงที่ปรากฏสองครั้ง ตอนสืบเหตุการณ์จริงจึงแยกไม่ออก
+    ว่าอันไหนเกิดก่อน · ตัว `Z` ท้ายสตริงคือส่วนหนึ่งของสัญญา ไม่ใช่การตกแต่ง
+    """
+    monkeypatch.setenv("TZ", "Asia/Bangkok")  # UTC+7 — ต่างจาก UTC แน่นอน
+    time.tzset()
+    try:
+        created = 1_754_000_000.0  # จุดเวลาคงที่ จะได้เทียบกับค่าที่คำนวณเองได้
+        record = logging.LogRecord("t", logging.INFO, "", 0, "hello", None, None)
+        record.created, record.msecs = created, 0
+        entry = json.loads(JsonFormatter().format(record))
+    finally:
+        monkeypatch.delenv("TZ")
+        time.tzset()
+
+    expected = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(created)) + ".000Z"
+    assert entry["timestamp"] == expected
+    assert entry["timestamp"].endswith("Z"), "ต้องบอกให้ชัดว่าเป็น UTC ไม่ใช่ปล่อยให้เดา"
 
 
 def test_thai_text_is_not_escaped():

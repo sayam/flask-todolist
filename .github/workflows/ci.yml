@@ -199,6 +199,10 @@ jobs:
         if: ${{ !cancelled() }}
       - run: pipenv run mypy app scripts
         if: ${{ !cancelled() }}
+      # ตารางประเมิน ASVS ต้องตรงกับมาตรฐานที่ตรึงไว้ — ไม่ใช่แค่ "มีไฟล์อยู่"
+      # (ตัวเนื้อหาของหลักฐานถูกตรวจโดย tests/test_asvs.py ใน job `test`)
+      - run: PYTHONPATH=. pipenv run python scripts/build_asvs_worksheet.py --check
+        if: ${{ !cancelled() }}
 
   schema:
     # model กับ schema ที่ migration สร้างต้องตรงกันเป๊ะ
