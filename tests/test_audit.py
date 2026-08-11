@@ -11,6 +11,7 @@
 
 import hashlib
 import json
+import os
 from datetime import timedelta
 
 import pytest
@@ -607,3 +608,48 @@ def test_audit_log_command_on_an_empty_table(app):
     result = app.test_cli_runner().invoke(args=["audit-log"])
     assert result.exit_code == 0
     assert "No audit entries" in result.output
+
+
+# ------------------------------------------- การเขียนขนานข้าม process (ADR 0032)
+
+
+@pytest.mark.skipif(
+    "sqlite" in os.environ.get("TEST_DATABASE_URL", "sqlite"),
+    reason="SQLite ล็อกทั้งไฟล์ตอนเขียนอยู่แล้ว ข้อนี้พิสูจน์ได้เฉพาะยี่ห้อที่เขียนขนานได้จริง",
+)
+def test_two_connections_appending_at_once_do_not_collide(app):
+    """**สองสายเขียนพร้อมกันต้องต่อคิว ไม่ใช่ชนกันแล้วตัวหลังตกไป** (ADR 0032)
+
+    ด่านของ Phase 5 ที่ "พิสูจน์ว่า 2 replica ใช้ได้" ทดสอบแค่การอ่านกับ login
+    — **ไม่เคยมีใครเขียนพร้อมกันจริง** load test ของ Phase 6 จึงเจอว่าการเขียน
+    ล้ม 0.36–9.5% ด้วย 500 · เทสต์นี้คือบทเรียนนั้นที่กลายเป็นด่าน
+
+    ใช้ **สอง connection จริง** ไม่ใช่เรียกฟังก์ชันสองครั้งติดกัน เพราะการเรียก
+    ติดกันใน session เดียวไม่มีทางชนกันได้เลยตามนิยาม
+    """
+    import threading
+
+    from app import db
+
+    errors: list[Exception] = []
+    started = threading.Barrier(2)
+
+    def append(index):
+        try:
+            with app.app_context():
+                started.wait(timeout=5)
+                audit.record(f"test.concurrent{index}", table_name="tdl_user", row_id=index)
+                db.session.commit()
+        except Exception as error:  # noqa: BLE001 - เก็บไว้ให้ thread หลักตรวจ
+            errors.append(error)
+
+    threads = [threading.Thread(target=append, args=(index,)) for index in (1, 2)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=15)
+
+    assert not errors, f"การเขียนขนานล้ม: {errors}"
+    with app.app_context():
+        # `verify_chain()` คืนจำนวนแถวที่ตรวจแล้ว และ raise ถ้าสายขาด
+        assert audit.verify_chain() >= 2, "สาย audit ต้องยังต่อกันถูกต้องหลังเขียนขนาน"

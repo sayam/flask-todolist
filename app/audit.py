@@ -22,10 +22,13 @@
 แถวเดียวทำให้ทุกแถวถัดไปตรวจไม่ผ่าน — `flask audit-verify` เดินสายทั้งเส้น
 
 **`prev_hash` ถูกบังคับ unique** เพื่อให้ chain แตกเป็นสองสายไม่ได้เลยในระดับ DB
-ผลข้างเคียงที่ยอมรับ: ถ้ามีสอง process เขียนพร้อมกันจริง ๆ ตัวหลังจะได้
-IntegrityError แล้ว transaction ตกไป — **ตั้งใจให้ดังกว่าการมี chain ที่พังเงียบ**
-(scale ตอนนี้เป็น SQLite ที่ serialize การเขียนอยู่แล้ว ถ้าวันหนึ่งต้องเขียนขนาน
-จริงต้องเปลี่ยนไปใช้ sequence/batch — บันทึกไว้ใน ADR 0015)
+และ **การต่อสายถูก serialize ด้วยการล็อกแถวท้ายสาย** (`FOR UPDATE` ใน
+`_last_hash` — ADR 0032) ผู้เขียนรายที่สองจึงรอ ไม่ใช่ชนแล้วตกไป
+
+ประวัติที่ควรรู้: เดิมยอมให้ชนแล้ว transaction ตกไป โดยให้เหตุผลว่า "ดังกว่า
+chain ที่พังเงียบ" และว่า SQLite serialize การเขียนอยู่แล้ว — **เงื่อนไขนั้น
+หมดอายุตอน Phase 5 ทำให้ ≥2 replica เป็นของจริง** และ load test ของ Phase 6
+วัดราคาออกมาเป็น 500 ที่ผู้ใช้เห็น 0.36–9.5% ของการเขียน
 
 **เวลาถูกตัดเศษวินาทีทิ้งก่อนทั้งเก็บและ hash** เพราะ MySQL `DATETIME` ปัดทิ้ง
 microsecond ให้เอง ถ้า hash ค่าที่ละเอียดกว่าที่ DB เก็บได้ อ่านกลับมาคำนวณใหม่
@@ -286,6 +289,16 @@ def _last_hash(session: SessionLike) -> str:
 
     ล้าง cache ทุกครั้งที่ commit/rollback (ดู `_reset_chain_cache`) เพราะถ้า
     process อื่นเขียนแทรกเข้ามา ค่าที่ค้างอยู่จะทำให้เราต่อสายผิดที่
+
+    **`FOR UPDATE` ทำให้การต่อสายเป็นลำดับจริงข้าม process** (ADR 0032) —
+    ผู้เขียนรายที่สองรอที่บรรทัดนี้จนรายแรก commit แล้วค่อยอ่านค่าที่ถูกต้อง
+    ไปต่อ · ไม่มีข้อนี้ สอง replica จะอ่านแถวท้ายสายตัวเดียวกันแล้วต่อด้วย
+    `prev_hash` เดียวกันทั้งคู่ ตัวหลังชน unique constraint แล้ว **ผู้ใช้เห็น
+    500** (load test ของ Phase 6 วัดได้ 0.36% ที่โหลดเป้าหมาย ถึง 9.5%
+    ที่โหลดสูง — ดู docs/PERFORMANCE.md)
+
+    SQLAlchemy ตัด `FOR UPDATE` ทิ้งให้เองบน SQLite ซึ่งถูกต้องแล้ว เพราะ
+    SQLite ล็อกทั้งไฟล์ตอนเขียนอยู่แล้ว การเขียนจึงเป็นลำดับโดยธรรมชาติ
     """
     cached = session.info.get(_LAST_HASH_KEY)
     if cached is not None:
@@ -293,7 +306,7 @@ def _last_hash(session: SessionLike) -> str:
     table = AuditEntry.__table__
     found = (
         session.connection()
-        .execute(select(table.c.row_hash).order_by(table.c.id.desc()).limit(1))
+        .execute(select(table.c.row_hash).order_by(table.c.id.desc()).limit(1).with_for_update())
         .scalar()
     )
     value = str(found) if found else GENESIS_HASH
