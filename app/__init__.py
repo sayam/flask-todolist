@@ -23,6 +23,7 @@ from app import db_engine, plugins
 from app.cache import init_cache, warn_if_counters_are_not_shared
 from app.logging_setup import init_logging
 from app.proxy import init_proxy_fix
+from app.secrets import init_secrets, secrets_source
 from app.security_headers import init_security_headers
 from config import Config, check_secret_key
 
@@ -76,6 +77,9 @@ def create_app(config_class=Config):
     """
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_object(config_class)
+    # **ต้องมาก่อน `check_secret_key()`** — ความลับอาจไม่ได้มาจาก environment
+    # อีกต่อไป (ADR 0030) ถ้าเช็คก่อนเติม แอปจะปฏิเสธที่จะ start ทั้งที่ค่ามีอยู่
+    init_secrets(app)
     check_secret_key(app.config.get("SECRET_KEY"))
     # ให้พังตั้งแต่ตอน start ถ้าโครงสร้าง plugin ไม่ถูกต้อง
     plugins.check_installation()
@@ -93,6 +97,10 @@ def create_app(config_class=Config):
 
     # ตั้ง log ก่อนอย่างอื่น จะได้เห็น log ของขั้นตอน init ที่เหลือด้วย
     init_logging(app)
+    # แหล่งความลับถูกเลือกไปแล้วตั้งแต่ก่อนหน้านี้ (ต้องมาก่อน config จะครบ)
+    # แต่เพิ่งมา log ตรงนี้เพื่อให้อยู่ในรูป JSON เหมือน event อื่น (ADR 0011)
+    # **log ได้แค่ชื่อแหล่ง ห้าม log ค่าที่ได้มาไม่ว่ากรณีใด** (ADR 0030)
+    app.logger.info("secrets source ready", extra={"secrets_source": secrets_source(app)})
     # **ต้องมาก่อน `init_security_headers`** เพราะ Talisman ตัดสินใจ redirect ไป
     # https จาก `request.scheme` — ถ้า proxy เป็นคนจบ TLS แล้วเรายังไม่แปลง
     # `X-Forwarded-Proto` การเปิด HTTPS_ENABLED จะได้ redirect วนแทน (P5-11/P5-12)

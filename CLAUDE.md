@@ -67,6 +67,10 @@
 - `Dockerfile` + `.dockerignore` — image ที่รันจริง (multi-stage, ไม่ใช่ root)
   **ไม่ migrate ให้เอง** โดยตั้งใจ · ไลบรารีของ plugin ไม่อยู่ใน image (ADR 0025)
   job `image` ใน CI build จริงแล้วยิงใส่มันทุก push — ดู docs/OPERATIONS.md
+- `app/secrets.py` — **ความลับมาจากแหล่งที่ประกาศด้วย scheme ของ `SECRETS_URL`**
+  (ADR 0030) `env://` เป็นค่าเริ่มต้นและไม่เปลี่ยนอะไรเลย · `file://` อ่านจาก
+  ไฟล์แบบ docker/kubernetes · เรียก **ก่อน `check_secret_key()`** ใน `create_app`
+  **"ไม่มีชื่อนั้นในแหล่ง" ตกกลับไป env ได้ แต่ "ถามแหล่งไม่ได้" = ไม่ start**
 - `app/proxy.py` — แปลง header ของ reverse proxy **ตามจำนวนชั้นที่ประกาศ**
   (`TRUSTED_PROXY_HOPS` ค่าเริ่มต้น 0 = ไม่เชื่อเลย — ADR 0027) ผูก**ก่อน**
   `init_security_headers` เพราะ Talisman ตัดสิน redirect จาก `request.scheme`

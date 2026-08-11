@@ -114,6 +114,12 @@ class Config:
     # เปิดตอนยังรัน http อยู่จะ redirect วนจน login ไม่ได้
     HTTPS_ENABLED = os.environ.get("HTTPS_ENABLED", "") == "1"
 
+    # แหล่งที่ความลับมาจาก — scheme เป็นตัวเลือก backend (ADR 0030)
+    # `env://` (ค่าเริ่มต้น) = เหมือนที่เคยเป็นมาทุกประการ ·
+    # `file:///run/secrets` = อ่านจากไฟล์แบบ docker/kubernetes
+    # **scheme ที่ไม่มี backend รองรับทำให้แอปไม่ start** ห้ามตกกลับ env เงียบ ๆ
+    SECRETS_URL = os.environ.get("SECRETS_URL", "env://")
+
     # URL สาธารณะของแอปนี้ เช่น `https://todolist.example.com` (ไม่มี / ปิดท้าย)
     # **จำเป็นเมื่อใช้ SSO** เพราะ redirect_uri ที่ส่งให้ IdP ต้องเป็นค่าคงที่ที่
     # ผู้ดูแลลงทะเบียนไว้ ไม่ใช่ค่าที่คำนวณจาก header `Host` ของคำขอ ซึ่งคนยิง
