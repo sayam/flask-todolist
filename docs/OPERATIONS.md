@@ -148,7 +148,50 @@ crontab -e
 > เครื่อง dev ปัจจุบันเป็น Gentoo + OpenRC (ไม่มี systemd) จึงใช้ cron
 > ต้องมี cron daemon เปิดอยู่จริง: `rc-service cronie status`
 
-### systemd timer (ถ้า host ที่ deploy ใช้ systemd)
+### systemd timer — **ติดตั้งจากไฟล์จริง ไม่ใช่คัดลอกจากเอกสาร** (P5-16)
+
+```
+# วาง repo ไว้นอก home (ดูเหตุผลข้างล่าง) แล้ว:
+sudo ./scripts/install_purge_timer.sh --dry-run        # ดูก่อนว่าจะทำอะไร
+sudo ./scripts/install_purge_timer.sh                  # แบบ repo (pipenv)
+
+# แบบ container (stack ของ Phase 5):
+sudo TDL_PURGE_RUNNER="docker compose -f /opt/todolist/compose.yaml \
+     -f /opt/todolist/compose.mysql.yaml run --rm -T app" \
+     ./scripts/install_purge_timer.sh
+```
+
+unit อยู่ที่ `deploy/systemd/` **เป็นไฟล์จริงในที่เก็บโค้ด** — ตัวอย่างที่ต้อง
+คัดลอกด้วยมือจะเพี้ยนจากของจริงในวันที่มีคนแก้ที่เดียว และไม่มีอะไรตรวจได้ว่า
+มันยังถูกอยู่ (job `purge-timer` ใน CI ตรวจไฟล์ชุดนี้ทุก push)
+
+**สามอย่างที่เจอตอนติดตั้งบน host จริง และไม่มีทางเจอจากการอ่าน:**
+
+1. **`ProtectHome=true` ทำให้ /home และ /root มองไม่เห็นจากในหน่วย** —
+   ExecStart ที่ชี้ไปที่นั่นล้มด้วย `203/EXEC` ซึ่ง**ไม่บอกสาเหตุอะไรเลย**
+   (อ่านแล้วนึกว่าลืม `chmod +x`) · ตัวติดตั้งจึงปฏิเสธตั้งแต่ต้นพร้อมบอกเหตุผล
+   **ทุกอย่างที่หน่วยนี้แตะต้องอยู่นอก home** รวมถึงไฟล์ compose ด้วย
+2. **`Environment=` แยกคำตามช่องว่าง** — ค่าที่ไม่ได้ใส่เครื่องหมายคำพูดจะ
+   เหลือแค่คำแรก ส่วนที่เหลือถูกทิ้งพร้อมคำเตือนใน journal **แล้วรันต่อ**
+   ด้วยค่าที่ผิด (runner กลายเป็น `docker` เฉย ๆ)
+3. **timer ไม่มี environment ของ shell ใคร** — ค่าที่ compose ต้องใช้
+   (`SECRET_KEY`, `DB_PASSWORD` ฯลฯ) ต้องมาจาก `/etc/todolist/purge.env`
+   ซึ่งหน่วยอ่านให้เอง (`EnvironmentFile=-` แปลว่าไม่มีไฟล์ก็ไม่เป็นไร)
+
+**ตรวจว่ามันทำงานจริง:**
+
+```
+systemctl list-timers todolist-purge.timer   # นับถอยหลังอยู่ไหม
+systemctl start todolist-purge.service       # สั่งเดี๋ยวนี้เลย
+systemctl is-failed todolist-purge.service   # รอบล่าสุดพังไหม
+journalctl -u todolist-purge.service         # พังเพราะอะไร
+```
+
+**`Persistent=true` สำคัญกว่าที่เห็น** — เครื่องที่ปิดอยู่ตอนถึงเวลาจะรันให้
+ทันทีที่เปิดมา ไม่ใช่ข้ามรอบนั้นไปเงียบ ๆ ถ้าไม่มีข้อนี้ เครื่องที่ดับทุกคืน
+จะไม่เคย purge เลยสักครั้งโดยไม่มีใครรู้
+
+### ตัวอย่าง unit (ของเดิม — ตัวจริงอยู่ใน `deploy/systemd/`)
 
 ```ini
 # /etc/systemd/system/todolist-purge.service

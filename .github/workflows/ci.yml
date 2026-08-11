@@ -918,6 +918,58 @@ jobs:
         if: always()
         run: $COMPOSE down -v --remove-orphans
 
+  purge-timer:
+    # **ตารางเวลาที่ทำให้ระยะเก็บรักษาเป็นความจริง** (P5-16)
+    # docs/DATA-CLASSIFICATION.md ประกาศไว้ว่า soft delete 30 วัน / audit 1 ปี /
+    # log 90 วัน — ตัวเลขพวกนั้นเป็นจริงก็ต่อเมื่อมีอะไรรัน `purge-expired`
+    # ตามรอบจริง ๆ ก่อนหน้านั้นเอกสารอ้างสิ่งที่ไม่เกิดขึ้น
+    #
+    # **ที่นี่ตรวจว่า unit ที่เราส่งมอบยังติดตั้งได้และถูกต้อง** ส่วนการรันจริง
+    # ตามเวลาเป็นเรื่องของ host ที่ deploy — ด่านนี้จับ typo ในไฟล์ unit ซึ่ง
+    # systemd จะ "เตือนแล้วรันต่อ" โดยไม่มีตัวแปรนั้น ไม่ใช่ปฏิเสธที่จะรัน
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: unit ที่ส่งมอบต้องผ่าน systemd-analyze verify
+        run: |
+          # ติดตั้งลงไดเรกทอรีชั่วคราวเพื่อให้ได้ไฟล์ที่ *แทนค่าแล้ว* — ตรวจไฟล์
+          # ต้นฉบับตรง ๆ จะติดที่ path ตัวอย่าง (/opt/todolist) ซึ่งไม่มีจริงที่นี่
+          units=$(mktemp -d)
+          sudo TDL_UNIT_DIR="$units" TDL_INSTALL_ONLY=1 TDL_PURGE_USER="$(id -un)" \
+            TDL_PURGE_RUNNER="docker compose -f $PWD/compose.yaml run --rm -T app" \
+            ./scripts/install_purge_timer.sh
+          sudo chown -R "$(id -un)" "$units"
+          systemd-analyze verify "$units/todolist-purge.service" "$units/todolist-purge.timer"
+      - name: ค่าที่มีช่องว่างต้องรอดจากการแทนค่า
+        run: |
+          # **`Environment=` ของ systemd แยกคำตามช่องว่าง** — ค่าที่ไม่ได้ใส่
+          # เครื่องหมายคำพูดจะเหลือแค่คำแรก ส่วนที่เหลือถูกทิ้งพร้อมคำเตือนใน
+          # journal แล้วงานจะรันด้วย runner ผิดตัว (เจอจริงตอนติดตั้งครั้งแรก:
+          # runner กลายเป็น `docker` เฉย ๆ แล้วล้มด้วย "unknown command")
+          units=$(mktemp -d)
+          sudo TDL_UNIT_DIR="$units" TDL_INSTALL_ONLY=1 TDL_PURGE_USER="$(id -un)" \
+            TDL_PURGE_RUNNER="docker compose run --rm -T app" \
+            ./scripts/install_purge_timer.sh >/dev/null
+          sudo chown -R "$(id -un)" "$units"
+          grep -q 'Environment="TDL_PURGE_RUNNER=docker compose run --rm -T app"' \
+            "$units/todolist-purge.service" \
+            || { echo "ค่าของ runner ไม่รอดจากการแทนค่า"; grep Environment "$units/todolist-purge.service"; exit 1; }
+          # และต้องอยู่ใน [Service] ไม่ใช่ตกไปอยู่ [Install]
+          sed -n '/\[Service\]/,/\[Install\]/p' "$units/todolist-purge.service" | grep -q '^Environment=' \
+            || { echo "Environment= ไม่ได้อยู่ใน [Service]"; exit 1; }
+      - name: ปฏิเสธการติดตั้งจากใต้ home
+        run: |
+          # หน่วยตั้ง `ProtectHome=true` ไว้ ไฟล์ใต้ /home หรือ /root จึงมองไม่เห็น
+          # จากในหน่วย แล้ว systemd ตอบ `203/EXEC` ที่ไม่บอกสาเหตุอะไรเลย
+          # (อ่านแล้วนึกว่าลืม chmod +x) — ปฏิเสธตั้งแต่ตอนติดตั้งดีกว่า
+          home_copy="$HOME/todolist-purge-check"
+          mkdir -p "$home_copy" && cp -r scripts deploy "$home_copy/"
+          if "$home_copy/scripts/install_purge_timer.sh" --dry-run >/dev/null 2>&1 \
+             && TDL_UNIT_DIR=$(mktemp -d) TDL_INSTALL_ONLY=1 "$home_copy/scripts/install_purge_timer.sh" >/dev/null 2>&1; then
+            echo "ติดตั้งจากใต้ home ได้ ทั้งที่หน่วยจะมองไม่เห็นไฟล์นั้น"
+            exit 1
+          fi
+
   secret-scan:
     runs-on: ubuntu-latest
     steps:

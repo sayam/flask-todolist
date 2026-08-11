@@ -1,0 +1,47 @@
+# หน่วยที่รันการลบข้อมูลที่พ้นระยะเก็บรักษา (Phase 5 · P5-16)
+#
+# **ไฟล์จริงในที่เก็บโค้ด ไม่ใช่ตัวอย่างในเอกสาร** — ตัวอย่างที่ต้องคัดลอกด้วยมือ
+# จะเพี้ยนจากของจริงในวันที่มีคนแก้ที่เดียว และไม่มีอะไรตรวจได้ว่ามันยังถูกอยู่
+# (job `purge-timer` ใน CI รัน `systemd-analyze verify` ใส่ไฟล์นี้ทุก push)
+#
+# ติดตั้งด้วย scripts/install_purge_timer.sh — ดู docs/OPERATIONS.md
+
+[Unit]
+Description=todolist retention purge
+# ไม่ต้องรอเน็ต ถ้าฐานข้อมูลอยู่เครื่องเดียวกัน แต่รอไว้ไม่เสียหายเมื่ออยู่คนละเครื่อง
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# **ค่าพวกนี้ถูกเขียนทับตอนติดตั้ง** (ดู scripts/install_purge_timer.sh)
+# ที่เหลือไว้เป็นค่าเริ่มต้นที่อ่านแล้วเห็นว่ามันคาดหวังอะไร
+User=todolist
+WorkingDirectory=/opt/todolist
+ExecStart=/opt/todolist/scripts/purge_cron.sh
+
+# **ตัวแปรที่งานนี้ต้องใช้ต้องมาจากไฟล์ ไม่ใช่จาก shell ของคนติดตั้ง** —
+# timer รันโดยไม่มี environment ของใครเลย ซึ่งคือสิ่งที่หัว purge_cron.sh
+# เตือนไว้ตั้งแต่ Phase 2 · ค่าที่ต้องมีขึ้นกับรูปแบบ deploy: แบบ repo ใช้ .env
+# ที่ pipenv โหลดให้เอง ส่วนแบบ container ต้องมี SECRET_KEY/DB_PASSWORD ฯลฯ
+# ให้ compose (เจอจริงตอนติดตั้งครั้งแรก: หน่วยรันได้แต่ compose ตอบว่าตัวแปร
+# ไม่ถูกตั้ง แล้ว purge ล้มทั้งรอบ)
+#
+# `-` ข้างหน้าแปลว่า "ไม่มีไฟล์ก็ไม่เป็นไร" — แบบ repo ไม่ต้องใช้ไฟล์นี้เลย
+EnvironmentFile=-/etc/todolist/purge.env
+
+# ข้อมูลที่พ้นระยะแล้วรอได้อีกวัน แต่ระบบที่ค้างทั้งคืนรอไม่ได้
+TimeoutStartSec=30min
+
+# --- ลดสิ่งที่หน่วยนี้แตะได้ให้เหลือเท่าที่จำเป็น ---
+# งานนี้ลบแถวในฐานข้อมูล ไม่มีเหตุผลให้เขียนอะไรในระบบไฟล์นอกจากไฟล์ล็อก
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target

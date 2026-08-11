@@ -19,6 +19,15 @@ LOCK_FILE="${TDL_PURGE_LOCK:-/tmp/todolist-purge.lock}"
 # ตรวจสาย audit ต่อท้ายทุกครั้ง — ตั้ง 0 เพื่อข้าม (ดูเหตุผลใน docs/OPERATIONS.md)
 VERIFY_AUDIT="${TDL_PURGE_VERIFY_AUDIT:-1}"
 
+# **ตัวที่เอาคำสั่ง `flask ...` ไปรันจริง** — ค่าเริ่มต้นคือ pipenv บนเครื่องที่มี
+# repo อยู่ตรง ๆ ส่วน stack ที่ deploy ด้วย compose ตั้งเป็น
+# `docker compose -f compose.yaml -f compose.mysql.yaml run --rm -T app` ได้เลย
+#
+# **มีตัวแปรนี้เพื่อไม่ให้ต้องมีสคริปต์สองตัว** — วินัยที่อยู่ในไฟล์นี้ (ล็อกกัน
+# ซ้อน, การรับ exit code ให้ถูก, ตรวจสาย audit ต่อท้าย) ไม่ควรต้องเขียนใหม่
+# เพียงเพราะปลายทางเปลี่ยนจาก venv เป็น container
+RUNNER="${TDL_PURGE_RUNNER:-pipenv run}"
+
 log() {
     printf '%s purge-cron: %s\n' "$(date -Is)" "$*"
 }
@@ -31,15 +40,16 @@ if ! flock -n 9; then
 fi
 
 cd -- "$REPO_ROOT"
-log "เริ่มที่ $REPO_ROOT"
+log "เริ่มที่ $REPO_ROOT ด้วย: ${RUNNER}"
 
 # **ต้องรับ exit code ด้วย `|| status=$?` เท่านั้น** ห้ามเขียนเป็น `if ! cmd; then status=$?`
 # เพราะในกิ่งนั้น `$?` คือผลของ `!` ซึ่งเป็น 0 เสมอ สคริปต์จะจบด้วย 0 ทั้งที่งานล้มเหลว
 # แล้ว cron จะเงียบสนิท — งานตามรอบที่รายงานผลผิดแย่กว่าไม่มีงานตามรอบเลย
 #
 # `pipenv run` โหลด .env ให้เอง จึงได้ SECRET_KEY/DATABASE_URL ตามที่ตั้งไว้
+# (ทาง compose ค่าพวกนี้มาจาก environment ของ service ตามปกติ)
 status=0
-pipenv run flask purge-expired || status=$?
+$RUNNER flask purge-expired || status=$?
 if [ "$status" -ne 0 ]; then
     log "purge-expired ล้มเหลว (exit=$status) — ข้อมูลที่พ้นระยะยังค้างอยู่"
     exit "$status"
@@ -49,7 +59,7 @@ fi
 # จึงเป็นจังหวะที่คุ้มที่สุดที่จะพิสูจน์ว่าสายยังต่อกันอยู่ ถ้าเพี้ยนต้องรู้ทันที
 if [ "$VERIFY_AUDIT" = "1" ]; then
     status=0
-    pipenv run flask audit-verify || status=$?
+    $RUNNER flask audit-verify || status=$?
     if [ "$status" -ne 0 ]; then
         log "audit-verify ไม่ผ่านหลัง purge (exit=$status) — สายขาดหรือถูกแก้ ต้องตรวจด้วยคน"
         exit "$status"

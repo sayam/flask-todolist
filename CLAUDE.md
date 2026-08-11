@@ -85,6 +85,10 @@
   **`compose.scale.yaml` ต้องใช้กับยี่ห้อที่ไม่ใช่ SQLite** (ไฟล์เดียวล็อกทั้งไฟล์)
   **`compose.tls.yaml` ต้องต่อจาก `compose.scale.yaml`** (TLS เป็นของ proxy)
   และถือทั้งใบรับรองกับ `HTTPS_ENABLED=1` ไว้ด้วยกัน — เปิดข้างเดียวพังคนละแบบ
+- `deploy/systemd/` — unit + timer ของงานลบข้อมูลพ้นระยะ **เป็นไฟล์จริง
+  ไม่ใช่ตัวอย่างในเอกสาร** (ติดตั้งด้วย `scripts/install_purge_timer.sh`)
+  `ProtectHome=true` ทำให้ **ทุกอย่างที่หน่วยแตะต้องอยู่นอก home** ไม่งั้นได้
+  `203/EXEC` ที่ไม่บอกสาเหตุ · `Environment=` ต้องใส่เครื่องหมายคำพูดถ้ามีช่องว่าง
 - `scripts/` — สคริปต์ที่รันมือ ไม่ได้ถูกเรียกตอนแอปทำงาน
 - `docs/openapi.json` — **ไฟล์ที่ generate มา ห้ามแก้ด้วยมือ** (ดูหัวข้อ API v1)
 - `app/templates/` — Jinja2 templates (ทุกหน้า extend `base.html`)
@@ -613,7 +617,10 @@ log ขึ้น "Running upgrade" ครบทุกตัว exit code เป�
 - ระยะที่อนุมัติ: soft delete 30 วัน / audit 1 ปี / log 90 วัน (ดู docs/DATA-CLASSIFICATION.md)
 - **ระยะพวกนั้นจะเป็นจริงก็ต่อเมื่อมีอะไรรัน `purge-expired` ตามรอบ** ตัวห่อสำหรับ
   cron/timer อยู่ที่ `scripts/purge_cron.sh` วิธีติดตั้งอยู่ใน `docs/OPERATIONS.md`
-  **ยังไม่ได้ติดตั้งบน host ไหน** (ยังไม่มี deploy จริง — ยกไว้ที่ Phase 5)
+  **unit จริงอยู่ที่ `deploy/systemd/` แล้ว** (P5-16) ติดตั้งด้วย
+  `scripts/install_purge_timer.sh` และพิสูจน์บน host ที่มี systemd จริงแล้วว่า
+  หน่วยรันจบด้วย exit 0 · timer นับถอยหลังอยู่ · และ **ความล้มเหลวมองเห็นได้**
+  ผ่าน `systemctl is-failed` (งานตามรอบที่เงียบตอนพังแย่กว่าไม่มีเลย)
   ในสคริปต์ห้ามรับ exit code แบบ `if ! cmd; then status=$?` เด็ดขาด —
   `$?` ในกิ่งนั้นเป็น 0 เสมอ งานที่ล้มเหลวจะรายงานว่าสำเร็จ ใช้ `cmd || status=$?`
 
