@@ -20,6 +20,7 @@
 - สร้าง user: `pipenv run flask create-user <ชื่อ>` (ไม่มีหน้าสมัครสมาชิก โดยตั้งใจ)
 - ดู user: `pipenv run flask list-users`
 - ตั้งรหัสผ่านให้คนอื่น (ทางกู้บัญชีทางเดียว): `pipenv run flask set-password <ชื่อ>`
+- ส่งออกข้อมูลของผู้ใช้: `pipenv run flask export-user <ชื่อ> [--output ไฟล์]`
 - ตั้งบทบาท: `pipenv run flask set-role <ชื่อ> admin|user` (ทางเดียวที่ตั้ง admin คนแรกได้)
 - plugin ที่มีตารางของตัวเอง: `pipenv run flask plugin-list` /
   `plugin-install auth/totp` / `plugin-uninstall auth/totp` (**ถอนแล้วข้อมูลหายจริง**)
@@ -573,6 +574,25 @@ session มาก่อนโปรไฟล์เพื่อให้กดส
   ค่ามั่วถูกทิ้งแล้วสร้างใหม่ (กันคนนอกปลอม/inject log) และส่งกลับใน response header ด้วย
 - ส่งค่าเพิ่มเข้า log ผ่าน `extra={...}` มันจะถูกยกเป็น field ระดับบนสุดเอง
 - **`actor` เก็บ `username` ไม่ใช่ชื่อจริง** ลด PII — มีเทสต์ดักว่าชื่อจริงต้องไม่หลุดลง log
+
+## สิทธิ์ของเจ้าของข้อมูล (Phase 7 · P7-06 — ดู ADR 0034)
+
+- `POST /settings/export` ส่งสำเนาข้อมูลของเจ้าตัวเป็น JSON · CLI คือ
+  `flask export-user <ชื่อ>` — **ทั้งคู่เรียก `app/services/personal_data.py` ตัวเดียวกัน**
+- **เป็น POST ไม่ใช่ GET และต้องกรอกรหัสผ่านซ้ำ** — คำขอเดียวดูดข้อมูลทั้งบัญชี
+  ออกไป ลิงก์ที่หลุดจึงเท่ากับข้อมูลทั้งบัญชีที่หลุด (หลักเดียวกับการออก API token)
+- **ไม่มี endpoint ใน `/api/v1` โดยตั้งใจ** — PAT เป็นกุญแจของเครื่องซึ่งกรอก
+  รหัสผ่านซ้ำไม่ได้ การกระทำที่อ่อนไหวต้องเริ่มจากตัวตนที่แรงกว่าเสมอ
+  (เหตุผลเดียวกับที่ออก token ผ่าน API ไม่ได้ — ดูหัวไฟล์ `app/api/tokens.py`)
+- **ข้อมูลของ plugin ให้ plugin ตอบเอง** ผ่านโมดูล `personal_data.py` ที่มี
+  `export_for(user)` — core วนถามทุกตัวที่ติดตั้งอยู่และ**ไม่รู้จักชื่อใครเลย**
+  · plugin ตัวเดียวพังต้องไม่ทำให้ทั้งคำขอล้ม (log แล้วใส่หมายเหตุแทน)
+- **โมดูลของ plugin ต้อง `from .models import ...` ไม่ใช่ absolute path**
+  เพราะ registry โหลด models ด้วยชื่อโมดูลที่คำนวณจากคีย์ การ import แบบ absolute
+  จะนิยามตารางซ้ำแล้วได้ `Table ... is already defined`
+- เส้นแบ่งว่าอะไรอยู่ในไฟล์คือ**ชั้นข้อมูล** — `tests/test_personal_data.py`
+  บังคับว่า **ทุกคอลัมน์ของตารางที่มีเจ้าของต้องถูกตัดสิน** ว่าอยู่ใน export
+  หรืออยู่ใน `NOT_EXPORTED` พร้อมเหตุผล (หลักเดียวกับ DATA-CLASSIFICATION)
 
 ## ASVS self-assessment (Phase 7 — `docs/ASVS.md`)
 

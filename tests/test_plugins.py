@@ -924,7 +924,7 @@ def test_the_scanner_reads_the_real_plugin_code(app):
     with app.app_context():
         points = plugins.plug_points_on_disk()
     files = {point.key: {path.name for path in _own_files(point, points)} for point in points}
-    assert files[TOTP_KEY] == {"factor.py", "models.py"}
+    assert files[TOTP_KEY] == {"factor.py", "models.py", "personal_data.py"}
     assert files[QR_KEY] == {"provide.py"}
 
 

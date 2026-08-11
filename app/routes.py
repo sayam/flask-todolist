@@ -8,6 +8,8 @@ render อะไร/เด้งไปไหน/flash อะไร ตรรก�
 decorator กลาง เพราะแต่ละหน้าเด้งกลับคนละที่เมื่อมีข้อผิดพลาด
 """
 
+import json
+
 from flask import (
     Blueprint,
     abort,
@@ -23,13 +25,14 @@ from flask import (
 from flask_babel import gettext as _
 from flask_login import current_user, login_required
 
-from app import plugins, tz
+from app import audit, db, plugins, tz
 from app.filters import UPCOMING_CHOICES, FilterSpec
 from app.i18n import SESSION_KEY, is_supported
 from app.services import NotFoundError, ServiceError, ValidationError
 from app.services import categories as categories_service
 from app.services import mfa as mfa_service
 from app.services import passwords as passwords_service
+from app.services import personal_data as personal_data_service
 from app.services import settings as settings_service
 from app.services import todos as todos_service
 from app.services import tokens as tokens_service
@@ -463,6 +466,33 @@ def confirm_mfa():
         abort(404)
     flash(_("Two-step verification is on") if confirmed else _("That code is not valid"))
     return redirect(url_for("main.settings"))
+
+
+@bp.route("/settings/export", methods=["POST"])
+@login_required
+def export_my_data():
+    """ส่งสำเนาข้อมูลของเจ้าตัวเป็นไฟล์ JSON — **ต้องกรอกรหัสผ่านซ้ำ** (ADR 0034)
+
+    เป็น POST ไม่ใช่ GET เพราะมันดูดข้อมูลทั้งบัญชีออกไปในคำขอเดียว —
+    GET ที่ทำแบบนั้นได้แปลว่าลิงก์เดียวที่หลุดไปคือข้อมูลทั้งบัญชีที่หลุดไป
+    """
+    if not current_user.check_password(request.form.get("password", "")):
+        flash(_("Current password is incorrect"))
+        return redirect(url_for("main.settings"))
+
+    payload = personal_data_service.export(current_user)
+    audit.record("user.export", table_name="tdl_user", row_id=current_user.id)
+    db.session.commit()
+
+    response = make_response(json.dumps(payload, ensure_ascii=False, indent=1))
+    response.mimetype = "application/json"
+    # ชื่อไฟล์สร้างฝั่งเซิร์ฟเวอร์ ไม่รับจากผู้ใช้ (ASVS V5.4.1)
+    response.headers["Content-Disposition"] = (
+        f'attachment; filename="{personal_data_service.filename_for(current_user)}"'
+    )
+    # ทั้งก้อนเป็นข้อมูลส่วนบุคคล ห้ามค้างในแคชของใครทั้งสิ้น (ASVS V14.3.2)
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @bp.route("/settings/mfa/disable", methods=["POST"])

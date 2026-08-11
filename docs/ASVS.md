@@ -287,8 +287,8 @@ PYTHONPATH=. pipenv run python scripts/build_asvs_worksheet.py           # เ�
 
 | ข้อ | L | ข้อกำหนด | สถานะ | หลักฐาน / เหตุผล |
 |---|---|---|---|---|
-| V5.4.1 | 2 | Verify that the application validates or ignores user-submitted filenames, including in a JSON, JSONP, or URL parameter and specifies a filename in the Content-Disposition header field in the response. | ไม่เกี่ยวข้อง | ยังไม่มีเส้นทางดาวน์โหลดที่ชื่อไฟล์มาจากผู้ใช้ · **ต้องกลับมาทบทวนเมื่อ P7-06 เพิ่มการดาวน์โหลด JSON** (ชื่อไฟล์จะถูกสร้างฝั่งเซิร์ฟเวอร์ ไม่รับจากผู้ใช้) |
-| V5.4.2 | 2 | Verify that file names served (e.g., in HTTP response header fields or email attachments) are encoded or sanitized (e.g., following RFC 6266) to preserve document structure and prevent injection attacks. | ไม่เกี่ยวข้อง | ไฟล์เดียวที่เสิร์ฟตอนนี้คือ QR ของ MFA ซึ่งชื่อไม่ได้มาจากผู้ใช้ · ทบทวนซ้ำพร้อม V5.4.1 ที่ P7-06 |
+| V5.4.1 | 2 | Verify that the application validates or ignores user-submitted filenames, including in a JSON, JSONP, or URL parameter and specifies a filename in the Content-Disposition header field in the response. | ผ่าน | มีเส้นทางดาวน์โหลดแล้ว (สำเนาข้อมูลของเจ้าตัว) และ **ชื่อไฟล์สร้างฝั่งเซิร์ฟเวอร์เสมอ ไม่รับจากผู้ใช้** พร้อมตั้ง Content-Disposition — `app/services/personal_data.py` · `tests/test_personal_data.py::test_the_filename_never_comes_from_the_user` · `tests/test_personal_data.py::test_the_web_page_returns_a_download` |
+| V5.4.2 | 2 | Verify that file names served (e.g., in HTTP response header fields or email attachments) are encoded or sanitized (e.g., following RFC 6266) to preserve document structure and prevent injection attacks. | ผ่าน | ชื่อไฟล์ถูกกรองให้เหลือแต่อักษร/ตัวเลข/ขีด ก่อนใส่ในหัวข้อ Content-Disposition — `tests/test_personal_data.py::test_the_filename_never_comes_from_the_user` |
 | V5.4.3 | 2 | Verify that files obtained from untrusted sources are scanned by antivirus scanners to prevent serving of known malicious content. | ไม่เกี่ยวข้อง | ไม่มีไฟล์จากแหล่งที่ไม่น่าเชื่อถือเข้าหรือออกจากระบบ |
 
 ## V6 — Authentication

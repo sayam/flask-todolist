@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-11 20:40+0700\n"
+"POT-Creation-Date: 2026-08-12 00:42+0700\n"
 "PO-Revision-Date: 2026-08-02 16:44+0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -40,47 +40,48 @@ msgstr ""
 msgid "Sign-in session expired — please try again"
 msgstr ""
 
-#: app/auth.py:263 app/routes.py:464
+#: app/auth.py:263 app/routes.py:467
 msgid "That code is not valid"
 msgstr ""
 
-#: app/api/todos.py:52 app/routes.py:69 app/routes.py:93
+#: app/api/todos.py:52 app/routes.py:72 app/routes.py:96
 msgid "Invalid date format"
 msgstr ""
 
-#: app/routes.py:161
+#: app/routes.py:164
 msgid "Task saved"
 msgstr ""
 
-#: app/routes.py:306
+#: app/routes.py:309
 msgid "Profile saved"
 msgstr ""
 
-#: app/routes.py:320
+#: app/routes.py:323
 msgid "The two new passwords do not match"
 msgstr ""
 
-#: app/routes.py:336
+#: app/routes.py:339
 msgid "Password changed"
 msgstr ""
 
-#: app/routes.py:357 app/routes.py:477 app/services/passwords.py:168
+#: app/routes.py:360 app/routes.py:480 app/routes.py:507
+#: app/services/passwords.py:168
 msgid "Current password is incorrect"
 msgstr ""
 
-#: app/routes.py:401
+#: app/routes.py:404
 msgid "Token revoked"
 msgstr ""
 
-#: app/routes.py:464
+#: app/routes.py:467
 msgid "Two-step verification is on"
 msgstr ""
 
-#: app/routes.py:484
+#: app/routes.py:514
 msgid "Two-step verification is off"
 msgstr ""
 
-#: app/routes.py:509
+#: app/routes.py:539
 msgid "Settings saved"
 msgstr ""
 
@@ -724,6 +725,30 @@ msgstr ""
 
 #: app/templates/settings.html:215
 msgid "Save preferences"
+msgstr ""
+
+#: app/templates/settings.html:218
+msgid "Your data"
+msgstr ""
+
+#: app/templates/settings.html:221
+msgid ""
+"Download a copy of everything this system stores about you, as a JSON "
+"file."
+msgstr ""
+
+#: app/templates/settings.html:222
+msgid ""
+"The file explains what is not included and why. Secrets such as your "
+"password are never included."
+msgstr ""
+
+#: app/templates/settings.html:224
+msgid "Confirm with your current password"
+msgstr ""
+
+#: app/templates/settings.html:227
+msgid "Download my data"
 msgstr ""
 
 #: app/templates/token_created.html:2 app/templates/token_created.html:5

@@ -214,4 +214,17 @@
   </p>
   <button type="submit">{{ _('Save preferences') }}</button>
 </form>
+
+<h3>{{ _('Your data') }}</h3>
+<form action="{{ url_for('main.export_my_data') }}" method="post">
+  {{ csrf_field() }}
+  <p>{{ _('Download a copy of everything this system stores about you, as a JSON file.') }}</p>
+  <p><small>{{ _('The file explains what is not included and why. Secrets such as your password are never included.') }}</small></p>
+  <p>
+    <label for="export-password">{{ _('Confirm with your current password') }}</label><br>
+    <input id="export-password" type="password" name="password" autocomplete="current-password" required>
+  </p>
+  <button type="submit">{{ _('Download my data') }}</button>
+</form>
+
 {% endblock %}

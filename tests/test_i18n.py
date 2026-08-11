@@ -139,6 +139,40 @@ def test_locale_selector_outside_request_returns_default(app):
         assert select_locale() == app.config["BABEL_DEFAULT_LOCALE"]
 
 
+def _entries(text):
+    """แยก .po เป็นรายการ (flags, msgid, msgstr) — **ต่อบรรทัดที่ถูกตัดให้ด้วย**
+
+    ข้อความยาวถูก pybabel ตัดเป็นหลายบรรทัดในรูป `msgid ""` แล้วตามด้วย
+    `"..."` ทีละท่อน · การอ่านด้วย regex บรรทัดเดียวจึงมองไม่เห็นมันเลย
+    (เจอจริงตอน P7-06: ข้อความสองประโยคที่ยังไม่ได้แปลผ่านด่านนี้ไปได้)
+    """
+    for block in text.split("\n\n"):
+        flags, field, parts = "", None, {"msgid": "", "msgstr": "", "skip": ""}
+        for line in block.splitlines():
+            if line.startswith("#,"):
+                flags = line
+                continue
+            name, _, value = line.partition(" ")
+            if name.startswith("msgstr"):
+                # **รายการพหูพจน์ใช้ `msgstr[0]`, `msgstr[1]`** — ไทยมี nplurals=1
+                # จึงมีแค่ [0] · การอ่านเฉพาะ `msgstr` เปล่า ๆ ทำให้รายการพหูพจน์
+                # ทุกตัวดูเหมือน "ยังไม่แปล" ทั้งที่แปลแล้ว
+                field = "msgstr"
+            elif name == "msgid":
+                field = "msgid"
+            elif name == "msgid_plural":
+                # รูปพหูพจน์ของภาษาต้นทาง ไม่ใช่ช่องที่ต้องมีคำแปลของตัวเอง
+                field = "skip"
+            elif line.startswith('"') and field:
+                parts[field] += line.strip().strip('"')
+                continue
+            else:
+                continue
+            parts[field] += value.strip().strip('"')
+        if parts["msgid"]:
+            yield flags, parts["msgid"], parts["msgstr"]
+
+
 def test_thai_catalog_has_no_untranslated_or_fuzzy_entries():
     """กัน 2 กรณีที่ทำให้ผู้ใช้เห็นภาษาอังกฤษทั้งที่เลือกไทยไว้:
 
@@ -149,16 +183,15 @@ def test_thai_catalog_has_no_untranslated_or_fuzzy_entries():
     (catalog en ไม่ต้องมีคำแปล เพราะ msgid เป็นภาษาอังกฤษอยู่แล้ว)
     """
     import pathlib
-    import re
 
     po = pathlib.Path(__file__).resolve().parent.parent / (
         "app/translations/th/LC_MESSAGES/messages.po"
     )
-    text = po.read_text()
+    entries = list(_entries(po.read_text()))
+    assert entries, "อ่าน catalog ไม่ได้เลย — รูปแบบไฟล์เปลี่ยนไปแล้ว"
 
-    # flag เขียนรวมกันได้ เช่น "#, fuzzy, python-format" จึงต้องจับทั้งบรรทัด
-    fuzzy = re.findall(r'^#,[^\n]*\bfuzzy\b[^\n]*\nmsgid "([^"]+)"', text, re.MULTILINE)
+    fuzzy = [msgid for flags, msgid, _ in entries if "fuzzy" in flags]
     assert not fuzzy, f"มี msgid ที่ยัง fuzzy อยู่: {fuzzy}"
 
-    empty = re.findall(r'\nmsgid "([^"]+)"\nmsgstr ""\n', text)
+    empty = [msgid for _, msgid, msgstr in entries if not msgstr]
     assert not empty, f"มี msgid ที่ยังไม่ได้แปล: {empty}"

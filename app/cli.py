@@ -4,6 +4,9 @@
 ซึ่งไม่มีข้อมูลว่าจะใช้ภาษาไหน — ใช้ภาษาอังกฤษตายตัวไปเลย
 """
 
+import json
+import pathlib
+
 import click
 from flask.cli import with_appcontext
 from sqlalchemy import select
@@ -13,6 +16,7 @@ from app.models import Category, User
 from app.purge import AUDIT_RETAIN_DAYS, PURGE_AFTER_DAYS, preview_expired, purge_expired
 from app.services import ServiceError
 from app.services import passwords as passwords_service
+from app.services import personal_data as personal_data_service
 from app.services import roles as roles_service
 from app.services import tokens as tokens_service
 from config import DEFAULT_LANGUAGE, LANGUAGES
@@ -143,6 +147,39 @@ def set_password(username):
     except ServiceError as error:
         raise click.ClickException(error.message) from error
     click.echo(f"Password of {user.username!r} changed.")
+
+
+@click.command("export-user")
+@click.argument("username")
+@click.option(
+    "--output",
+    type=click.Path(dir_okay=False, writable=True),
+    help="Write to this file instead of stdout.",
+)
+@with_appcontext
+def export_user(username, output):
+    """Export everything the system stores about a user, as JSON.
+
+    The admin-side path for a data subject request. The web page at /settings
+    does the same thing for the account holder, through the same service —
+    two ways in, one set of rules about what leaves the system.
+    """
+    user = _find_user(username.strip())
+    if user is None:
+        raise click.ClickException(f"No user named {username!r}.")
+
+    payload = personal_data_service.export(user)
+    audit.record("user.export", table_name="tdl_user", row_id=user.id)
+    db.session.commit()
+
+    text = json.dumps(payload, ensure_ascii=False, indent=1)
+    if output:
+        pathlib.Path(output).write_text(text + "\n", encoding="utf-8")
+        click.echo(f"Wrote {output}.")
+    else:
+        # **ห้ามให้ log ปนกับ JSON บน stdout** — เครื่องที่รับต่อจะย่อยไม่ได้
+        # (เทสต์ test_machine_readable_output_is_not_polluted_by_logs ดักไว้)
+        click.echo(text)
 
 
 @click.command("set-role")
@@ -475,6 +512,7 @@ def register_cli(app):
     app.cli.add_command(create_user)
     app.cli.add_command(delete_user)
     app.cli.add_command(set_password)
+    app.cli.add_command(export_user)
     app.cli.add_command(set_role)
     app.cli.add_command(list_users)
     app.cli.add_command(token_create)
