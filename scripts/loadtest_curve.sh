@@ -21,19 +21,16 @@ printf '%-6s %-10s %-10s %-10s %-8s\n' "VUs" "p95(ms)" "p99(ms)" "req/s" "ล้
 for vus in $LEVELS; do
     summary=$(docker run --rm -i --network host \
         -e BASE_URL="$BASE_URL" -e VUS="$vus" -e DURATION="$DURATION" \
-        -e NO_THRESHOLDS=1 \
+        -e NO_THRESHOLDS=1 -e SUMMARY_JSON=1 \
         -e TODOLIST_USER="${TODOLIST_USER:-loadtest}" \
         -e TODOLIST_PASSWORD="${TODOLIST_PASSWORD:-k6-journey-passphrase-not-a-secret}" \
-        grafana/k6 run --summary-export=/dev/stdout --quiet - \
+        grafana/k6 run --quiet - \
         < "$SCRIPT_DIR/loadtest/journey.js" 2>/dev/null | tail -1)
-    # ดึงตัวเลขจาก JSON ด้วย python เพราะ jq อาจไม่มีบนเครื่องที่รัน
-    printf '%-6s ' "$vus"
+    # ดึงตัวเลขด้วย python เพราะ jq อาจไม่มีบนเครื่องที่รัน
     printf '%s\n' "$summary" | python3 -c '
 import json, sys
-data = json.load(sys.stdin)["metrics"]
-duration = data["http_req_duration"]
-failed = data.get("http_req_failed", {}).get("value", 0)
-print("%-10.1f %-10.1f %-10.1f %-8.2f%%" % (
-    duration["p(95)"], duration["p(99)"], data["http_reqs"]["rate"], failed * 100))
+row = json.loads(sys.stdin.read())
+print("%-6d %-10.1f %-10.1f %-10.1f %-8.2f%%" % (
+    row["vus"], row["p95"], row["p99"], row["rps"], row["failed"]))
 '
 done

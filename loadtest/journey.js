@@ -33,6 +33,10 @@ const creating = new Trend("page_create", true);
 export const options = {
   vus: Number(__ENV.VUS || 5),
   duration: __ENV.DURATION || "30s",
+  // **ต้องขอ p(99) เอง** — สรุปผลของ k6 ให้แค่ถึง p(95) โดยปริยาย ส่วน
+  // threshold คำนวณแยกต่างหาก จึงเห็น p(99) ตอนตั้งเกณฑ์แต่ไม่เห็นในสรุป
+  // (เจอตอนไล่เส้นโค้ง: `KeyError: 'p99'` ทั้งที่ตัวเลขโผล่ในรอบก่อนหน้า)
+  summaryTrendStats: ["avg", "min", "med", "max", "p(90)", "p(95)", "p(99)"],
   // **เกณฑ์นี้คือเป้าของ ADR 0031** — ตั้งไว้ที่นี่เพื่อให้ k6 ตัดสินเองว่า
   // ผ่านหรือไม่ ไม่ต้องมีคนมานั่งอ่านตัวเลขแล้วเถียงกันทีหลัง
   // ปิดได้ด้วย NO_THRESHOLDS=1 ตอนไล่หาจุดที่ระบบเริ่มพัง (ซึ่งต้อง "ไม่ผ่าน"
@@ -111,4 +115,23 @@ export default function () {
 
   // ผู้ใช้จริงไม่ได้กดรัว ๆ — เว้นจังหวะให้เหมือนคนอ่านหน้าจอก่อนกดต่อ
   sleep(1);
+}
+
+// **สรุปผลเป็น JSON บรรทัดเดียวเมื่อขอ** — `--summary-export` ให้ผลที่ปนกับ
+// output อื่นจนแยกไม่ออก (เจอจริงตอนไล่เส้นโค้ง) ส่วน `handleSummary` เป็น
+// ทางที่ k6 ให้ควบคุมเองทั้งหมด และไม่ขึ้นกับเวอร์ชันของ flag
+export function handleSummary(data) {
+  if (!__ENV.SUMMARY_JSON) {
+    return {};
+  }
+  const duration = data.metrics.http_req_duration.values;
+  return {
+    stdout: JSON.stringify({
+      vus: Number(__ENV.VUS || 5),
+      p95: duration["p(95)"],
+      p99: duration["p(99)"],
+      rps: data.metrics.http_reqs.values.rate,
+      failed: (data.metrics.http_req_failed?.values?.rate ?? 0) * 100,
+    }) + "\n",
+  };
 }
