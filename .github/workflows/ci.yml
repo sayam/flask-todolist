@@ -901,10 +901,15 @@ jobs:
           for broken in \
             "vault+http://vault:8200/secret/not-seeded-here" \
             "vault+http://vault-does-not-exist:8200/secret/todolist"; do
+            # **ต้องเป็นคำสั่งที่ *สร้างแอป* จริง** — `flask --help` คืน 0 แม้โหลด
+            # แอปไม่สำเร็จ (Flask CLI จับ error ของการโหลดแล้วพิมพ์ help ต่อ)
+            # ด่านที่วัด exit code ของมันจึงผ่านตลอดโดยไม่ได้ตรวจอะไรเลย
+            # — เจอตอน CI แดง ส่วนตอนทดสอบในเครื่องผม grep หาข้อความ error
+            # จึงเห็นว่ามันพังจริง แต่ไม่เห็นว่า exit code ไม่ได้บอกแบบนั้น
             if $COMPOSE run --rm -T \
                  -e SECRETS_URL="$broken" \
                  -e SECRET_KEY=a-fallback-value-that-must-never-be-used-here \
-                 app flask --help >/dev/null 2>&1; then
+                 app flask plugin-list >/dev/null 2>&1; then
               echo "แอป start ได้ทั้งที่ $broken ถามไม่ได้ — แปลว่าตกกลับไปใช้ env"
               exit 1
             fi
