@@ -43,6 +43,9 @@ pymysql = "~=1.1"
 [plugin-auth-ldap]
 ldap3 = "~=2.9"
 
+[plugin-secrets-vault]
+hvac = "~=2.3"
+
 [plugin-cache-redis]
 redis = "~=5.0"
 

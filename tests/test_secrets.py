@@ -102,6 +102,11 @@ def test_a_trailing_newline_in_the_file_is_ignored(secrets_dir):
         assert app.config["SECRET_KEY"] == LONG_ENOUGH_KEY
 
 
+# **สองตัวนี้ต้องมาร์ค `plugin_deps`** เพราะการตั้ง `CACHE_URL` เป็น `redis://`
+# ทำให้ `create_app()` ต้องโหลด backend ของ redis จริง ซึ่งไม่มีในโหมด `bare`
+# — เลือก scheme ที่ไม่ต้องมีไลบรารีไม่ได้ เพราะค่าเริ่มต้น (`memory://`) คือค่า
+# ที่เราต้องพิสูจน์ว่ามัน *เปลี่ยน* ไปแล้ว (เจอตอน job `bare` แดง — P5-15)
+@pytest.mark.plugin_deps
 def test_the_rate_limit_store_follows_a_cache_url_that_came_from_a_file(secrets_dir):
     """**`RATELIMIT_STORAGE_URI` ตามหลัง `CACHE_URL` (P5-07)**
 
@@ -115,6 +120,7 @@ def test_the_rate_limit_store_follows_a_cache_url_that_came_from_a_file(secrets_
         assert app.config["RATELIMIT_STORAGE_URI"] == "redis://cache.example.test:6379/0"
 
 
+@pytest.mark.plugin_deps
 def test_an_explicit_rate_limit_store_is_not_overwritten(secrets_dir, monkeypatch):
     """ตั้งแยกไว้เองแล้วต้องไม่ถูกกลืน — P5-07 เขียนไว้ว่าตั้งแยกได้ถ้าตั้งใจ"""
     monkeypatch.setenv("RATELIMIT_STORAGE_URI", "redis://counters.example.test:6379/1")
@@ -156,3 +162,95 @@ def test_a_secret_key_that_exists_only_in_the_source_is_enough_to_start(secrets_
 
     for app in _app_with_tables(NoKeyInConfig):
         assert app.config["SECRET_KEY"] == LONG_ENOUGH_KEY
+
+
+# ------------------------------------------------------ 4. Vault (ADR 0030)
+#
+# **ไม่ยิง Vault จริงที่นี่** — ปลอมชั้น `hvac.Client` ไว้ เพราะที่นี่ตรวจ
+# *ตรรกะของเรา* (แยก mount กับ path, บังคับ token, ทำ key ให้เป็นตัวพิมพ์เล็ก
+# เพื่อให้ย้ายไป-กลับ `file://` ได้) ส่วนการคุยกับ Vault ของจริงเป็นงานของ
+# ด่านใน CI ซึ่งตอบคนละคำถาม
+
+
+VAULT_KEY = "secrets/vault"
+
+
+def vault_module():
+    return plugins.load_module(plugins.find(VAULT_KEY), "source")
+
+
+class _FakeKv:
+    stored = {"SECRET_KEY": LONG_ENOUGH_KEY, "cache_url": "redis://from-vault:6379/0"}
+    last: dict = {}
+
+    # รับพารามิเตอร์ให้ตรงกับ hvac แม้จะไม่ได้ใช้ทุกตัว
+    def read_secret_version(self, mount_point, path, **kwargs):  # noqa: ARG002
+        _FakeKv.last = {"mount_point": mount_point, "path": path}
+        return {"data": {"data": dict(self.stored)}}
+
+
+class _FakeClient:
+    def __init__(self, url, token):
+        self.url = url
+        self.token = token
+        self.secrets = type("S", (), {"kv": type("K", (), {"v2": _FakeKv()})()})()
+
+
+# ทุกตัวที่ใช้ fixture นี้ต้องมี `hvac` เพราะ `source.py` import มันตอนโหลด
+# (**ห้ามใช้ `importorskip`** — job `test` จะข้ามเงียบ ๆ ตอนไลบรารีหาย
+# ซึ่งคือกรณีที่เราต้องการให้มันแดงที่สุด)
+@pytest.fixture
+def fake_vault(monkeypatch):
+    module = vault_module()
+    monkeypatch.setattr(module.hvac, "Client", _FakeClient)
+    monkeypatch.setenv("VAULT_TOKEN", "a-token-that-came-from-the-environment")
+    return module
+
+
+@pytest.mark.plugin_deps
+def test_vault_splits_the_mount_from_the_path(fake_vault):
+    fake_vault.connect("vault://vault.example.test:8200/secret/todolist")
+    assert _FakeKv.last == {"mount_point": "secret", "path": "todolist"}
+
+
+@pytest.mark.plugin_deps
+def test_vault_lowercases_keys_so_the_exit_path_works(fake_vault):
+    """ชื่อคีย์ต้องเป็นตัวพิมพ์เล็กเหมือน backend `file`
+
+    ไม่งั้นการย้ายจาก Vault กลับไปไฟล์ (exit path — ADR 0030 ข้อ 7) จะต้อง
+    เปลี่ยนชื่อทุกตัว ซึ่งเปลี่ยน "แก้ config หนึ่งบรรทัด" เป็นงานย้ายของ
+    """
+    handle = fake_vault.connect("vault://vault.example.test:8200/secret/todolist")
+    assert fake_vault.get(handle, "SECRET_KEY") == LONG_ENOUGH_KEY
+    assert fake_vault.get(handle, "CACHE_URL") == "redis://from-vault:6379/0"
+    assert fake_vault.get(handle, "ไม่มีคีย์นี้") is None
+
+
+@pytest.mark.plugin_deps
+def test_vault_without_a_token_refuses_to_start(fake_vault, monkeypatch):
+    """**ไม่เดาว่าจะอ่านโดยไม่ต้องยืนยันตัวตนได้** — Vault แบบนั้นคือ Vault ที่ตั้งผิด"""
+    monkeypatch.delenv("VAULT_TOKEN", raising=False)
+    with pytest.raises(plugins.PluginError, match="VAULT_TOKEN"):
+        fake_vault.connect("vault://vault.example.test:8200/secret/todolist")
+
+
+@pytest.mark.parametrize(
+    "url",
+    ["vault://vault.example.test:8200/secret", "vault:///secret/todolist"],
+)
+@pytest.mark.plugin_deps
+def test_vault_urls_that_are_missing_a_part_refuse_to_start(fake_vault, url):
+    with pytest.raises(plugins.PluginError):
+        fake_vault.connect(url)
+
+
+@pytest.mark.plugin_deps
+def test_vault_that_cannot_be_read_refuses_to_start(fake_vault, monkeypatch):
+    """ถามไม่ได้ = ไม่ start (ADR 0030 ข้อ 6) ไม่ใช่ตกกลับไปใช้ค่าเก่าใน env"""
+
+    def explode(self, mount_point, path, **kwargs):
+        raise ConnectionError("vault is sealed")
+
+    monkeypatch.setattr(_FakeKv, "read_secret_version", explode)
+    with pytest.raises(plugins.PluginError, match="ConnectionError"):
+        fake_vault.connect("vault://vault.example.test:8200/secret/todolist")

@@ -661,6 +661,7 @@ def test_plugin_deps_can_print_categories_for_a_script(app):
         "plugin-cache-redis",
         "plugin-db-mariadb",
         "plugin-db-mysql",
+        "plugin-secrets-vault",
     ], "เรียงแล้ว คั่นด้วยช่องว่าง ต่อท้าย `pipenv sync --categories` ได้เลย"
 
 
@@ -712,6 +713,8 @@ def test_plugin_deps_rows_are_a_contract_that_ci_reads(app):
 # รันจริงทุก push แล้ว (มี service container ของ redis ตั้งแต่ P5-07) — ก่อนหน้านั้น
 # มันข้ามตัวเองใน CI ทุกที่ ซึ่งแปลว่าไม่เคยถูกพิสูจน์นอกเครื่องคนเขียนเลย
 # วัดจริง 2026-08-11: test_totp 4 + test_plugins 1 + test_cache 2 + test_ldap 17
+# + test_secrets 8 (P5-15: 6 ตัวของ Vault ที่ต้องมี `hvac` และอีก 2 ตัวที่ตั้ง
+#   `CACHE_URL` เป็น redis:// ซึ่งทำให้ `create_app()` ต้องโหลด backend จริง)
 # **ขยับขึ้นเพราะ `auth/ldap` เป็นจุด plug ตัวแรกที่ต้องมีไลบรารีเพื่อ *ยืนยัน
 # ตัวตน*** (ADR 0029) — ต่างจาก `auth/oidc` ที่เป็น stdlib ล้วนจึงไม่กินโควตานี้เลย
 # ตรรกะของมันทั้งหมดอยู่หลัง `import ldap3` จึงเขียนเทสต์โดยไม่มีไลบรารีไม่ได้
@@ -721,7 +724,7 @@ def test_plugin_deps_rows_are_a_contract_that_ci_reads(app):
 # **สิ่งที่ job `bare` ยังต้องพิสูจน์ต่อไปคือ "ไม่มีไลบรารี = ปิดตัวเอง ไม่ใช่พัง"**
 # ซึ่งเทสต์ตัวนั้นอยู่ในไฟล์ที่มาร์คไว้เหมือนกัน — จึงมีเทสต์ในชุดที่ *ไม่* ถูกมาร์ค
 # ครอบเรื่องเดียวกันด้วย (`tests/test_oidc.py` กับหน้า login ที่ไม่มี plugin ไหนเลย)
-PLUGIN_DEPS_BUDGET = 24
+PLUGIN_DEPS_BUDGET = 32
 
 TESTS_DIR = pathlib.Path(__file__).resolve().parent
 
