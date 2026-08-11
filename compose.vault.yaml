@@ -1,0 +1,60 @@
+# override: อ่านความลับจาก Vault แทน environment (Phase 5 · P5-15 — ADR 0030)
+#
+#   export SECRET_KEY=ignored VAULT_TOKEN=<token>
+#   docker compose -f compose.yaml -f compose.vault.yaml up -d
+#
+# **`SECRET_KEY` ถูกตั้งเป็นค่าว่างโดยตั้งใจ** — แอปจะ start ได้ก็ต่อเมื่ออ่าน
+# ค่าจาก Vault สำเร็จจริง ๆ เท่านั้น (`check_secret_key()` ปฏิเสธค่าว่าง)
+# นี่คือวิธีพิสูจน์ที่แข็งที่สุดว่าความลับ *มาจาก Vault* ไม่ใช่ตกกลับไปที่ env
+# โดยที่เราไม่ทันสังเกต — ถ้า backend ไม่ทำงาน stack จะไม่ขึ้นเลย ไม่ใช่ขึ้นมา
+# แล้วทำงานด้วยค่าเก่า
+#
+# **Vault ตัวนี้รันโหมด dev**: unseal ให้เอง เก็บของไว้ในหน่วยความจำ และใช้
+# token เดียวตายตัว — **สำหรับทดสอบเท่านั้น** ของจริงต้องมี storage backend,
+# การ unseal ที่ควบคุมได้ และ token ที่มีอายุ
+
+services:
+  app:
+    build:
+      context: .
+      args:
+        PLUGIN_CATEGORIES: plugin-cache-redis plugin-secrets-vault
+    environment:
+      SECRET_KEY: ""
+      SECRETS_URL: vault+http://vault:8200/secret/todolist
+      # ไก่กับไข่ที่แก้ไม่ได้ (ADR 0030 ข้อ 4): กุญแจดอกเดียวที่ยังอยู่ใน env
+      # แล้วมันไปเอาของที่เหลือ — ไม่ใช่ของทั้งกองอยู่ที่นี่เหมือนเดิม
+      VAULT_TOKEN: ${VAULT_TOKEN:?ต้องตั้ง VAULT_TOKEN}
+    depends_on:
+      vault-seed:
+        # **ต้องรอให้ความลับถูกเขียนเสร็จก่อน** ไม่ใช่แค่ Vault ขึ้น —
+        # แอปอ่านครั้งเดียวตอน start (ADR 0030 ข้อ 5) มาถึงก่อนของถูกเขียน
+        # แปลว่าไม่มีรอบสองให้แก้ตัว
+        condition: service_completed_successfully
+
+  vault:
+    image: hashicorp/vault:1.18
+    # โหมด dev เก็บของไว้ในหน่วยความจำ ซึ่งต้องล็อกไม่ให้ swap ออกไปที่ดิสก์
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_TOKEN:?ต้องตั้ง VAULT_TOKEN}
+      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+    healthcheck:
+      test: ["CMD", "vault", "status", "-address=http://127.0.0.1:8200"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  vault-seed:
+    # service ที่ทำงานครั้งเดียวแล้วจบ — เขียนความลับเข้า KV v2 ให้แอปอ่าน
+    image: hashicorp/vault:1.18
+    environment:
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: ${VAULT_TOKEN:?ต้องตั้ง VAULT_TOKEN}
+      # ความลับที่จะถูกเขียนเข้า Vault — ในของจริงมันถูกใส่ไว้ก่อนแล้วโดยคนอื่น
+      SEEDED_SECRET_KEY: ${VAULT_SEEDED_SECRET_KEY:?ต้องตั้ง VAULT_SEEDED_SECRET_KEY}
+    entrypoint: ["sh", "-c", "vault kv put secret/todolist secret_key=\"$$SEEDED_SECRET_KEY\""]
+    depends_on:
+      vault:
+        condition: service_healthy

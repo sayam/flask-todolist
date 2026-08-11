@@ -835,6 +835,84 @@ jobs:
         if: always()
         run: $COMPOSE down -v --remove-orphans
 
+  vault:
+    # **อ่านความลับจาก Vault จริง ไม่ใช่ mock** (P5-15 · ADR 0030)
+    # `tests/test_secrets.py` ปลอมชั้น `hvac` ไว้ซึ่งตรวจ *ตรรกะของเรา*
+    # ส่วนที่นี่ตอบว่าโค้ดที่เราเขียนคุยกับ Vault ของจริงรู้เรื่องไหม —
+    # ความต่างนั้นไม่เล็ก (P5-14: connection ปลอมผ่านหมด แต่ของจริงเจอสองบั๊ก)
+    #
+    # **`SECRET_KEY` ถูกตั้งเป็นค่าว่างใน compose.vault.yaml โดยตั้งใจ** แอปจึง
+    # start ได้ก็ต่อเมื่ออ่านค่าจาก Vault สำเร็จเท่านั้น — ด่านนี้จึงพิสูจน์
+    # "ความลับมาจาก Vault" ไม่ใช่แค่ "stack ขึ้นได้"
+    runs-on: ubuntu-latest
+    env:
+      SECRET_KEY: ci-only-value-that-compose-overrides-to-empty
+      VAULT_TOKEN: ci-only-vault-root-token
+      VAULT_SEEDED_SECRET_KEY: this-key-exists-only-inside-vault-nowhere-else
+      LOCAL_PASSWORD: ci-only-local-password-phrase
+      COMPOSE: docker compose -f compose.yaml -f compose.vault.yaml
+    steps:
+      - uses: actions/checkout@v7
+      - name: up
+        run: |
+          $COMPOSE up -d --build --quiet-pull
+          for _ in $(seq 1 40); do
+            unhealthy=$($COMPOSE ps --format '{{.Service}}:{{.Health}}' | grep -v ':healthy' || true)
+            [ -z "$unhealthy" ] && break
+            sleep 5
+          done
+          left=$($COMPOSE ps --format '{{.Service}}:{{.Health}}' | grep -v ':healthy' || true)
+          [ -z "$left" ] || { echo "ยังไม่ healthy: $left"; $COMPOSE logs; exit 1; }
+      - name: ความลับต้องไม่อยู่ใน environment ของ container
+        run: |
+          value=$(docker inspect "$($COMPOSE ps -q app)" \
+            --format '{{range .Config.Env}}{{println .}}{{end}}' | grep '^SECRET_KEY=' | cut -d= -f2-)
+          [ -z "$value" ] || { echo "SECRET_KEY ยังอยู่ใน env ของ container"; exit 1; }
+          $COMPOSE logs app | grep -q '"secrets_source": "secrets/vault"' \
+            || { echo "แอปไม่ได้ใช้ Vault เป็นแหล่ง"; $COMPOSE logs app | tail -20; exit 1; }
+      - name: แอปใช้งานได้จริงด้วยคีย์ที่มาจาก Vault
+        run: |
+          # คุกกี้ session ถูกเซ็นด้วยคีย์นั้น — login ผ่านแปลว่าคีย์ใช้ได้จริง
+          # ไม่ใช่แค่ถูกอ่านมาแล้ววางทิ้งไว้
+          $COMPOSE run --rm app flask db upgrade
+          printf "$LOCAL_PASSWORD\n$LOCAL_PASSWORD\n" \
+            | $COMPOSE run --rm -T app flask create-user somchai
+          jar=$(mktemp)
+          token=$(curl -sf -c "$jar" http://127.0.0.1:8000/login \
+            | grep -oP 'name="csrf_token"[^>]*value="\K[^"]+' | head -1)
+          code=$(curl -s -b "$jar" -c "$jar" -o /dev/null -w '%{http_code}' -X POST \
+            -d "username=somchai&password=$LOCAL_PASSWORD&csrf_token=$token" \
+            http://127.0.0.1:8000/login)
+          [ "$code" = "302" ] || { echo "POST /login → $code"; $COMPOSE logs app | tail -20; exit 1; }
+          home=$(curl -s -b "$jar" -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/)
+          [ "$home" = "200" ] || { echo "GET / → $home"; exit 1; }
+      - name: ค่าความลับต้องไม่โผล่ใน log เลย
+        run: |
+          # ADR 0030: log ได้แค่ *ชื่อ* กับ *แหล่งที่ตอบ* — ห้ามมีค่าเด็ดขาด
+          if $COMPOSE logs | grep -q "$VAULT_SEEDED_SECRET_KEY"; then
+            echo "ค่าความลับโผล่ใน log"
+            exit 1
+          fi
+      - name: Vault ที่ถามไม่ได้ต้องทำให้ไม่ start ไม่ใช่ตกกลับไปใช้ env
+        run: |
+          # **นี่คือด่านที่สำคัญที่สุดของ job นี้** (ADR 0030 ข้อ 6) — การตกกลับ
+          # เงียบ ๆ แปลว่าวันที่ Vault ล่ม ระบบจะรันต่อด้วยความลับชุดเก่าที่ยัง
+          # ค้างอยู่ใน env โดยไม่มีใครรู้ ซึ่งแย่กว่าการไม่ start เสียอีก
+          for broken in \
+            "vault+http://vault:8200/secret/not-seeded-here" \
+            "vault+http://vault-does-not-exist:8200/secret/todolist"; do
+            if $COMPOSE run --rm -T \
+                 -e SECRETS_URL="$broken" \
+                 -e SECRET_KEY=a-fallback-value-that-must-never-be-used-here \
+                 app flask --help >/dev/null 2>&1; then
+              echo "แอป start ได้ทั้งที่ $broken ถามไม่ได้ — แปลว่าตกกลับไปใช้ env"
+              exit 1
+            fi
+          done
+      - name: เก็บกวาด
+        if: always()
+        run: $COMPOSE down -v --remove-orphans
+
   secret-scan:
     runs-on: ubuntu-latest
     steps:
