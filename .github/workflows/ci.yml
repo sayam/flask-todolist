@@ -930,14 +930,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - name: วาง repo ไว้นอก home เหมือน deploy จริง
+        run: |
+          # **ไดเรกทอรี checkout ของ GitHub อยู่ใต้ /home/runner** ซึ่งตัวติดตั้ง
+          # ปฏิเสธโดยตั้งใจ (`ProtectHome=true` ทำให้หน่วยมองไม่เห็นไฟล์ที่นั่น)
+          # — guard ตัวนั้นทำให้ด่านนี้แดงตั้งแต่ push แรก ซึ่งคือมันทำงานถูก
+          sudo rm -rf /opt/todolist-ci
+          sudo cp -r "$PWD" /opt/todolist-ci
       - name: unit ที่ส่งมอบต้องผ่าน systemd-analyze verify
         run: |
           # ติดตั้งลงไดเรกทอรีชั่วคราวเพื่อให้ได้ไฟล์ที่ *แทนค่าแล้ว* — ตรวจไฟล์
           # ต้นฉบับตรง ๆ จะติดที่ path ตัวอย่าง (/opt/todolist) ซึ่งไม่มีจริงที่นี่
           units=$(mktemp -d)
           sudo TDL_UNIT_DIR="$units" TDL_INSTALL_ONLY=1 TDL_PURGE_USER="$(id -un)" \
-            TDL_PURGE_RUNNER="docker compose -f $PWD/compose.yaml run --rm -T app" \
-            ./scripts/install_purge_timer.sh
+            TDL_PURGE_RUNNER="docker compose -f /opt/todolist-ci/compose.yaml run --rm -T app" \
+            /opt/todolist-ci/scripts/install_purge_timer.sh
           sudo chown -R "$(id -un)" "$units"
           systemd-analyze verify "$units/todolist-purge.service" "$units/todolist-purge.timer"
       - name: ค่าที่มีช่องว่างต้องรอดจากการแทนค่า
@@ -949,7 +956,7 @@ jobs:
           units=$(mktemp -d)
           sudo TDL_UNIT_DIR="$units" TDL_INSTALL_ONLY=1 TDL_PURGE_USER="$(id -un)" \
             TDL_PURGE_RUNNER="docker compose run --rm -T app" \
-            ./scripts/install_purge_timer.sh >/dev/null
+            /opt/todolist-ci/scripts/install_purge_timer.sh >/dev/null
           sudo chown -R "$(id -un)" "$units"
           grep -q 'Environment="TDL_PURGE_RUNNER=docker compose run --rm -T app"' \
             "$units/todolist-purge.service" \
