@@ -22,6 +22,7 @@ from sqlalchemy.orm import DeclarativeBase
 from app import db_engine, plugins
 from app.cache import init_cache, warn_if_counters_are_not_shared
 from app.logging_setup import init_logging
+from app.metrics import init_metrics
 from app.proxy import init_proxy_fix
 from app.secrets import init_secrets, secrets_source
 from app.security_headers import init_security_headers
@@ -106,6 +107,9 @@ def create_app(config_class=Config):
     # `X-Forwarded-Proto` การเปิด HTTPS_ENABLED จะได้ redirect วนแทน (P5-11/P5-12)
     init_proxy_fix(app)
     init_security_headers(app)
+    # **ต้องมาหลัง `init_logging`** เพราะใช้เวลาเริ่มต้นที่ `before_request` ของมัน
+    # ตั้งไว้ — จับเวลาสองที่แปลว่ามีสองตัวเลขที่ต้องตรงกันตลอดไป
+    init_metrics(app)
 
     db.init_app(app)
     # import เพื่อ **ผลข้างเคียง** อีกตัว — ตัวโมดูลผูก event ที่ทำให้ทุก write

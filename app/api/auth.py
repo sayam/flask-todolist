@@ -28,6 +28,11 @@ from app.services import tokens as tokens_service
 # ชื่อ scheme ตาม RFC 6750 — เทียบแบบไม่สนตัวพิมพ์
 BEARER = "bearer"
 API_PREFIX = "/api/"
+# **`/metrics` อยู่ในกลุ่มเดียวกับ API ไม่ใช่กลุ่มหน้าเว็บ** — เป็น GET ที่ไม่มี
+# ผลข้างเคียง ไม่มีฟอร์ม และไม่มีอะไรให้ CSRF ใช้ประโยชน์ ส่วนเหตุผลที่จำกัด
+# path ไว้แต่แรกคือ "หน้าเว็บ HTML มีด่าน CSRF ที่คิดบนสมมติฐานว่าตัวตนมาจาก
+# cookie" ซึ่งไม่ครอบ endpoint นี้ (ADR 0031 ข้อ 5)
+MACHINE_PATHS = (API_PREFIX, "/metrics")
 UNAUTHORIZED = 401
 
 # ส่งกลับใน 401 ตาม RFC 6750 ให้ client รู้ว่าต้องใช้ scheme ไหน
@@ -44,13 +49,13 @@ def bearer_token(source: Request) -> str | None:
 
 @login_manager.request_loader
 def load_user_from_api_token(source: Request) -> User | None:
-    """ยกระดับ bearer token เป็น `current_user` — **เฉพาะคำขอที่ยิงมาที่ `/api/`**
+    """ยกระดับ bearer token เป็น `current_user` — **เฉพาะ path ของเครื่อง**
 
     Flask-Login เรียก loader ตัวนี้ทุกคำขอที่ไม่มี session จำกัดขอบเขตด้วย path
     เพื่อไม่ให้หน้าเว็บ HTML รับ token จาก header ได้ด้วย — หน้าเว็บมีด่าน CSRF
     ที่คิดมาบนสมมติฐานว่าตัวตนมาจาก cookie เท่านั้น
     """
-    if not source.path.startswith(API_PREFIX):
+    if not source.path.startswith(MACHINE_PATHS):
         return None
     raw = bearer_token(source)
     if raw is None:
