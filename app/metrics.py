@@ -48,6 +48,12 @@ class Histogram:
         self._series: dict[tuple[str, str, str], list[Any]] = {}
 
     def observe(self, key: tuple[str, str, str], seconds: float) -> None:
+        """นับคำขอหนึ่งครั้งลงทุก bucket ที่มันเข้าเกณฑ์
+
+        วนใส่ทุก bucket ที่ `seconds <= edge` **ไม่ใช่ใส่ bucket เดียวแล้วบวก
+        สะสมตอน render** เพราะ bucket ของ Prometheus เป็นค่าสะสมโดยนิยาม
+        การเก็บแบบสะสมตั้งแต่ต้นทำให้ `render()` ไม่ต้องรู้เรื่องนี้เลย
+        """
         with self._lock:
             entry = self._series.get(key)
             if entry is None:
@@ -61,6 +67,12 @@ class Histogram:
             entry[2] = elapsed + seconds
 
     def snapshot(self) -> list[tuple[tuple[str, str, str], list[int], int, float]]:
+        """คัดลอกค่าปัจจุบันออกมาทั้งชุด **ในล็อกเดียว**
+
+        คืน `list(counts)` ที่ก๊อปแล้ว ไม่ใช่ตัวจริง — ไม่งั้นผู้เรียกจะถือ list
+        ที่ `observe()` ยังแก้อยู่ระหว่างที่กำลัง render แล้วได้ histogram ที่
+        `_count` ไม่ตรงกับ bucket ซึ่ง Prometheus ปฏิเสธทั้งก้อน
+        """
         with self._lock:
             return [
                 (key, list(counts), total, elapsed)
