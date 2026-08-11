@@ -434,6 +434,35 @@ DoD ของ SSO คือ **"login ผ่าน OIDC ได้จริงก�
 **DoD:** `docker compose up` เลือก backend ได้, เทสต์เขียวทั้งสาม DB ใน CI,
 app รัน ≥2 replica พฤติกรรมถูกต้อง (rate limit นับรวม, session ข้าม replica)
 
+### ✅ ปิดเฟสแล้ว (2026-08-11) — 17/17 ข้อ · CI 18 job
+
+ทวน DoD ทีละข้อกับของจริง ไม่ใช่กับความจำ:
+
+| DoD | พิสูจน์ด้วย |
+|---|---|
+| `docker compose up` เลือก backend ได้ | `compose.{mysql,mariadb}.yaml` · job `stack` ยิง stack จริงทุก push |
+| เทสต์เขียวทั้งสาม DB | job `dialects` (matrix `mysql:8` + `mariadb:11`) + job `test` (SQLite) |
+| ≥2 replica · rate limit นับรวม | job `stack`: ยิงรหัสผิดได้ 5 ครั้งแล้ว 429 ไม่ใช่ 10 |
+| ≥2 replica · session ข้าม replica | `tests/test_proxy.py` + คุกกี้ใบเดียวได้ 200 จากทั้งสอง replica |
+| SSO (OIDC) | job `sso` — login กับ Keycloak จริง + กลุ่ม → บทบาท |
+| LDAP | job `ldap` — bind กับ OpenLDAP จริง + รหัสผ่านว่างได้ 401 |
+| TLS 1.2+/1.3 + HSTS | job `stack` — 1.0/1.1 ถูกปฏิเสธโดย *server* (ไม่ใช่โดย client) |
+| Secrets + exit path | ADR 0030 · job `vault` — และ **Vault ที่ถามไม่ได้ทำให้ไม่ start** |
+| ตารางเวลา purge บน host จริง | ติดตั้งบน host ที่มี systemd จริง · job `purge-timer` |
+| rate limit ของ `/api/v1` | P5-08 — นับต่อใบ token ไม่ใช่ต่อ IP |
+
+**สิ่งที่เฟสนี้สอนซ้ำจนเป็นรูปแบบ**: ด่านที่ "มีอยู่" กับด่านที่ "ครอบชั้นที่พังจริง"
+เป็นคนละเรื่อง และความต่างมักอยู่ที่ **สัญญาณที่วัด** ไม่ใช่ตรรกะ —
+`openssl s_client` ตอบเหมือนกันไม่ว่า server ปฏิเสธหรือไม่มีใครฟังพอร์ตนั้น ·
+`flask --help` คืน 0 แม้โหลดแอปไม่สำเร็จ · `bind()` ปลอมที่ใจดีกว่าของจริง
+ทำให้ด่านสำคัญที่สุดผ่านโดยไม่ได้ตรวจอะไร · ทุกครั้งที่เขียนด่านใหม่
+**ต้องทดสอบสองทิศ** (พังเมื่อควรพัง และผ่านเมื่อควรผ่าน)
+
+**ของที่ยังไม่ทำและยกไปเฟสถัดไปอย่างรู้ตัว**: single logout / refresh token
+ของ OIDC · การผูกหลาย IdP กับผู้ใช้คนเดียว · nested group ของ LDAP ·
+การหมุนความลับโดยไม่ restart · KMS ของผู้ให้บริการคลาวด์ (รูปสัญญาเดียวกับ
+`secrets` ที่มีแล้ว แต่ยังไม่มีใครต้องใช้) · IaC ตาม infra เป้าหมายจริง
+
 ## Phase 6 — Performance validation
 
 **เป้าหมาย:** ตัวเลขจริง ไม่ใช่คำว่า "เร็วพอ"
