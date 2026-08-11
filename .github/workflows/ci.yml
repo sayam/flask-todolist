@@ -762,6 +762,79 @@ jobs:
         if: always()
         run: $COMPOSE down -v --remove-orphans
 
+  ldap:
+    # **bind กับ directory จริง ไม่ใช่ mock** (P5-14 · ADR 0029)
+    # DoD เดียวกับ job `sso` และด้วยเหตุผลเดียวกัน — `tests/test_ldap.py` ตรวจ
+    # *ตรรกะของเรา* ด้วย connection ปลอม ส่วนที่นี่ตอบว่าโค้ดที่เราเขียนคุยกับ
+    # OpenLDAP ของจริงรู้เรื่องไหม · สองอย่างนี้แทนกันไม่ได้: รอบแรกที่ต่อของจริง
+    # เจอสองเรื่องที่ connection ปลอมไม่มีวันเจอ (ldap3 ปฏิเสธ `memberOf` ตาม
+    # schema, และ overlay `memberOf` ไม่เติมย้อนหลังให้สมาชิกที่มีอยู่ก่อน)
+    runs-on: ubuntu-latest
+    env:
+      SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
+      DIRECTORY_PASSWORD: ci-only-directory-password-not-a-real-one
+      LOCAL_PASSWORD: ci-only-local-password-phrase
+      COMPOSE: docker compose -f compose.yaml -f compose.ldap.yaml
+    steps:
+      - uses: actions/checkout@v7
+      - name: up
+        run: |
+          $COMPOSE up -d --build --quiet-pull
+          for _ in $(seq 1 40); do
+            unhealthy=$($COMPOSE ps --format '{{.Service}}:{{.Health}}' | grep -v ':healthy' || true)
+            [ -z "$unhealthy" ] && break
+            sleep 5
+          done
+          left=$($COMPOSE ps --format '{{.Service}}:{{.Health}}' | grep -v ':healthy' || true)
+          [ -z "$left" ] || { echo "ยังไม่ healthy: $left"; $COMPOSE logs; exit 1; }
+      - name: เตรียมฝั่งแอป — migrate, ติดตั้งตารางของ plugin, สร้างบัญชี
+        run: |
+          $COMPOSE run --rm app flask db upgrade
+          $COMPOSE run --rm app flask plugin-install auth/ldap
+          # บัญชีนี้มีรหัสผ่าน *ของที่นี่* คนละตัวกับรหัสใน directory โดยตั้งใจ —
+          # เพื่อให้แยกออกว่าการ login แต่ละครั้งผ่านทางไหน
+          printf "$LOCAL_PASSWORD\n$LOCAL_PASSWORD\n" \
+            | $COMPOSE run --rm -T app flask create-user somchai
+      - name: login ด้วยรหัสของ directory จริง
+        run: |
+          jar=$(mktemp)
+          token=$(curl -sf -c "$jar" http://127.0.0.1:8000/login \
+            | grep -oP 'name="csrf_token"[^>]*value="\K[^"]+' | head -1)
+          code=$(curl -s -b "$jar" -c "$jar" -o /dev/null -w '%{http_code}' -X POST \
+            -d "username=somchai&password=$DIRECTORY_PASSWORD&csrf_token=$token" \
+            http://127.0.0.1:8000/login)
+          [ "$code" = "302" ] || { echo "POST /login ด้วยรหัสของ directory → $code"; $COMPOSE logs app | tail -30; exit 1; }
+          home=$(curl -s -b "$jar" -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/)
+          [ "$home" = "200" ] || { echo "GET / หลัง login → $home"; exit 1; }
+      - name: กลุ่มใน directory ต้องกลายเป็นบทบาทที่นี่
+        run: |
+          # ผู้ใช้ถูกสร้างเป็น `user` แล้วต้องถูกยกเป็น admin ตอน login เพราะอยู่ใน
+          # กลุ่ม `todolist-admins` — **ค้นจากฝั่งกลุ่ม ไม่ใช่อ่าน `memberOf`**
+          # ซึ่งเป็นความต่างที่ทำให้ข้อนี้ทำงานกับ OpenLDAP ล้วน ๆ ได้
+          $COMPOSE run --rm -T app flask list-users | grep -q 'somchai.*admin' \
+            || { echo "บทบาทไม่ได้ตามกลุ่มของ directory"; $COMPOSE run --rm -T app flask list-users; exit 1; }
+      - name: รหัสผ่านของที่นี่ต้องยังใช้ได้ และรหัสว่างต้องไม่ผ่าน
+        run: |
+          # ADR 0029 ข้อ 2: วันที่ directory ล่ม ทางเข้าสำรองคือสิ่งเดียวที่ช่วยได้
+          jar=$(mktemp)
+          token=$(curl -sf -c "$jar" http://127.0.0.1:8000/login \
+            | grep -oP 'name="csrf_token"[^>]*value="\K[^"]+' | head -1)
+          code=$(curl -s -b "$jar" -c "$jar" -o /dev/null -w '%{http_code}' -X POST \
+            -d "username=somchai&password=$LOCAL_PASSWORD&csrf_token=$token" \
+            http://127.0.0.1:8000/login)
+          [ "$code" = "302" ] || { echo "รหัสผ่านของที่นี่ใช้ไม่ได้แล้ว → $code"; exit 1; }
+          # ADR 0029 ข้อ 5: รหัสผ่านว่างคือ unauthenticated bind ที่ directory
+          # จำนวนมากตอบสำเร็จ — ด่านนี้ต้องอยู่ที่เรา ไม่ใช่ที่ปลายทาง
+          jar2=$(mktemp)
+          token2=$(curl -sf -c "$jar2" http://127.0.0.1:8000/login \
+            | grep -oP 'name="csrf_token"[^>]*value="\K[^"]+' | head -1)
+          blank=$(curl -s -b "$jar2" -c "$jar2" -o /dev/null -w '%{http_code}' -X POST \
+            -d "username=somchai&password=&csrf_token=$token2" http://127.0.0.1:8000/login)
+          [ "$blank" = "401" ] || { echo "รหัสผ่านว่างได้ $blank ซึ่งไม่ใช่ 401"; exit 1; }
+      - name: เก็บกวาด
+        if: always()
+        run: $COMPOSE down -v --remove-orphans
+
   secret-scan:
     runs-on: ubuntu-latest
     steps:

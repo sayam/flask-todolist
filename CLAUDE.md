@@ -744,7 +744,10 @@ log ขึ้น "Running upgrade" ครบทุกตัว exit code เป�
 - หน้า login ไม่รองรับ `?next=` โดยตั้งใจ (กัน open redirect) login เสร็จเด้งไปหน้าแรกเสมอ
 - **ไม่มี recovery code ของ MFA** — ทำโทรศัพท์หายต้องให้ผู้ดูแลปิดให้ (ยังไม่มีคำสั่ง CLI
   ของ plugin สำหรับข้อนี้ — งานที่เหลืออยู่จริง)
-- **LDAP ยังไม่ได้ทำ** (P5-14) — OIDC เสร็จแล้วตั้งแต่ P5-13 (ADR 0028)
+- ปัจจัยหลักมีสองรูปแบบ (ADR 0029): `redirect` (OIDC — `begin`/`finish`) กับ
+  `credential` (LDAP — `authenticate`) **manifest ประกาศด้วย `style` core ไม่เดา**
+  · **รหัสผ่านของที่นี่ถูกลองก่อน directory ภายนอกเสมอ**
+- OIDC เสร็จแล้วตั้งแต่ P5-13 (ADR 0028)
   core รู้จักปัจจัยหลักที่ไม่ใช่รหัสผ่านผ่าน `app/services/sso.py` (`begin`/`finish`)
   เท่านั้น และ **ไม่รู้จักชื่อ plugin ตัวไหนเลย** · ตาราง `tdl_auth_oidc_identity`
   เก็บแค่ `(issuer, sub) → user_id` ถอน plugin แล้วผู้ใช้ยังอยู่ครบ

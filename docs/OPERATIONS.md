@@ -369,6 +369,44 @@ IdP ที่ตั้งค่าถูกจะปฏิเสธเพรา�
 **job `sso` ใน CI เดินเส้นทางนี้จริงทุก push** — ไปหน้า login ของ Keycloak,
 กรอกรหัส, กลับมาที่แอปแล้วได้ 200 และผู้ใช้ต้องถูกยกเป็น admin ตามกลุ่มใน realm
 
+## เปิดการยืนยันตัวตนกับ directory (LDAP · Phase 5 · P5-14)
+
+```
+docker compose -f compose.yaml -f compose.ldap.yaml up -d
+docker compose -f compose.yaml -f compose.ldap.yaml run --rm app flask db upgrade
+docker compose -f compose.yaml -f compose.ldap.yaml run --rm app flask plugin-install auth/ldap
+```
+
+**ไม่มีปุ่มเพิ่มบนหน้า login** ต่างจาก SSO — ผู้ใช้กรอกชื่อกับรหัสผ่านในฟอร์มเดิม
+แล้วระบบเป็นคนไล่ถามให้เอง เพราะ LDAP เป็นปัจจัยหลักแบบ `credential` (ADR 0029)
+
+**ลำดับคือรหัสผ่านของที่นี่ก่อนเสมอ** แล้วค่อยถาม directory — วันที่ directory
+ล่ม ผู้ดูแลที่มีรหัสผ่านของที่นี่ต้องยังเข้าได้ ไม่ใช่ถูกกันออกพร้อมคนทั้งองค์กร
+
+| ตัวแปร | ความหมาย |
+|---|---|
+| `LDAP_URL` | **ต้องเป็น `ldaps://`** — รหัสผ่านเดินทางไปที่นั่นทุกครั้งที่ login |
+| `LDAP_BIND_DN` / `LDAP_BIND_PASSWORD` | บัญชีบริการ — **ใช้ค้น `dn` เท่านั้น** |
+| `LDAP_BASE_DN` | จุดเริ่มค้น |
+| `LDAP_USER_FILTER` | เช่น `(uid=%s)` — ค่าที่แทนถูก escape ให้เสมอ |
+| `LDAP_GROUP_FILTER` | ค่าเริ่มต้น `(member=%s)` — ค้นกลุ่มจาก `dn` ของผู้ใช้ |
+| `LDAP_ADMIN_GROUP` | `dn` ของกลุ่มที่แปลว่า admin · ไม่ตั้ง = ไม่แตะบทบาท |
+| `LDAP_ID_ATTRIBUTE` | attribute ที่ใช้ผูกบัญชี (เช่น `entryUUID`) · ไม่ตั้ง = ใช้ `dn` |
+| `LDAP_AUTO_CREATE` | `1` = ให้ directory ตัดสินว่าใครมีบัญชี · **ค่าเริ่มต้นคือปิด** |
+| `LDAP_INSECURE` | `1` = ยอมให้ `ldap://` — **สำหรับ directory ทดสอบเท่านั้น** |
+
+### สองอย่างที่จะเจอตอนต่อกับ OpenLDAP ของจริง
+
+1. **ldap3 ปฏิเสธ `memberOf` ตาม schema ที่ดึงมา** (`invalid attribute type`)
+   ทั้งที่ directory ตอบได้ปกติ — แก้ด้วย `get_info=NONE` ตอนสร้าง `Server`
+2. **`memberOf` ไม่ได้มีในทุก directory** — Active Directory มีให้ในตัว ส่วน
+   OpenLDAP ต้องเปิด overlay และ **overlay ไม่เติมย้อนหลังให้สมาชิกที่มีอยู่
+   ก่อนเปิด** ระบบนี้จึง **ค้นจากฝั่งกลุ่ม** (`(member=<dn>)`) ซึ่งใช้ได้กับทุก
+   directory เพราะสมาชิกถูกเก็บไว้ที่กลุ่มเสมอตามนิยามของ `groupOfNames`
+
+**job `ldap` ใน CI ยิงจริงทุก push**: login ด้วยรหัสของ directory ได้ 302 ·
+บทบาทถูกยกตามกลุ่ม · รหัสผ่านของที่นี่ยังใช้ได้ · **รหัสผ่านว่างได้ 401**
+
 ## เวลาที่งานล้มเหลว
 
 **อย่าปล่อยผ่าน** — งานตามรอบที่ล้มเหลวเงียบ ๆ แย่กว่าไม่มีงานตามรอบเลย

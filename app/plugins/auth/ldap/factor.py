@@ -83,7 +83,14 @@ def _connect(user: str | None = None, password: str | None = None) -> Any:
     `raise_exceptions=False` เพราะ "รหัสผ่านไม่ถูก" ไม่ใช่ข้อผิดพลาดของโปรแกรม
     มันเป็นคำตอบที่ถูกต้องคำตอบหนึ่งของฟังก์ชันนี้
     """
-    server = ldap3.Server(_server_url(), connect_timeout=CONNECT_TIMEOUT_SECONDS)
+    # **`get_info=NONE` ไม่ใช่การปิดการตรวจสอบเพื่อความสะดวก** — ค่าเริ่มต้นทำให้
+    # ldap3 ดึง schema มาแล้วปฏิเสธ attribute ที่ไม่ได้ประกาศไว้ ซึ่งรวมถึง
+    # **operational attribute อย่าง `memberOf`** ที่ overlay เป็นคนเติมให้ตอน
+    # query ผลคือ `invalid attribute type memberOf` ทั้งที่ directory ตอบได้ปกติ
+    # (เจอจริงตอนต่อกับ OpenLDAP — P5-14) และยังประหยัด round trip ไปหนึ่งครั้ง
+    server = ldap3.Server(
+        _server_url(), connect_timeout=CONNECT_TIMEOUT_SECONDS, get_info=ldap3.NONE
+    )
     try:
         connection = ldap3.Connection(
             server, user=user, password=password, auto_bind=False, raise_exceptions=False
@@ -112,18 +119,51 @@ def _find_entry(username: str) -> tuple[str, str, list[str]] | None:
             _("The directory is not configured"), code="ldap_bind_failed", field="LDAP_BIND_DN"
         )
     attribute = _setting("LDAP_ID_ATTRIBUTE")
-    group_attribute = _setting("LDAP_GROUP_ATTRIBUTE", "memberOf")
-    wanted = [group_attribute] + ([attribute] if attribute else [])
+    wanted = [attribute] if attribute else []
     # `%s` ตัวเดียวในเทมเพลตที่ผู้ดูแลตั้ง — ค่าที่แทนลงไปถูก escape ก่อนเสมอ
     search_filter = _require("LDAP_USER_FILTER") % ldap3.utils.conv.escape_filter_chars(username)
-    connection.search(_require("LDAP_BASE_DN"), search_filter, attributes=wanted)
+    try:
+        connection.search(_require("LDAP_BASE_DN"), search_filter, attributes=wanted)
+    except ldap3.core.exceptions.LDAPException as error:
+        # **การค้นที่ล้มต้องกลายเป็น "ตอบไม่ได้" ไม่ใช่ 500** — base dn ที่ผิด
+        # หรือ attribute ที่ directory ไม่รู้จักเป็นเรื่อง config ของผู้ดูแล
+        # ไม่ใช่บั๊กที่ควรทำให้หน้า login ทั้งหน้าพัง (เจอจริงตอนต่อกับ OpenLDAP)
+        raise ValidationError(
+            _("Could not reach the directory"), code="ldap_search_failed"
+        ) from error
     if not connection.entries:
         return None
     entry = connection.entries[0]
     dn = str(entry.entry_dn)
     external_id = str(entry[attribute].value) if attribute else dn
-    groups = entry[group_attribute].values if group_attribute in entry else []
-    return dn, external_id, [str(group) for group in groups]
+    return dn, external_id, _groups_of(connection, dn)
+
+
+def _groups_of(connection: Any, dn: str) -> list[str]:
+    """กลุ่มของผู้ใช้ — **ค้นจากฝั่งกลุ่ม ไม่ใช่อ่าน `memberOf` จากฝั่งผู้ใช้**
+
+    `memberOf` เป็น attribute ที่ **ไม่ได้มีในทุก directory**: Active Directory
+    มีให้ในตัว ส่วน OpenLDAP ต้องเปิด overlay และ **overlay นั้นไม่เติมย้อนหลัง
+    ให้สมาชิกที่มีอยู่ก่อนเปิด** ผลคือ group → role เงียบ ๆ ไม่ทำงานโดยไม่มี
+    error อะไรให้เห็น (เจอจริงตอนต่อกับ OpenLDAP — P5-14: login ผ่านแต่ทุกคน
+    เป็น `user` หมด)
+
+    การค้นจากฝั่งกลุ่มด้วย `(member=<dn>)` ใช้ได้กับทุก directory เพราะสมาชิก
+    ถูกเก็บไว้ที่กลุ่มเสมอตามนิยามของ `groupOfNames` — แลกกับการค้นเพิ่มหนึ่งครั้ง
+    ต่อการ login หนึ่งครั้ง **และทำก็ต่อเมื่อมีคนตั้งกลุ่มของ admin ไว้จริง ๆ**
+    """
+    if not _setting("LDAP_ADMIN_GROUP"):
+        return []
+    group_filter = _setting("LDAP_GROUP_FILTER", "(member=%s)") % (
+        ldap3.utils.conv.escape_filter_chars(dn)
+    )
+    try:
+        connection.search(_require("LDAP_BASE_DN"), group_filter)
+    except ldap3.core.exceptions.LDAPException as error:
+        raise ValidationError(
+            _("Could not reach the directory"), code="ldap_search_failed"
+        ) from error
+    return [str(entry.entry_dn) for entry in connection.entries]
 
 
 def _apply_role(user: User, groups: list[str]) -> None:

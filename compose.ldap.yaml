@@ -1,0 +1,57 @@
+# override: เพิ่ม directory (LDAP) สำหรับทดสอบปัจจัยหลักแบบ credential
+# (Phase 5 · P5-14 — ADR 0029)
+#
+#   docker compose -f compose.yaml -f compose.ldap.yaml up -d
+#   docker compose -f compose.yaml -f compose.ldap.yaml run --rm app flask db upgrade
+#   docker compose -f compose.yaml -f compose.ldap.yaml run --rm app flask plugin-install auth/ldap
+#
+# **แยกไฟล์ด้วยเหตุผลเดียวกับ compose.sso.yaml** — คนที่แค่อยากรันแอปไม่ควร
+# ต้องจ่ายค่า RAM ให้ directory ที่ไม่มีอะไรต่อกับมัน · ต่อกับยี่ห้อฐานข้อมูล
+# อื่นได้ตามปกติ และใช้พร้อม compose.sso.yaml ได้ด้วย (คนละปัจจัยหลัก
+# คนละ style — หน้า login มีทั้งฟอร์มรหัสผ่านและปุ่มของ IdP อยู่แล้ว)
+
+services:
+  app:
+    build:
+      context: .
+      args:
+        # backend ที่ config เรียกหาต้อง `import` ไลบรารีของมันได้ (ADR 0025)
+        PLUGIN_CATEGORIES: plugin-cache-redis plugin-auth-ldap
+    environment:
+      # **`ldap://` เปล่า ๆ ต้องขออนุญาตอย่างชัดเจน** เพราะรหัสผ่านของผู้ใช้
+      # เดินทางเป็นข้อความธรรมดา (ADR 0029 ข้อ 6) — แอปเตือนทุกครั้งที่ใช้
+      # directory ทดสอบตัวนี้ไม่มีใบรับรอง จึงเป็นสภาพที่ตั้งใจให้เป็น
+      LDAP_URL: ldap://directory:1389
+      LDAP_INSECURE: "1"
+      # บัญชีบริการมีไว้ **ค้น `dn` เท่านั้น** ไม่ใช่ยืนยันตัวตนแทนผู้ใช้
+      LDAP_BIND_DN: cn=admin,dc=example,dc=test
+      LDAP_BIND_PASSWORD: ci-only-ldap-admin-password
+      LDAP_BASE_DN: dc=example,dc=test
+      # `%s` ตัวเดียว — ค่าที่แทนลงไปถูก escape ก่อนเสมอ (ดู factor.py)
+      LDAP_USER_FILTER: "(uid=%s)"
+      LDAP_ADMIN_GROUP: cn=todolist-admins,ou=groups,dc=example,dc=test
+    depends_on:
+      directory:
+        condition: service_healthy
+
+  directory:
+    # **`bitnamilegacy` ไม่ใช่การพิมพ์ผิด** — Bitnami ย้าย image ที่เคยเปิดฟรี
+    # ไปไว้ที่ org นี้ตอนเปลี่ยนโมเดลกลางปี 2025 ส่วน `bitnami/openldap` ตอนนี้
+    # ดึงไม่ได้แล้ว (manifest unknown) · เป็น directory สำหรับทดสอบเท่านั้น
+    # การใช้ image ที่หยุดพัฒนาแล้วจึงรับได้ — ของจริงเป็น directory ขององค์กร
+    # ที่ไม่ได้มาจากที่นี่อยู่แล้ว
+    image: bitnamilegacy/openldap:2.6
+    environment:
+      LDAP_ROOT: dc=example,dc=test
+      LDAP_ADMIN_USERNAME: admin
+      LDAP_ADMIN_PASSWORD: ci-only-ldap-admin-password
+      LDAP_CUSTOM_LDIF_DIR: /ldifs
+      LDAP_SKIP_DEFAULT_TREE: "yes"
+    volumes:
+      - ./deploy/ldap-seed.ldif:/ldifs/01-seed.ldif:ro
+    healthcheck:
+      # ค้นด้วย anonymous bind — ตอบได้แปลว่า directory พร้อมและ tree ถูก import แล้ว
+      test: ["CMD-SHELL", "ldapsearch -x -H ldap://127.0.0.1:1389 -b dc=example,dc=test -s base >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 30

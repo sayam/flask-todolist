@@ -1,0 +1,35 @@
+# directory สำหรับ *ทดสอบ* เท่านั้น (Phase 5 · P5-14)
+# รหัสผ่านในไฟล์นี้เป็นค่าสาธารณะโดยตั้งใจ — ห้ามใช้กับ directory จริง
+#
+# โครงสร้างน้อยที่สุดที่พอทดสอบได้: คน 1 คน, กลุ่ม 1 กลุ่ม, และ `memberOf`
+# ที่ overlay ของ OpenLDAP เติมให้เองเมื่อผู้ใช้เป็นสมาชิกของกลุ่ม
+
+# **ต้องมีรากของ tree อยู่ในไฟล์นี้ด้วย** เพราะเปิด `LDAP_SKIP_DEFAULT_TREE`
+# ไว้ (ไม่อยากได้ผู้ใช้ตัวอย่างของ image ติดมา) — ไม่มีรากแล้วการเพิ่ม ou
+# ข้างล่างจะล้มด้วย "no such object" และ container จะออกตั้งแต่ start
+dn: dc=example,dc=test
+objectClass: dcObject
+objectClass: organization
+o: Example Organisation
+dc: example
+
+dn: ou=people,dc=example,dc=test
+objectClass: organizationalUnit
+ou: people
+
+dn: ou=groups,dc=example,dc=test
+objectClass: organizationalUnit
+ou: groups
+
+dn: uid=somchai,ou=people,dc=example,dc=test
+objectClass: inetOrgPerson
+uid: somchai
+cn: Somchai Tester
+sn: Tester
+# รหัสผ่านนี้ถูกส่งเป็นข้อความธรรมดา แล้ว OpenLDAP แฮชให้เองตอน import
+userPassword: ci-only-directory-password-not-a-real-one
+
+dn: cn=todolist-admins,ou=groups,dc=example,dc=test
+objectClass: groupOfNames
+cn: todolist-admins
+member: uid=somchai,ou=people,dc=example,dc=test

@@ -64,10 +64,16 @@ class _Entry:
 
 
 class _Connection:
-    """`ldap3.Connection` ปลอม — bind สำเร็จเฉพาะคู่ที่ directory รู้จักจริง"""
+    """`ldap3.Connection` ปลอม — bind สำเร็จเฉพาะคู่ที่ directory รู้จักจริง
+
+    `search()` ตอบสองแบบตามตัวกรองที่ได้รับ เหมือน directory จริง: ค้นผู้ใช้
+    ด้วย `(uid=...)` และ **ค้นกลุ่มที่มีผู้ใช้คนนั้นเป็นสมาชิก** ด้วย `(member=...)`
+    (อย่างหลังคือกลไกที่ใช้จริง — `memberOf` ไม่ได้มีในทุก directory)
+    """
 
     known = {SERVICE_DN: SERVICE_PASSWORD, USER_DN: USER_PASSWORD}
-    entry_attributes: dict = {"memberOf": [ADMIN_GROUP], "entryUUID": ["uuid-of-somchai"]}
+    entry_attributes: dict = {"entryUUID": ["uuid-of-somchai"]}
+    groups: list = [ADMIN_GROUP]
     found = True
 
     # ต้องรับพารามิเตอร์ให้ตรงกับ `ldap3.Connection` แม้จะไม่ได้ใช้ทุกตัว
@@ -91,6 +97,9 @@ class _Connection:
         return self.known.get(self.user) == self.password
 
     def search(self, base, search_filter, attributes=None):  # noqa: ARG002
+        if search_filter.startswith("(member="):
+            self.entries = [_Entry(dn, {}) for dn in self.groups]
+            return True
         self.entries = [_Entry(USER_DN, dict(self.entry_attributes))] if self.found else []
         return self.found
 
@@ -198,7 +207,7 @@ def test_group_becomes_role_in_both_directions(ldap_app, monkeypatch):
     ldap_app.config["LDAP_ADMIN_GROUP"] = ADMIN_GROUP
     assert authenticate(ldap_app)[1] == "admin"
 
-    monkeypatch.setattr(_Connection, "entry_attributes", {"memberOf": ["cn=everyone,dc=x"]})
+    monkeypatch.setattr(_Connection, "groups", ["cn=everyone,dc=example,dc=test"])
     assert authenticate(ldap_app)[1] == "user"
 
 
@@ -275,3 +284,24 @@ def test_the_manifest_decides_the_style_not_the_functions_present(ldap_app):
         # ตัวนี้ไม่ใช่แบบ redirect จึงต้องไม่โผล่เป็นปุ่มบนหน้า login
         assert LDAP_KEY not in [plugin.key for plugin in sso.available()]
     assert b"/login/sso/auth/ldap" not in ldap_app.test_client().get("/login").data
+
+
+def test_a_search_that_blows_up_becomes_a_refusal_not_a_500(ldap_app, monkeypatch):
+    """directory ที่ตอบด้วย error ต้องกลายเป็น "login ไม่ผ่าน" ไม่ใช่ 500
+
+    เจอจริงตอนต่อกับ OpenLDAP: ldap3 ปฏิเสธ `memberOf` ตาม schema ที่ดึงมา
+    แล้ว exception หลุดขึ้นไปถึง Flask — หน้า login พังทั้งหน้าเพราะ config
+    ของ directory ไม่ใช่เพราะโค้ดของเราผิด
+    """
+    import ldap3
+
+    def explode(self, *args, **kwargs):
+        raise ldap3.core.exceptions.LDAPAttributeError("invalid attribute type memberOf")
+
+    monkeypatch.setattr(_Connection, "search", explode)
+    with ldap_app.app_context():
+        _make_user("somchai")
+    response = ldap_app.test_client().post(
+        "/login", data={"username": "somchai", "password": USER_PASSWORD}
+    )
+    assert response.status_code == 401
