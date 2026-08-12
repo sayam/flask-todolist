@@ -9,10 +9,12 @@
 # รอ check ที่ไม่มีวันมา · และโดยธรรมชาติมันเป็น *คะแนน* ไม่ใช่ผ่าน/ไม่ผ่าน —
 # ด่านที่ไม่มีเส้นแบ่งชัดไม่ควรเป็นด่านที่บล็อกคน
 #
-# **`@v2` ของ action ตัวนี้ไม่มีอยู่จริง** (ต่างจาก actions/* ที่ pin ที่ major ได้)
-# repo ของมันออกแต่ tag เต็มรุ่น — ตัวอย่างส่วนใหญ่บนเน็ตที่เขียน `@v2` จะพัง
-# ทันทีด้วย "unable to resolve action" · Dependabot ของ github-actions ดูแล
-# การขยับรุ่นนี้ให้อยู่แล้ว
+# action ทุกตัวถูก pin ด้วย commit SHA (ดู `tests/test_workflow_pinning.py`) —
+# คอมเมนต์ `# vX.Y.Z` ต่อท้ายคือสิ่งเดียวที่บอกคนอ่านว่ากำลังใช้รุ่นไหน และเป็น
+# สิ่งที่ Dependabot อ่านเพื่อรู้ว่าต้องขยับอะไร
+#
+# หมายเหตุของ action ตัวนี้: **มันไม่มี tag `@v2`** repo ของมันออกแต่ tag เต็มรุ่น
+# ตัวอย่างส่วนใหญ่บนเน็ตที่เขียน `@v2` จะพังด้วย "unable to resolve action"
 name: scorecard
 
 on:
@@ -36,13 +38,13 @@ jobs:
       contents: read
       actions: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # Scorecard ตรวจข้อนี้เอง และเป็นแนวปฏิบัติที่ถูกอยู่แล้ว —
           # ไม่มีเหตุผลให้ token ค้างอยู่ใน .git/config ของ runner
           persist-credentials: false
 
-      - uses: ossf/scorecard-action@v2.4.4
+      - uses: ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc # v2.4.4
         with:
           results_file: results.sarif
           results_format: sarif
@@ -50,7 +52,7 @@ jobs:
           # ข้อมูลที่ส่งเป็นข้อเท็จจริงเกี่ยวกับ repo สาธารณะซึ่งเปิดอยู่แล้ว
           publish_results: true
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: scorecard-results
           path: results.sarif
@@ -58,6 +60,6 @@ jobs:
 
       # ผลไปโผล่ที่หน้า Security ร่วมกับ CodeQL — ที่เดียวกับที่คนไปดูอยู่แล้ว
       # ดีกว่ามีหน้าใหม่อีกหน้าที่ไม่มีใครเปิด
-      - uses: github/codeql-action/upload-sarif@v4
+      - uses: github/codeql-action/upload-sarif@5595ccaf912efad79be6eef63a5619ff05969be3 # v4.37.6
         with:
           sarif_file: results.sarif

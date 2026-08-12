@@ -80,6 +80,22 @@ Phase 7 · P7-04 — **นโยบายนี้มีเทสต์คุม
 เปิด **security updates** ไว้ (2026-08-12) — มันเปิด PR ให้เองเมื่อมี CVE
 ของ dependency · **ยังไม่เปิด version updates** ซึ่งจะเปิด PR ทุกครั้งที่มีรุ่นใหม่
 
+### action ทุกตัวถูก pin ด้วย commit SHA (2026-08-13)
+
+**tag ย้ายได้ commit ย้ายไม่ได้** — `@v7` ชี้ไปที่ไหนก็ได้ที่เจ้าของ action
+ย้ายมันไป และ action รันด้วยสิทธิ์ของ workflow เรา วันที่บัญชีของเขาถูกยึด
+tag เดิมจะชี้ไปโค้ดใหม่โดยที่ไฟล์ในนี้ไม่เปลี่ยนสักตัวอักษร
+
+รูปแบบคือ `uses: owner/repo@<sha40> # vX.Y.Z` — คอมเมนต์ไม่ใช่ของประดับ
+มันคือสิ่งเดียวที่บอกคนอ่านว่าใช้รุ่นไหน และเป็นสิ่งที่ Dependabot อ่าน
+· `tests/test_workflow_pinning.py` บังคับทั้งสามข้อ: pin ครบ · มีคอมเมนต์เลขรุ่น
+· และ **action เดียวกันต้องเป็น SHA เดียวกันทุกที่** (ข้อหลังมาจากของจริง —
+`upload-artifact` เคยค้างที่ `@v4` อยู่จุดเดียวใน job `dast` สิบวันโดย CI เขียวตลอด)
+
+**tag แบบ annotated ต้อง deref อีกชั้น** — `git/ref/tags/<tag>` ของ
+`github/codeql-action` กับ `ossf/scorecard-action` คืน object ชนิด `tag`
+ไม่ใช่ `commit` · เอา SHA นั้นไปใส่ตรง ๆ workflow จะพัง
+
 ### merge PR ของ Dependabot ด้วย **rebase** ไม่ใช่ squash
 
 squash ต่อท้ายหัว commit ด้วย ` (#N)` และหัวของ Dependabot ยาวอยู่แล้ว —

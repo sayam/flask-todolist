@@ -35,8 +35,8 @@ jobs:
           --health-timeout=5s
           --health-retries=20
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
           cache: pipenv
@@ -109,8 +109,8 @@ jobs:
           --health-timeout=5s
           --health-retries=20
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
           cache: pipenv
@@ -138,8 +138,8 @@ jobs:
     # เครื่องที่ `pipenv sync --dev` เฉย ๆ ได้ ซึ่งคือค่าเริ่มต้นของทุกคนที่ clone
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
           cache: pipenv
@@ -193,8 +193,8 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
           cache: pipenv
@@ -232,8 +232,8 @@ jobs:
     # ตั้งใจให้ซ้ำ — job นี้บอกสาเหตุตรง ๆ โดยไม่ต้องอ่าน traceback ของ pytest)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
           cache: pipenv
@@ -258,8 +258,8 @@ jobs:
     # โดยไม่ต้องอ่าน diff ของ dict ที่ pytest พิมพ์ออกมา)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
           cache: pipenv
@@ -281,10 +281,10 @@ jobs:
   commit-lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
       - name: conventional commits (เฉพาะ commit ที่เพิ่มเข้ามาจริง)
@@ -308,8 +308,8 @@ jobs:
   security:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
           cache: pipenv
@@ -348,8 +348,8 @@ jobs:
     # แต่ต้องดังพอให้เห็น: ล้มแล้วยิง ::warning:: + เขียนลงสรุปของ run
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
           cache: pipenv
@@ -401,12 +401,12 @@ jobs:
     # และภาษาไทย เพราะ contrast/ความยาวข้อความต่างกันตามนั้น
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
           cache: pipenv
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
       - run: pip install pipenv
@@ -451,7 +451,7 @@ jobs:
     # (P5-09 · เครื่อง dev ไม่มี container runtime — CI จึงเป็นที่พิสูจน์)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: build
         run: docker build -t todolist:ci .
       - name: ต้องไม่รันเป็น root
@@ -537,7 +537,7 @@ jobs:
       SCALED: docker compose -f compose.yaml -f compose.mysql.yaml -f compose.scale.yaml
       TLS: docker compose -f compose.yaml -f compose.mysql.yaml -f compose.scale.yaml -f compose.tls.yaml
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: up
         run: |
           $COMPOSE up -d --build --quiet-pull
@@ -749,7 +749,7 @@ jobs:
       IDP_PASSWORD: ci-only-idp-password-not-a-real-one
       COMPOSE: docker compose -f compose.yaml -f compose.sso.yaml
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: up
         run: |
           $COMPOSE up -d --build --quiet-pull
@@ -820,7 +820,7 @@ jobs:
       LOCAL_PASSWORD: ci-only-local-password-phrase
       COMPOSE: docker compose -f compose.yaml -f compose.ldap.yaml
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: up
         run: |
           $COMPOSE up -d --build --quiet-pull
@@ -896,7 +896,7 @@ jobs:
       LOCAL_PASSWORD: ci-only-local-password-phrase
       COMPOSE: docker compose -f compose.yaml -f compose.vault.yaml
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: up
         run: |
           $COMPOSE up -d --build --quiet-pull
@@ -973,7 +973,7 @@ jobs:
     # systemd จะ "เตือนแล้วรันต่อ" โดยไม่มีตัวแปรนั้น ไม่ใช่ปฏิเสธที่จะรัน
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: วาง repo ไว้นอก home เหมือน deploy จริง
         run: |
           # **ไดเรกทอรี checkout ของ GitHub อยู่ใต้ /home/runner** ซึ่งตัวติดตั้ง
@@ -1039,7 +1039,7 @@ jobs:
       TODOLIST_PASSWORD: ci-dast-verification-phrase
       TLS: docker compose -f compose.yaml -f compose.mysql.yaml -f compose.scale.yaml -f compose.tls.yaml
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: ขึ้น stack ที่มี TLS และ 2 replica
         run: |
           ./scripts/dev_tls_cert.sh
@@ -1093,7 +1093,7 @@ jobs:
           n=$($TLS logs app 2>&1 | grep -c "Traceback" || true)
           [ "$n" = "0" ] || { echo "แอปพ่น traceback $n ครั้งระหว่างถูกสแกน"; \
             $TLS logs app 2>&1 | grep -A20 "Traceback" | head -60; exit 1; }
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ !cancelled() }}
         with:
           name: zap-report
@@ -1115,7 +1115,7 @@ jobs:
       GRAFANA_PASSWORD: ci-only-grafana-password
       C: docker compose -f compose.yaml -f compose.mysql.yaml -f compose.siem.yaml
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: ขึ้น stack พร้อมปลายทางของ log
         run: |
           $C up -d --build --quiet-pull
@@ -1190,18 +1190,18 @@ jobs:
   secret-scan:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v3
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   sbom:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
           cache: pipenv
@@ -1219,7 +1219,7 @@ jobs:
           done
         env:
           SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: sbom
           path: sbom-*.json
@@ -1245,13 +1245,13 @@ jobs:
       matrix:
         language: [python, javascript-typescript]
     steps:
-      - uses: actions/checkout@v7
-      - uses: github/codeql-action/init@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: github/codeql-action/init@5595ccaf912efad79be6eef63a5619ff05969be3 # v4.37.6
         with:
           languages: ${{ matrix.language }}
           # security-extended: กว้างกว่าชุดเริ่มต้น — โปรเจกต์นี้รับ false positive
           # ได้มากกว่ารับของที่หลุดไป (หลักเดียวกับ ruff ที่เปิดทุกกฎแล้วปิดรายข้อ)
           queries: security-extended
-      - uses: github/codeql-action/analyze@v4
+      - uses: github/codeql-action/analyze@5595ccaf912efad79be6eef63a5619ff05969be3 # v4.37.6
         with:
           category: /language:${{ matrix.language }}
