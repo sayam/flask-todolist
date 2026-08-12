@@ -140,3 +140,12 @@ tests/
 ```
 
 รายละเอียดสำหรับคนที่จะแก้โค้ดต่ออยู่ใน [CLAUDE.md](CLAUDE.md)
+
+## License
+
+[MIT](LICENSE) — Copyright (c) 2026 Sayam Sriphua
+
+เหตุผลที่เลือกและสิ่งที่ตรวจก่อนตัดสินอยู่ใน [ADR 0038](docs/adr/0038-mit-license.md)
+· **ไลบรารีของ core เป็น permissive ทั้งหมด** ตัวที่มีภาระ copyleft ตัวเดียวคือ
+`ldap3` (LGPLv3) ซึ่งอยู่ใน category ของ plugin ที่ถอดทิ้งได้ ไม่ได้ติดตั้งลง
+image เว้นแต่จะสั่งเอง (`tests/test_licensing.py` ตรึงไว้)

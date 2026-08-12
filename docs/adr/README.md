@@ -43,3 +43,4 @@ ADR 0002–0008 เป็นการ backfill การตัดสินใจ
 | [0035](0035-audit-appends-queue-on-one-row.md) | ต่อคิวสาย audit ที่แถวเดียว ไม่ใช่ที่หางสาย | accepted — แทนที่ ADR 0032 ข้อ 1 |
 | [0036](0036-read-committed-isolation.md) | อ่านแบบ READ COMMITTED บนยี่ห้อที่มี MVCC | accepted |
 | [0037](0037-where-logs-go-and-what-shouts.md) | log ไปที่ Loki · กฎแจ้งเตือนอยู่ที่ ruler | accepted |
+| [0038](0038-mit-license.md) | เผยแพร่ด้วย MIT · core ต้องไม่มีภาระ copyleft | accepted |
