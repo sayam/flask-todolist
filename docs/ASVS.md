@@ -76,14 +76,14 @@ PYTHONPATH=. pipenv run python scripts/build_asvs_worksheet.py           # เ�
 ทุกข้อที่มีสถานะ `ยังไม่ผ่าน` ในตารางต้องมีชื่ออยู่ตรงนี้ (`tests/test_asvs.py`
 บังคับ) — ข้อที่ซ่อนอยู่กลางตาราง 253 แถวคือข้อที่ไม่มีใครกลับมาทำ
 
-ผลรวมของการประเมิน: **ผ่าน 132 · ไม่เกี่ยวข้อง 69 · ยังไม่ผ่าน 52** จาก 253 ข้อ
+ผลรวมของการประเมิน: **ผ่าน 137 · ไม่เกี่ยวข้อง 67 · ยังไม่ผ่าน 49** จาก 253 ข้อ
 
-ช่องที่ยังไม่ผ่านทั้ง 52 ข้ออยู่ในตารางนี้ครบ จัดกลุ่มตาม *สิ่งที่ต้องทำ*
+ช่องที่ยังไม่ผ่านทั้ง 49 ข้ออยู่ในตารางนี้ครบ จัดกลุ่มตาม *สิ่งที่ต้องทำ*
 ไม่ใช่ตามหมวดของ ASVS เพราะข้อที่อยู่คนละหมวดมักถูกปลดล็อกด้วยงานชิ้นเดียวกัน
 
 | กลุ่ม | ข้อ | สาระ | ปลดล็อกด้วย |
 |---|---|---|---|
-| **เอกสารที่ยังไม่ได้เขียน** | V2.1.1 · V2.1.2 · V2.1.3 · V2.3.2 · V6.1.2 · V6.2.11 · V7.1.2 · V7.1.3 · V8.1.2 · V11.1.1 · V11.1.2 · V11.2.2 · V12.2.2 · V13.1.1 · V13.3.2 · V15.1.3 · V15.2.2 · V16.1.1 · V16.2.3 | กฎมีอยู่จริงในโค้ดเกือบทุกข้อ แต่ **ไม่มีที่ไหนประกาศไว้ให้คนที่ไม่ได้อ่านโค้ดรู้** — ครึ่งหนึ่งของช่องที่ไม่ผ่านทั้งหมดเป็นแบบนี้ | **P7-04 ทำส่วนกรอบเวลาแก้ช่องโหว่ไปแล้ว** ที่เหลือรอ P7-08 (ROPA + บัญชีรายการ log + นโยบายกุญแจ) |
+| **เอกสารที่ยังไม่ได้เขียน** | V2.1.1 · V2.1.2 · V2.1.3 · V2.3.2 · V6.1.2 · V6.2.11 · V7.1.2 · V7.1.3 · V8.1.2 · V11.1.1 · V11.1.2 · V11.2.2 · V12.2.2 · V13.1.1 · V13.3.2 · V15.1.3 · V15.2.2 | กฎมีอยู่จริงในโค้ดเกือบทุกข้อ แต่ **ไม่มีที่ไหนประกาศไว้ให้คนที่ไม่ได้อ่านโค้ดรู้** — ครึ่งหนึ่งของช่องที่ไม่ผ่านทั้งหมดเป็นแบบนี้ | **P7-04 ทำส่วนกรอบเวลาแก้ช่องโหว่ไปแล้ว** ที่เหลือรอ P7-08 (ROPA + บัญชีรายการ log + นโยบายกุญแจ) |
 | **ลายเซ็นของ ID token** | V6.8.2 · V9.1.1 · V9.1.2 | เบี่ยงโดยตั้งใจตาม `ADR 0028` (ยืนยันด้วย TLS ตาม OIDC Core 3.1.3.7) ซึ่ง **OIDC อนุญาตแต่ ASVS ไม่ยกเว้นให้** | ตัดสินใจใหม่พร้อม ADR — บังคับทันทีถ้าวันหนึ่งรับ token ผ่านเบราว์เซอร์ |
 | **การตรวจที่ขาดไปทีละนิด** | V9.2.1 · V10.5.3 · V6.8.4 | ไม่ตรวจ nbf · ไม่เทียบฟิลด์ issuer ในเอกสาร discovery · ไม่อ่าน acr/amr/auth_time และไม่มีทางถอยที่ประกาศไว้ | งานเล็กสามชิ้น ทำได้เลย แต่ละชิ้นต้องมีเทสต์ของตัวเอง |
 | **ต้องมี session store ฝั่ง server ก่อน** | V7.4.1 · V7.4.3 · V7.4.5 · V7.5.2 · V7.6.1 | logout ไม่ฆ่าคุกกี้ที่ถูกดักไว้ · ไม่มีหน้า "อุปกรณ์ที่ login อยู่" · ผู้ดูแลจบ session ของคนอื่นไม่ได้ · ปิด MFA ไม่ไล่ session อื่น | `ADR 0020` บันทึกไว้แล้วว่าต้องมี store ก่อน — เป็นงานของเฟสถัดไป |
@@ -605,7 +605,7 @@ PYTHONPATH=. pipenv run python scripts/build_asvs_worksheet.py           # เ�
 
 | ข้อ | L | ข้อกำหนด | สถานะ | หลักฐาน / เหตุผล |
 |---|---|---|---|---|
-| V13.1.1 | 2 | Verify that all communication needs for the application are documented. This must include external services which the application relies upon and cases where an end user might be able to provide an external location to which the application will then connect. | ยังไม่ผ่าน | ปลายทางที่แอปคุยด้วยกระจายอยู่ในหลายที่ (`compose.yaml`, `docs/OPERATIONS.md`, manifest ของ plugin) แต่ **ยังไม่มีที่เดียวที่รวมไว้** รวมถึงกรณีที่ผู้ใช้เป็นคนบอกปลายทาง (issuer ของ OIDC มาจาก config ของผู้ติดตั้ง) |
+| V13.1.1 | 2 | Verify that all communication needs for the application are documented. This must include external services which the application relies upon and cases where an end user might be able to provide an external location to which the application will then connect. | ผ่าน | ปลายทางทุกตัวที่ระบบคุยด้วยอยู่ในตารางเดียวใน `docs/ROPA.md` ข้อ 4 พร้อมบอกว่าส่งอะไรออกไปและเข้ารหัสหรือยัง · **ทุกตัวเลือกด้วย config ตัวเดียว ไม่มีปลายทางที่ฝังในโค้ด** — `tests/test_ropa.py::test_every_outward_destination_is_listed` บังคับว่าคีย์ใหม่ต้องถูกบันทึก |
 
 ### V13.2 Backend Communication Configuration
 
@@ -696,7 +696,7 @@ PYTHONPATH=. pipenv run python scripts/build_asvs_worksheet.py           # เ�
 
 | ข้อ | L | ข้อกำหนด | สถานะ | หลักฐาน / เหตุผล |
 |---|---|---|---|---|
-| V16.1.1 | 2 | Verify that an inventory exists documenting the logging performed at each layer of the application's technology stack, what events are being logged, log formats, where that logging is stored, how it is used, how access to it is controlled, and for how long logs are kept. | ยังไม่ผ่าน | มีรูปแบบ (`ADR 0011`) และระยะเก็บรักษา (`docs/DATA-CLASSIFICATION.md`) แล้ว แต่ยังไม่มี *บัญชีรายการ* รวมที่บอกว่าชั้นไหนเขียน log อะไร เก็บที่ไหน ใครเข้าถึงได้ — จะทำพร้อม ROPA (P7-08) |
+| V16.1.1 | 2 | Verify that an inventory exists documenting the logging performed at each layer of the application's technology stack, what events are being logged, log formats, where that logging is stored, how it is used, how access to it is controlled, and for how long logs are kept. | ผ่าน | บัญชีรายการของ log อยู่ใน `docs/ROPA.md` ข้อ 3 — บอกครบว่าชั้นไหนเขียนอะไร รูปแบบไหน ไปที่ไหน ใครอ่านได้ และเก็บนานเท่าไร · `tests/test_ropa.py::test_the_log_inventory_answers_the_four_questions` บังคับว่าตอบครบทั้งสี่คำถาม และบังคับให้เขียนปลายทาง**จริง** (stdout) ไม่ใช่ปลายทางที่ตั้งใจจะมี |
 
 ### V16.2 General Logging
 
@@ -704,7 +704,7 @@ PYTHONPATH=. pipenv run python scripts/build_asvs_worksheet.py           # เ�
 |---|---|---|---|---|
 | V16.2.1 | 2 | Verify that each log entry includes necessary metadata (such as when, where, who, what) that would allow for a detailed investigation of the timeline when an event happens. | ผ่าน | `app/logging_setup.py` · `tests/test_logging.py::test_log_has_the_agreed_fields` · `tests/test_logging.py::test_log_records_the_status_and_path` · `ADR 0011` |
 | V16.2.2 | 2 | Verify that time sources for all logging components are synchronized, and that timestamps in security event metadata use UTC or include an explicit time zone offset. UTC is recommended to ensure consistency across distributed systems and to prevent confusion during daylight saving time transitions. | ผ่าน | UTC เสมอพร้อมตัว "Z" ท้ายสตริง ไม่ขึ้นกับโซนของเครื่องที่รัน — `tests/test_logging.py::test_timestamp_is_utc_not_local_time` |
-| V16.2.3 | 2 | Verify that the application only stores or broadcasts logs to the files and services that are documented in the log inventory. | ยังไม่ผ่าน | ตอนนี้ออก stdout ทางเดียว ซึ่งถูก แต่ข้อนี้วัดกับ *บัญชีรายการ* ที่ยังไม่มี (V16.1.1) — ยืนยันไม่ได้จนกว่าจะมีสิ่งที่ให้เทียบ |
+| V16.2.3 | 2 | Verify that the application only stores or broadcasts logs to the files and services that are documented in the log inventory. | ผ่าน | ปลายทางเดียวคือ stdout และมันถูกประกาศไว้ในบัญชีรายการแล้ว — `docs/ROPA.md` · `app/logging_setup.py` · `tests/test_ropa.py::test_the_log_inventory_answers_the_four_questions` |
 | V16.2.4 | 2 | Verify that logs can be read and correlated by the log processor that is in use, preferably by using a common logging format. | ผ่าน | JSON บรรทัดละ event + request_id ที่ correlate ได้ — `ADR 0011` · `tests/test_logging.py::test_log_line_is_valid_json` · `tests/test_logging.py::test_log_id_matches_response_header` |
 | V16.2.5 | 2 | Verify that when logging sensitive data, the application enforces logging based on the data's protection level. For example, it may not be allowed to log certain data, such as credentials or payment details. Other data, such as session tokens, may only be logged by being hashed or masked, either in full or partially. | ผ่าน | ชั้นข้อมูลตัดสินว่าอะไรลง log ได้ — `docs/DATA-CLASSIFICATION.md` · `ADR 0014` · `tests/test_logging.py::test_log_uses_username_not_real_name` (ชื่อจริงห้ามหลุด, actor เก็บ username) |
 
