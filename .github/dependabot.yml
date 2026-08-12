@@ -1,0 +1,29 @@
+# Dependabot version updates — **เปิดไว้เฉพาะ GitHub Actions โดยตั้งใจ**
+#
+# ทำไมไม่เปิดกับ pip ด้วย: version update ของ pip จะเปิด PR ทุกครั้งที่ dependency
+# ตัวใดตัวหนึ่งออกรุ่นใหม่ ซึ่งกับ lock ที่มีร้อยกว่า package แปลว่า PR แทบทุกวัน
+# ในโปรเจกต์ที่มีคนดูแลคนเดียว · **security update ของ pip เปิดอยู่แล้ว**
+# (ตั้งในหน้า repo ไม่ใช่ในไฟล์นี้) ซึ่งตอบคำถามที่เร่งด่วนจริงคือ "มี CVE ไหม"
+#
+# ทำไมเปิดกับ actions: action ที่ค้างรุ่นเป็นความเสี่ยง supply chain โดยตรง —
+# มันรันด้วยสิทธิ์ของ workflow เรา และ **จำนวน PR น้อยมาก** เพราะมีสิบกว่าตัว
+# ที่ pin ไว้ที่ major เท่านั้น (ไม่ใช่ทุกรุ่นย่อย)
+#
+# **`commit-message.prefix` ต้องเป็นชนิดที่ `scripts/lint_commits.py` รับ**
+# ไม่งั้น PR ของ Dependabot จะแดงที่ job `commit-lint` ทุกใบตั้งแต่ใบแรก
+# แล้วคนดูแลจะเรียนรู้ที่จะเมินมัน — `tests/test_dependabot.py` บังคับข้อนี้ไว้
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "ci"
+    # รวมทุกตัวไว้ใน PR เดียวต่อสัปดาห์ — action มักขยับพร้อมกันเป็นชุด
+    # และ PR ห้าใบที่แก้เรื่องเดียวกันคือห้าใบที่ไม่มีใครอ่านสักใบ
+    groups:
+      actions:
+        patterns:
+          - "*"
+    open-pull-requests-limit: 3
