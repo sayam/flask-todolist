@@ -234,3 +234,34 @@ def test_the_filename_never_comes_from_the_user(app):
         nasty = User(username="../../etc/passwd")
         assert "/" not in personal_data.filename_for(nasty)
         assert ".." not in personal_data.filename_for(nasty)
+
+
+def test_a_plugin_that_fails_does_not_take_the_whole_request_down(app, owner, monkeypatch):
+    """**คนที่ขอสำเนาข้อมูลตัวเองต้องได้ส่วนที่เหลือ** ไม่ใช่ได้ 500 เพราะ plugin ที่เขาไม่เคยใช้พัง
+
+    (ตรงข้ามกับตอนลบบัญชี ซึ่งต้องล้มดัง — บัญชีที่ "ปิดแล้ว" แต่ความลับยังอยู่
+    แย่กว่าการบอกว่าปิดไม่สำเร็จ ดู tests/test_close_account.py)
+    """
+    from app import plugins
+
+    def explode(_user):
+        raise RuntimeError("plugin นี้พังโดยตั้งใจ")
+
+    real_load = plugins.load_module
+
+    def broken(plugin, module_name):
+        module = real_load(plugin, module_name)
+        if module_name == personal_data.CONTRIBUTOR_MODULE and module is not None:
+            monkeypatch.setattr(module, "export_for", explode, raising=False)
+        return module
+
+    monkeypatch.setattr(plugins, "load_module", broken)
+
+    with app.app_context():
+        payload = personal_data.export(owner)
+
+    assert payload["account"]["username"] == "tester", "ส่วนที่เหลือต้องยังได้ครบ"
+    assert payload["todos"], "งานของเขาต้องยังอยู่ในไฟล์"
+    assert any("error" in section for section in payload["plugins"].values()), (
+        "ต้องบอกในไฟล์ว่าส่วนไหนดึงไม่สำเร็จ ไม่ใช่เงียบแล้วให้เข้าใจว่าไม่มีข้อมูลส่วนนั้น"
+    )

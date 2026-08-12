@@ -705,3 +705,21 @@ def test_two_connections_appending_at_once_do_not_collide(app):
     with app.app_context():
         # `verify_chain()` คืนจำนวนแถวที่ตรวจแล้ว และ raise ถ้าสายขาด
         assert audit.verify_chain() >= 2, "สาย audit ต้องยังต่อกันถูกต้องหลังเขียนขนาน"
+
+
+def test_a_missing_lock_row_stops_the_write_instead_of_letting_it_through(app):
+    """**ไม่มีแถวล็อก = ไม่มีอะไรกั้นการเขียน** จึงต้องดังทันที ไม่ใช่เดินต่อ (ADR 0035)
+
+    แถวนี้เกิดพร้อมตารางเสมอ การหายไปแปลว่ามีคนลบมัน หรือ migration ไม่ได้ถูกรัน
+    — ถ้าเดินต่อเงียบ ๆ ผู้เขียนหลายรายจะต่อสายพร้อมกันแล้วกลายเป็น 500 ของผู้ใช้
+    ในวันที่มีคนใช้พร้อมกัน ซึ่งไล่กลับมาหาต้นเหตุยากกว่ามาก
+    """
+    from app import db
+
+    with app.app_context():
+        lock = audit.AuditChainLock.__table__
+        db.session.connection().execute(lock.delete())
+
+        with pytest.raises(RuntimeError, match="แถวล็อก"):
+            audit.record("test.no_lock", table_name="tdl_user", row_id=1)
+        db.session.rollback()
