@@ -4,6 +4,9 @@
 ถ้าเทสต์ไทยแดงขึ้นมาให้เช็คก่อนว่าลืมรัน `pybabel compile` หรือเปล่า
 """
 
+import pathlib
+import subprocess
+
 from app import db
 from app.models import User
 from tests.conftest import PASSWORD
@@ -182,8 +185,6 @@ def test_thai_catalog_has_no_untranslated_or_fuzzy_entries():
 
     (catalog en ไม่ต้องมีคำแปล เพราะ msgid เป็นภาษาอังกฤษอยู่แล้ว)
     """
-    import pathlib
-
     po = pathlib.Path(__file__).resolve().parent.parent / (
         "app/translations/th/LC_MESSAGES/messages.po"
     )
@@ -195,3 +196,98 @@ def test_thai_catalog_has_no_untranslated_or_fuzzy_entries():
 
     empty = [msgid for _, msgid, msgstr in entries if not msgstr]
     assert not empty, f"มี msgid ที่ยังไม่ได้แปล: {empty}"
+
+
+# --- catalog ต้องครอบข้อความที่มีอยู่ในโค้ดจริง ---
+
+# ต้องตรงกับคำสั่งใน CLAUDE.md เป๊ะ:
+#   pybabel extract -F babel.cfg -k _l -k _ -k ngettext:1,2 -o messages.pot .
+# ถ้าสองอย่างนี้ต่างกัน ด่านนี้จะตรวจของคนละชุดกับที่คนรันจริง
+EXTRA_KEYWORDS = {"_l": None, "_": None, "ngettext": (1, 2)}
+METHOD_MAP = [("**.py", "python"), ("**/templates/**.html", "jinja2")]
+
+
+def _msgids_in_code():
+    """ข้อความทุกตัวที่ตัว extract ของ babel มองเห็นในโค้ด
+
+    เรียก API ของ babel ตรง ๆ แทนการ shell out — ผลต้องเท่ากับที่ CLI ให้
+    (มีเทสต์ข้างล่างเทียบกับ .pot ที่ CLI สร้าง เพื่อไม่ให้สองทางนี้เพี้ยนจากกัน)
+    """
+    from babel.messages.extract import DEFAULT_KEYWORDS, extract_from_dir
+
+    root = pathlib.Path(__file__).resolve().parent.parent
+    keywords = {**DEFAULT_KEYWORDS, **EXTRA_KEYWORDS}
+    found = set()
+    for _filename, _lineno, message, _comments, _context in extract_from_dir(
+        str(root), METHOD_MAP, keywords=keywords
+    ):
+        # ngettext คืน tuple (เอกพจน์, พหูพจน์) — catalog เก็บด้วย msgid เอกพจน์
+        found.add(message[0] if isinstance(message, tuple) else message)
+    return {message for message in found if message}
+
+
+def test_the_catalog_covers_every_message_in_the_code():
+    """**ข้อความใหม่ที่ไม่เคยถูก extract จะตกกลับเป็นภาษาอังกฤษเงียบ ๆ**
+
+    ด่านเดิมตรวจว่า catalog ไม่มีช่องว่าง แต่ไม่ได้ตรวจว่า catalog *ครอบโค้ดครบ*
+    — ข้อความของ SSO/LDAP ทั้งชุดจาก Phase 5 จึงไม่เคยเข้า catalog เลย และ
+    ผู้ใช้ภาษาไทยเห็นภาษาอังกฤษมาตลอดโดยไม่มีอะไรฟ้อง (เจอตอน P7-03)
+
+    หลักเดียวกับ `docs/openapi.json`: ของที่ต้อง generate แล้วไม่มีอะไรเทียบกับ
+    ต้นทาง ย่อมค้างอยู่กับสภาพของวันที่มีคนนึกขึ้นได้ครั้งสุดท้าย
+    """
+    po = pathlib.Path(__file__).resolve().parent.parent / (
+        "app/translations/th/LC_MESSAGES/messages.po"
+    )
+    catalog = {msgid for _flags, msgid, _msgstr in _entries(po.read_text())}
+    missing = sorted(_msgids_in_code() - catalog)
+    assert not missing, (
+        f"ข้อความที่อยู่ในโค้ดแต่ไม่มีใน catalog ({len(missing)} ข้อความ):\n"
+        + "\n".join(missing[:10])
+        + "\nรัน pybabel extract/update/compile ตามขั้นตอนใน CLAUDE.md แล้วแปลให้ครบ"
+    )
+
+
+def test_the_gate_reads_the_same_messages_as_the_command_people_run():
+    """ด่านที่อ่านคนละชุดกับคำสั่งจริง คือด่านที่เขียวโดยไม่ได้ตรวจของที่ใช้อยู่
+
+    รัน pybabel ของจริงแล้วเทียบ — ถ้าวันหนึ่ง babel.cfg หรือ keyword เปลี่ยน
+    แล้วมีคนลืมแก้ที่นี่ ตัวนี้จะเป็นคนบอก
+    """
+    root = pathlib.Path(__file__).resolve().parent.parent
+    pot = root / "messages.pot"
+    before = pot.read_text() if pot.exists() else None
+    try:
+        # S603/S607: อาร์กิวเมนต์ทุกตัวเป็นค่าคงที่ในไฟล์นี้ ไม่มีอะไรมาจากภายนอก
+        # และเจตนาคือเรียก `pybabel` ตัวเดียวกับที่คนพิมพ์เอง จึงต้องหาจาก PATH
+        subprocess.run(  # noqa: S603
+            [  # noqa: S607
+                "pybabel",
+                "extract",
+                "-F",
+                "babel.cfg",
+                "-k",
+                "_l",
+                "-k",
+                "_",
+                "-k",
+                "ngettext:1,2",
+                "-o",
+                str(pot),
+                ".",
+            ],
+            cwd=root,
+            check=True,
+            capture_output=True,
+        )
+        from_command = {msgid for _flags, msgid, _msgstr in _entries(pot.read_text())}
+    finally:
+        if before is None:
+            pot.unlink(missing_ok=True)
+        else:
+            pot.write_text(before)
+
+    assert from_command == _msgids_in_code(), (
+        "ชุดข้อความที่ด่านนี้อ่าน ไม่ตรงกับที่คำสั่งใน CLAUDE.md ให้ผล — "
+        "แก้ METHOD_MAP/EXTRA_KEYWORDS ให้ตรงกับคำสั่งนั้น"
+    )

@@ -283,6 +283,12 @@ pipenv run pybabel update -i messages.pot -d app/translations
 # แก้คำแปลใน app/translations/*/LC_MESSAGES/messages.po
 pipenv run pybabel compile -d app/translations
 ```
+- **`tests/test_i18n.py` บังคับสองเรื่องที่ต่างกัน**: catalog ไม่มีช่องว่าง/fuzzy
+  **และ catalog ครอบ msgid ที่มีในโค้ดครบ** — ข้อหลังเพิ่มทีหลัง (P7-03b) เพราะ
+  ข้อความของ SSO/LDAP ทั้งชุดจาก Phase 5 ไม่เคยถูก extract เข้า catalog เลย
+  ผู้ใช้ภาษาไทยเห็นภาษาอังกฤษมาตลอดโดยไม่มีอะไรฟ้อง
+  · ด่านนั้นอ่านด้วย API ของ babel และ **มีเทสต์อีกตัวเทียบว่ามันอ่านชุดเดียวกับ
+  คำสั่งที่คนพิมพ์จริง** — ด่านที่ตรวจของคนละชุดกับที่ใช้อยู่คือด่านที่เขียวเปล่า ๆ
 - **ไฟล์ `.mo` ถูก commit ลง git ด้วย** เพื่อให้ clone แล้วรันได้เลย
   แก้ `.po` แล้วต้อง compile ใหม่ ไม่งั้นคำแปลจะไม่เปลี่ยน — `tests/test_i18n.py` ดักไว้
 - **ระวัง `#, fuzzy`** — `pybabel update` จะเดาคำแปลให้จากข้อความที่คล้ายกัน
