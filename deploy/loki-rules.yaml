@@ -1,0 +1,52 @@
+# กฎแจ้งเตือนพื้นฐาน (Phase 7 · P7-10 — ADR 0037)
+#
+# **ทุกกฎต้องตอบได้ว่า "ดังแล้วต้องไปทำอะไร"** ไม่ใช่แค่ "มีอะไรผิดปกติ" —
+# กฎที่ดังแล้วไม่มีใครรู้ว่าต้องทำอะไรต่อ จะถูกปิดเสียงภายในสองสัปดาห์
+# แล้วกฎที่เหลือก็ถูกมองข้ามไปด้วย
+
+groups:
+  - name: todolist
+    # ประเมินถี่กว่าปกติเพราะระบบเล็ก และเพราะด่านใน CI ต้องรอผลได้ในเวลาที่ยอมรับได้
+    interval: 15s
+    rules:
+      - alert: LoginFailuresBurst
+        # ล้มเหลวหลายครั้งในเวลาสั้น = มีคนไล่เดารหัส หรือมีคนถูกล็อกออกจากบัญชีตัวเอง
+        # ทั้งสองอย่างต้องมีคนดู · โควตาต่อ IP/ต่อชื่อกันการเดาไว้แล้ว (ADR 0021)
+        # กฎนี้จึงมีไว้ให้ "รู้ว่ากำลังเกิด" ไม่ใช่เพื่อกัน
+        #
+        # **ต้องนับ 429 ด้วย ไม่ใช่แค่ 401** — โควตาตัดที่ 5 ครั้ง คำขอที่เหลือ
+        # จึงกลายเป็น 429 ทั้งหมด · กฎที่นับแต่ความล้มเหลวจะนับได้น้อยลงเรื่อย ๆ
+        # ยิ่งคนยิงหนักขึ้น แล้วเงียบสนิทพอดีตอนที่การโจมตีหนักที่สุด
+        # (วัดมาแล้ว: ยิง 12 ครั้งได้ 401 ห้าครั้ง 429 เจ็ดครั้ง)
+        expr: |
+          sum(count_over_time({service="app"} |= `"path": "/login"` | json | status =~ `401|429` [1m])) > 5
+        for: 0s
+        labels:
+          severity: warning
+        annotations:
+          summary: "login ล้มเหลวถี่ผิดปกติ"
+          runbook: "docs/RUNBOOK-BREACH.md — ดูข้อ 1 ถ้าสงสัยว่าบัญชีใดถูกยึด"
+
+      - alert: ServerErrors
+        # 5xx แม้ครั้งเดียวก็ต้องมีคนดู เพราะระบบนี้ไม่ควรมีเลย —
+        # ทุกความล้มเหลวที่คาดไว้ถูกแปลงเป็น 4xx ที่ service แล้ว (ADR 0016)
+        expr: |
+          sum(count_over_time({service="app"} | json | status =~ `5..` [1m])) > 0
+        for: 0s
+        labels:
+          severity: critical
+        annotations:
+          summary: "แอปตอบ 5xx"
+          runbook: "หา request_id จาก log บรรทัดนั้นแล้วไล่ดู traceback ที่ request_id เดียวกัน"
+
+      - alert: UnhandledException
+        # traceback ที่ถูกกลบด้วยหน้า error สวย ๆ ยังเป็นบั๊กอยู่ดี —
+        # หลักเดียวกับด่าน "แอปต้องไม่ระเบิด" ของ job `dast`
+        expr: |
+          sum(count_over_time({service="app"} |= `Traceback` [1m])) > 0
+        for: 0s
+        labels:
+          severity: critical
+        annotations:
+          summary: "แอปพ่น traceback"
+          runbook: "docs/RUNBOOK-BREACH.md ข้อ 2 — คัดลอก log ออกมาก่อน restart"

@@ -1062,6 +1062,91 @@ jobs:
         if: always()
         run: $TLS down -v --remove-orphans
 
+  siem:
+    # **ต่อท่อ log เข้าที่เก็บจริง แล้วพิสูจน์ว่ากฎแจ้งเตือนดังจริง** (P7-10 · ADR 0037)
+    #
+    # ด่านนี้ต้องเดินสองทิศเหมือนทุกด่านในโปรเจกต์: เงียบตอนที่ควรเงียบ และดัง
+    # ตอนที่ควรดัง — ระบบแจ้งเตือนที่ไม่เคยเห็นมันดังคือระบบที่ไม่มีใครรู้ว่ามันตายไปแล้ว
+    runs-on: ubuntu-latest
+    env:
+      SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
+      DB_PASSWORD: ci-only-db-password
+      DB_ROOT_PASSWORD: ci-only-root-password
+      GRAFANA_PASSWORD: ci-only-grafana-password
+      C: docker compose -f compose.yaml -f compose.mysql.yaml -f compose.siem.yaml
+    steps:
+      - uses: actions/checkout@v7
+      - name: ขึ้น stack พร้อมปลายทางของ log
+        run: |
+          $C up -d --build --quiet-pull
+          for _ in $(seq 1 40); do
+            bad=$($C ps --format '{{.Service}}:{{.Health}}' | grep -E ':(starting|unhealthy)' || true)
+            [ -z "$bad" ] && break
+            sleep 5
+          done
+          $C ps --format '{{.Service}}\t{{.Status}}'
+      - name: migrate แล้วสร้างผู้ใช้
+        run: |
+          $C run --rm app flask db upgrade
+          printf 'ci-siem-verification-phrase\nci-siem-verification-phrase\n' \
+            | $C run --rm -T app flask create-user somchai
+      - name: log ของแอปต้องไปถึงที่เก็บจริง
+        # **ถามที่ปลายทาง ไม่ใช่ดูว่าตัวเก็บ start ขึ้น** — ตัวเก็บที่รันอยู่แต่
+        # อ่านไม่เจอไฟล์ไหนเลยก็ "ทำงานปกติ" ในสายตาของ docker
+        run: |
+          for _ in $(seq 1 30); do
+            lines=$($C exec -T loki wget -qO- \
+              'http://127.0.0.1:3100/loki/api/v1/query_range?query=%7Bservice%3D%22app%22%7D&limit=5' \
+              | grep -c 'http_request' || true)
+            [ "$lines" != "0" ] && break
+            sleep 5
+          done
+          [ "$lines" != "0" ] || { echo "log ของแอปไม่ถึง Loki เลย"; $C logs logs | tail -40; exit 1; }
+          echo "เจอ log ของแอปที่ปลายทางแล้ว"
+      - name: กฎทุกข้อต้องย่อยได้และประเมินผ่าน
+        # LogQL ที่พิมพ์ผิดจะโหลดขึ้นแต่ประเมินไม่ได้ — ruler บอกด้วย health/lastError
+        run: |
+          rules=$($C exec -T loki wget -qO- 'http://127.0.0.1:3100/prometheus/api/v1/rules')
+          echo "$rules" | grep -q '"health":"err"' && { echo "มีกฎที่ประเมินไม่ผ่าน: $rules"; exit 1; }
+          echo "$rules" | grep -q '"lastError":"[^"]' && { echo "มีกฎที่ error: $rules"; exit 1; }
+          for rule in LoginFailuresBurst ServerErrors UnhandledException; do
+            echo "$rules" | grep -q "$rule" || { echo "ไม่เจอกฎ $rule"; exit 1; }
+          done
+          echo "กฎครบและประเมินผ่านทุกข้อ"
+      - name: ก่อนทำอะไรต้องยังไม่มีอะไรดัง
+        run: |
+          alerts=$($C exec -T loki wget -qO- 'http://127.0.0.1:3100/prometheus/api/v1/alerts')
+          echo "$alerts" | grep -q '"state":"firing"' && { echo "มี alert ดังอยู่ก่อนแล้ว: $alerts"; exit 1; }
+          echo "เงียบตามที่ควรเงียบ"
+      - name: ยิงรหัสผิดรัว ๆ แล้วต้องได้ยินเสียง
+        run: |
+          $C exec -T redis redis-cli FLUSHALL
+          for n in $(seq 1 12); do
+            jar=$(mktemp)
+            token=$(curl -sf -c "$jar" http://127.0.0.1:8000/login \
+              | grep -oP 'name="csrf_token"[^>]*value="\K[^"]+' | head -1)
+            curl -s -b "$jar" -o /dev/null -X POST \
+              -d "username=somchai&password=wrong-$n&csrf_token=$token" \
+              http://127.0.0.1:8000/login
+          done
+          for _ in $(seq 1 24); do
+            alerts=$($C exec -T loki wget -qO- 'http://127.0.0.1:3100/prometheus/api/v1/alerts')
+            echo "$alerts" | grep -q 'LoginFailuresBurst' && { echo "$alerts"; exit 0; }
+            sleep 10
+          done
+          echo "ยิงรหัสผิด 12 ครั้งแล้วแต่ไม่มีอะไรดัง — ท่อขาดที่ไหนสักที่"
+          $C logs logs | tail -30
+          exit 1
+      - name: หน้าจอสำหรับคนต้องต่อกับที่เก็บได้จริง
+        if: ${{ !cancelled() }}
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' -u "admin:$GRAFANA_PASSWORD" \
+            http://127.0.0.1:3000/api/datasources/name/Loki)
+          [ "$code" = "200" ] || { echo "Grafana ไม่รู้จัก datasource Loki ($code)"; exit 1; }
+      - name: เก็บกวาด
+        if: always()
+        run: $C down -v --remove-orphans
+
   secret-scan:
     runs-on: ubuntu-latest
     steps:

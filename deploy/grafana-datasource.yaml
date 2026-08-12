@@ -1,0 +1,13 @@
+# ต่อ Grafana เข้ากับ Loki ให้เอง (Phase 7 · P7-10)
+# **ไม่มีขั้นตอนที่ต้องคลิก** — ขั้นตอนที่ต้องทำด้วยมือคือขั้นตอนที่จะถูกลืม
+# ตอนตั้ง stack ใหม่ แล้วคนที่มาหลังจะไม่รู้ว่าเคยมีอะไรตั้งไว้
+
+apiVersion: 1
+
+datasources:
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    isDefault: true
+    editable: false

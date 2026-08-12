@@ -1,0 +1,38 @@
+// ตัวเก็บ log ของ stack (Phase 7 · P7-10 — ADR 0037)
+//
+// **อ่านจากไฟล์ที่ docker เขียนไว้ ไม่ได้ให้แอปส่งเอง** — แอปยังออก stdout
+// อย่างเดียวเหมือนเดิม จึงไม่รู้จักปลายทางนี้และถอดทิ้งได้โดยไม่ต้องแก้โค้ด
+
+discovery.docker "containers" {
+  host             = "unix:///var/run/docker.sock"
+  refresh_interval = "5s"
+}
+
+// label ที่ค้นด้วยตอนเกิดเหตุ — ชื่อ service ของ compose ไม่ใช่ชื่อ container
+// เพราะชื่อ container เปลี่ยนทุกครั้งที่ scale (app-1, app-2, ...)
+discovery.relabel "containers" {
+  targets = discovery.docker.containers.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "service"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+}
+
+loki.source.docker "containers" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.containers.output
+  forward_to = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

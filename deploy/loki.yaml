@@ -1,0 +1,60 @@
+# Loki แบบไฟล์เดียวสำหรับ stack ขนาดนี้ (Phase 7 · P7-10 — ADR 0037)
+#
+# **ไม่ใช่ค่าที่เหมาะกับระบบใหญ่** — เก็บลงดิสก์ของตัวเอง ไม่มี object store
+# ไม่มีการแยก component ซึ่งตรงกับขนาดการใช้งานจริงของระบบนี้ (ADR 0031)
+
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+  log_level: warn
+
+common:
+  instance_addr: 127.0.0.1
+  path_prefix: /loki
+  storage:
+    filesystem:
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
+  replication_factor: 1
+  ring:
+    kvstore:
+      store: inmemory
+
+schema_config:
+  configs:
+    - from: 2024-01-01
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+limits_config:
+  # **ระยะเก็บรักษาต้องตรงกับที่ประกาศไว้** — 90 วันตาม docs/DATA-CLASSIFICATION.md
+  # ชั้น C6 · ค่านี้คือสิ่งที่ทำให้ตัวเลขในเอกสารเป็นจริง ไม่ใช่แค่ความตั้งใจ
+  retention_period: 2160h
+  # log ของเราเป็น JSON บรรทัดยาวได้ — ค่าเริ่มต้น 256KB พอ แต่ตั้งไว้ให้ชัด
+  max_line_size: 256KB
+  reject_old_samples: true
+  reject_old_samples_max_age: 168h
+
+compactor:
+  working_directory: /loki/compactor
+  # ต้องเปิดตัวลบ ไม่งั้น retention_period ข้างบนเป็นแค่ตัวเลขในไฟล์
+  retention_enabled: true
+  delete_request_store: filesystem
+
+ruler:
+  storage:
+    type: local
+    local:
+      directory: /etc/loki/rules
+  rule_path: /loki/rules-tmp
+  # **ไม่ส่งต่อไปไหน** — สถานะของกฎถูกอ่านผ่าน API ของ ruler เอง
+  # การส่งอีเมล/แชทเป็นงานของวันที่มีคนรับ ซึ่งยังไม่มี (ดู ADR 0037)
+  enable_api: true
+  ring:
+    kvstore:
+      store: inmemory

@@ -76,9 +76,9 @@ PYTHONPATH=. pipenv run python scripts/build_asvs_worksheet.py           # เ�
 ทุกข้อที่มีสถานะ `ยังไม่ผ่าน` ในตารางต้องมีชื่ออยู่ตรงนี้ (`tests/test_asvs.py`
 บังคับ) — ข้อที่ซ่อนอยู่กลางตาราง 253 แถวคือข้อที่ไม่มีใครกลับมาทำ
 
-ผลรวมของการประเมิน: **ผ่าน 137 · ไม่เกี่ยวข้อง 67 · ยังไม่ผ่าน 49** จาก 253 ข้อ
+ผลรวมของการประเมิน: **ผ่าน 138 · ไม่เกี่ยวข้อง 67 · ยังไม่ผ่าน 48** จาก 253 ข้อ
 
-ช่องที่ยังไม่ผ่านทั้ง 49 ข้ออยู่ในตารางนี้ครบ จัดกลุ่มตาม *สิ่งที่ต้องทำ*
+ช่องที่ยังไม่ผ่านทั้ง 48 ข้ออยู่ในตารางนี้ครบ จัดกลุ่มตาม *สิ่งที่ต้องทำ*
 ไม่ใช่ตามหมวดของ ASVS เพราะข้อที่อยู่คนละหมวดมักถูกปลดล็อกด้วยงานชิ้นเดียวกัน
 
 | กลุ่ม | ข้อ | สาระ | ปลดล็อกด้วย |
@@ -87,7 +87,7 @@ PYTHONPATH=. pipenv run python scripts/build_asvs_worksheet.py           # เ�
 | **ลายเซ็นของ ID token** | V6.8.2 · V9.1.1 · V9.1.2 | เบี่ยงโดยตั้งใจตาม `ADR 0028` (ยืนยันด้วย TLS ตาม OIDC Core 3.1.3.7) ซึ่ง **OIDC อนุญาตแต่ ASVS ไม่ยกเว้นให้** | ตัดสินใจใหม่พร้อม ADR — บังคับทันทีถ้าวันหนึ่งรับ token ผ่านเบราว์เซอร์ |
 | **การตรวจที่ขาดไปทีละนิด** | V9.2.1 · V10.5.3 · V6.8.4 | ไม่ตรวจ nbf · ไม่เทียบฟิลด์ issuer ในเอกสาร discovery · ไม่อ่าน acr/amr/auth_time และไม่มีทางถอยที่ประกาศไว้ | งานเล็กสามชิ้น ทำได้เลย แต่ละชิ้นต้องมีเทสต์ของตัวเอง |
 | **ต้องมี session store ฝั่ง server ก่อน** | V7.4.1 · V7.4.3 · V7.4.5 · V7.5.2 · V7.6.1 | logout ไม่ฆ่าคุกกี้ที่ถูกดักไว้ · ไม่มีหน้า "อุปกรณ์ที่ login อยู่" · ผู้ดูแลจบ session ของคนอื่นไม่ได้ · ปิด MFA ไม่ไล่ session อื่น | `ADR 0020` บันทึกไว้แล้วว่าต้องมี store ก่อน — เป็นงานของเฟสถัดไป |
-| **บันทึกเหตุการณ์ความปลอดภัย** | V16.3.2 · V16.3.3 · V16.4.2 · V16.4.3 | 403/404/429/CSRF ไม่ทิ้งร่องรอยที่ค้นได้ · log ปฏิบัติการอยู่ container เดียวกับแอปที่มันเฝ้า | P7-10 (Loki + Grafana) |
+| **บันทึกเหตุการณ์ความปลอดภัย** | V16.3.2 · V16.3.3 · V16.4.2 | 403/404/429/CSRF ไม่ทิ้งร่องรอยที่ค้นได้ · Loki ยังรันบนเครื่องเดียวกับแอป | ส่ง log ออกไปเครื่องอื่นจริง ๆ |
 | **หัวข้อ HTTP และคุกกี้** | V3.3.1 · V3.3.3 · V3.5.3 · V4.1.2 · V14.3.2 | ไม่มี `__Host-` นำหน้าคุกกี้ · `/lang` กับ `/mode` เป็น GET ที่เขียนโปรไฟล์ · `/api/v1` ถูก redirect http→https แทนที่จะล้ม · หน้าที่มีข้อมูลส่วนตัวไม่ได้ตั้ง no-store | งานเล็กที่ทำได้เลย — แต่ละข้อกระทบพฤติกรรมที่มีเทสต์อยู่แล้ว จึงต้องแก้เทสต์ไปด้วย |
 | **ขาออกและเครือข่าย** | V1.3.6 · V4.2.1 · V12.1.2 · V12.3.1 · V12.3.3 · V12.3.4 · V13.2.1 · V13.2.4 · V13.2.5 · V15.3.2 | แอปคุยกับฐานข้อมูลด้วยรหัสผ่านที่ไม่หมุน · ไม่มี allowlist ของ host ขาออก · `urllib` ตาม redirect ให้เอง · ไม่ประกาศ ssl_ciphers · แอป↔ฐานข้อมูล↔redis และ proxy↔app ยังไม่เข้ารหัส · ไม่มีอะไรพิสูจน์เรื่อง request smuggling | ส่วนใหญ่เป็นงานชั้น deployment · V15.3.2 กับ V1.3.6 เป็นโค้ดและควรทำก่อน |
 | **บัญชีและปัจจัยยืนยันตัว** | V6.4.1 · V6.4.4 | รหัสที่ผู้ดูแลตั้งให้กลายเป็นรหัสถาวรได้ · ไม่มี recovery code และไม่มีกระบวนการยืนยันตัวก่อนปิด MFA ให้ | recovery code คือสิ่งที่ปลดล็อกการบังคับ MFA (`ADR 0033` ข้อ 3) |
@@ -722,8 +722,8 @@ PYTHONPATH=. pipenv run python scripts/build_asvs_worksheet.py           # เ�
 | ข้อ | L | ข้อกำหนด | สถานะ | หลักฐาน / เหตุผล |
 |---|---|---|---|---|
 | V16.4.1 | 2 | Verify that all logging components appropriately encode data to prevent log injection. | ผ่าน | ทุกบรรทัดผ่าน json.dumps จึง escape ให้เอง และ header X-Request-Id ที่รับจากภายนอกถูกทิ้งถ้าไม่ใช่ UUID — `tests/test_logging.py::test_bogus_incoming_id_is_replaced` · `tests/test_logging.py::test_log_line_is_valid_json` |
-| V16.4.2 | 2 | Verify that logs are protected from unauthorized access and cannot be modified. | ยังไม่ผ่าน | สาย audit แก้ไม่ได้จริง (`ADR 0015` · `tests/test_audit.py::test_purge_is_recorded_as_purge`) แต่ **log ปฏิบัติการ** ยังอยู่ที่ stdout ของ container ใครแตะ host ได้ก็แก้ได้ — ต้องมีปลายทางแยกก่อน (P7-10) |
-| V16.4.3 | 2 | Verify that logs are securely transmitted to a logically separate system for analysis, detection, alerting, and escalation. The aim is to ensure that if the application is breached, the logs are not compromised. | ยังไม่ผ่าน | ยังไม่มีปลายทางแยก — log อยู่กับแอปที่มันเฝ้าอยู่ ถ้าเครื่องถูกยึด log ก็ถูกยึดด้วย (P7-10) |
+| V16.4.2 | 2 | Verify that logs are protected from unauthorized access and cannot be modified. | ยังไม่ผ่าน | log ที่ส่งออกไปแล้วแก้ที่ต้นทางไม่ได้ (`ADR 0037`) และสาย audit แก้ไม่ได้จริง (`ADR 0015`) — แต่ Loki เองยังรันอยู่บนเครื่องเดียวกับแอป คนที่ยึดเครื่องได้จึงยังลบของทั้งสองที่ได้ |
+| V16.4.3 | 2 | Verify that logs are securely transmitted to a logically separate system for analysis, detection, alerting, and escalation. The aim is to ensure that if the application is breached, the logs are not compromised. | ผ่าน | log ถูกส่งไปเก็บที่ Loki ซึ่งเป็น service แยกจากแอป — `compose.siem.yaml` · `deploy/alloy.river` · `ADR 0037` · `ci:siem` ยิงจริงทุก push และต้องเห็น alert **ดังจริง** ไม่ใช่แค่ stack ขึ้นได้ · **ข้อจำกัดที่เปิดเผยไว้: ยังอยู่บนเครื่องเดียวกัน** เครื่องที่ถูกยึดทั้งเครื่องยังเข้าถึงทั้งสองอย่างได้ |
 
 ### V16.5 Error Handling
 
