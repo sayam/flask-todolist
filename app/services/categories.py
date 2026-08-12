@@ -13,6 +13,7 @@ query เขียนแบบ SQLAlchemy 2.0 (`select()`) ไม่ใช่ `M
 from flask_babel import gettext as _
 from flask_babel import ngettext
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 
 from app import db
 from app.models import Category, Todo, User
@@ -62,6 +63,28 @@ def _named(user: User, name: str, exclude_id: int | None = None) -> Category | N
     return db.session.scalars(statement.execution_options(**INCLUDE_DELETED)).first()
 
 
+def _commit_unique(name: str) -> None:
+    """commit แล้วแปลงการชนกุญแจ unique ให้เป็น ConflictError แทนที่จะเป็น 500
+
+    **การตรวจล่วงหน้ามีไว้ให้ข้อความอ่านรู้เรื่อง ไม่ใช่เพื่อกันการชน** —
+    ระหว่างที่เราตรวจแล้วยังไม่ commit คำขออีกใบ (อาจอยู่คนละ replica) จองชื่อ
+    เดียวกันไปได้เสมอ · ตัวที่ตัดสินจริงคือ `uq_category_user_name` และเราต้อง
+    ยอมให้มันพูด ไม่ใช่ปล่อยให้คำที่มันพูดกลายเป็น 500 ของผู้ใช้
+
+    job `dast` เป็นคนหาเจอ: ZAP กด submit ฟอร์มเปลี่ยนชื่อพร้อมกันจากสอง replica
+    แล้วได้ `Duplicate entry '1-ZAP'` — เส้นทางที่เทสต์ซึ่งเรียกทีละครั้งไม่มีทางเดินถึง
+    """
+    try:
+        db.session.commit()
+    except IntegrityError as error:
+        db.session.rollback()
+        raise ConflictError(
+            _("Category “%(name)s” already exists", name=name),
+            code="category_exists",
+            field="name",
+        ) from error
+
+
 def create_category(user: User, name: str | None) -> Category:
     """สร้างหมวดใหม่ — ชื่อที่ตรงกับหมวดที่ถูกลบไปแล้ว **กู้หมวดนั้นคืนมา**
 
@@ -79,11 +102,11 @@ def create_category(user: User, name: str | None) -> Category:
                 field="name",
             )
         existing.deleted_at = None  # audit บันทึกเป็น category.restore ให้เอง
-        db.session.commit()
+        _commit_unique(cleaned)
         return existing
     category = Category(name=cleaned, user_id=user.id)
     db.session.add(category)
-    db.session.commit()
+    _commit_unique(cleaned)
     return category
 
 
@@ -108,7 +131,7 @@ def rename_category(user: User, category_id: int, name: str | None) -> Category:
             field="name",
         )
     category.name = cleaned
-    db.session.commit()
+    _commit_unique(cleaned)
     return category
 
 

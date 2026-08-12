@@ -201,6 +201,39 @@ def test_renaming_onto_a_deleted_categorys_name_is_refused_not_a_crash(owner):
     assert other.name == "งานออฟฟิศ", "ชื่อเดิมต้องไม่ถูกแตะเมื่อการเปลี่ยนถูกปฏิเสธ"
 
 
+def test_a_name_taken_between_the_check_and_the_commit_is_a_conflict_not_a_crash(
+    owner, monkeypatch
+):
+    """**การตรวจล่วงหน้ากันการชนไม่ได้ ตัวที่กันคือ unique constraint**
+
+    ระหว่างที่เราตรวจแล้วยังไม่ commit คำขออีกใบจองชื่อเดียวกันไปได้เสมอ —
+    ยิ่งมีหลาย replica ยิ่งเกิดง่าย · job `dast` เจอของจริง: ZAP กด submit
+    ฟอร์มเปลี่ยนชื่อพร้อมกันแล้วได้ 500 จาก `Duplicate entry`
+
+    จำลองด้วยการทำให้การตรวจล่วงหน้า "ไม่เจอ" ทั้งที่มีอยู่จริง ซึ่งเป็นผลลัพธ์
+    เดียวกับที่คำขออีกใบ commit แทรกเข้ามาหลังเราตรวจไปแล้ว
+    """
+    categories_service.create_category(owner, "งานบ้าน")
+    monkeypatch.setattr(categories_service, "_named", lambda *_a, **_kw: None)
+
+    with pytest.raises(ConflictError) as raised:
+        categories_service.create_category(owner, "งานบ้าน")
+    assert raised.value.code == "category_exists"
+
+    # session ต้องใช้ต่อได้หลังถูกปฏิเสธ ไม่ใช่ค้างอยู่ในสถานะที่ commit ไม่ได้
+    assert categories_service.list_categories(owner)
+
+
+def test_renaming_onto_a_name_taken_at_the_last_moment_is_also_a_conflict(owner, monkeypatch):
+    categories_service.create_category(owner, "งานบ้าน")
+    other = categories_service.create_category(owner, "งานออฟฟิศ")
+    monkeypatch.setattr(categories_service, "_named", lambda *_a, **_kw: None)
+
+    with pytest.raises(ConflictError) as raised:
+        categories_service.rename_category(owner, other.id, "งานบ้าน")
+    assert raised.value.code == "category_exists"
+
+
 def test_a_deleted_task_no_longer_blocks_deleting_its_category(owner):
     category = categories_service.create_category(owner, "งานบ้าน")
     todo = todos_service.create_todo(owner, title="ล้างจาน", category_id=category.id)
