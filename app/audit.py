@@ -74,6 +74,10 @@ SOURCE_CLI = "cli"
 # ชั้น C4 — เก็บค่าจริงได้ เพราะเป็นการตั้งค่า/metadata ไม่ระบุตัวบุคคล
 PLAIN_COLUMNS = frozenset(
     {
+        # หางสายที่เก็บบนแถวล็อก — ค่าเดียวกับ `row_hash` ของแถวล่าสุด จึงไม่ใช่
+        # ข้อมูลของใครและไม่ใช่ความลับ · ถ้าวันหนึ่งมันถูกแก้ผ่าน ORM เราอยากเห็น
+        # ค่าจริงในบันทึก ไม่ใช่ HMAC ที่บอกแค่ว่า "มีอะไรเปลี่ยน"
+        "last_hash",
         "id",
         "user_id",
         "category_id",
@@ -95,6 +99,7 @@ PLAIN_COLUMNS = frozenset(
 
 # ชั้น C1 — ห้ามออกจากระบบทุกกรณี บันทึกได้แค่ว่า "มีการเปลี่ยน"
 SECRET_COLUMNS = frozenset({"password_hash", "token_hash"})
+
 
 # ชั้น C2/C3 — เก็บชื่อคอลัมน์ + HMAC ของค่าเก่า/ใหม่
 HASHED_COLUMNS = frozenset(
@@ -158,6 +163,12 @@ class AuditChainLock(db.Model):
     __tablename__ = "tdl_audit_lock"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    # **หางสายอยู่ตรงนี้ ไม่ใช่ที่ `ORDER BY id DESC` ของ tdl_audit**
+    # เพราะใต้ REPEATABLE READ การอ่านแบบธรรมดาเห็น snapshot ที่ตั้งไว้ตั้งแต่
+    # query แรกของ transaction — และคำขอจริงทุกใบอ่านข้อมูลก่อนเขียนเสมอ
+    # snapshot จึงเก่ากว่าตอนที่เราได้ล็อกมา · ส่วน **locking read เห็นค่าล่าสุด
+    # ที่ commit แล้วเสมอ** ค่านี้จึงต้องเดินทางมากับแถวที่เราล็อก ไม่ใช่อ่านแยก
+    last_hash: Mapped[str] = mapped_column(String(HASH_LENGTH), default=GENESIS_HASH)
 
 
 # **แถวต้องมีอยู่ก่อนเสมอ** ไม่งั้นไม่มีอะไรให้ล็อกแล้วทุกคนผ่านไปพร้อมกัน
@@ -349,8 +360,9 @@ def _last_hash(session: SessionLike) -> str:
     connection = session.connection()
     lock = AuditChainLock.__table__
     # ล็อก **แถวที่มีอยู่จริงด้วยคีย์หลัก** — record lock ล้วน ไม่มีช่องว่างให้ขัดกัน
+    # และอ่านหางสายมาจากแถวเดียวกันนั้นเลย เพราะ locking read เห็นค่าล่าสุดเสมอ
     locked = connection.execute(
-        select(lock.c.id).where(lock.c.id == LOCK_ROW_ID).with_for_update()
+        select(lock.c.last_hash).where(lock.c.id == LOCK_ROW_ID).with_for_update()
     ).scalar()
     if locked is None:
         # แถวนี้ถูกสร้างพร้อมตาราง (ดู `_seed_lock_row`) — หายไปแปลว่ามีคนลบมันทิ้ง
@@ -360,13 +372,23 @@ def _last_hash(session: SessionLike) -> str:
         # — เป็นเงื่อนไขก่อนเริ่มที่ไม่ครบ ซึ่งต้องอ่านออกจากข้อความได้ทันที
         raise RuntimeError(f"ไม่มีแถวล็อกของสาย audit (id={LOCK_ROW_ID}) — รัน `flask db upgrade` ก่อน")
 
-    table = AuditEntry.__table__
-    found = connection.execute(
-        select(table.c.row_hash).order_by(table.c.id.desc()).limit(1)
-    ).scalar()
-    value = str(found) if found else GENESIS_HASH
-    session.info[_LAST_HASH_KEY] = value
-    return value
+    session.info[_LAST_HASH_KEY] = locked
+    return str(locked)
+
+
+def _remember_last_hash(session: SessionLike, row_hash: str) -> None:
+    """เขียนหางสายใหม่กลับไปที่แถวล็อก — **ใน transaction เดียวกับแถว audit**
+
+    ทั้งสองอย่างจึงเห็นตรงกันเสมอ หรือไม่ก็ถูกย้อนไปพร้อมกันทั้งคู่
+    ใช้ Core UPDATE โดยตั้งใจ (ได้รับข้อยกเว้นใน tests/test_write_discipline.py)
+    เพราะแถวนี้ไม่ใช่ข้อมูลของใคร และการให้มันไหลผ่าน ORM จะเรียก `after_flush`
+    ซ้อนเข้าไปในตัวมันเอง
+    """
+    lock = AuditChainLock.__table__
+    session.connection().execute(
+        lock.update().where(lock.c.id == LOCK_ROW_ID).values(last_hash=row_hash)
+    )
+    session.info[_LAST_HASH_KEY] = row_hash
 
 
 def _build_entry(
@@ -394,7 +416,7 @@ def _build_entry(
         changes=changes_json,
         prev_hash=prev_hash,
     )
-    session.info[_LAST_HASH_KEY] = row_hash
+    _remember_last_hash(session, row_hash)
     return AuditEntry(
         created_at=created_at,
         event=event_name,

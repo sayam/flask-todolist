@@ -631,6 +631,7 @@ def test_many_writers_queue_up_instead_of_deadlocking(app):
     import threading
 
     from app import db
+    from app.models import User
 
     writers = 8
     rounds = 4
@@ -638,10 +639,16 @@ def test_many_writers_queue_up_instead_of_deadlocking(app):
     gate = threading.Barrier(writers, timeout=30)
 
     def append(index):
-        for _ in range(rounds):
+        for round_number in range(rounds):
             try:
                 with app.app_context():
-                    gate.wait() if _ == 0 else None
+                    if round_number == 0:
+                        gate.wait()
+                    # **อ่านก่อนเขียน เหมือนคำขอจริงทุกใบ** — ใต้ REPEATABLE READ
+                    # การอ่านครั้งแรกเป็นตัวตั้ง snapshot ของทั้ง transaction
+                    # เทสต์ที่เขียนเป็น statement แรกจึงไม่เหมือนของจริงเลย และ
+                    # **ผ่านมาแล้วหนึ่งรอบทั้งที่โค้ดพัง** (ADR 0035 — ครั้งที่สอง)
+                    db.session.scalars(db.select(User).where(User.id == index)).first()
                     audit.record("test.crowd", table_name="tdl_user", row_id=index)
                     db.session.commit()
             except Exception as error:  # noqa: BLE001 - เก็บไว้ให้ thread หลักตรวจ
