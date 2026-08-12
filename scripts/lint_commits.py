@@ -29,8 +29,16 @@ def check_title(title: str) -> list[str]:
 
 
 def commits_in_range(rev_range: str) -> list[tuple[str, str]]:
+    """commit ในช่วงนี้ **ไม่รวม merge commit**
+
+    ข้อความของ merge commit เป็นของที่ GitHub สร้างให้ (`Merge branch 'main'
+    into ...`) ไม่ใช่ของที่คนเขียน — บังคับรูปแบบกับมันจึงเท่ากับทำให้ปุ่ม
+    "Update branch" บนหน้า PR ทำให้ด่านนี้แดงเสมอ โดยที่ไม่มีใครพิมพ์อะไรผิด
+    · และ `required_linear_history` ของ branch protection ก็ไม่ยอมให้ merge
+    commit ลง `main` อยู่แล้ว มันจึงเป็นของชั่วคราวบนกิ่งเท่านั้น
+    """
     out = subprocess.run(  # noqa: S603 — อินพุตมาจาก CI/ผู้พัฒนาเอง ไม่ใช่ผู้ใช้ภายนอก
-        ["git", "log", "--format=%H%x00%s", rev_range],  # noqa: S607
+        ["git", "log", "--no-merges", "--format=%H%x00%s", rev_range],  # noqa: S607
         capture_output=True,
         text=True,
         check=True,
