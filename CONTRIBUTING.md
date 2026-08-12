@@ -97,6 +97,11 @@ Never write Thai directly in a template or a `.py` file, and remember to
 Enforced by a commit-msg hook and again in CI. `feat:`, `fix:`, `docs:`, `test:`,
 `refactor:`, `chore:`, `ci:`, `perf:`, optionally scoped: `fix(audit): ...`.
 
+**Merge with rebase, not squash.** Squashing appends ` (#N)` to the subject,
+which pushes anything near the limit over it — and the check that would have
+caught it only runs after the merge has already landed on `main`. Merge commits
+themselves are not linted, since GitHub writes those, not you.
+
 ## Before you open a pull request
 
 ```bash
