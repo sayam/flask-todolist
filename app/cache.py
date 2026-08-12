@@ -24,6 +24,7 @@ backend จริงเป็น plugin ชนิด `cache` เลือกด�
 
 from types import ModuleType
 from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 
 from flask import current_app
 
@@ -138,6 +139,25 @@ def is_shared_uri(url: str) -> bool | None:
     return bool(backend.manifest.get("shared", False))
 
 
+def redacted(url: str) -> str:
+    """URL ที่ตัดส่วน user:password ออกแล้ว — **ทุกที่ที่เอา URL ไป log ต้องผ่านตัวนี้**
+
+    ตอนนี้ backend ที่ `shared=false` มีแต่ `memory://` ซึ่งไม่มีที่ให้ใส่รหัสผ่าน
+    คำเตือนข้างล่างจึงยัง log ของที่ปลอดภัยอยู่ — **แต่นั่นเป็นความบังเอิญ
+    ไม่ใช่การออกแบบ** วันที่มีคนวาง backend ตัวใหม่ที่ไม่แชร์และมี credential
+    ใน URI (`memcached://user:pass@host` ก็เข้าข่าย) บรรทัดเดิมจะเขียนรหัสผ่าน
+    ลง log ซึ่งเป็นชั้น C6 อายุ 90 วัน โดยไม่มีอะไรฟ้อง
+
+    คุณสมบัติที่ต้องการคือ "URL ที่ log ไม่มีความลับ" — ให้มันจริงด้วยโครงสร้าง
+    ตรงนี้ ดีกว่าให้จริงเพราะยังไม่มีใครวาง backend แบบนั้น (CodeQL ชี้จุดนี้)
+    """
+    parts = urlsplit(url)
+    if not parts.netloc or "@" not in parts.netloc:
+        return url
+    host = parts.netloc.rpartition("@")[2]
+    return urlunsplit(parts._replace(netloc=f"***:***@{host}"))
+
+
 def warn_if_counters_are_not_shared(app: Any) -> None:
     """เตือนตอน start ถ้าโควตา rate limit จะถูกนับแยกต่อ process
 
@@ -155,7 +175,7 @@ def warn_if_counters_are_not_shared(app: Any) -> None:
             "rate limit ถูกนับแยกต่อ process เพราะ RATELIMIT_STORAGE_URI = %r "
             "— รันหลาย worker เมื่อไหร่ เพดานจริงจะเป็น N เท่าของที่ตั้งไว้ "
             "(ตั้ง CACHE_URL ไปที่ store ที่แชร์ได้ แล้วตัวนี้จะตามไปเอง)",
-            uri,
+            redacted(uri),
         )
 
 

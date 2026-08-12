@@ -200,6 +200,43 @@ def test_a_shared_store_says_nothing(app, warnings_of):
     assert not [line for line in warnings_of if "นับแยกต่อ process" in line]
 
 
+@pytest.mark.parametrize(
+    ("url", "expected"),
+    [
+        ("memory://", "memory://"),
+        ("redis://host:6379/0", "redis://host:6379/0"),
+        ("redis://:hunter2@host:6379/0", "redis://***:***@host:6379/0"),
+        ("redis://someone:hunter2@host:6379/0", "redis://***:***@host:6379/0"),
+        ("memcached://user:pw@host:11211", "memcached://***:***@host:11211"),
+    ],
+)
+def test_a_url_on_its_way_to_the_log_loses_its_credentials(url, expected):
+    """`redacted()` ต้องตัด user:password ทิ้งและเก็บส่วนที่เหลือไว้ให้อ่านออก
+
+    ที่เก็บ host กับ path ไว้เพราะคำเตือนต้องบอกได้ว่า *อันไหน* ที่ตั้งผิด —
+    การซ่อนทั้ง URL ทำให้คำเตือนไม่มีประโยชน์พอ ๆ กับการไม่เตือน
+    """
+    assert cache.redacted(url) == expected
+
+
+def test_the_warning_never_writes_a_password_into_the_log(app, warnings_of):
+    """log เป็นชั้น C6 อายุ 90 วัน — ความลับที่ตกลงไปแล้วอยู่ที่นั่นทั้ง 90 วัน
+
+    ตอนนี้ backend ที่ `shared=false` มีแต่ `memory://` ซึ่งไม่มีที่ให้ใส่รหัสผ่าน
+    คำเตือนจึงยัง log ของที่ปลอดภัยอยู่ **แต่โดยความบังเอิญ ไม่ใช่โดยการออกแบบ**
+    เทสต์นี้ยิง URL ที่มีรหัสผ่านผ่าน scheme ที่ทำให้คำเตือนดังจริง เพื่อพิสูจน์ว่า
+    คุณสมบัติ "ไม่มีความลับใน log" มาจากโครงสร้าง ไม่ใช่จากการที่ยังไม่มีใครวาง
+    backend แบบนั้น (CodeQL `py/clear-text-logging-sensitive-data` ชี้จุดนี้)
+    """
+    app.config["RATELIMIT_STORAGE_URI"] = "memory://someone:hunter2@host"
+    cache.warn_if_counters_are_not_shared(app)
+
+    warned = [line for line in warnings_of if "นับแยกต่อ process" in line]
+    assert warned, "คำเตือนต้องยังดัง ไม่งั้นเทสต์นี้พิสูจน์อะไรไม่ได้เลย"
+    assert not [line for line in warned if "hunter2" in line], f"รหัสผ่านหลุดลง log: {warned}"
+    assert [line for line in warned if "host" in line], "ซ่อนจนไม่เหลือข้อมูลให้คนแก้ config"
+
+
 def test_a_store_we_do_not_know_gets_no_false_claim(app, warnings_of):
     """`limits` รองรับ store ที่เราไม่มี plugin ให้ (memcached, mongodb)
 
