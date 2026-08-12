@@ -34,13 +34,13 @@ def _tables(db_path):
         return {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
 
 
-def _upgrade_into(db_path):
+def _upgrade_into(db_path, revision="head"):
     class MigrationConfig(TestConfig):
         SQLALCHEMY_DATABASE_URI = f"sqlite:///{db_path}"
 
     app = create_app(MigrationConfig)
     with app.app_context():
-        upgrade()
+        upgrade(revision=revision)
 
 
 @pytest.fixture
@@ -184,6 +184,8 @@ def test_legacy_version_table_is_adopted(migrated):
 # ฐานข้อมูลที่มีอยู่แล้วจึงชี้ไปเวอร์ชันที่ไม่มีไฟล์อยู่จริงอีกต่อไป
 
 SQUASHED_HEAD = "401e0ce7011f"
+# baseline ที่ยุบสายเดิมทั้งชุดมาไว้ในตัวเดียว (P5-02)
+BASELINE = "5ffefa218ed7"
 MID_CHAIN = "18dccb13a980"
 
 
@@ -222,13 +224,21 @@ def test_a_database_at_the_old_head_is_adopted_without_asking(migrated):
     "Can't locate revision" ตอนตีสามโดยไม่มีบริบทว่าต้องทำอะไรต่อ
     (หลักเดียวกับ `test_legacy_version_table_is_adopted` ข้างบน)
     """
-    _stamp(migrated, SQUASHED_HEAD)
-    before = _tables(migrated)
+    # **ต้องสร้างฐานที่ baseline ไม่ใช่ที่ปลายสายปัจจุบัน** — ฐานจริงที่ค้างอยู่ที่
+    # สายเดิมย่อมไม่มีตารางของ migration ที่มาทีหลัง การ stamp ฐานที่อัปเกรดครบ
+    # แล้วย้อนกลับไป จึงเป็นการจำลองสถานการณ์ที่ไม่มีอยู่จริง (และทำให้เทสต์นี้
+    # แดงด้วย "table already exists" ทันทีที่มีใครเพิ่ม migration ตัวถัดไป)
+    fresh = migrated.parent / "at-baseline.db"
+    _upgrade_into(fresh, revision=BASELINE)
+    _stamp(fresh, SQUASHED_HEAD)
+    before = _tables(fresh)
 
-    _upgrade_into(migrated)  # ต้องไม่ raise
+    _upgrade_into(fresh)  # ต้องไม่ raise
 
-    assert _version_of(migrated) != SQUASHED_HEAD, "ต้องถูกรับช่วงไปเป็น baseline แล้ว"
-    assert _tables(migrated) == before, "การรับช่วงต้องไม่แตะโครงสร้างตาราง"
+    assert _version_of(fresh) != SQUASHED_HEAD, "ต้องถูกรับช่วงไปเป็น baseline แล้ว"
+    # **ไม่ยืนยันว่าตารางเท่าเดิม** เพราะ migration ที่มาหลัง baseline เพิ่มตารางได้
+    # สิ่งที่การรับช่วงห้ามทำคือ *ทำของหาย* ไม่ใช่ห้ามเดินหน้าต่อ
+    assert before <= _tables(fresh), "การรับช่วงต้องไม่ทำให้ตารางไหนหายไป"
 
 
 def test_a_database_stuck_mid_chain_is_refused_not_stamped(migrated):

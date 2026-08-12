@@ -54,6 +54,9 @@ from app.logging_setup import current_request_id
 GENESIS_HASH = "0" * 64
 HASH_LENGTH = 64
 
+# แถวเดียวของ tdl_audit_lock — คีย์คงที่เพราะมันมีแถวเดียวตลอดอายุระบบ
+LOCK_ROW_ID = 1
+
 # ชนิดเหตุการณ์ที่ purge job เขียนแทนช่วงที่ถูกลบไป (ดู ADR 0014 หัวข้อที่สอง)
 CHECKPOINT_EVENT = "audit.checkpoint"
 
@@ -133,6 +136,40 @@ def column_policy(column: str) -> str:
     if column in HASHED_COLUMNS:
         return HASHED
     return plugin_column_policies().get(column, HASHED)
+
+
+class AuditChainLock(db.Model):
+    """แถวเดียวที่ทุกคนที่จะต่อสาย audit ต้องล็อกก่อน — **หนึ่งแถวเท่านั้น**
+
+    **ทำไมต้องมีตารางนี้ ทั้งที่ ADR 0032 บอกว่าล็อกแถวท้ายสายก็พอ**: เพราะ
+    `SELECT ... ORDER BY id DESC LIMIT 1 FOR UPDATE` บน InnoDB จับ **next-key
+    lock ที่รวมช่องว่างท้ายตาราง** ไว้ด้วย และ**ช่องว่างเข้ากันได้กับช่องว่าง** —
+    ผู้เขียนหลายรายจึงผ่านบรรทัดนั้นไปพร้อมกันได้ทั้งหมด แล้วไปชนกันตอน INSERT
+    ซึ่งต้องขอ insert intention lock ที่ขัดกับช่องว่างของคนอื่น → **deadlock**
+
+    วัดจริงก่อนแก้: writer 8 ตัว × 20 รอบ ได้ deadlock 128 จาก 160 ครั้ง
+    การล็อกแบบเดิมจึงไม่ได้ทำให้การเขียนเป็นลำดับ มันแค่เปลี่ยนการชนกุญแจ
+    unique ให้กลายเป็น deadlock (ดู ADR 0035)
+
+    การล็อก**แถวที่มีอยู่จริงด้วยคีย์หลัก**เป็น record lock ล้วน ไม่มีช่องว่าง
+    ให้ขัดกัน ผู้เขียนจึงต่อคิวกันจริง ๆ
+    """
+
+    __tablename__ = "tdl_audit_lock"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+
+# **แถวต้องมีอยู่ก่อนเสมอ** ไม่งั้นไม่มีอะไรให้ล็อกแล้วทุกคนผ่านไปพร้อมกัน
+# ผูกกับการสร้าง **ทั้งชุด** ไม่ใช่กับตารางตัวเดียว — INSERT ที่แทรกกลางลำดับ DDL
+# ของ `create_all()` ทำให้ MySQL ค้าง metadata lock แล้วการ reflect ตารางถัดไป
+# ล้มด้วย 1684 ("definition is being modified by concurrent DDL statement")
+# ซึ่งเป็นอาการที่ไล่กลับมาหาต้นเหตุยากมากถ้าไม่รู้ว่ามันมาจากตรงนี้
+@event.listens_for(db.metadata, "after_create")
+def _seed_lock_row(_target: Any, connection: Any, tables: Any = (), **_kwargs: Any) -> None:
+    lock = AuditChainLock.__table__
+    if lock in tuple(tables):
+        connection.execute(lock.insert().values(id=LOCK_ROW_ID))
 
 
 class AuditImmutableError(RuntimeError):
@@ -290,12 +327,17 @@ def _last_hash(session: SessionLike) -> str:
     ล้าง cache ทุกครั้งที่ commit/rollback (ดู `_reset_chain_cache`) เพราะถ้า
     process อื่นเขียนแทรกเข้ามา ค่าที่ค้างอยู่จะทำให้เราต่อสายผิดที่
 
-    **`FOR UPDATE` ทำให้การต่อสายเป็นลำดับจริงข้าม process** (ADR 0032) —
-    ผู้เขียนรายที่สองรอที่บรรทัดนี้จนรายแรก commit แล้วค่อยอ่านค่าที่ถูกต้อง
-    ไปต่อ · ไม่มีข้อนี้ สอง replica จะอ่านแถวท้ายสายตัวเดียวกันแล้วต่อด้วย
-    `prev_hash` เดียวกันทั้งคู่ ตัวหลังชน unique constraint แล้ว **ผู้ใช้เห็น
-    500** (load test ของ Phase 6 วัดได้ 0.36% ที่โหลดเป้าหมาย ถึง 9.5%
-    ที่โหลดสูง — ดู docs/PERFORMANCE.md)
+    **การต่อสายเป็นลำดับจริงข้าม process ด้วยการล็อกแถวเดียวของ `tdl_audit_lock`**
+    (ADR 0035) ผู้เขียนรายที่สองรอที่บรรทัดนั้นจนรายแรก commit แล้วค่อยอ่านหางสาย
+    ที่ถูกต้องไปต่อ · ไม่มีข้อนี้ สอง replica จะอ่านแถวท้ายสายตัวเดียวกันแล้ว
+    ต่อด้วย `prev_hash` เดียวกันทั้งคู่ ตัวหลังชน unique constraint แล้ว
+    **ผู้ใช้เห็น 500** (Phase 6 วัดได้ 0.36% ที่โหลดเป้าหมาย ถึง 9.5% ที่โหลดสูง)
+
+    **ห้ามกลับไปล็อกแถวท้ายสายเอง** (`ORDER BY id DESC LIMIT 1 FOR UPDATE` ซึ่ง
+    เป็นวิธีของ ADR 0032) — InnoDB จับ next-key lock ที่รวมช่องว่างท้ายตาราง
+    และช่องว่างเข้ากันได้กับช่องว่าง ผู้เขียนหลายรายจึงผ่านไปพร้อมกันแล้วไปชนกัน
+    ตอน INSERT เป็น **deadlock** แทน · วัดจริง: writer 8 ตัว × 20 รอบ
+    ได้ deadlock 128 จาก 160 ครั้ง
 
     SQLAlchemy ตัด `FOR UPDATE` ทิ้งให้เองบน SQLite ซึ่งถูกต้องแล้ว เพราะ
     SQLite ล็อกทั้งไฟล์ตอนเขียนอยู่แล้ว การเขียนจึงเป็นลำดับโดยธรรมชาติ
@@ -303,12 +345,25 @@ def _last_hash(session: SessionLike) -> str:
     cached = session.info.get(_LAST_HASH_KEY)
     if cached is not None:
         return str(cached)
+
+    connection = session.connection()
+    lock = AuditChainLock.__table__
+    # ล็อก **แถวที่มีอยู่จริงด้วยคีย์หลัก** — record lock ล้วน ไม่มีช่องว่างให้ขัดกัน
+    locked = connection.execute(
+        select(lock.c.id).where(lock.c.id == LOCK_ROW_ID).with_for_update()
+    ).scalar()
+    if locked is None:
+        # แถวนี้ถูกสร้างพร้อมตาราง (ดู `_seed_lock_row`) — หายไปแปลว่ามีคนลบมันทิ้ง
+        # หรือ migration ไม่ได้ถูกรัน · **ห้ามเดินต่อเงียบ ๆ** เพราะการเขียนที่
+        # ไม่มีอะไรกั้นจะกลายเป็น 500 ของผู้ใช้ในวันที่มีคนใช้พร้อมกัน
+        # ไม่ใช่การละเมิดความไม่เปลี่ยนแปลงของ audit จึงไม่ใช่ `AuditImmutableError`
+        # — เป็นเงื่อนไขก่อนเริ่มที่ไม่ครบ ซึ่งต้องอ่านออกจากข้อความได้ทันที
+        raise RuntimeError(f"ไม่มีแถวล็อกของสาย audit (id={LOCK_ROW_ID}) — รัน `flask db upgrade` ก่อน")
+
     table = AuditEntry.__table__
-    found = (
-        session.connection()
-        .execute(select(table.c.row_hash).order_by(table.c.id.desc()).limit(1).with_for_update())
-        .scalar()
-    )
+    found = connection.execute(
+        select(table.c.row_hash).order_by(table.c.id.desc()).limit(1)
+    ).scalar()
     value = str(found) if found else GENESIS_HASH
     session.info[_LAST_HASH_KEY] = value
     return value

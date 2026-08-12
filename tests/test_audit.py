@@ -615,6 +615,51 @@ def test_audit_log_command_on_an_empty_table(app):
 
 @pytest.mark.skipif(
     "sqlite" in os.environ.get("TEST_DATABASE_URL", "sqlite"),
+    reason="ล็อกแถวเป็นเรื่องของยี่ห้อที่มีล็อกระดับแถว — SQLite ล็อกทั้งไฟล์อยู่แล้ว",
+)
+def test_many_writers_queue_up_instead_of_deadlocking(app):
+    """**แปดสายเขียนพร้อมกันต้องผ่านครบ ไม่ใช่ตายไปเกือบหมด** (ADR 0035)
+
+    เทสต์ "สองสาย" ข้างล่างผ่านมาตลอดทั้งที่วิธีล็อกแบบเดิมพังอยู่ — เพราะสองสาย
+    ไม่พอจะสร้างวงจรของ deadlock · วัดจริงด้วยแปดสาย: วิธีเดิมได้ deadlock
+    **128 จาก 160 ครั้ง** ซึ่งแปลว่า `FOR UPDATE` บนหางสายไม่ได้ทำให้การเขียน
+    เป็นลำดับเลย มันแค่เปลี่ยนการชนกุญแจ unique ให้กลายเป็น deadlock
+
+    จำนวนสายคือหัวใจของเทสต์นี้ ไม่ใช่รายละเอียด — ลดเหลือสองแล้วมันจะเขียว
+    ทั้งที่โค้ดพัง ซึ่งคือสิ่งที่เกิดขึ้นจริงมาแล้วหนึ่งเฟส
+    """
+    import threading
+
+    from app import db
+
+    writers = 8
+    rounds = 4
+    failures: list[str] = []
+    gate = threading.Barrier(writers, timeout=30)
+
+    def append(index):
+        for _ in range(rounds):
+            try:
+                with app.app_context():
+                    gate.wait() if _ == 0 else None
+                    audit.record("test.crowd", table_name="tdl_user", row_id=index)
+                    db.session.commit()
+            except Exception as error:  # noqa: BLE001 - เก็บไว้ให้ thread หลักตรวจ
+                failures.append(f"{type(error).__name__}: {str(error)[:120]}")
+
+    threads = [threading.Thread(target=append, args=(index,)) for index in range(writers)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=120)
+
+    assert not failures, f"การเขียนขนานล้ม {len(failures)} ครั้ง: {failures[:3]}"
+    with app.app_context():
+        assert audit.verify_chain() >= writers * rounds
+
+
+@pytest.mark.skipif(
+    "sqlite" in os.environ.get("TEST_DATABASE_URL", "sqlite"),
     reason="SQLite ล็อกทั้งไฟล์ตอนเขียนอยู่แล้ว ข้อนี้พิสูจน์ได้เฉพาะยี่ห้อที่เขียนขนานได้จริง",
 )
 def test_two_connections_appending_at_once_do_not_collide(app):
