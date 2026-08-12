@@ -41,3 +41,4 @@ ADR 0002–0008 เป็นการ backfill การตัดสินใจ
 | [0033](0033-mfa-is-offered-not-required.md) | ไม่บังคับ MFA พร้อมเหตุผลและมาตรการชดเชย | accepted |
 | [0034](0034-data-subject-rights.md) | เจ้าของข้อมูล export/ลบบัญชีตัวเองได้ | accepted |
 | [0035](0035-audit-appends-queue-on-one-row.md) | ต่อคิวสาย audit ที่แถวเดียว ไม่ใช่ที่หางสาย | accepted — แทนที่ ADR 0032 ข้อ 1 |
+| [0036](0036-read-committed-isolation.md) | อ่านแบบ READ COMMITTED บนยี่ห้อที่มี MVCC | accepted |

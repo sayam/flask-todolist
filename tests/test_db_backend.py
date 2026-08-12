@@ -9,11 +9,12 @@
 """
 
 import json
+import os
 import shutil
 
 import pytest
 
-from app import db_engine, plugins
+from app import db, db_engine, plugins
 from tests.conftest import TestConfig
 
 SQLITE_KEY = "db/sqlite"
@@ -166,7 +167,34 @@ def test_the_sqlite_pragma_lives_with_sqlite_not_in_core(app):
     ).read_text(encoding="utf-8")
 
 
-def test_a_backend_without_settings_needs_no_module(app):
-    """ไม่ต้องตั้งอะไรก็ไม่ต้องมีไฟล์ — "ไม่มีของชิ้นนี้" เป็นเส้นทางปกติ (ADR 0025)"""
+def test_a_backend_without_settings_needs_no_module(app, temp_backend):
+    """ไม่ต้องตั้งอะไรก็ไม่ต้องมีไฟล์ — "ไม่มีของชิ้นนี้" เป็นเส้นทางปกติ (ADR 0025)
+
+    **ใช้ backend ชั่วคราวแทนการชี้ไปที่ยี่ห้อจริง** เพราะยี่ห้อจริงทุกตัวมี
+    `backend.py` แล้ว (sqlite ตั้ง PRAGMA · mysql/mariadb ตั้งระดับการแยก
+    transaction — ADR 0036) เทสต์ที่อ้างอิงยี่ห้อจริงจึงพังทันทีที่ยี่ห้อนั้น
+    มีอะไรต้องตั้งเพิ่ม ทั้งที่กติกาที่มันคุ้มอยู่ไม่ได้เปลี่ยนเลย
+    """
+    temp_backend("plainbrand")
     with app.app_context():
-        assert db_engine.load("mysql+pymysql://u@h/d") is None
+        assert db_engine.load("plainbrand://u@h/d") is None
+
+
+@pytest.mark.skipif(
+    "sqlite" in os.environ.get("TEST_DATABASE_URL", "sqlite"),
+    reason="SQLite ไม่มีระดับการแยก transaction ให้ตั้ง — ค่านี้เป็นของยี่ห้อที่มี MVCC",
+)
+def test_the_connection_really_runs_at_read_committed(app):
+    """**ตรวจค่าที่ connection ใช้จริง ไม่ใช่ตรวจว่ามีบรรทัดที่สั่ง**
+
+    ค่านี้เป็นของต่อ session การตั้งพลาดจึงไม่มี error ให้เห็นเลย — อาการคือ
+    การเขียนขนานล้มเป็นครั้งคราวด้วยข้อความที่ไม่ได้ชี้มาทางนี้ (ADR 0036)
+    """
+    from sqlalchemy import text
+
+    with app.app_context():
+        level = db.session.execute(text("SELECT @@transaction_isolation")).scalar()
+    assert level.replace("-", " ").upper() == "READ COMMITTED", (
+        f"connection รันอยู่ที่ {level!r} ซึ่งไม่ใช่ READ COMMITTED — "
+        "backend.py ของยี่ห้อนี้ไม่ได้ถูกโหลด หรือ listener ไม่ทำงาน"
+    )

@@ -47,6 +47,10 @@ ALLOWED_LINES = {
     # ซ้อนเข้าไปในตัวมันเอง · ไม่ต้องลง audit ด้วยเหตุผลเดียวกัน: มันเป็นกลไก
     # ของการบันทึก ไม่ใช่สิ่งที่ถูกบันทึก
     ("audit.py", "lock.update()"),
+    # ตั้งระดับการแยก transaction ของยี่ห้อที่มี MVCC (ADR 0036) — เป็นคำสั่งตั้งค่า
+    # ของ connection ไม่ได้แตะข้อมูลสักแถว เหมือน PRAGMA ของ SQLite ที่ได้รับ
+    # ข้อยกเว้นไว้ข้างบนด้วยเหตุผลเดียวกัน
+    ("backend.py", "SET SESSION TRANSACTION ISOLATION LEVEL"),
 }
 
 FORBIDDEN = {
