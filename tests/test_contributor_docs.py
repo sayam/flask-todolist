@@ -17,7 +17,7 @@ import pytest
 import yaml
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-WORKFLOW = ROOT / ".github" / "workflows" / "ci.yml"
+WORKFLOW_DIR = ROOT / ".github" / "workflows"
 
 PUBLIC_DOCS = (
     "README.md",
@@ -40,19 +40,26 @@ DOCS_CLAIMING_JOB_COUNTS = ("CONTRIBUTING.md", "CLAUDE.md")
 
 @pytest.fixture(scope="module")
 def ci_jobs():
-    """(จำนวนนิยาม job, จำนวน check ที่จะขึ้นบน GitHub) — matrix นับตามจำนวนรอบ"""
-    workflow = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
-    jobs = workflow["jobs"]
+    """(จำนวนนิยาม job, จำนวน check ที่จะขึ้นบน GitHub) — matrix นับตามจำนวนรอบ
 
-    checks = 0
-    for job in jobs.values():
-        matrix = (job.get("strategy") or {}).get("matrix") or {}
-        axes = [value for value in matrix.values() if isinstance(value, list)]
-        runs = 1
-        for values in axes:
-            runs *= len(values)
-        checks += runs
-    return len(jobs), checks
+    อ่าน **ทุกไฟล์ workflow** ไม่ใช่แค่ `ci.yml` — วันที่มีใครแยก job ออกไป
+    ไฟล์ใหม่ ตัวเลขที่โฆษณาไว้จะกลายเป็นเลขที่ต่ำกว่าความจริงโดยไม่มีอะไรฟ้อง
+    """
+    files = sorted(WORKFLOW_DIR.glob("*.y*ml"))
+    assert files, "ไม่เจอไฟล์ workflow สักไฟล์"
+
+    defined, checks = 0, 0
+    for path in files:
+        jobs = (yaml.safe_load(path.read_text(encoding="utf-8")) or {}).get("jobs") or {}
+        defined += len(jobs)
+        for job in jobs.values():
+            matrix = (job.get("strategy") or {}).get("matrix") or {}
+            axes = [value for value in matrix.values() if isinstance(value, list)]
+            runs = 1
+            for values in axes:
+                runs *= len(values)
+            checks += runs
+    return defined, checks
 
 
 @pytest.mark.parametrize("name", PUBLIC_DOCS)

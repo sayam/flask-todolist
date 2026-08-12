@@ -638,17 +638,14 @@ coverage **96.31%** (เพดาน 96) · interrogate **84.9%** (เพดา�
 | **กด public** | ✅ 2026-08-12 | repo เป็นสาธารณะแล้ว · GitHub ตรวจพบ license เป็น MIT · ยืนยันแบบไม่ล็อกอินแล้วว่าหน้าแรก/release/LICENSE เข้าถึงได้ |
 | private vulnerability reporting | ✅ 2026-08-12 | เปิดแล้ว — **ถ้าไม่เปิด ลิงก์ใน `SECURITY.md` และ `CODE_OF_CONDUCT.md` จะพาไปไหนไม่ได้** ทั้งสองไฟล์ชี้มาที่ช่องทางนี้ช่องทางเดียว |
 
-### ของฟรีที่เพิ่งปลดล็อกพร้อมการเป็น public — ยังไม่ได้เปิด
+### ของฟรีที่ปลดล็อกพร้อมการเป็น public
 
-ทุกข้อฟรีสำหรับ repo สาธารณะ และเป็น**การตัดสินใจของเจ้าของ** เพราะแต่ละอัน
-เปลี่ยนพฤติกรรมของ repo จริง ไม่ใช่แค่เพิ่มข้อมูล:
-
-| ของ | ผลถ้าเปิด |
-|---|---|
-| **CodeQL** | SAST ที่ [ADR 0009](adr/0009-quality-gate-toolchain.md) ตัดออกเพราะ private ต้องจ่าย — ตอนนี้ฟรี · เพิ่ม job ใน CI |
-| secret scanning + **push protection** | push ที่มีความลับจะถูก**ปฏิเสธ** ไม่ใช่แค่เตือน — ครอบชั้นที่ job `secret-scan` ครอบไม่ถึง (มันตรวจหลัง push ไปแล้ว) |
-| Dependabot security updates | เปิด PR อัตโนมัติเมื่อมี CVE · จะมี PR เข้ามาเองโดยไม่มีใครสั่ง |
-| OpenSSF Scorecard | วัด branch protection, pinned deps, token permission แล้วให้คะแนน |
+| ของ | สถานะ | หมายเหตุ |
+|---|---|---|
+| **CodeQL** | ✅ 2026-08-12 | SAST ที่ [ADR 0009](adr/0009-quality-gate-toolchain.md) ตัดออกตอน private เพราะต้องจ่าย · เป็น **job ใน `ci.yml` ไม่ใช่ default setup ที่กดใน UI** ด้วยเหตุผลเดียวกับ [ADR 0037](adr/0037-where-logs-go-and-what-shouts.md): ของที่คลิกไว้ใน UI ไม่มีใคร review ได้และหายเงียบ ๆ ได้ · สแกน python **และ javascript** เพราะ `app/static/app.js` ถือพฤติกรรมฝั่ง client ทั้งหมด |
+| secret scanning + **push protection** | ✅ 2026-08-12 | push ที่มีความลับถูก**ปฏิเสธก่อนเข้า repo** — ครอบชั้นที่ job `secret-scan` ครอบไม่ถึง เพราะตัวนั้นตรวจหลังของเข้าไปแล้ว |
+| Dependabot security updates | ⬜ | เปิด PR อัตโนมัติเมื่อมี CVE — **จะมี PR เข้ามาเองโดยไม่มีใครสั่ง** ยังไม่เปิด |
+| OpenSSF Scorecard | ⬜ | วัด branch protection, pinned deps, token permission แล้วให้คะแนน · หลายข้อจะยังต่ำจนกว่าจะเปิด branch protection |
 
 **สิ่งที่การเขียนประวัติใหม่ทำไม่ได้ — บันทึกไว้แทนที่จะเข้าใจว่าเรียบร้อยแล้ว:**
 `git log` ในเครื่องสะอาดไม่ได้แปลว่า GitHub สะอาด · **object เก่ายังถูกเสิร์ฟ
