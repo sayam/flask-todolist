@@ -53,10 +53,15 @@ jobs:
         env:
           SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
           TEST_REDIS_URL: redis://127.0.0.1:6379/0
+      # **ต้องมีประวัติจริง ไม่ใช่ clone ตื้น** — `checkout` ดึงมาแค่ commit เดียว
+      # เป็นค่าเริ่มต้น การ `fetch --depth=50` ฝั่ง base เพิ่มทีหลังจึงยังหา merge
+      # base ไม่เจอ เพราะฝั่ง HEAD ก็ตื้นอยู่ดี → `fatal: no merge base`
+      # เจอตอน PR ใบแรกของ repo (Dependabot) ซึ่งเป็นครั้งแรกที่เส้นทางนี้ถูกเดิน
       - name: diff-cover (บรรทัดที่แก้ต้องมีเทสต์ 100%)
         if: github.event_name == 'pull_request'
         run: |
-          git fetch origin ${{ github.base_ref }} --depth=50
+          git fetch --unshallow origin "${{ github.base_ref }}" 2>/dev/null \
+            || git fetch origin "${{ github.base_ref }}"
           pipenv run diff-cover coverage.xml --compare-branch origin/${{ github.base_ref }} --fail-under 100
 
   dialects:
@@ -268,23 +273,36 @@ jobs:
         env:
           PYTHONPATH: .
 
+  # **ห้ามใส่ `if:` ที่ทำให้ job นี้ถูกข้ามบน pull request**
+  # มันอยู่ในรายการ required status check ของ branch protection และ GitHub นับ
+  # "skipped" ว่ายังไม่สำเร็จ → PR ทุกใบจะค้างที่ BLOCKED ตลอดกาลโดยไม่มีอะไรแดง
+  # ให้เห็น (เจอจริงกับ PR ใบแรกของ repo) · ตรวจ commit ของ PR *ก่อน* merge
+  # มีประโยชน์กว่าตรวจหลัง merge อยู่แล้ว
   commit-lint:
-    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 50
+          fetch-depth: 0
       - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
-      - name: conventional commits (เฉพาะ commit ใหม่ใน push นี้)
+      - name: conventional commits (เฉพาะ commit ที่เพิ่มเข้ามาจริง)
         run: |
-          BEFORE="${{ github.event.before }}"
-          if git cat-file -e "$BEFORE" 2>/dev/null; then
-            python scripts/lint_commits.py --range "$BEFORE..${{ github.sha }}"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git fetch origin "${{ github.base_ref }}"
+            # **เทียบกับ head ของ PR ไม่ใช่ HEAD** — บน pull_request ตัว HEAD คือ
+            # merge commit ที่ GitHub สร้างให้ ซึ่งข้อความเป็น "Merge ... into ..."
+            # และจะตกด่าน Conventional Commits ทุกใบทั้งที่ไม่ใช่ commit ของใคร
+            python scripts/lint_commits.py \
+              --range "origin/${{ github.base_ref }}..${{ github.event.pull_request.head.sha }}"
           else
-            python scripts/lint_commits.py --range "${{ github.sha }}~1..${{ github.sha }}"
+            BEFORE="${{ github.event.before }}"
+            if git cat-file -e "$BEFORE" 2>/dev/null; then
+              python scripts/lint_commits.py --range "$BEFORE..${{ github.sha }}"
+            else
+              python scripts/lint_commits.py --range "${{ github.sha }}~1..${{ github.sha }}"
+            fi
           fi
 
   security:
