@@ -106,7 +106,7 @@ pipenv run pytest -v
 pipenv run pytest --cov          # must not drop below the floor in pyproject.toml
 ```
 
-CI runs 21 jobs (23 checks) against real services — three database brands, a real
+CI runs 22 jobs (24 checks) against real services — three database brands, a real
 reverse proxy, a real IdP, a real LDAP directory, a real Vault, an authenticated
 ZAP scan, and a Chromium accessibility pass. Expect the pull request to take
 longer to go green than it took to write. Nothing there is mocked, which is
@@ -174,7 +174,7 @@ pipenv run pytest -v
 pipenv run pytest --cov
 ```
 
-CI มี 21 job (23 check) ที่ยิงของจริงทั้งหมด — สามยี่ห้อฐานข้อมูล, reverse proxy,
+CI มี 22 job (24 check) ที่ยิงของจริงทั้งหมด — สามยี่ห้อฐานข้อมูล, reverse proxy,
 IdP, LDAP, Vault, ZAP แบบ login แล้ว และ Chromium สำหรับ accessibility ·
 ไม่มี mock สักตัว โดยตั้งใจ (`dialects` เป็น matrix สองยี่ห้อ จึงนับเป็นสอง check) · เขียนอธิบายว่า**แก้อะไร และถ้าไม่แก้จะพังอย่างไร**
 เพราะ diff อธิบายตัวเองได้ แต่ความพังที่มันกันไว้อธิบายตัวเองไม่ได้

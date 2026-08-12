@@ -1,0 +1,63 @@
+# OpenSSF Scorecard — ให้คะแนนแนวปฏิบัติของ repo เทียบเกณฑ์ภายนอก
+#
+# **แยกไฟล์จาก `ci.yml` เพราะมันต้องการ trigger ที่ ci.yml ไม่มี**:
+# `branch_protection_rule` (วัดใหม่ทันทีที่กฎของ branch เปลี่ยน) กับ `schedule`
+# — ถ้ายัดลง ci.yml การตั้ง cron จะลากทั้ง 21 job ไปรันทุกสัปดาห์โดยไม่ได้อะไรเพิ่ม
+#
+# **ไม่ได้อยู่ในรายการ required status check ของ branch protection โดยตั้งใจ**
+# มันไม่รันบน pull request (ดู trigger ข้างล่าง) การบังคับจึงเท่ากับ PR ทุกใบ
+# รอ check ที่ไม่มีวันมา · และโดยธรรมชาติมันเป็น *คะแนน* ไม่ใช่ผ่าน/ไม่ผ่าน —
+# ด่านที่ไม่มีเส้นแบ่งชัดไม่ควรเป็นด่านที่บล็อกคน
+#
+# **`@v2` ของ action ตัวนี้ไม่มีอยู่จริง** (ต่างจาก actions/* ที่ pin ที่ major ได้)
+# repo ของมันออกแต่ tag เต็มรุ่น — ตัวอย่างส่วนใหญ่บนเน็ตที่เขียน `@v2` จะพัง
+# ทันทีด้วย "unable to resolve action" · Dependabot ของ github-actions ดูแล
+# การขยับรุ่นนี้ให้อยู่แล้ว
+name: scorecard
+
+on:
+  branch_protection_rule:
+  schedule:
+    # ทุกวันจันทร์ — เลขนาทีสุ่มไว้ ไม่ให้ไปกองกับ cron ของคนอื่นที่ต้นชั่วโมง
+    - cron: "27 5 * * 1"
+  push:
+    branches: [main]
+
+permissions: read-all
+
+jobs:
+  scorecard:
+    runs-on: ubuntu-latest
+    permissions:
+      # อัปโหลดผลเข้าหน้า code scanning (ที่เดียวกับ CodeQL)
+      security-events: write
+      # ให้ Scorecard ยืนยันตัวตนกับ OpenSSF API ตอนเผยแพร่ผล
+      id-token: write
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Scorecard ตรวจข้อนี้เอง และเป็นแนวปฏิบัติที่ถูกอยู่แล้ว —
+          # ไม่มีเหตุผลให้ token ค้างอยู่ใน .git/config ของ runner
+          persist-credentials: false
+
+      - uses: ossf/scorecard-action@v2.4.4
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          # **เผยแพร่ผลไปที่ OpenSSF API** — เป็นเงื่อนไขของการมี badge
+          # ข้อมูลที่ส่งเป็นข้อเท็จจริงเกี่ยวกับ repo สาธารณะซึ่งเปิดอยู่แล้ว
+          publish_results: true
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: scorecard-results
+          path: results.sarif
+          retention-days: 5
+
+      # ผลไปโผล่ที่หน้า Security ร่วมกับ CodeQL — ที่เดียวกับที่คนไปดูอยู่แล้ว
+      # ดีกว่ามีหน้าใหม่อีกหน้าที่ไม่มีใครเปิด
+      - uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: results.sarif
