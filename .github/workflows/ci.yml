@@ -295,6 +295,18 @@ jobs:
         run: |
           pipenv run python -m pip install --quiet --upgrade pip
           pipenv run pip-audit
+      # **`[deploy]` ไม่ได้ถูกติดตั้งด้วย `pipenv sync --dev`** จึงไม่อยู่ในรอบข้างบน
+      # และ dependency graph ของ GitHub ก็ไม่เห็นมันเช่นกัน (ตรวจแล้ว 2026-08-12:
+      # เห็น 126 package จาก packages+dev เท่านั้น) → **Dependabot ไม่เคยเตือน
+      # เรื่อง gunicorn ให้เลย** ทั้งที่มันคือตัวที่รับคำขอจริงทุกใบใน production
+      #
+      # audit จาก lock file แบบเดียวกับ job `plugin-audit` และ **แดงได้เหมือน core**
+      # เพราะถอด gunicorn ออกไม่ได้ — ต่างจากไลบรารีของ plugin ที่มีทางออกคือถอด
+      - name: pip-audit ของ deploy (gunicorn ฯลฯ — ไม่มีใครเฝ้าให้ที่อื่น)
+        run: |
+          pipenv requirements --categories="deploy" > req-deploy.txt
+          test -s req-deploy.txt || { echo "req-deploy.txt ว่าง — ไม่ได้ audit อะไรเลย"; exit 1; }
+          pipenv run pip-audit --requirement req-deploy.txt
       - name: semgrep (flask + python rulesets)
         run: |
           pip install --quiet semgrep
