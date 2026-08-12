@@ -1093,7 +1093,7 @@ jobs:
           n=$($TLS logs app 2>&1 | grep -c "Traceback" || true)
           [ "$n" = "0" ] || { echo "แอปพ่น traceback $n ครั้งระหว่างถูกสแกน"; \
             $TLS logs app 2>&1 | grep -A20 "Traceback" | head -60; exit 1; }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
           name: zap-report
