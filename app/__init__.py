@@ -28,6 +28,12 @@ from app.secrets import init_secrets, secrets_source
 from app.security_headers import init_security_headers
 from config import Config, check_secret_key
 
+# **เวอร์ชันของ *แอป* ไม่ใช่ของสัญญา API** — `API_VERSION` ใน `config.py` เป็นคนละตัว
+# และตั้งใจให้แยกจากกัน: สัญญา `/api/v1` แก้ไม่ได้ตาม ADR 0018 ส่วนแอปออกรุ่นใหม่
+# ได้เรื่อย ๆ · ตอนนี้เลขบังเอิญตรงกันเพราะทั้งคู่เริ่มที่ 1.0.0 พร้อมกัน
+# เลขนี้ต้องตรงกับหัวข้อบนสุดของ CHANGELOG.md (`tests/test_changelog.py` บังคับ)
+__version__ = "1.0.0"
+
 # constraint/index ที่ไม่ได้ตั้งชื่อจะได้ชื่อ auto ที่ **ต่างกันตามยี่ห้อ DB**
 # ทำให้ alembic drop/alter constraint ข้ามยี่ห้อไม่ได้ (MySQL เจ็บสุด)
 # ประกาศครั้งเดียวที่ MetaData แล้วทุก constraint ที่เกิดหลังจากนี้ได้ชื่อที่คาดเดาได้

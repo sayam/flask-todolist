@@ -19,7 +19,13 @@ import yaml
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 WORKFLOW = ROOT / ".github" / "workflows" / "ci.yml"
 
-PUBLIC_DOCS = ("README.md", "CONTRIBUTING.md", "SECURITY.md", "CODE_OF_CONDUCT.md")
+PUBLIC_DOCS = (
+    "README.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "CODE_OF_CONDUCT.md",
+    "CHANGELOG.md",
+)
 
 # `[ข้อความ](เป้าหมาย)` ทุกแบบ · ใช้ยืนยันว่าตัวดึงลิงก์ยังทำงานอยู่
 ANY_LINK = re.compile(r"\[[^\]]+\]\(([^)\s]+)\)")
@@ -82,6 +88,46 @@ def test_the_ci_job_count_we_advertise_is_the_real_one(name, ci_jobs):
         if (int(claimed_jobs), int(claimed_checks)) != (defined, checks)
     ]
     assert not wrong, f"{name} {wrong} แต่ ci.yml มี {defined} job / {checks} check"
+
+
+def test_the_readme_advertises_the_real_ci_job_count(ci_jobs):
+    """README เขียนเลขแบบร้อยเรียง (`20 CI jobs`) ไม่ใช่รูปแบบเดียวกับ CONTRIBUTING"""
+    defined, _ = ci_jobs
+    text = (ROOT / "README.md").read_text(encoding="utf-8")
+
+    claims = re.findall(r"(\d+)\s+CI jobs", text) + re.findall(r"CI\s+(\d+)\s+job", text)
+    assert claims, "README ไม่ได้บอกจำนวน job ของ CI เลย — ถ้าตั้งใจถอดออก ให้ลบเทสต์นี้ด้วย"
+
+    wrong = sorted({claimed for claimed in claims if int(claimed) != defined})
+    assert not wrong, f"README บอกว่ามี {wrong} job แต่ ci.yml นิยามไว้ {defined}"
+
+
+def test_the_readme_advertises_the_real_number_of_adrs():
+    """ทั้งครึ่งอังกฤษและครึ่งไทยพูดถึงจำนวน ADR — ทั้งคู่ต้องตรงกับดิสก์"""
+    text = (ROOT / "README.md").read_text(encoding="utf-8")
+    actual = len([path for path in (ROOT / "docs" / "adr").glob("*.md") if path.name[:4].isdigit()])
+
+    claims = re.findall(r"(\d+) architecture decision records", text) + re.findall(
+        r"\)\s*(\d+)\s*ใบ", text
+    )
+    assert claims, "README ไม่ได้บอกจำนวน ADR ในรูปแบบที่เทสต์อ่านได้"
+
+    wrong = sorted({claimed for claimed in claims if int(claimed) != actual})
+    assert not wrong, f"README บอกว่ามี ADR {wrong} ใบ แต่บนดิสก์มี {actual} ใบ"
+
+
+def test_the_readme_advertises_the_real_coverage_floor():
+    """เลข coverage ที่โฆษณาต้องมาจาก `fail_under` จริง ไม่ใช่จากตอนที่วัดครั้งล่าสุด"""
+    pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    floor = re.search(r"^fail_under\s*=\s*(\d+)", pyproject, re.MULTILINE)
+    assert floor, "อ่าน `fail_under` จาก pyproject.toml ไม่ได้ — ชื่อคีย์เปลี่ยนไปแล้ว"
+
+    text = (ROOT / "README.md").read_text(encoding="utf-8")
+    claims = re.findall(r"\*\*(\d+)%\*\*", text)
+    assert claims, "README ไม่ได้บอกพื้น coverage ในรูปแบบ `**NN%**`"
+
+    wrong = sorted({claimed for claimed in claims if int(claimed) != int(floor.group(1))})
+    assert not wrong, f"README บอกพื้น coverage {wrong}% แต่ pyproject บังคับ {floor.group(1)}%"
 
 
 def test_contributing_points_at_gates_that_exist():
