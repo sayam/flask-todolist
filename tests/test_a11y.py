@@ -8,6 +8,7 @@
 อ้างอิงเกณฑ์: WCAG 2.2 AA (= ISO/IEC 40500:2025)
 """
 
+import pathlib
 import re
 
 import pytest
@@ -200,3 +201,45 @@ def test_disabled_control_is_not_the_only_signal(client):
     html = client.get("/settings").data.decode()
     assert "disabled" in html
     assert "cannot be changed" in html or "เปลี่ยนที่นี่ไม่ได้" in html
+
+
+# --- สิ่งที่การตรวจด้วยมือของ P7-09 หาเจอ (ดู docs/ACCESSIBILITY-AUDIT.md) ---
+
+
+def test_every_page_marks_where_the_main_content_starts(client, anon_client):
+    """ต้องมี landmark ของเนื้อหาหลัก ไม่งั้นไม่มีทางข้าม nav ที่ซ้ำทุกหน้า
+
+    WCAG 2.4.1 รับได้ทั้ง skip link และ landmark — เราเลือก landmark เพราะมัน
+    ไม่เพิ่มอะไรบนจอ และคนที่ไม่ได้ใช้ screen reader จะไม่เจอลิงก์ที่งงว่าคืออะไร
+    """
+    for label, browser, path in (
+        ("หน้าที่ login แล้ว", client, "/"),
+        ("หน้า login", anon_client, "/login"),
+    ):
+        body = browser.get(path).data.decode()
+        assert "<main>" in body, f"{label} ไม่มี landmark ของเนื้อหาหลัก"
+
+
+def test_name_fields_say_what_they_are_for(client):
+    """WCAG 1.3.5 — browser และตัวช่วยกรอกต้องรู้ว่าช่องนี้คืออะไรของผู้ใช้"""
+    body = client.get("/settings").data.decode()
+    for field, purpose in (("first_name", "given-name"), ("last_name", "family-name")):
+        pattern = re.compile(rf'id="{field}"[^>]*autocomplete="{purpose}"')
+        assert pattern.search(body), f"ช่อง {field} ยังไม่ได้บอกว่ามันคือ {purpose}"
+
+
+def test_the_task_checkbox_is_big_enough_to_hit(app):
+    """WCAG 2.5.8 — เป้าที่กดต้องไม่เล็กกว่า 24px
+
+    checkbox ของ browser ไม่โตตามขนาดตัวอักษร (ราว 13px) จึงต้องกำหนดขนาดเอง
+    ตรวจที่ CSS เพราะขนาดจริงบนจอวัดได้ต้องมี browser — และ `ci:a11y` ที่รัน
+    Chromium จริงเป็นคนตรวจ contrast กับสิ่งที่วัดจากการ render (ดูสองชั้นใน ADR 0012)
+    """
+    css = (pathlib.Path(app.root_path) / "static" / "base.css").read_text(encoding="utf-8")
+    block = re.search(r'\.task-toggle input\[type="checkbox"\]\s*\{([^}]*)\}', css)
+    assert block, "ไม่เจอกฎที่กำหนดขนาดของ checkbox ในแถวงาน"
+    for axis in ("width", "height"):
+        found = re.search(rf"{axis}:\s*([\d.]+)rem", block.group(1))
+        assert found, f"ไม่ได้กำหนด {axis} ของ checkbox"
+        pixels = float(found.group(1)) * 16
+        assert pixels >= 24, f"{axis} ของ checkbox = {pixels}px ซึ่งเล็กกว่าเกณฑ์ 24px"

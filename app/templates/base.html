@@ -78,6 +78,10 @@
     {% endif %}
   {% endwith %}
 
-  {% block content %}{% endblock %}
+  {# **landmark ของเนื้อหาหลัก** — ทางที่ผู้ใช้ screen reader ใช้ข้าม nav ที่ซ้ำ
+     ทุกหน้า (WCAG 2.4.1 · เทคนิค ARIA11) การไม่มีมันแปลว่าต้องฟัง nav ใหม่ทุกหน้า #}
+  <main>
+    {% block content %}{% endblock %}
+  </main>
 </body>
 </html>
