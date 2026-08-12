@@ -105,18 +105,12 @@ def test_the_license_names_a_copyright_holder_and_year():
         assert name.strip(), f"ไม่มีชื่อผู้ถือลิขสิทธิ์ต่อท้ายปี: {line!r}"
 
 
-@pytest.mark.parametrize("section", CORE_SECTIONS)
-def test_no_core_dependency_carries_a_copyleft_obligation(section):
-    """ไลบรารีของ core ต้อง permissive ทั้งหมด (ADR 0038)
-
-    ถ้าเทสต์นี้แดงเพราะเพิ่ง `pipenv install` อะไรเข้าไป **อย่าเติมข้อยกเว้น** —
-    ให้ย้ายมันไปเป็น plugin พร้อม category ของตัวเองตาม ADR 0025 หรือถ้าจำเป็น
-    ต้องรับภาระนั้นจริง ให้แก้ ADR 0038 ก่อน แล้วค่อยแก้เทสต์
-    """
+def _scan(section: str) -> tuple[list[str], list[str]]:
+    """(ตัวที่มีภาระ copyleft, ตัวที่อ่าน metadata ไม่ได้เพราะไม่ได้ติดตั้ง)"""
     packages = _packages_in(section)
     assert packages, f"อ่าน section `{section}` จาก Pipfile.lock ไม่ได้เลย"
 
-    unreadable, copyleft = [], []
+    copyleft, unreadable = [], []
     for name in packages:
         try:
             text = _license_text(name)
@@ -125,17 +119,51 @@ def test_no_core_dependency_carries_a_copyleft_obligation(section):
             continue
         if any(marker in text.upper() for marker in COPYLEFT_MARKERS):
             copyleft.append(f"{name}: {text}")
+    return copyleft, unreadable
 
-    # ต้องเช็คก่อนว่า "ไม่พบ" ไม่ได้แปลว่า "อ่านไม่ได้เลยจึงไม่พบ"
+
+def test_no_dependency_in_packages_carries_a_copyleft_obligation():
+    """`[packages]` ต้อง permissive ทั้งหมด — นี่คือด่านหลักของ ADR 0038
+
+    section นี้ถูกติดตั้ง**ครบเสมอ**ในทุกสภาพแวดล้อมที่รันเทสต์ได้ (ไม่งั้นแอป
+    import ไม่ผ่านตั้งแต่แรก) จึงบังคับให้อ่านครบได้โดยไม่ต้องมีข้อยกเว้น —
+    และ `[packages]` คือที่ที่ความเสี่ยงอยู่จริง เพราะเป็นของที่ **ถอดไม่ได้**
+
+    แดงเพราะเพิ่ง `pipenv install` อะไรเข้าไป? **อย่าเติมข้อยกเว้น** — ให้ย้ายมัน
+    ไปเป็น plugin พร้อม category ของตัวเองตาม ADR 0025 หรือถ้าจำเป็นต้องรับภาระ
+    นั้นจริง ให้แก้ ADR 0038 ก่อน แล้วค่อยแก้เทสต์
+    """
+    copyleft, unreadable = _scan("default")
+
+    # "ไม่พบ copyleft" กับ "อ่านไม่ได้จึงไม่พบ" หน้าตาเหมือนกันเป๊ะ ต้องแยกก่อน
     assert not unreadable, (
-        f"อ่าน license ของ {unreadable} ไม่ได้ — ติดตั้งให้ครบก่อน "
-        f"(`pipenv sync --categories='{' '.join(CORE_SECTIONS)}'`) "
+        f"อ่าน license ของ {unreadable} ไม่ได้ — `[packages]` ต้องถูกติดตั้งครบ "
         "ไม่งั้นเทสต์นี้จะเขียวโดยไม่ได้ตรวจอะไร"
     )
     assert not copyleft, (
         f"ไลบรารีของ core ที่มีภาระ copyleft: {copyleft}\n"
         "การแจกจ่ายทั้งโปรเจกต์เปลี่ยนเงื่อนไขทันทีที่รับตัวนี้เข้ามา (ADR 0038)"
     )
+
+
+def test_no_dependency_in_deploy_carries_a_copyleft_obligation():
+    """`[deploy]` ก็ต้องสะอาดเหมือนกัน แต่ตรวจได้เฉพาะที่ที่มันถูกติดตั้ง
+
+    **ข้อจำกัดที่บันทึกไว้อย่างเปิดเผยแทนที่จะกลบ:** job `test`/`bare`/`dialects`
+    ไม่ติดตั้ง category นี้ (และ `bare` ติดตั้งไม่ได้โดยนิยาม — มันคือการจำลอง
+    สภาพของคนที่เพิ่ง clone) เทสต์นี้จึง **ข้ามบน CI และเดินจริงบนเครื่องที่มี
+    `deploy` ติดตั้งอยู่** · pytest รายงานจำนวนที่ข้ามทุกครั้ง จึงไม่ใช่การเงียบ
+
+    ที่ยอมได้เพราะความเสี่ยงจริงอยู่ที่ `[packages]` ซึ่งด่านข้างบนคุมแบบไม่มี
+    ข้อยกเว้น ส่วนนี่มีสองตัวที่เปลี่ยนนาน ๆ ครั้ง — ดู ADR 0038 หัวข้อผลที่ตามมา
+    """
+    copyleft, unreadable = _scan("deploy")
+    if unreadable:
+        pytest.skip(
+            f"`deploy` ไม่ได้ติดตั้งครบในสภาพแวดล้อมนี้ (ขาด {unreadable}) — "
+            "ตรวจได้ด้วย `pipenv sync --categories='deploy'`"
+        )
+    assert not copyleft, f"ไลบรารีของ `deploy` ที่มีภาระ copyleft: {copyleft} (ADR 0038)"
 
 
 def test_the_copyleft_libraries_we_do_have_live_in_plugin_categories():
