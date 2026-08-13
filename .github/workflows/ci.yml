@@ -1252,6 +1252,26 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  scaffold:
+    # **scaffolding ต้อง import ได้จริง ไม่ใช่แค่มีไดเรกทอรี** (เฟส 9 — ADR 0039/0040)
+    # ทุกคำสั่งใช้ `python3` เปล่า ๆ โดยตั้งใจ — โปรเจกต์ปลายทางไม่มี dependency
+    # ของเราสักตัว ถ้า overlay แอบพึ่งอะไรนอก stdlib ต้องแดงที่นี่ ไม่ใช่ที่ปลายทาง
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: ติดตั้งลง repo เปล่า — ด่านต้องครบ รันได้ และไม่พังบนความว่าง
+        run: |
+          target=$(mktemp -d)
+          python3 overlays/flask/install.py "$target"
+          python3 "$target/tools/gates_doctor.py" --installed
+          # repo เปล่า: scan ทุกตัวต้อง NA หรือผ่าน — "พังบนของว่าง" คือ checker ที่พัง
+          python3 "$target/tools/gates_doctor.py"
+      - name: dogfood — reference ต้องผ่าน scan ของ overlay ตัวเอง
+        run: |
+          target=$(mktemp -d)
+          python3 overlays/flask/install.py "$target" >/dev/null
+          python3 "$target/tools/gates_doctor.py" "$GITHUB_WORKSPACE"
+
   sbom:
     runs-on: ubuntu-latest
     steps:

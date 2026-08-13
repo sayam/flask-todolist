@@ -44,6 +44,14 @@
 
 **ตัวบังคับใน reference:** `tests/test_skill.py`
 
+### `overlay-covers-every-portable-gate`
+
+**กฎ:** overlay ต้องครอบกฎสากลครบทุกข้อ และ checker พิสูจน์สองทิศ
+
+**เกิดจาก:** กฎสากลที่ไม่มี enforcement ใน overlay คือคำขวัญ — และ checker ที่ไม่เคย ถูกพิสูจน์ว่าแดงเมื่อควรแดง ก็เขียวได้ตลอดกาลโดยไม่ตรวจอะไร
+
+**ตัวบังคับใน reference:** `tests/test_overlay.py`
+
 ### `logic-knows-no-http`
 
 **กฎ:** ตรรกะทั้งหมดอยู่ใน service layer และไม่รู้จัก HTTP

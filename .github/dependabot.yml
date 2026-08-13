@@ -36,7 +36,7 @@ updates:
   # **นี่คือสิ่งที่ทำให้การ pin digest ของ base image ไม่ทำให้แย่ลง**
   # `FROM python:3.13-slim@sha256:...` ปิดทางที่ tag จะถูกย้ายทับเงียบ ๆ แต่ก็
   # ปิดทางที่ security patch จะมาเองด้วย — ตัวนี้เปิด PR ขยับ digest ให้แทน
-  # patch จึงยังมาเหมือนเดิม **แค่มาเป็น PR ที่มีคนเห็นและผ่าน 23 check**
+  # patch จึงยังมาเหมือนเดิม **แค่มาเป็น PR ที่มีคนเห็นและผ่าน check ทุกด่าน**
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
