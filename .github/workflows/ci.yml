@@ -17,6 +17,12 @@ on:
 permissions:
   contents: read
 
+# **เครื่องมือที่ job ติดตั้งเองถูกตรึงด้วย hash ทั้งหมด — ดู `pins/README.md`**
+# `pip install pipenv` เปล่า ๆ หยิบรุ่นล่าสุด ณ วินาทีที่ job รัน และเครื่องมือ
+# พวกนี้รันด้วยสิทธิ์ของ workflow นี้ · `--require-hashes` ปฏิเสธทั้ง "ไฟล์ไม่ตรง
+# hash" และ "มี dependency ที่ไม่ได้ถูกระบุไว้" — ล็อกที่ครอบไม่ครบจึงเป็น error
+# ไม่ใช่ช่องโหว่เงียบ ๆ · ของที่ตรึงไว้ถูก Dependabot ขยับให้ ไม่ใช่แช่ไว้เฉย ๆ
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -40,7 +46,7 @@ jobs:
         with:
           python-version: "3.13"
           cache: pipenv
-      - run: pip install pipenv
+      - run: pip install --require-hashes -r pins/pipenv/requirements.txt
       - run: pipenv sync --dev
       # ไลบรารีของ plugin อยู่นอก `[packages]` (ADR 0025) ต้องติดตั้งแยก —
       # ถามชื่อ category จากตัวแอปเอง **ห้าม hardcode ชื่อ plugin ใน CI**
@@ -114,7 +120,7 @@ jobs:
         with:
           python-version: "3.13"
           cache: pipenv
-      - run: pip install pipenv
+      - run: pip install --require-hashes -r pins/pipenv/requirements.txt
       - run: pipenv sync --dev
       # driver ของยี่ห้อพวกนี้อยู่ใน category ของ plugin ชนิด `db` (ADR 0026)
       # ถามชื่อจากตัวแอปเอง **ห้าม hardcode ชื่อ plugin ใน CI**
@@ -143,7 +149,7 @@ jobs:
         with:
           python-version: "3.13"
           cache: pipenv
-      - run: pip install pipenv
+      - run: pip install --require-hashes -r pins/pipenv/requirements.txt
       - run: pipenv sync --dev
       # ถ้าวันหนึ่งไลบรารีของ plugin เผลอย้ายกลับเข้า `[packages]` ของ core
       # job นี้จะยังเขียวทั้งที่ไม่ได้พิสูจน์อะไรเลย — ตรวจก่อนว่ามันหายไปจริง
@@ -198,7 +204,7 @@ jobs:
         with:
           python-version: "3.13"
           cache: pipenv
-      - run: pip install pipenv
+      - run: pip install --require-hashes -r pins/pipenv/requirements.txt
       - run: pipenv sync --dev
       # `if: !cancelled()` ทุก step เพื่อให้ **ด่านที่แดงตัวแรกไม่บังคับตัวหลังให้เงียบ**
       # เจอมาแล้วตอน Phase 4.5: xenon แดงก่อน job จึงไม่เคยเดินถึง mypy ที่แดงอยู่
@@ -237,7 +243,7 @@ jobs:
         with:
           python-version: "3.13"
           cache: pipenv
-      - run: pip install pipenv
+      - run: pip install --require-hashes -r pins/pipenv/requirements.txt
       - run: pipenv sync --dev
       - name: db upgrade แล้วเทียบ model กับ schema (drift ต้องเป็นศูนย์)
         run: |
@@ -263,7 +269,7 @@ jobs:
         with:
           python-version: "3.13"
           cache: pipenv
-      - run: pip install pipenv
+      - run: pip install --require-hashes -r pins/pipenv/requirements.txt
       - run: pipenv sync --dev
       - name: generate แล้วต้องไม่มีอะไรเปลี่ยน
         run: |
@@ -313,15 +319,19 @@ jobs:
         with:
           python-version: "3.13"
           cache: pipenv
-      - run: pip install pipenv
+      - run: pip install --require-hashes -r pins/pipenv/requirements.txt
       - run: pipenv sync --dev
       # **ไม่มี step ติดตั้ง category ของ plugin ที่นี่โดยตั้งใจ** — job นี้คือ
       # supply chain ที่ถอดไม่ได้ CVE ที่เจอที่นี่จึงหยุด pipeline ได้เต็มปาก
       # ส่วนของ plugin ถูก audit ในอีก job (`plugin-audit`) ซึ่งบอกได้ว่า CVE
       # เป็นของ plugin ไหน และตอบด้วยการถอดได้ (ADR 0025)
-      - name: pip-audit ของ core (อัปเกรด pip ใน venv ก่อน — ตัว pip เองก็ถูก audit)
+      # **pip ใน venv ถูกตรึงเหมือนกัน ไม่ใช่ `--upgrade` ให้เป็นรุ่นล่าสุด**
+      # ต้องขยับเพราะ pip ที่ virtualenv แถมมาเก่ากว่าจนตัวมันเองมี CVE (pip-audit
+      # ตรวจ pip ด้วย) — แต่ "ล่าสุด" แปลว่าไม่มีใครรู้ว่า run นี้ใช้ตัวไหน
+      # ตรึงแล้ว CVE ของ pip จะมาถึงในรูป PR ของ Dependabot แทน ซึ่งเห็นได้
+      - name: pip-audit ของ core (ตรึงรุ่น pip ใน venv ก่อน — ตัว pip เองก็ถูก audit)
         run: |
-          pipenv run python -m pip install --quiet --upgrade pip
+          pipenv run python -m pip install --quiet --require-hashes -r pins/pip/requirements.txt
           pipenv run pip-audit
       # **`[deploy]` ไม่ได้ถูกติดตั้งด้วย `pipenv sync --dev`** จึงไม่อยู่ในรอบข้างบน
       # และ dependency graph ของ GitHub ก็ไม่เห็นมันเช่นกัน (ตรวจแล้ว 2026-08-12:
@@ -335,10 +345,15 @@ jobs:
           pipenv requirements --categories="deploy" > req-deploy.txt
           test -s req-deploy.txt || { echo "req-deploy.txt ว่าง — ไม่ได้ audit อะไรเลย"; exit 1; }
           pipenv run pip-audit --requirement req-deploy.txt
+      # **venv แยกของตัวเอง ไม่ใช่ลงทับ python ของ runner** — semgrep ลาก
+      # dependency มาหกสิบกว่าตัว ซึ่งทับกับของ pipenv ได้ (`certifi`,
+      # `packaging`, `setuptools`) ตอนนี้ step นี้อยู่ท้ายสุดจึงไม่มีใครเดือดร้อน
+      # แต่ด่านที่ถูกต้องเพราะลำดับ step คือด่านที่พังเงียบ ๆ วันที่มีคนสลับลำดับ
       - name: semgrep (flask + python rulesets)
         run: |
-          pip install --quiet semgrep
-          semgrep scan --config p/flask --config p/python \
+          python -m venv /tmp/semgrep-venv
+          /tmp/semgrep-venv/bin/pip install --quiet --require-hashes -r pins/semgrep/requirements.txt
+          /tmp/semgrep-venv/bin/semgrep scan --config p/flask --config p/python \
             --exclude migrations --exclude .venv --metrics=off --error --quiet
 
   plugin-audit:
@@ -353,7 +368,7 @@ jobs:
         with:
           python-version: "3.13"
           cache: pipenv
-      - run: pip install pipenv
+      - run: pip install --require-hashes -r pins/pipenv/requirements.txt
       - run: pipenv sync --dev
       # ไม่ต้องติดตั้งไลบรารีของ plugin — audit จาก lock file ทีละ category
       # ชื่อ category ถามจากตัวแอปเอง **ห้าม hardcode ชื่อ plugin ใน CI**
@@ -409,7 +424,7 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
-      - run: pip install pipenv
+      - run: pip install --require-hashes -r pins/pipenv/requirements.txt
       - run: pipenv sync --dev
       # ไลบรารีของ plugin อยู่นอก `[packages]` (ADR 0025) ต้องติดตั้งแยก —
       # ถามชื่อ category จากตัวแอปเอง **ห้าม hardcode ชื่อ plugin ใน CI**
@@ -418,7 +433,12 @@ jobs:
         env:
           SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
       # pin ไว้ให้ผลซ้ำได้ — pa11y ขยับ rule เมื่อไหร่ gate จะไม่ขยับตามเงียบ ๆ
-      - run: npm install --no-save pa11y-ci@4.1.1
+      # **`npm ci` ไม่ใช่ `npm install`** — ตัวหลังตรึงได้แค่รุ่นของ pa11y-ci เอง
+      # ส่วนอีก 161 package ที่ตามมาด้วยยังเป็น "ล่าสุดที่เข้าช่วง" ทุกครั้งที่รัน
+      # `npm ci` ติดตั้งจาก `package-lock.json` ตรง ๆ ซึ่งมี integrity hash ครบทั้งต้นไม้
+      # และ **ล้มทันทีถ้า lock ไม่ตรงกับ package.json** ไม่ใช่แก้ lock ให้เงียบ ๆ
+      - run: npm ci
+        working-directory: pins/pa11y
       - name: เตรียมฐานข้อมูลชั่วคราว + ข้อมูลตัวอย่าง
         run: |
           pipenv run flask db upgrade
@@ -438,7 +458,7 @@ jobs:
             sleep 1
           done
           curl -sf -o /dev/null http://127.0.0.1:5099/login || { echo "แอปไม่ขึ้น"; exit 1; }
-          ./node_modules/.bin/pa11y-ci --config .pa11yci.json
+          ./pins/pa11y/node_modules/.bin/pa11y-ci --config .pa11yci.json
         # ไม่ต้องปิด rate limit: pa11y login ใหม่ทุก URL ก็จริง แต่ `deduct_when`
         # หักโควตาเฉพาะตอนได้ 401 — login ที่ถูกต้องไม่กินโควตาเลย
         env:
@@ -1205,7 +1225,7 @@ jobs:
         with:
           python-version: "3.13"
           cache: pipenv
-      - run: pip install pipenv
+      - run: pip install --require-hashes -r pins/pipenv/requirements.txt
       - run: pipenv sync --dev
       # แยกเป็นไฟล์ละ category ด้วยเหตุผลเดียวกับ pip-audit: SBOM ที่รวมทุกอย่าง
       # เป็นก้อนเดียวตอบไม่ได้ว่า "ถอด plugin ตัวนี้แล้ว component ไหนหายไปบ้าง"

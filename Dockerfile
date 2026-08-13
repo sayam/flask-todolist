@@ -39,7 +39,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # ไฟล์นั้นมีอยู่จริง สิ่งที่หายคือ *interpreter* ที่ shebang ชี้ไป (เจอจริงใน CI)
 WORKDIR /app
 
-RUN pip install --no-cache-dir pipenv
+# **pipenv ก็ถูกตรึงด้วย hash เหมือนกัน** (ดู `pins/README.md`) — image ที่ base
+# ถูก pin ด้วย digest แต่ยังหยิบ pipenv รุ่นล่าสุดมาสร้าง venv คือ image ที่
+# reproducible ครึ่งเดียว · `--require-hashes` ยังปฏิเสธด้วยถ้ามี dependency
+# ตัวไหนไม่ได้ถูกระบุไว้ ล็อกที่ครอบไม่ครบจึงพังตอน build ไม่ใช่ตอน deploy
+COPY pins/pipenv/requirements.txt pins/pipenv/
+RUN pip install --no-cache-dir --require-hashes -r pins/pipenv/requirements.txt
 
 # คัดลอกแค่ไฟล์ล็อกก่อน — ชั้นนี้จะถูก cache ไว้ตราบใดที่ dependency ไม่เปลี่ยน
 # (คัดลอกโค้ดมาก่อนแปลว่าแก้โค้ดหนึ่งบรรทัดแล้วต้องติดตั้ง dependency ใหม่ทั้งหมด)

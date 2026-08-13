@@ -98,6 +98,13 @@
   `ProtectHome=true` ทำให้ **ทุกอย่างที่หน่วยแตะต้องอยู่นอก home** ไม่งั้นได้
   `203/EXEC` ที่ไม่บอกสาเหตุ · `Environment=` ต้องใส่เครื่องหมายคำพูดถ้ามีช่องว่าง
 - `scripts/` — สคริปต์ที่รันมือ ไม่ได้ถูกเรียกตอนแอปทำงาน
+- `pins/` — **ล็อกไฟล์ของเครื่องมือที่ CI ติดตั้งเอง** (pipenv, pip, semgrep, pa11y-ci)
+  ไม่ใช่ dependency ของแอป (ของแอปอยู่ใน `Pipfile.lock`) · ทุก `pip install` ใน
+  workflow และ `Dockerfile` ต้องเป็น `--require-hashes -r pins/<ชื่อ>/requirements.txt`
+  และฝั่ง node ต้องเป็น **`npm ci` ไม่ใช่ `npm install`** — `npm install pkg@x`
+  ตรึงได้แค่ตัวมันเอง ที่เหลือในต้นไม้ยังลอยอยู่ (`tests/test_ci_pinning.py` บังคับ)
+  **เพิ่มไดเรกทอรีที่นี่ต้องต่อ Dependabot ให้ด้วย** ไม่งั้นแดง — pin โดยไม่มีใคร
+  ขยับคือการแช่ช่องโหว่ไว้ · วิธี regenerate อยู่ใน `pins/README.md`
 - `docs/openapi.json` — **ไฟล์ที่ generate มา ห้ามแก้ด้วยมือ** (ดูหัวข้อ API v1)
 - `docs/ASVS.md` — self-assessment ต่อ ASVS 5.0 L2 (ดูหัวข้อ ASVS)
 - `docs/ROPA.md` — บันทึกกิจกรรมการประมวลผล + **บัญชีรายการ log** + ปลายทางที่คุยด้วย
