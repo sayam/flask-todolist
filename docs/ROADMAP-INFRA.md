@@ -191,6 +191,11 @@ ban list ตรวจที่ *render สด* จึงจับชื่อไ
 
 ## Phase 11 — fail-fix loop harness
 
+**สถานะ: เฟส 11 เสร็จทั้งเฟส (2026-08-14)** — `scripts/run_gates.py` (รัน kind
+test · job/step ข้ามพร้อมเหตุผลตาม ADR 0039) · round log + รายงาน JSON ·
+พิสูจน์ 11-03 ด้วย **worktree ที่ฝังช่องโหว่จริง** แทน template (ไม่มีไฟล์ปลอม
+ใน repo) — บันทึกใน `docs/GATE-LOG.md` รวมรอบที่ plant ตกใน docstring
+
 | ขั้น | งาน | ไฟล์ที่กระทบ |
 |---|---|---|
 | 11-01 | `scripts/run_gates.py`: อ่าน `gates.yaml` → รัน gate ที่รันได้ในสภาพนั้น → JSON (gate id, สาเหตุ, hint) · gate ที่ `requires:` ไม่ครบ = **รายงานว่าข้าม** | `scripts/run_gates.py` |
