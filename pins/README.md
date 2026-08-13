@@ -8,7 +8,7 @@
 | `pip/` | job `security` | venv ของ pipenv (ก่อนรัน `pip-audit`) |
 | `pipenv/` | ทุก job ที่รัน pytest/lint + `Dockerfile` ชั้น build | python ของ runner |
 | `semgrep/` | job `security` | venv แยกของตัวเอง |
-| `pa11y/` | job `a11y` | `pins/pa11y/node_modules/` |
+| `pa11y/` | job `a11y` | `pins/pa11y/node_modules/` (`npm ci`) |
 
 ## ทำไมต้องตรึง
 
@@ -50,8 +50,16 @@ patch จึงยังมาเหมือนเดิม **แค่มา�
 เหตุผลของแต่ละข้ออยู่ใน `docs/SECURITY-CADENCE.md` และ `tests/test_pins_audit.py`
 บังคับว่าไฟล์กับเอกสารต้องตรงกันทั้งสองทิศเช่นกัน
 
-**ฝั่ง npm ยังไม่มีด่านที่บล็อก** — pip-audit มองไม่เห็น `package-lock.json`
-ตอนนี้พึ่ง Dependabot security updates ซึ่งเห็นผ่าน dependency graph อย่างเดียว
+**ครอบทั้งสองภาษา** — `requirements.txt` ด้วย `pip-audit` และ `package-lock.json`
+ด้วย `npm audit` (ไม่ต้องมี `node_modules` มันสร้างต้นไม้จากล็อกแล้วถาม registry เอง)
+· ด่านที่ครอบภาษาเดียวในไดเรกทอรีที่มีสองภาษา คือด่านที่ชื่อของมันชวนให้เข้าใจ
+ว่าครอบแล้ว ซึ่งอันตรายกว่าไม่มีด่านเลย
+
+**รายงานของ `npm audit` จัดกลุ่มตาม package ที่โดน ไม่ใช่ตาม advisory** —
+นับตามหัวข่าวจะได้ 6 ทั้งที่ต้นตอมีอันเดียว (`extract-zip` ที่ไหลไป
+`@puppeteer/browsers` → `puppeteer` → `pa11y` → `pa11y-ci`) สคริปต์จึงนับเฉพาะ
+สมาชิกของ `via` ที่เป็น object ไม่งั้นรายการยกเว้นจะบวมตามจำนวน package ที่
+บังเอิญ depend กัน แทนที่จะตามจำนวนเรื่องที่ต้องตัดสินใจ
 
 ## สร้างใหม่ยังไง
 

@@ -4,6 +4,10 @@ job `security` มี pip-audit ของ core และของ `[deploy]` อ
 เป็น supply chain ก้อนที่สามที่ไม่มีใครดูให้: มันไม่ได้ถูกติดตั้งด้วย
 `pipenv sync --dev` จึงไม่อยู่ในรอบของ core และไม่ใช่ไลบรารีของ plugin
 
+**ครอบทั้งสองฝั่ง** — `requirements.txt` ด้วย `pip-audit` และ `package-lock.json`
+ด้วย `npm audit` · ด่านที่ครอบภาษาเดียวในไดเรกทอรีที่มีสองภาษา คือด่านที่ชื่อของ
+มันชวนให้เข้าใจว่าครอบแล้ว ซึ่งอันตรายกว่าไม่มีด่านเลย
+
 **ทำไมต้องมีรายการยกเว้น** — `semgrep` pin `mcp` ไว้ตายตัว การอัปเกรดตามที่
 advisory บอกจึงทำไม่ได้จนกว่า upstream จะขยับ ด่านที่แดงตั้งแต่วันแรกและแดง
 ต่อไปเรื่อย ๆ คือด่านที่ถูกปิดเสียงภายในสองสัปดาห์ แล้วของจริงที่โผล่ทีหลัง
@@ -43,25 +47,36 @@ def _fixes(vuln: dict[str, list[str]]) -> str:
     return ", ".join(vuln["fix_versions"]) or "ยังไม่มี"
 
 
-def audit(lock: pathlib.Path) -> dict[str, str]:
-    """ID ที่เจอในไฟล์ล็อกหนึ่งไฟล์ → คำอธิบายสั้น ๆ ว่าเป็นของ package ไหน
+def _run(command: list[str], where: pathlib.Path, tool: str) -> str:
+    """รันตัว audit แล้วคืน stdout — **exit 1 คือ "เจอช่องโหว่" ไม่ใช่ "พัง"**
+
+    ทั้ง pip-audit และ npm audit ใช้กติกาเดียวกัน · อย่างอื่นคือตัวมันเองมีปัญหา
+    (ไม่มี node, ต่อ registry ไม่ได้) ซึ่ง **ต้องดัง ไม่ใช่ข้ามเงียบ ๆ** —
+    ด่านที่ข้ามตัวเองตอนเครื่องมือหาย คือด่านที่เขียวในวันที่มันไม่ได้ตรวจอะไร
+    """
+    try:
+        result = subprocess.run(  # noqa: S603 — อาร์กิวเมนต์คงที่ + path จาก glob ของ repo เอง
+            command, cwd=where, capture_output=True, text=True, check=False
+        )
+    except FileNotFoundError:
+        print(f"ไม่มี {tool} บนเครื่องนี้ — ติดตั้งก่อน อย่าข้าม", file=sys.stderr)
+        raise SystemExit(2) from None
+
+    if result.returncode not in (0, 1):
+        print(f"{tool} ล้มด้วย exit {result.returncode} ที่ {where}", file=sys.stderr)
+        print(result.stderr, file=sys.stderr)
+        raise SystemExit(2)
+    return result.stdout
+
+
+def audit_pip(lock: pathlib.Path) -> dict[str, str]:
+    """ID ที่เจอในไฟล์ล็อกของ python → คำอธิบายสั้น ๆ ว่าเป็นของ package ไหน
 
     **ไม่ส่ง `--ignore-vuln` ให้ pip-audit** เพราะเราต้องเห็นของทั้งหมดก่อน
     ถึงจะรู้ได้ว่ารายการยกเว้นยังตรงกับความจริงอยู่ไหม
     """
-    result = subprocess.run(  # noqa: S603 — อาร์กิวเมนต์คงที่ + path จาก glob ของ repo เอง
-        [sys.executable, "-m", "pip_audit", "--no-deps", "--format", "json", "-r", str(lock)],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    # pip-audit คืน 1 เมื่อ *เจอช่องโหว่* ซึ่งเป็นผลปกติที่นี่ — อย่างอื่นคือมันเองพัง
-    if result.returncode not in (0, 1):
-        print(f"pip-audit ล้มด้วย exit {result.returncode} ที่ {lock}", file=sys.stderr)
-        print(result.stderr, file=sys.stderr)
-        raise SystemExit(2)
-
-    report = json.loads(result.stdout)
+    command = [sys.executable, "-m", "pip_audit", "--no-deps", "--format", "json", "-r", lock.name]
+    report = json.loads(_run(command, lock.parent, "pip-audit"))
     return {
         vuln["id"]: f"{dep['name']}=={dep['version']} (fix: {_fixes(vuln)})"
         for dep in report["dependencies"]
@@ -69,17 +84,55 @@ def audit(lock: pathlib.Path) -> dict[str, str]:
     }
 
 
+def audit_npm(project: pathlib.Path) -> dict[str, str]:
+    """ID ที่เจอในไฟล์ล็อกของ node — **ไม่ต้องมี `node_modules`**
+
+    `npm audit` สร้างต้นไม้จาก `package-lock.json` แล้วถาม registry เอง
+
+    รายงานของมันถูก **จัดกลุ่มตาม package ที่ได้รับผลกระทบ ไม่ใช่ตาม advisory**
+    ตัวที่เป็น advisory จริงคือสมาชิกของ `via` ที่เป็น object ส่วนที่เป็นสตริงคือ
+    "ติดมาจากตัวนั้น" — นับตามหัวข่าวจะได้ 6 ทั้งที่ต้นตอมีอันเดียว และรายการ
+    ยกเว้นจะบวมตามจำนวน package ที่บังเอิญ depend กันแทนที่จะตามจำนวนเรื่อง
+    """
+    report = json.loads(_run(["npm", "audit", "--json"], project, "npm"))
+    if "vulnerabilities" not in report:
+        print(f"npm audit ไม่ได้คืนรายงานที่อ่านได้ที่ {project}", file=sys.stderr)
+        raise SystemExit(2)
+
+    return {
+        _advisory_id(via): f"{via['name']}{via['range']} ({via['severity']})"
+        for entry in report["vulnerabilities"].values()
+        for via in entry["via"]
+        if isinstance(via, dict)
+    }
+
+
+def _advisory_id(via: dict[str, str]) -> str:
+    """GHSA จาก URL ของ advisory — ตกกลับไปที่ URL เต็มถ้ารูปแบบเปลี่ยน
+
+    **ห้ามใช้ `source` ที่เป็นเลข** มันเป็นไอดีภายในของ registry ซึ่งอ้างถึง
+    จากที่อื่นไม่ได้ และคนอ่านรายการยกเว้นจะไม่มีทางรู้ว่ามันคือเรื่องอะไร
+    """
+    _, marker, tail = via.get("url", "").partition("/advisories/")
+    return tail if marker and tail else via.get("url", via["name"])
+
+
 def main() -> int:
     """ตรวจทุกไฟล์ล็อกใน `pins/` แล้วเทียบผลกับรายการยกเว้นทั้งสองทิศ"""
-    locks = sorted(PINS.glob("*/requirements.txt"))
-    if not locks:
-        print("ไม่เจอไฟล์ล็อกใน pins/ เลย — ตัวหาพังหรือเปล่า", file=sys.stderr)
+    pip_locks = sorted(PINS.glob("*/requirements.txt"))
+    npm_locks = sorted(PINS.glob("*/package-lock.json"))
+    if not pip_locks or not npm_locks:
+        # **เช็คทั้งสองฝั่ง** — ฝั่งที่หาไม่เจอจะ "ผ่าน" เงียบ ๆ ทั้งที่ไม่ได้ตรวจอะไร
+        print(f"หาไฟล์ล็อกไม่ครบ (python {len(pip_locks)} · node {len(npm_locks)})", file=sys.stderr)
         return 2
 
     found: dict[str, str] = {}
-    for lock in locks:
+    for lock in pip_locks:
         print(f"== {lock.relative_to(ROOT)}")
-        found.update(audit(lock))
+        found.update(audit_pip(lock))
+    for lock in npm_locks:
+        print(f"== {lock.relative_to(ROOT)}")
+        found.update(audit_npm(lock.parent))
 
     accepted = accepted_advisories()
     unexpected = sorted(found.keys() - accepted)

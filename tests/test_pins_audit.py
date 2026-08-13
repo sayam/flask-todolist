@@ -67,13 +67,30 @@ def test_every_documented_acceptance_is_actually_in_effect(accepted, documented)
     )
 
 
-def test_the_security_job_actually_runs_the_pins_audit():
+@pytest.fixture(scope="module")
+def security_job() -> dict:
+    return yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))["jobs"]["security"]
+
+
+def test_the_security_job_actually_runs_the_pins_audit(security_job):
     """**ด่านที่ไม่มีใครรัน คือไฟล์ข้อความ** — และไม่มีอะไรฟ้องเวลาถูกถอดออก"""
     assert SCRIPT.is_file(), "ไม่มี scripts/audit_pins.py"
 
-    workflow = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
-    commands = " ".join(step.get("run", "") for step in workflow["jobs"]["security"]["steps"])
+    commands = " ".join(step.get("run", "") for step in security_job["steps"])
     assert "scripts/audit_pins.py" in commands, (
         "job `security` ไม่ได้เรียก scripts/audit_pins.py — supply chain ของ pins/ "
         "จึงไม่มีใครตรวจให้ ทั้งที่เครื่องมือพวกนั้นรันด้วยสิทธิ์ของ workflow"
+    )
+
+
+def test_the_security_job_declares_the_node_the_npm_side_needs(security_job):
+    """สคริปต์ตรวจฝั่ง npm ด้วย และ **runner มี npm ติดมาเองอยู่แล้ว**
+
+    ซึ่งเป็นเหตุผลที่ต้องมีเทสต์นี้ ไม่ใช่เหตุผลที่ไม่ต้องมี — ถอด setup-node
+    ออกแล้วสคริปต์จะยัง "ทำงานได้" ด้วย node รุ่นที่ไม่มีอะไรใน repo ประกาศไว้
+    และเปลี่ยนได้เมื่อไหร่ก็ได้ · ความล้มเหลวชนิดนี้ไม่มีอะไรฟ้องเลย
+    """
+    used = [step.get("uses", "") for step in security_job["steps"]]
+    assert any(u.startswith("actions/setup-node@") for u in used), (
+        "job `security` ไม่ได้ประกาศ node ทั้งที่ scripts/audit_pins.py ตรวจฝั่ง npm ด้วย"
     )
