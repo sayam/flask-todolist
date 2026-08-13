@@ -39,3 +39,16 @@ updates:
     commit-message:
       prefix: "build"
     open-pull-requests-limit: 3
+    # **ขอแค่ digest ใหม่ ไม่ใช่ Python รุ่นใหม่**
+    # PR ใบแรกที่มันเปิดให้คือ `3.13-slim` → `3.14-slim` ซึ่งไม่ใช่สิ่งที่การ pin
+    # digest ต้องการเลย · รุ่นของ Python ถูกตรึงไว้ที่ 3.13 อีก 14 จุดในโปรเจกต์
+    # (`Pipfile`, `pyproject.toml` ×2, `ci.yml` ×11) การขยับที่ Dockerfile
+    # ที่เดียวจึงเป็นการทำให้ image ไม่ตรงกับทุกที่ที่เหลือ ไม่ใช่การอัปเดต
+    #
+    # **การขึ้นรุ่น Python เป็นการตัดสินใจที่ต้องขยับพร้อมกันทั้งโปรเจกต์**
+    # ไม่ใช่ของที่ควรมาถึงในรูปของ PR อัตโนมัติที่แก้ไฟล์เดียว
+    ignore:
+      - dependency-name: "python"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"

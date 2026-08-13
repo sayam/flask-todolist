@@ -78,3 +78,47 @@ def test_dependabot_is_the_one_keeping_the_digest_fresh():
     )
     for entry in docker:
         assert entry.get("schedule", {}).get("interval"), "docker: ไม่ได้ตั้งรอบ"
+
+
+def test_dependabot_asks_for_a_fresh_digest_not_a_new_python():
+    """ต้องปิด major/minor ไว้ ไม่งั้นมันเสนอขึ้นรุ่น Python ให้เอง
+
+    PR ใบแรกที่มันเปิดคือ `3.13-slim` → `3.14-slim` ซึ่งไม่ใช่สิ่งที่การ pin
+    digest ต้องการ · รุ่นของ Python ถูกตรึงไว้อีกหลายจุด (`Pipfile`,
+    `pyproject.toml`, `ci.yml`) การขยับที่ Dockerfile ที่เดียวจึงเป็นการทำให้
+    image ไม่ตรงกับทุกที่ที่เหลือ ไม่ใช่การอัปเดต — **การขึ้นรุ่น Python
+    ต้องขยับพร้อมกันทั้งโปรเจกต์ ไม่ใช่มาในรูป PR อัตโนมัติที่แก้ไฟล์เดียว**
+    """
+    config = yaml.safe_load(DEPENDABOT.read_text(encoding="utf-8"))
+    docker = [e for e in config["updates"] if e["package-ecosystem"] == "docker"]
+
+    for entry in docker:
+        ignored = {
+            update_type
+            for rule in entry.get("ignore", [])
+            if rule.get("dependency-name") in ("python", "*")
+            for update_type in rule.get("update-types", [])
+        }
+        missing = {"version-update:semver-major", "version-update:semver-minor"} - ignored
+        assert not missing, (
+            f"docker: ไม่ได้ปิดการขยับรุ่นชนิด {sorted(missing)} ของ image `python` — "
+            "Dependabot จะเสนอขึ้นรุ่น Python ให้เองโดยแก้แค่ Dockerfile"
+        )
+
+
+def test_the_python_version_is_the_same_everywhere():
+    """digest ใน Dockerfile ต้องเป็น Python รุ่นเดียวกับที่ทุกที่ประกาศไว้
+
+    ข้อนี้คือเหตุผลที่ปิด major/minor ข้างบน — เขียนเป็นเทสต์ไว้ด้วยเพราะ
+    ถ้าวันหนึ่งมีคน merge PR ขึ้นรุ่นเข้ามาโดยไม่ขยับที่อื่น ต้องมีอะไรดัง
+    """
+    dockerfile = DOCKERFILE.read_text(encoding="utf-8")
+    in_image = set(re.findall(r"^FROM\s+python:(\d+\.\d+)-", dockerfile, re.MULTILINE))
+    assert in_image, "อ่านรุ่น Python จาก Dockerfile ไม่ได้"
+
+    declared = set(re.findall(r'python_version\s*=\s*"(\d+\.\d+)"', (ROOT / "Pipfile").read_text()))
+    assert declared, "อ่าน python_version จาก Pipfile ไม่ได้"
+
+    assert in_image == declared, (
+        f"Dockerfile ใช้ Python {sorted(in_image)} แต่ Pipfile ประกาศ {sorted(declared)}"
+    )
