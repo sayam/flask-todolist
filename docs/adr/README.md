@@ -44,3 +44,5 @@ ADR 0002–0008 เป็นการ backfill การตัดสินใจ
 | [0036](0036-read-committed-isolation.md) | อ่านแบบ READ COMMITTED บนยี่ห้อที่มี MVCC | accepted |
 | [0037](0037-where-logs-go-and-what-shouts.md) | log ไปที่ Loki · กฎแจ้งเตือนอยู่ที่ ruler | accepted |
 | [0038](0038-mit-license.md) | เผยแพร่ด้วย MIT · core ต้องไม่มีภาระ copyleft | accepted |
+| [0039](0039-gates-registry-verified-two-way.md) | `gates.yaml` เป็นดัชนี enforcement ตรวจสองทิศ — ไม่ generate CI ไม่ทับ ASVS.md | accepted |
+| [0040](0040-scaffolding-scope-cuts.md) | งาน scaffolding ตัดอะไรออกโดยตั้งใจ (CDC · cross-framework runtime · overlay อื่น) | accepted |

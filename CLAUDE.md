@@ -106,6 +106,13 @@
   **เทียบเซตไฟล์ที่สแกนจริงกับ `git ls-files` ลบด้วยไฟล์นี้** ไม่ใช่เลขขั้นต่ำ
   (`tests/test_semgrep_gate.py` คุมอีกชั้น — ห้ามใส่ `--error` กลับ มันทำให้
   semgrep ตายก่อนถึงตัวตรวจ)
+- `gates.yaml` — **ดัชนี gate ของทั้ง repo** (ADR 0039) — ดัชนี ไม่ใช่แหล่ง:
+  ตัวบังคับจริงคือเทสต์กับ job · `tests/test_gates.py` บังคับสองทิศ:
+  ทุก job ต้องมี gate และ **ไฟล์เทสต์ทุกไฟล์ต้องถูกตัดสินว่าเป็นของ gate ไหน
+  ตัวเดียว** (partition แบบ DATA-CLASSIFICATION) — **เพิ่มไฟล์เทสต์ใหม่ต้องมา
+  ลงทะเบียนที่นี่ด้วย** (gate ใหม่ หรือแถวใน `app-behavior-suite`) ไม่งั้นแดง
+  · `portable: true` ต้องมี `born_from` · `standard` อ้างได้เฉพาะข้อ ASVS
+  ที่ประเมินว่า "ผ่าน"
 - `pins/` — **ล็อกไฟล์ของเครื่องมือที่ CI ติดตั้งเอง** (pipenv, pip, semgrep, pa11y-ci)
   ไม่ใช่ dependency ของแอป (ของแอปอยู่ใน `Pipfile.lock`) · ทุก `pip install` ใน
   workflow และ `Dockerfile` ต้องเป็น `--require-hashes -r pins/<ชื่อ>/requirements.txt`
