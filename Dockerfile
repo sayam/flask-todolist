@@ -9,8 +9,23 @@
 # แปลว่า deploy ที่ rollback แล้วจะเจอฐานข้อมูลที่ล้ำหน้าโค้ดอยู่ และการ start
 # หลาย replica พร้อมกันจะแย่งกัน migrate (ดู docs/OPERATIONS.md)
 
+# **base image ถูก pin ด้วย digest ไม่ใช่แค่ tag** (2026-08-13)
+#
+# `python:3.13-slim` เป็น tag ที่ถูกย้ายทับได้ตลอด — สอง build ที่ห่างกันหนึ่ง
+# ชั่วโมงจึงได้ base คนละตัวโดยไม่มีอะไรในไฟล์นี้เปลี่ยน ซึ่งแปลว่า image ที่
+# ทดสอบผ่านกับ image ที่ deploy ไม่จำเป็นต้องเป็นตัวเดียวกัน
+#
+# **ราคาที่จ่ายและวิธีที่จ่ายไปแล้ว**: pin แล้ว security patch ของ base จะไม่มา
+# เองอีก — ซึ่งจะแย่กว่าเดิมถ้าไม่มีใครขยับ · จึงเปิด `package-ecosystem: docker`
+# ใน `.github/dependabot.yml` ให้มันเปิด PR ขยับ digest ให้ patch ยังมาเหมือนเดิม
+# **แค่มาเป็น PR ที่มีคนเห็นและผ่าน 23 check แทนที่จะมาเงียบ ๆ ตอน build**
+#
+# digest นี้เป็นของ **manifest index (multi-arch)** ไม่ใช่ของ image ต่อสถาปัตยกรรม
+# — pin ผิดตัวจะล็อก build ไว้ที่ arch เดียวโดยไม่มี error ให้เห็นจนกว่าจะ build
+# บนเครื่องคนละ arch · ทั้งสองชั้นต้องเป็น digest เดียวกัน (`tests/test_dockerfile_pinning.py`)
+#
 # ---------------------------------------------------------------- ชั้น build
-FROM python:3.13-slim AS builder
+FROM python:3.13-slim@sha256:ffb752e139c0a19692a43af8d8523b274222dd68eebad5d583b45c2201c6e30a AS builder
 
 # ไม่เขียน .pyc และไม่ buffer stdout/stderr — log ต้องออกทันทีไม่ใช่ตอน buffer เต็ม
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -48,7 +63,7 @@ ENV PIPENV_VENV_IN_PROJECT=1
 RUN pipenv verify && pipenv sync --categories="packages deploy ${PLUGIN_CATEGORIES}"
 
 # ---------------------------------------------------------------- ชั้นที่รันจริง
-FROM python:3.13-slim AS runtime
+FROM python:3.13-slim@sha256:ffb752e139c0a19692a43af8d8523b274222dd68eebad5d583b45c2201c6e30a AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \

@@ -96,6 +96,18 @@ tag เดิมจะชี้ไปโค้ดใหม่โดยที่�
 `github/codeql-action` กับ `ossf/scorecard-action` คืน object ชนิด `tag`
 ไม่ใช่ `commit` · เอา SHA นั้นไปใส่ตรง ๆ workflow จะพัง
 
+**base image ของ `Dockerfile` ก็ pin ด้วย digest ด้วยหลักเดียวกัน** — และ
+**ราคาที่มันเรียกเก็บต่างจาก action**: pin แล้ว security patch ของ base จะไม่มา
+เองอีก ซึ่ง**แย่กว่าเดิม**ถ้าไม่มีใครขยับ · จ่ายด้วยการเปิด
+`package-ecosystem: docker` ให้ Dependabot เปิด PR ขยับ digest แทน patch จึงยัง
+มาเหมือนเดิม แค่มาเป็น PR ที่มีคนเห็นและผ่าน 23 check · `tests/test_dockerfile_pinning.py`
+บังคับว่า **สองอย่างนี้ต้องมาคู่กัน** — ถอด entry ของ Dependabot ออกเมื่อไหร่ต้องแดง
+เพราะ pin โดยไม่มีใครขยับคือการแช่ช่องโหว่ไว้
+
+**ต้อง pin digest ของ manifest index ไม่ใช่ของ image ต่อสถาปัตยกรรม** —
+pin ผิดตัวจะล็อก build ไว้ที่ arch เดียวโดยไม่มี error จนกว่าจะ build บนเครื่อง
+คนละ arch (digest ที่ใช้อยู่ครอบ 7 แพลตฟอร์ม รวม `linux/amd64` ที่ CI ใช้)
+
 ### merge PR ของ Dependabot ด้วย **rebase** ไม่ใช่ squash
 
 squash ต่อท้ายหัว commit ด้วย ` (#N)` และหัวของ Dependabot ยาวอยู่แล้ว —
