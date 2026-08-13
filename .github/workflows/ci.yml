@@ -345,6 +345,17 @@ jobs:
           pipenv requirements --categories="deploy" > req-deploy.txt
           test -s req-deploy.txt || { echo "req-deploy.txt ว่าง — ไม่ได้ audit อะไรเลย"; exit 1; }
           pipenv run pip-audit --requirement req-deploy.txt
+      # **supply chain ก้อนที่สาม** — `pins/` ไม่ได้ถูกติดตั้งด้วย `pipenv sync --dev`
+      # จึงไม่อยู่ในรอบของ core และไม่ใช่ไลบรารีของ plugin · เครื่องมือพวกนี้
+      # รันด้วยสิทธิ์ของ workflow นี้ อ่าน source อ่าน token ที่ job นี้มี
+      #
+      # **แดงได้เหมือน core** แต่มีรายการยกเว้นที่ประเมินไว้แล้ว เพราะ semgrep
+      # pin `mcp` ตายตัว — ด่านที่แดงตั้งแต่วันแรกและแดงต่อไปเรื่อย ๆ คือด่านที่
+      # ถูกปิดเสียงภายในสองสัปดาห์ · สคริปต์ตรวจ **สองทิศ**: เจอของที่ไม่ได้ยกเว้น
+      # = แดง และ **ยกเว้นของที่ไม่เจอแล้ว = แดงเหมือนกัน** (รายการยกเว้นที่ไม่มี
+      # ใครถอด คือรายการที่วันหนึ่งจะปิดของจริงโดยไม่มีใครรู้)
+      - name: pip-audit ของ pins/ (เครื่องมือของ CI เอง)
+        run: pipenv run python scripts/audit_pins.py
       # **venv แยกของตัวเอง ไม่ใช่ลงทับ python ของ runner** — semgrep ลาก
       # dependency มาหกสิบกว่าตัว ซึ่งทับกับของ pipenv ได้ (`certifi`,
       # `packaging`, `setuptools`) ตอนนี้ step นี้อยู่ท้ายสุดจึงไม่มีใครเดือดร้อน
