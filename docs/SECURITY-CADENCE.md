@@ -215,16 +215,24 @@ Grafana ตรงที่มันมีผู้เขียน วันท�
 | advisory | อยู่ที่ไหน | มี fix ไหม | คำตัดสิน |
 |---|---|---|---|
 | `PYSEC-2026-3481` (CVE-2026-52870) · `PYSEC-2026-3482` (CVE-2026-52869) · `PYSEC-2026-3483` (CVE-2026-59950) — ของ `mcp` | dependency ของ `semgrep` ใน `pins/semgrep/` | มี (1.27.2 / 1.28.1) **แต่ semgrep pin `mcp==1.23.3` ตายตัว** | **รับไว้** — ทั้งสามข้อเป็นเรื่องของการ *รัน MCP server* (task handler, HTTP transport, WebSocket transport) เรารัน `semgrep scan` อย่างเดียว ไม่มี server ตัวไหนถูกเปิด |
-| CVE-2026-56876 (`extract-zip`) | dependency ของ `puppeteer` ใน `pins/pa11y/` | **ไม่มี** (กระทบทุกรุ่น) | **รับไว้** — ใช้ตอนแตกไฟล์ Chrome ที่ดาวน์โหลดจาก CDN ของ Google การโจมตีต้องมีคนยัด zip ที่แต่งไว้เข้ามาแทน |
+| `GHSA-jmr9-qjv8-65gv` (CVE-2026-56876) — ของ `extract-zip` | dependency ของ `puppeteer` ใน `pins/pa11y/` | **ไม่มี** (กระทบทุกรุ่น · `npm audit` เสนอ `pa11y-ci@3.1.0` ซึ่งเป็นการ **ถอยรุ่นใหญ่** ไม่ใช่ fix) | **รับไว้** — ใช้ตอนแตกไฟล์ Chrome ที่ดาวน์โหลดจาก CDN ของ Google การโจมตีต้องมีคนยัด zip ที่แต่งไว้เข้ามาแทน |
 
 **ID ที่อยู่ใน backtick ในตารางนี้คือ ID ที่ `pip-audit` พิมพ์ออกมาจริง** และ
 เป็นตัวเดียวกับที่อยู่ใน `pins/accepted-advisories.txt` ซึ่ง `scripts/audit_pins.py`
 อ่าน — `tests/test_pins_audit.py` บังคับว่าสองที่นี้ต้องตรงกันทั้งสองทิศ
 **ยกเว้นไว้ในไฟล์แต่ไม่มีเหตุผลในเอกสาร = แดง** และกลับกันก็เช่นกัน
 
-**สามข้อของ `mcp` เป็นด่านที่บล็อกได้จริง** (job `security` แดงเมื่อเจอของใหม่)
-ส่วน `extract-zip` เป็นฝั่ง npm ซึ่ง **pip-audit มองไม่เห็น** — ตอนนี้ยังไม่มีด่าน
-ที่บล็อกของฝั่งนั้น มีแค่ Dependabot security updates ที่เห็นผ่าน dependency graph
+**ทั้งสี่ข้อเป็นด่านที่บล็อกได้จริง** — job `security` แดงเมื่อเจอของใหม่ ทั้ง
+ฝั่ง python (`pip-audit`) และฝั่ง node (`npm audit` ซึ่งอ่านจาก `package-lock.json`
+โดยไม่ต้องมี `node_modules`) · `setup-node` อยู่ใน job นั้นด้วยเหตุผลนี้ และ
+`tests/test_pins_audit.py` บังคับไว้ — runner มี npm ติดมาเองอยู่แล้ว ถอด
+`setup-node` ออกแล้วสคริปต์จะยังทำงานได้ด้วย node รุ่นที่ไม่มีอะไรใน repo ประกาศไว้
+
+**`npm audit` นับตาม package ที่ได้รับผลกระทบ ไม่ใช่ตาม advisory** — หัวข่าวคือ
+"6 high severity vulnerabilities" แต่ต้นตอมีเรื่องเดียว (`extract-zip` ไหลไป
+`@puppeteer/browsers` → `puppeteer` → `pa11y` → `pa11y-ci`) · รายการยกเว้นที่นับ
+ตามหัวข่าวจะบวมตามจำนวน package ที่บังเอิญ depend กัน แทนที่จะตามจำนวนเรื่องที่
+ต้องตัดสินใจ — และการตัดสินใจคือสิ่งที่รายการนี้บันทึก
 
 **เงื่อนไขที่ทำให้คำตัดสินนี้หมดอายุ**: semgrep ขยับ `mcp` เมื่อไหร่ Dependabot
 จะเปิด PR ให้เอง (เฝ้าอยู่แล้ว) · `extract-zip` มี fix เมื่อไหร่ก็เช่นกัน ·
