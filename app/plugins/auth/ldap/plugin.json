@@ -5,6 +5,9 @@
   "factor": "primary",
   "style": "credential",
   "requires": {
-    "pip": ["ldap3~=2.9"]
-  }
+    "pip": [
+      "ldap3~=2.9"
+    ]
+  },
+  "migration": "warm"
 }

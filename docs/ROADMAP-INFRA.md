@@ -173,6 +173,10 @@ ban list ตรวจที่ *render สด* จึงจับชื่อไ
 
 ## Phase 10 — migration class + วัด downtime จริง
 
+**สถานะ: 10-01/10-02 เสร็จ (2026-08-14)** — ADR 0041 + `migration` ใน manifest
+ทั้ง 14 ตัว บังคับตอนโหลด (ขาด/สะกดผิด = ไม่ start) · กฎของ port อยู่ในเทสต์
+แบบ rule-based ไม่ hardcode ชื่อ plugin · เหลือ 10-03/10-04 (bench วัดจริง)
+
 | ขั้น | งาน | ไฟล์ที่กระทบ |
 |---|---|---|
 | 10-01 | ADR 0041: class อยู่ที่ plugin ไม่ใช่ type (ข้อ 2.2) · `secrets` = `cold` (ข้อ 2.3) · **เกณฑ์ของแต่ละ class เป็นตัวเลข**: `live` = 0 request fail · `warm` = session เดิมอยู่ครบ · `cold` = ประกาศช่วงหยุดเขียนที่วัดได้ | `docs/adr/0041-*` |

@@ -47,6 +47,7 @@ def temp_theme():
                     "name": theme_id.title(),
                     "version": "1.0.0",
                     "stylesheet": "theme.css",
+                    "migration": "live",  # ADR 0041 — manifest ที่ไม่ประกาศ = ไม่ start
                 }
             )
         )
@@ -283,7 +284,9 @@ def data_plugin():
         directory = plugins.PLUGIN_ROOT / "auth" / plugin_id
         directory.mkdir(parents=True)
         created.append((directory, table_name))
-        (directory / "plugin.json").write_text(json.dumps({"type": "auth", "name": plugin_id}))
+        (directory / "plugin.json").write_text(
+            json.dumps({"type": "auth", "name": plugin_id, "migration": "warm"})
+        )
         (directory / "models.py").write_text(
             "from sqlalchemy.orm import Mapped, mapped_column\n"
             "from app import db\n\n\n"
@@ -354,7 +357,9 @@ def host_plugin():
     """plugin แม่ชั่วคราวหนึ่งตัว พร้อมฟังก์ชันสร้างส่วนเสริมให้มัน"""
     directory = plugins.PLUGIN_ROOT / "auth" / "hosty"
     (directory / "enhancements").mkdir(parents=True)
-    (directory / "plugin.json").write_text(json.dumps({"type": "auth", "name": "hosty"}))
+    (directory / "plugin.json").write_text(
+        json.dumps({"type": "auth", "name": "hosty", "migration": "warm"})
+    )
 
     def add(enhancement_id, manifest=None, body="VALUE = 'ok'\n"):
         target = directory / "enhancements" / enhancement_id
@@ -634,7 +639,14 @@ def test_every_declared_library_has_a_matching_pipfile_category(app):
 def test_a_library_that_is_not_installed_is_reported(app, data_plugin):
     directory = data_plugin("needy", "tdl_auth_needy_thing")
     (directory / "plugin.json").write_text(
-        json.dumps({"type": "auth", "name": "needy", "requires": {"pip": ["ไม่มีแพ็กเกจนี้จริง"]}})
+        json.dumps(
+            {
+                "type": "auth",
+                "name": "needy",
+                "migration": "warm",
+                "requires": {"pip": ["ไม่มีแพ็กเกจนี้จริง"]},
+            }
+        )
     )
     with app.app_context():
         plugin = plugins.find("auth/needy")

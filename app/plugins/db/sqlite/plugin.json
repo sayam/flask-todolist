@@ -3,6 +3,9 @@
   "name": "SQLite",
   "version": "1.0.0",
   "core": true,
-  "schemes": ["sqlite"],
-  "description": "ยี่ห้อเริ่มต้น มากับ python ไม่ต้องติดตั้ง driver เพิ่ม ถอดไม่ได้"
+  "schemes": [
+    "sqlite"
+  ],
+  "description": "ยี่ห้อเริ่มต้น มากับ python ไม่ต้องติดตั้ง driver เพิ่ม ถอดไม่ได้",
+  "migration": "cold"
 }

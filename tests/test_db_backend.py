@@ -34,7 +34,12 @@ def temp_backend():
             json.dumps(
                 manifest
                 if manifest is not None
-                else {"type": "db", "name": backend_id, "schemes": [backend_id]}
+                else {
+                    "type": "db",
+                    "name": backend_id,
+                    "schemes": [backend_id],
+                    "migration": "cold",
+                }
             )
         )
         if module is not None:
@@ -81,7 +86,10 @@ def test_an_unknown_scheme_refuses_to_start(app):
 
 def test_adding_a_brand_new_brand_touches_no_core_code(app, temp_backend):
     """วางไดเรกทอรีแล้วต่อยี่ห้อใหม่ได้ทันที ไม่ต้องแก้ core สักบรรทัด"""
-    temp_backend("cockroach", manifest={"type": "db", "name": "x", "schemes": ["cockroachdb"]})
+    temp_backend(
+        "cockroach",
+        manifest={"type": "db", "name": "x", "schemes": ["cockroachdb"], "migration": "cold"},
+    )
     with app.app_context():
         assert db_engine.active("cockroachdb://u@h/d").key == "db/cockroach"
 

@@ -38,7 +38,12 @@ def temp_cache_backend():
             json.dumps(
                 manifest
                 if manifest is not None
-                else {"type": "cache", "name": backend_id, "schemes": [backend_id]}
+                else {
+                    "type": "cache",
+                    "name": backend_id,
+                    "schemes": [backend_id],
+                    "migration": "live",
+                }
             )
         )
         if module is not None:
@@ -94,7 +99,10 @@ def test_an_unknown_scheme_refuses_to_start(app):
 
 
 def test_adding_a_backend_touches_no_core_code(app, temp_cache_backend):
-    temp_cache_backend("fake", manifest={"type": "cache", "name": "f", "schemes": ["fakestore"]})
+    temp_cache_backend(
+        "fake",
+        manifest={"type": "cache", "name": "f", "schemes": ["fakestore"], "migration": "live"},
+    )
     with app.app_context():
         assert cache.active("fakestore://x").key == "cache/fake"
 
@@ -106,7 +114,7 @@ def test_a_backend_missing_part_of_the_contract_is_loud(app, temp_cache_backend)
     """แพ็กมาไม่ครบต้องดังตอน start ไม่ใช่ตอนมีคนเรียก `invalidate` ครั้งแรก"""
     temp_cache_backend(
         "halfdone",
-        manifest={"type": "cache", "name": "h", "schemes": ["halfdone"]},
+        manifest={"type": "cache", "name": "h", "schemes": ["halfdone"], "migration": "live"},
         module="def connect(url):\n    return None\n\n\ndef get(h, k):\n    return None\n",
     )
     with app.app_context(), pytest.raises(plugins.PluginError, match="set, invalidate"):
@@ -114,7 +122,9 @@ def test_a_backend_missing_part_of_the_contract_is_loud(app, temp_cache_backend)
 
 
 def test_a_backend_without_code_is_loud(app, temp_cache_backend):
-    temp_cache_backend("empty", manifest={"type": "cache", "name": "e", "schemes": ["empty"]})
+    temp_cache_backend(
+        "empty", manifest={"type": "cache", "name": "e", "schemes": ["empty"], "migration": "live"}
+    )
     with app.app_context(), pytest.raises(plugins.PluginError, match=r"ไม่มี cache\.py"):
         cache.module_of(cache.active("empty://x"))
 

@@ -158,6 +158,18 @@ gates:
       DATETIME ของ MySQL ตัดเศษวินาทีเงียบ ๆ — งานที่สร้างห่างกันไม่กี่
       มิลลิวินาทีได้เวลาเท่ากันแล้วเรียงสลับ · เจอได้ก็ต่อเมื่อยิงยี่ห้อจริง
 
+  - id: migration-class-declared
+    title: ทุก plugin ประกาศ migration class (live/warm/cold) ตรงตามกฎของ port
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_migration_class.py]}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      "สลับได้" ที่ไม่เคยประกาศว่าสลับแบบไหน คือคำสัญญาที่คนหน้างานต้องเดา
+      ตอนตีสาม — class ที่ประกาศต้องถูกบังคับตอนโหลด และต้องมีตัวเลขวัดรองรับ
+
   # ----------------------------------------------------- กฎความปลอดภัยของแอป
   - id: csrf-guards-every-form
     title: CSRF คุมทั้งแอปและตัดก่อน login เสมอ
