@@ -114,6 +114,18 @@
   · `portable: true` ต้องมี `born_from` · `standard` อ้างได้เฉพาะข้อ ASVS
   ที่ประเมินว่า "ผ่าน" **และหลักฐานของแถวนั้นต้องชี้กลับมาหา gate นี้จริง**
   (อ้างแถวที่มีอยู่แต่หลักฐานไม่หนุน = แดง)
+- `SKILL.md` — กฎสากลของ scaffolding **generate มา ห้ามแก้ด้วยมือ**
+  (`scripts/build_skill.py` จาก portable gate ใน `gates.yaml`) · กฎใหม่ที่เป็น
+  สากล = เพิ่ม gate `portable: true` + `born_from` แล้ว regenerate — ห้ามเขียน
+  กฎลงไฟล์นี้ตรง ๆ · **ห้ามมีชื่อไลบรารีของ Flask ในชั้นนี้** (`tests/test_skill.py`
+  ตรวจที่ผล render สด จับได้ตั้งแต่ตอนพิมพ์ลง gates.yaml)
+- `overlays/flask/` — enforcement ของกฎสากลสำหรับโปรเจกต์ Flask อื่น:
+  scan checker 8 ตัว (stdlib ล้วน) + `gates_doctor.py` + `install.py`
+  (copy ตาม manifest `overlay.json` — ไม่ครบ = ล้มดัง) · job `scaffold` พิสูจน์
+  ทุก push ว่า import ลง repo เปล่าได้จริง **และ repo นี้ผ่าน scan ของ overlay
+  ตัวเอง** (dogfood — `scaffold.json` ที่รากคือ config ของการ dogfood นั้น)
+  · เพิ่ม portable gate ต้องเพิ่ม entry ใน `overlay.json` ด้วย ไม่งั้น
+  `tests/test_overlay.py` แดง
 - `docs/GATES-ASVS.md` — crosswalk gate ↔ ASVS **generate มา ห้ามแก้ด้วยมือ**
   (`scripts/build_gates_crosswalk.py`) derive จากหลักฐานใน `ASVS.md` ผ่าน
   partition ของ `gates.yaml` — บอกด้วยว่าแถวไหนผ่านด้วยด่านที่รันทุก push
