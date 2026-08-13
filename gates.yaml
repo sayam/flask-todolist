@@ -27,6 +27,18 @@ gates:
       semgrep เคยตรวจแค่ 71/136 ไฟล์เพราะขอบเขตประกาศสองที่ —
       ดัชนีที่ไม่ถูกบังคับให้ตรงกับความจริงคือดัชนีที่โกหกเงียบ ๆ
 
+  - id: skill-mirrors-portable-gates
+    title: SKILL.md ที่ export เป็นเงาของ portable gate — generate ห้ามเขียนคู่ขนาน
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_skill.py]}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      เอกสาร skill ที่เขียนมือจะกลายเป็นทะเบียนที่สามที่ drift จากดัชนี —
+      และชั้นที่ประกาศว่าสากลต้องมีเครื่องกันชื่อ framework รั่วเข้ามา
+
   # ------------------------------------------------- กฎสถาปัตยกรรมของ core
   - id: logic-knows-no-http
     title: ตรรกะทั้งหมดอยู่ใน service layer และไม่รู้จัก HTTP
@@ -232,7 +244,7 @@ gates:
       มีคนถามหาข้อมูลที่หายไป · พังดังตอน start ถูกกว่าเสมอ
 
   - id: no-debug-entrypoint
-    title: ไฟล์ entrypoint ไม่มีทางรัน Werkzeug debugger ได้แม้รันผิดตัว
+    title: ไฟล์ entrypoint ไม่มีทางเปิด debug console ได้แม้รันผิดตัว
     kind: test
     severity: blocking
     enforced_by: {job: test, tests: [tests/test_entrypoint.py]}
@@ -240,8 +252,8 @@ gates:
     requires: []
     portable: true
     born_from: >-
-      CodeQL รอบแรกชี้ `app.run(debug=True)` ใน run.py ซึ่งถูกก๊อปเข้า image —
-      `python run.py` ผิดตัวเมื่อไหร่ก็ได้ debugger ที่รันโค้ดจากหน้าเว็บ
+      SAST รอบแรกชี้ entrypoint ที่เปิด debug ได้และถูกก๊อปเข้า image —
+      รันผิดตัวเมื่อไหร่ก็ได้ debug console ที่รันโค้ดจากหน้าเว็บ
 
   # --------------------------------------------------------- สัญญาของ API
   - id: api-contract-snapshot
@@ -435,9 +447,9 @@ gates:
     requires: []
     portable: true
     born_from: >-
-      `pip install pipenv` หยิบรุ่นล่าสุด ณ วินาทีที่ job รัน และมันรันด้วย
-      สิทธิ์ของ workflow เรา · `npm install pkg@x` ตรึงได้แค่ตัวเดียว
-      ที่เหลือ 161 ตัวลอย
+      คำสั่งติดตั้งเครื่องมือแบบไม่ตรึง หยิบรุ่นล่าสุด ณ วินาทีที่ job รัน
+      และมันรันด้วยสิทธิ์ของ workflow เรา · การตรึงทีละ package ตรึงได้แค่
+      ตัวเดียว ที่เหลือทั้งต้นไม้ยังลอย
 
   - id: pins-exceptions-honest
     title: รายการยกเว้น advisory ตรวจสองทิศ และทุก ID มีเหตุผลในเอกสาร
@@ -544,7 +556,7 @@ gates:
       — ด่านที่แดงตัวแรกห้ามบังตัวหลัง
 
   - id: schema-drift-zero
-    title: db upgrade บนฐานเปล่าแล้ว flask db check ต้อง drift เป็นศูนย์
+    title: เดิน migration บนฐานเปล่าแล้วเทียบกับ model — drift ต้องเป็นศูนย์
     kind: job
     severity: blocking
     enforced_by: {job: schema}
@@ -591,7 +603,7 @@ gates:
       จึงแดงได้เต็มปาก ต่างจากของ plugin ที่คำตอบคือถอด
 
   - id: deploy-deps-cve-audit
-    title: pip-audit ของ [deploy] — gunicorn ไม่มีใครเฝ้าให้ที่อื่น
+    title: audit หมวด deploy — server ที่รับคำขอจริงไม่มีใครเฝ้าให้ที่อื่น
     kind: step
     severity: blocking
     enforced_by: {job: security, step: "pip-audit ของ deploy (gunicorn ฯลฯ — ไม่มีใครเฝ้าให้ที่อื่น)"}
@@ -599,8 +611,8 @@ gates:
     requires: []
     portable: true
     born_from: >-
-      [deploy] มองไม่เห็นจากทุกเครื่องมือที่ติดตั้งด้วย pipenv sync --dev —
-      เจอสองครั้งในวันเดียวจากคนละทาง · ตัวที่รับคำขอจริงทุกใบกลับไม่มีใครเฝ้า
+      หมวด deploy มองไม่เห็นจากทุกเครื่องมือที่ติดตั้งชุด dev — เจอสองครั้ง
+      ในวันเดียวจากคนละทาง · ตัวที่รับคำขอจริงทุกใบกลับไม่มีใครเฝ้า
 
   - id: ci-tools-cve-audit
     title: audit ของ pins/ ทั้ง python (pip-audit) และ node (npm audit) สองทิศ
@@ -615,7 +627,7 @@ gates:
       เข้าใจว่าครอบแล้ว — อันตรายกว่าไม่มีด่านเลย
 
   - id: semgrep-sast
-    title: semgrep p/flask + p/python — ตัดสินด้วยรายงาน ไม่ใช่ exit code
+    title: SAST ด้วย ruleset ของ framework และภาษา — ตัดสินด้วยรายงาน ไม่ใช่ exit code
     kind: step
     severity: blocking
     enforced_by: {job: security, step: "semgrep (flask + python rulesets)"}

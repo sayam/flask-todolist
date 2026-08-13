@@ -1,0 +1,493 @@
+# SKILL — กฎสากลของ scaffolding นี้
+
+**ไฟล์นี้ generate มา ห้ามแก้ด้วยมือ** — สร้างใหม่ด้วย
+`python scripts/build_skill.py` · แหล่งจริงคือ gate ที่
+`portable: true` ใน `gates.yaml` (`tests/test_skill.py` เทียบทุกครั้งที่รันเทสต์)
+
+กฎในไฟล์นี้**ไม่ผูกกับ framework** — ตัวบังคับของแต่ละกฎเป็นของ framework
+(อยู่ใน `overlays/<framework>/` ซึ่งอ้างกฎด้วย gate id) · โครงสามชั้นนี้
+คือคำตอบของคำถาม "ทำไมไม่ทำ abstraction ข้าม framework ที่ runtime" —
+ดู `docs/adr/0040-scaffolding-scope-cuts.md`
+
+## หลักปฏิบัติกลาง — วิธีที่กฎทุกข้อข้างล่างถูกสร้างและถูกรักษา
+
+1. **เทสต์ใหม่ทุกตัวต้องผ่าน mutation test ก่อนถือว่าเสร็จ** — พังโค้ด
+   ที่มันอ้างว่าคุ้มทีละจุด เทสต์ต้องแดง แล้วคืนโค้ด · พังแล้วยังเขียว = เทสต์
+   ไม่ได้ทดสอบอะไร ให้แก้เทสต์ ไม่ใช่ปล่อยผ่าน
+2. **ด่านต้องพิสูจน์สองทิศ** — แดงเมื่อควรแดง และผ่านเมื่อควรผ่าน · ด่านที่
+   "ผ่าน" หน้าตาเหมือนด่านที่ "ไม่ได้ตรวจ" เสมอ จนกว่าจะวัดว่ามันตรวจอะไรจริง
+3. **threshold เป็น ratchet ขยับขึ้นได้ทางเดียว** — coverage, ความเข้มของ
+   type checker, จำนวนข้อที่ยังไม่ประเมิน ล้วนห้ามถอยโดยไม่มีใครเห็น
+4. **การตัดสินใจสำคัญทุกเรื่องมี ADR** — รวมสิ่งที่*ตัดออก*โดยตั้งใจ พร้อม
+   เงื่อนไขที่ทำให้คำตัดสินหมดอายุ
+5. **ทะเบียนต้องถูกบังคับให้ตรงกับความจริง ไม่ใช่เขียนคู่ขนาน** — ของที่ derive
+   ได้ให้ generate ของที่เป็นคำตัดสินของคนให้ตรวจอ้างอิงสองทิศ
+
+## กฎ
+
+แต่ละข้อ: **กฎ** (สากล) · **เกิดจาก** (กับดักจริงที่ให้กำเนิด — ไม่ใช่ทฤษฎี) ·
+**ตัวบังคับใน reference** (ของ repo นี้ · overlay ของ framework อื่นอ้างด้วย id)
+
+### `gates-registry-total`
+
+**กฎ:** ดัชนี gate ตรงกับความจริงสองทิศ และไฟล์เทสต์ทุกไฟล์ถูกตัดสิน
+
+**เกิดจาก:** semgrep เคยตรวจแค่ 71/136 ไฟล์เพราะขอบเขตประกาศสองที่ — ดัชนีที่ไม่ถูกบังคับให้ตรงกับความจริงคือดัชนีที่โกหกเงียบ ๆ
+
+**ตัวบังคับใน reference:** `tests/test_gates.py`
+
+### `skill-mirrors-portable-gates`
+
+**กฎ:** SKILL.md ที่ export เป็นเงาของ portable gate — generate ห้ามเขียนคู่ขนาน
+
+**เกิดจาก:** เอกสาร skill ที่เขียนมือจะกลายเป็นทะเบียนที่สามที่ drift จากดัชนี — และชั้นที่ประกาศว่าสากลต้องมีเครื่องกันชื่อ framework รั่วเข้ามา
+
+**ตัวบังคับใน reference:** `tests/test_skill.py`
+
+### `logic-knows-no-http`
+
+**กฎ:** ตรรกะทั้งหมดอยู่ใน service layer และไม่รู้จัก HTTP
+
+**เกิดจาก:** Phase 3 — ตรรกะที่ฝังใน route ทำให้ HTML กับ API เพี้ยนจากกันทันทีที่มี adapter ที่สอง · AST scan ห้าม service import ของฝั่ง request
+
+**ตัวบังคับใน reference:** `tests/test_service_layer.py` · `tests/test_services.py`
+
+### `delete-means-soft-delete`
+
+**กฎ:** ลบ = ซ่อน (soft delete) — ลบจริงได้ที่ purge เท่านั้น
+
+**เกิดจาก:** ADR 0014 — `--dry-run` ที่ implement เป็น rollback เคยลบข้อมูลจริง เพราะตัว purge commit ก่อน savepoint ปิด · ที่ลบได้จึงต้องมีที่เดียว
+
+**ตัวบังคับใน reference:** `tests/test_write_discipline.py` · `tests/test_soft_delete.py`
+
+### `every-write-audited`
+
+**กฎ:** ทุกการเขียนลง audit trail แบบเติมได้อย่างเดียว + hash chain
+
+**เกิดจาก:** ADR 0015/0035 — event หลัง flush ดักให้เองทุก insert/update/delete โค้ดฟีเจอร์ไม่ต้องเรียกอะไร เพราะ "ลืมเรียก" คือบั๊กที่เงียบที่สุด
+
+**ตัวบังคับใน reference:** `tests/test_audit.py`
+
+### `core-never-names-plugins`
+
+**กฎ:** core รู้แค่วิธีค้นหา plugin — ห้ามมีชื่อ plugin ในโค้ด core
+
+**เกิดจาก:** ADR 0023/0025 — วันที่ core เอ่ยชื่อ plugin คือวันที่ถอดไดเรกทอรีแล้วพัง และ supply chain ของ plugin ไม่แยกจาก core อีกต่อไป
+
+**ตัวบังคับใน reference:** `tests/test_plugins.py`
+
+### `every-column-classified`
+
+**กฎ:** ทุกคอลัมน์ต้องถูกจัดชั้นข้อมูลใน DATA-CLASSIFICATION.md
+
+**เกิดจาก:** ชั้นข้อมูลที่ไม่ถูกตัดสินตอนเพิ่มคอลัมน์ จะถูกตัดสินเอาตอนข้อมูลรั่ว — audit เก็บอะไรได้ก็ตัดสินจากชั้นนี้
+
+**ตัวบังคับใน reference:** `tests/test_data_classification.py`
+
+### `every-column-export-decided`
+
+**กฎ:** ทุกคอลัมน์ของตารางที่มีเจ้าของ ต้องถูกตัดสินว่า export หรือไม่ พร้อมเหตุผล
+
+**เกิดจาก:** ADR 0034 — ตอนที่ต่างคนต่างไล่ลบ CLI ลืมล้างความลับของปัจจัยที่สองทั้งดุ้น · ทางเดียว + ทุกคอลัมน์ถูกตัดสิน = ไม่มีของหลงเหลือ
+
+**ตัวบังคับใน reference:** `tests/test_personal_data.py` · `tests/test_close_account.py`
+
+### `models-match-migrations`
+
+**กฎ:** schema มาจาก migration เท่านั้น และต้องตรงกับ model เป๊ะ
+
+**เกิดจาก:** index ที่อยู่ใน migration แต่ไม่อยู่ใน model เคยเกือบถูก `db migrate` รุ่นถัดไป drop ทิ้งเงียบ ๆ ทั้งที่ทุก SELECT พึ่งมัน
+
+**ตัวบังคับใน reference:** `tests/test_migrations.py`
+
+### `dialect-discipline`
+
+**กฎ:** คอลัมน์เวลาใช้ UTCDateTime · String ระบุความยาว · เขียนครั้งเดียวรันได้สามยี่ห้อ
+
+**เกิดจาก:** DATETIME ของ MySQL ตัดเศษวินาทีเงียบ ๆ — งานที่สร้างห่างกันไม่กี่ มิลลิวินาทีได้เวลาเท่ากันแล้วเรียงสลับ · เจอได้ก็ต่อเมื่อยิงยี่ห้อจริง
+
+**ตัวบังคับใน reference:** `tests/test_dialect_parity.py` · `tests/test_db_backend.py`
+
+### `csrf-guards-every-form`
+
+**กฎ:** CSRF คุมทั้งแอปและตัดก่อน login เสมอ
+
+**เกิดจาก:** เทสต์ทั่วไปปิด CSRF เพื่อความสะดวก — ถ้าไม่มีเทสต์แยกที่เปิดจริง วันที่ `csrf.init_app()` หลุดจะไม่มีอะไรจับได้เลย
+
+**ตัวบังคับใน reference:** `tests/test_csrf.py`
+
+### `session-hardening`
+
+**กฎ:** idle/absolute timeout ตรวจฝั่ง server · คุกกี้ผูกกับ credential ปัจจุบัน
+
+**เกิดจาก:** ADR 0020 — วันหมดอายุบนคุกกี้เป็นของที่ client แก้ได้ · เปลี่ยนรหัสผ่านแล้วคุกกี้ใบเก่าทุกใบต้องตายทันที ไม่ใช่รอหมดอายุ
+
+**ตัวบังคับใน reference:** `tests/test_session_security.py`
+
+### `login-rate-limited-two-ways`
+
+**กฎ:** โควตา login ต่อ IP และต่อชื่อผู้ใช้ · โดนกันแล้วต้อง 429 แม้รหัสถูก
+
+**เกิดจาก:** ADR 0021 — มิติต่อ IP อย่างเดียวแพ้คนเปลี่ยน IP ไปเรื่อย ๆ · และถ้ารหัสถูกทะลุด่านได้ คนไล่เดาจะรู้ทันทีว่าเจอรหัสที่ใช่
+
+**ตัวบังคับใน reference:** `tests/test_ratelimit.py` · `tests/test_api_ratelimit.py`
+
+### `authz-in-service-layer`
+
+**กฎ:** ตรวจสิทธิ์ใน service ไม่ใช่ที่ route · ของคนอื่นตอบ 404 บทบาทไม่ถึงตอบ 403
+
+**เกิดจาก:** ADR 0004/0022 — มี adapter สามทาง (HTML/API/CLI) — ด่านที่ route คือด่านที่ adapter ใหม่ลืมได้ · การซ่อนเมนูไม่ใช่การกันสิทธิ์
+
+**ตัวบังคับใน reference:** `tests/test_rbac.py`
+
+### `password-policy-nist`
+
+**กฎ:** นโยบายรหัสผ่านตาม NIST อยู่ที่เดียว ทั้ง CLI และเว็บเรียกตัวเดียวกัน
+
+**เกิดจาก:** ADR 0019 — normalize NFKC ต้องอยู่ใน set/check คู่กัน เกิดข้างเดียว เมื่อไหร่ คนตั้งรหัสภาษาไทย (สระอำ) จะ login ไม่ได้ทั้งที่พิมพ์เหมือนเดิม
+
+**ตัวบังคับใน reference:** `tests/test_passwords.py`
+
+### `logs-carry-no-pii`
+
+**กฎ:** log เป็น JSON มี request id และ actor เป็น username ไม่ใช่ชื่อจริง
+
+**เกิดจาก:** ADR 0011 — path อยู่ใน log ทุกบรรทัดชั้น C6 (90 วัน) — อะไรที่ห้ามอยู่ใน log จึงต้องมีเทสต์ดัก ไม่ใช่ความระวังตัว
+
+**ตัวบังคับใน reference:** `tests/test_logging.py`
+
+### `csp-no-inline`
+
+**กฎ:** CSP เป็น self ล้วน — ไม่มี inline script/style/handler ที่ไหนเลย
+
+**เกิดจาก:** ADR 0010 — browser บล็อก inline เงียบ ๆ ไม่มี error ฝั่ง server — ด่านจึงต้องตรวจไฟล์ template ตรง ๆ ไม่ใช่รอดูอาการ
+
+**ตัวบังคับใน reference:** `tests/test_security_headers.py`
+
+### `config-fails-loud`
+
+**กฎ:** ไม่มี SECRET_KEY หรือ scheme ที่ไม่รู้จัก = ไม่ start — ห้ามตกกลับเงียบ ๆ
+
+**เกิดจาก:** ADR 0026/0030 — prod ที่ config ผิดแล้ว "ทำงานได้" บน SQLite จะพังในวันที่ มีคนถามหาข้อมูลที่หายไป · พังดังตอน start ถูกกว่าเสมอ
+
+**ตัวบังคับใน reference:** `tests/test_config.py` · `tests/test_secrets.py`
+
+### `no-debug-entrypoint`
+
+**กฎ:** ไฟล์ entrypoint ไม่มีทางเปิด debug console ได้แม้รันผิดตัว
+
+**เกิดจาก:** SAST รอบแรกชี้ entrypoint ที่เปิด debug ได้และถูกก๊อปเข้า image — รันผิดตัวเมื่อไหร่ก็ได้ debug console ที่รันโค้ดจากหน้าเว็บ
+
+**ตัวบังคับใน reference:** `tests/test_entrypoint.py`
+
+### `api-contract-snapshot`
+
+**กฎ:** openapi.json คือภาพถ่ายของโค้ด — แก้ API แล้วต้อง regenerate
+
+**เกิดจาก:** ADR 0018 — สัญญาที่ไม่มีใครเทียบกับโค้ดคือสัญญาที่เปลี่ยนได้เงียบ ๆ · v1 แก้ไม่ได้ จึงต้องมีของที่ฟ้องตอนใครแก้
+
+**ตัวบังคับใน reference:** `tests/test_openapi.py`
+
+### `api-fuzzed-from-spec`
+
+**กฎ:** fuzz สร้างคำขอจาก spec เอง — endpoint ใหม่ถูกครอบอัตโนมัติ
+
+**เกิดจาก:** รอบแรกจับได้สามอย่างที่เทสต์ซึ่งคนเขียนเองมองข้าม (id เกิน 64 บิต → 500, วันที่ย่อยไม่ได้ → 500, คำขอตกชั้น routing ได้ HTML)
+
+**ตัวบังคับใน reference:** `tests/test_api_fuzz.py`
+
+### `fk-enforced-measured`
+
+**กฎ:** FK ถูกบังคับจริง — วัดที่ผล (IntegrityError) ไม่ใช่อ่านค่า pragma
+
+**เกิดจาก:** SQLite ปิด FK เป็นค่าเริ่มต้นต่อ connection — ถอดบรรทัด load backend ออกแล้วไม่มี error ใดเลย แค่ข้อมูลเสียเงียบ ๆ · ด่านที่อ่าน pragma ยังเขียวอยู่ในสภาพนั้น
+
+**ตัวบังคับใน reference:** `tests/test_db_integrity.py`
+
+### `a11y-structural`
+
+**กฎ:** โครงสร้าง WCAG ตรวจทุกครั้งที่รันเทสต์ (label ครบ, ปุ่มสำรอง, target size)
+
+**เกิดจาก:** ADR 0012 — ฟอร์มที่พึ่ง data-auto-submit อย่างเดียวใช้ไม่ได้เลยเมื่อ JS ไม่ทำงาน และไม่มีใครเห็นจนกว่าจะเป็นคนที่ปิด JS
+
+**ตัวบังคับใน reference:** `tests/test_a11y.py`
+
+### `i18n-catalog-integrity`
+
+**กฎ:** catalog ไม่มีช่องว่าง/fuzzy และครอบ msgid ที่มีในโค้ดครบ
+
+**เกิดจาก:** ข้อความ SSO/LDAP ทั้งชุดไม่เคยถูก extract เข้า catalog — ผู้ใช้ภาษาไทย เห็นอังกฤษมาตลอดโดยไม่มีอะไรฟ้อง (P7-03b) · และ pybabel เคยเดา "First name" เป็น "ชื่องาน"
+
+**ตัวบังคับใน reference:** `tests/test_i18n.py`
+
+### `asvs-evidence-real`
+
+**กฎ:** หลักฐานทุกชิ้นใน ASVS.md ชี้ไปหาของที่มีจริง · มาตรฐานตรึงด้วย checksum
+
+**เกิดจาก:** มาตรฐานที่เปลี่ยนใต้เท้าทำให้ "ผ่าน" ของเมื่อวานไม่ใช่ของวันนี้โดยไม่มี commit ไหนบอก · หลักฐานที่ไม่ถูกตรวจว่ามีจริงจะเน่าเป็นรายการแรก
+
+**ตัวบังคับใน reference:** `tests/test_asvs.py`
+
+### `adr-index-complete`
+
+**กฎ:** ดัชนี ADR ครอบทุกใบ เลขไม่ซ้ำไม่มีรู
+
+**เกิดจาก:** ดัชนีเคยหยุดที่ 0026 ขณะที่ไฟล์มีถึง 0033 — เจ็ดใบจากเฟสที่ตัดสินใจ เรื่องใหญ่ที่สุดหายจากสายตา
+
+**ตัวบังคับใน reference:** `tests/test_adr_index.py`
+
+### `cadence-not-overdue`
+
+**กฎ:** ตารางตรวจตามรอบถูกอ่านจริง เลยกำหนดเกิน 7 วัน = แดง
+
+**เกิดจาก:** งานตามรอบที่ไม่มีเครื่องทวงคืองานที่เงียบหายไปเฉย ๆ — กำหนดต้องเป็นวันที่ หรือเงื่อนไขที่ตัดสินได้ ไม่ใช่ "เมื่อพร้อม"
+
+**ตัวบังคับใน reference:** `tests/test_cadence.py`
+
+### `licensing-no-copyleft`
+
+**กฎ:** core ต้องไม่มี dependency ที่แบกภาระ copyleft — และด่านห้ามผ่านเพราะอ่านไม่ได้
+
+**เกิดจาก:** ldap3 เป็น LGPLv3 และอยู่ใน category ของ plugin พอดี — การแยก supply chain แยกภาระทางกฎหมายไปด้วยโดยไม่มีใครออกแบบ · "ไม่พบ" ≠ "อ่านไม่ได้จึงไม่พบ"
+
+**ตัวบังคับใน reference:** `tests/test_licensing.py`
+
+### `security-policy-consistent`
+
+**กฎ:** ตัวเลขกรอบเวลาใน SECURITY.md ตรงกันทุกสำเนา และไม่มีอีเมลในไฟล์
+
+**เกิดจาก:** นโยบายที่เลขไม่ตรงกันสามที่ คือนโยบายที่ผู้รายงานเลือกอ่านฉบับที่ตัวเอง ได้ประโยชน์ได้เสมอ
+
+**ตัวบังคับใน reference:** `tests/test_security_policy.py`
+
+### `contributor-docs-truthful`
+
+**กฎ:** ตัวเลขที่โฆษณาใน docs อ่านจากแหล่งจริง (จำนวน job, ADR, coverage floor)
+
+**เกิดจาก:** เอกสารสามที่บอก "CI 21 job" ขณะที่ workflow นิยาม 20 — ไม่มีใครโกหก แต่ไม่มีใครตรวจ
+
+**ตัวบังคับใน reference:** `tests/test_contributor_docs.py`
+
+### `changelog-tracks-version`
+
+**กฎ:** CHANGELOG ผูกกับ __version__ ของแอป
+
+**เกิดจาก:** เวอร์ชันที่ประกาศกับเวอร์ชันที่โค้ดรายงานแยกกันได้เงียบ ๆ ตั้งแต่ release แรก
+
+**ตัวบังคับใน reference:** `tests/test_changelog.py`
+
+### `actions-sha-pinned`
+
+**กฎ:** ทุก action ถูก pin ด้วย commit SHA + คอมเมนต์เลขรุ่น
+
+**เกิดจาก:** tag ย้ายได้ commit ย้ายไม่ได้ — upload-artifact เคยค้าง @v4 จุดเดียว สิบวันโดย CI เขียวตลอด
+
+**ตัวบังคับใน reference:** `tests/test_workflow_pinning.py`
+
+### `image-digest-pinned`
+
+**กฎ:** base image ถูก pin ด้วย digest ของ manifest index และ Dependabot ขยับให้
+
+**เกิดจาก:** pin โดยไม่มีใครขยับคือการแช่ช่องโหว่ไว้ — สองอย่างนี้ต้องมาคู่กันเสมอ และเทสต์บังคับว่าคู่นั้นไม่แยกจากกัน
+
+**ตัวบังคับใน reference:** `tests/test_dockerfile_pinning.py`
+
+### `ci-tools-hash-pinned`
+
+**กฎ:** เครื่องมือที่ CI ติดตั้งเองถูกตรึงด้วย hash ทั้ง python และ node
+
+**เกิดจาก:** คำสั่งติดตั้งเครื่องมือแบบไม่ตรึง หยิบรุ่นล่าสุด ณ วินาทีที่ job รัน และมันรันด้วยสิทธิ์ของ workflow เรา · การตรึงทีละ package ตรึงได้แค่ ตัวเดียว ที่เหลือทั้งต้นไม้ยังลอย
+
+**ตัวบังคับใน reference:** `tests/test_ci_pinning.py`
+
+### `pins-exceptions-honest`
+
+**กฎ:** รายการยกเว้น advisory ตรวจสองทิศ และทุก ID มีเหตุผลในเอกสาร
+
+**เกิดจาก:** `--ignore-vuln` เงียบเสมอเมื่อ ID หายไป — รายการยกเว้นที่ไม่มีใครถอด จะกลายเป็นตัวปิดของจริงในวันที่ package นั้นมี advisory ใหม่
+
+**ตัวบังคับใน reference:** `tests/test_pins_audit.py`
+
+### `semgrep-scope-proven`
+
+**กฎ:** semgrep ต้องพิสูจน์ว่าสแกนอะไร — เทียบเซตไฟล์จริงกับ git ls-files
+
+**เกิดจาก:** ค่าเริ่มต้นของ semgrep ตัด tests/ ทิ้ง — 61/136 ไฟล์ไม่เคยถูกสแกน โดยไม่มีบรรทัดไหนใน repo บอก · "ไม่เจอ" หน้าตาเหมือน "ไม่ได้ตรวจ" เป๊ะ
+
+**ตัวบังคับใน reference:** `tests/test_semgrep_gate.py`
+
+### `dependabot-fits-the-gates`
+
+**กฎ:** prefix ของ Dependabot เป็นชนิดที่ commit-lint รับ และ pip ถูกจำกัดด้วย path
+
+**เกิดจาก:** PR ของเครื่องที่แดงตั้งแต่ใบแรก สอนคนดูแลให้เมิน PR ของเครื่องทั้งหมด — ซึ่งแย่กว่าไม่เปิดมันเลย
+
+**ตัวบังคับใน reference:** `tests/test_dependabot.py`
+
+### `suite-on-three-brands`
+
+**กฎ:** ชุดเทสต์ทั้งชุดผ่านบน MySQL 8 และ MariaDB 11 จริง ไม่ใช่แค่ SQLite
+
+**เกิดจาก:** "รองรับหลายยี่ห้อ" ที่ไม่เคยยิงยี่ห้อจริงคือคำโฆษณา — deadlock ของสาย audit เจอได้เฉพาะบน InnoDB จริงเท่านั้น (ADR 0032/0035)
+
+**ตัวบังคับใน reference:** job `dialects`
+
+### `bare-clone-still-green`
+
+**กฎ:** สภาพหลัง clone (ไม่มีไลบรารี plugin) ต้องเขียว — "ถอดแล้วไม่พัง" วัดได้
+
+**เกิดจาก:** ADR 0025 — ห้ามใช้ importorskip เพราะมันทำให้ job หลักข้ามเทสต์เงียบ ๆ ตอนไลบรารีหาย ซึ่งคือกรณีที่ต้องการให้แดงที่สุด
+
+**ตัวบังคับใน reference:** job `bare`
+
+### `static-quality-battery`
+
+**กฎ:** ruff + format + xenon + interrogate + mypy + asvs-worksheet — ratchet ขึ้นทางเดียว
+
+**เกิดจาก:** ทุก step มี if !cancelled() เพราะ xenon เคยแดงก่อนแล้วบัง mypy ที่แดงอยู่ — ด่านที่แดงตัวแรกห้ามบังตัวหลัง
+
+**ตัวบังคับใน reference:** job `lint`
+
+### `schema-drift-zero`
+
+**กฎ:** เดิน migration บนฐานเปล่าแล้วเทียบกับ model — drift ต้องเป็นศูนย์
+
+**เกิดจาก:** เทสต์ใช้ create_all จาก model จึงมองไม่เห็น migration ที่เพี้ยน — ต้องมีด่านที่เดิน migration จริงบนฐานเปล่า
+
+**ตัวบังคับใน reference:** job `schema`
+
+### `openapi-regen-clean`
+
+**กฎ:** generate spec ใหม่แล้ว git diff ต้องว่าง
+
+**เกิดจาก:** ภาพถ่ายที่ไม่ถูกเทียบกับโค้ดทุก push คือภาพถ่ายของอดีต
+
+**ตัวบังคับใน reference:** job `openapi`
+
+### `conventional-commits`
+
+**กฎ:** หัว commit เป็น Conventional Commits ≤72 ตัว ตรวจเฉพาะ commit ที่เพิ่มจริง
+
+**เกิดจาก:** required check ที่ถูก skip บน PR ทำให้ PR ค้าง BLOCKED ตลอดกาลโดยไม่มี อะไรแดงให้เห็น — และ merge commit ของปุ่ม Update branch เคยตกด่านเอง
+
+**ตัวบังคับใน reference:** job `commit-lint`
+
+### `core-deps-cve-audit`
+
+**กฎ:** pip-audit ของ core — CVE ที่ถอดไม่ได้ต้องหยุด pipeline ได้
+
+**เกิดจาก:** supply chain ของ core ถอดไม่ได้ — CVE ที่นี่ไม่มีทางออกอื่นนอกจากแก้ จึงแดงได้เต็มปาก ต่างจากของ plugin ที่คำตอบคือถอด
+
+**ตัวบังคับใน reference:** job `security` step "pip-audit ของ core (ตรึงรุ่น pip ใน venv ก่อน — ตัว pip เองก็ถูก audit)"
+
+### `deploy-deps-cve-audit`
+
+**กฎ:** audit หมวด deploy — server ที่รับคำขอจริงไม่มีใครเฝ้าให้ที่อื่น
+
+**เกิดจาก:** หมวด deploy มองไม่เห็นจากทุกเครื่องมือที่ติดตั้งชุด dev — เจอสองครั้ง ในวันเดียวจากคนละทาง · ตัวที่รับคำขอจริงทุกใบกลับไม่มีใครเฝ้า
+
+**ตัวบังคับใน reference:** job `security` step "pip-audit ของ deploy (gunicorn ฯลฯ — ไม่มีใครเฝ้าให้ที่อื่น)"
+
+### `ci-tools-cve-audit`
+
+**กฎ:** audit ของ pins/ ทั้ง python (pip-audit) และ node (npm audit) สองทิศ
+
+**เกิดจาก:** ด่านที่ครอบภาษาเดียวในไดเรกทอรีที่มีสองภาษา คือด่านที่ชื่อของมันชวนให้ เข้าใจว่าครอบแล้ว — อันตรายกว่าไม่มีด่านเลย
+
+**ตัวบังคับใน reference:** job `security` step "audit ของ pins/ (เครื่องมือของ CI เอง — ทั้ง python และ node)"
+
+### `semgrep-sast`
+
+**กฎ:** SAST ด้วย ruleset ของ framework และภาษา — ตัดสินด้วยรายงาน ไม่ใช่ exit code
+
+**เกิดจาก:** การสแกนที่ผ่านแบบเงียบ ๆ หน้าตาเหมือนการสแกนที่ไม่ได้ตรวจอะไร — ตัวตัดสินคือ check_semgrep.py ที่เทียบเซตไฟล์ที่สแกนจริง
+
+**ตัวบังคับใน reference:** job `security` step "semgrep (flask + python rulesets)"
+
+### `plugin-deps-cve-visible`
+
+**กฎ:** CVE ของไลบรารี plugin ดังพอให้เห็น แต่ไม่หยุด pipeline (คำตอบคือถอด)
+
+**เกิดจาก:** ADR 0025 — CVE ของของที่ถอดได้ มีทางออกที่เร็วกว่ารอ patch เสมอ คือ DISABLED_PLUGINS · จึงเตือน ไม่บล็อก — แต่ต้องเตือนจริง
+
+**ตัวบังคับใน reference:** job `plugin-audit`
+
+### `a11y-real-browser`
+
+**กฎ:** pa11y + Chromium จริง สแกนรวมโหมดมืด ธีม ocean และภาษาไทย
+
+**เกิดจาก:** contrast หลัง CSS ทำงานกับชื่อที่ AT คำนวณได้จริง ตรวจจากไฟล์ template ไม่ได้ — ต้อง browser จริง และธีมมืด/ภาษาอื่น contrast ต่างกัน
+
+**ตัวบังคับใน reference:** job `a11y`
+
+### `image-built-and-probed`
+
+**กฎ:** build image จริงแล้วยิงใส่มัน — ไม่รัน root, โค้ดเขียนทับไม่ได้, ตอบ 200
+
+**เกิดจาก:** Dockerfile ที่ไม่มีใครเคย build คือไฟล์ข้อความธรรมดา — และ shebang ของ venv เคยพังแบบที่ข้อความ error โกหกว่าไฟล์ไม่มีอยู่
+
+**ตัวบังคับใน reference:** job `image`
+
+### `tls-modern-protocols-only`
+
+**กฎ:** รับเฉพาะ TLS 1.2/1.3 — พิสูจน์ว่า server ปฏิเสธ ไม่ใช่ client ปฏิเสธเอง
+
+**เกิดจาก:** openssl 3 ปิด TLS 1.0/1.1 ฝั่ง client อยู่แล้ว — ด่านที่ไม่เปิด SECLEVEL=0 พิสูจน์แค่ว่า openssl ปฏิเสธตัวเอง ผ่านทุกครั้งแม้ลบ ssl_protocols ทิ้ง
+
+**ตัวบังคับใน reference:** job `stack` step "รับเฉพาะ TLS 1.2 กับ 1.3"
+
+### `tls-forward-secrecy`
+
+**กฎ:** TLS ให้ PFS ทุกทางที่เข้าถึงได้ — บังคับชุดอ่อนแล้วต้องถูกปฏิเสธ
+
+**เกิดจาก:** การต่อรองปกติได้ ECDHE ดูปลอดภัยดี แต่ไคลเอนต์ที่ขอชุด RSA-kx ตรง ๆ ก็ได้รับ — ด่านที่ดูแค่ "ต่อรองได้อะไร" รายงานว่าผ่านทั้งที่ทางไม่มี PFS ยังเปิดอยู่ (วัดจริง 2026-08-13)
+
+**ตัวบังคับใน reference:** job `stack` step "TLS ต้องให้ perfect forward secrecy ทุกทางที่เข้าถึงได้"
+
+### `alerts-fire-for-real`
+
+**กฎ:** กฎแจ้งเตือนใน Loki ruler ต้องดังจริงเมื่อยิงเหตุการณ์ใส่ ไม่ใช่แค่ stack ขึ้น
+
+**เกิดจาก:** ADR 0037 — กฎที่นับแต่ 401 เงียบพอดีตอนที่การโจมตีหนักที่สุด เพราะโควตา ตัดที่ 5 ที่เหลือกลายเป็น 429 · ต้องพิสูจน์ว่า alert ดัง ไม่ใช่ว่ามีกฎ
+
+**ตัวบังคับใน reference:** job `siem`
+
+### `zap-authenticated-scan`
+
+**กฎ:** ZAP baseline ยิง stack จริงแบบ login แล้ว — วัดว่าสแกนจริงจาก log ของแอป
+
+**เกิดจาก:** สแกนโดยไม่ login เห็นแค่หน้า login — ด่านแบบนั้นเขียวตลอดโดยไม่ได้ตรวจ อะไร · และวันที่แก้จนไม่เหลือ alert การเช็คจากรายงานจะกลายเป็น "ไม่เจอ = ไม่ได้สแกน"
+
+**ตัวบังคับใน reference:** job `dast`
+
+### `purge-timer-real-systemd`
+
+**กฎ:** unit + timer ของ purge ติดตั้งบน systemd จริง และความล้มเหลวมองเห็นได้
+
+**เกิดจาก:** ระยะเก็บรักษาจะเป็นจริงก็ต่อเมื่อมีอะไรรัน purge ตามรอบ — และงานตามรอบ ที่เงียบตอนพังแย่กว่าไม่มีเลย · `$?` ในกิ่ง if! เป็น 0 เสมอ
+
+**ตัวบังคับใน reference:** job `purge-timer`
+
+### `push-secret-scan`
+
+**กฎ:** gitleaks ตรวจ commit ที่อยู่ใน push นั้น (ทั้งประวัติมีสคริปต์แยกตามรอบ)
+
+**เกิดจาก:** ความลับที่หลุดเข้า history ลบไม่ได้จริงบน GitHub — object เก่ายังถูก เสิร์ฟตาม SHA · กันตั้งแต่ขาเข้าถูกกว่าเสมอ
+
+**ตัวบังคับใน reference:** job `secret-scan`
+
+### `sbom-per-category`
+
+**กฎ:** SBOM แยกต่อ category — ตอบได้ว่าถอด plugin แล้ว component ไหนหาย
+
+**เกิดจาก:** SBOM ก้อนเดียวตอบคำถามแรกของวันที่ CVE ออกไม่ได้ — "ถอดตัวนี้แล้วอะไรหายไปบ้าง"
+
+**ตัวบังคับใน reference:** job `sbom`
+
+### `codeql-sast`
+
+**กฎ:** CodeQL security-extended ทั้ง python และ javascript — เป็น job ไม่ใช่ default setup
+
+**เกิดจาก:** ของที่คลิกไว้ใน UI ไม่มีใคร review ได้และหายเงียบ ๆ ได้ (หลัก ADR 0037) · รอบแรกเจอของจริงสองอย่างรวม debugger ที่ติดไปกับ image
+
+**ตัวบังคับใน reference:** job `codeql`
