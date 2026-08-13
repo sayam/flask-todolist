@@ -2,5 +2,6 @@
   "type": "auth",
   "name": "SSO",
   "version": "1.0.0",
-  "factor": "primary"
+  "factor": "primary",
+  "migration": "warm"
 }

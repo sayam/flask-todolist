@@ -116,6 +116,14 @@
 
 **ตัวบังคับใน reference:** `tests/test_dialect_parity.py` · `tests/test_db_backend.py`
 
+### `migration-class-declared`
+
+**กฎ:** ทุก plugin ประกาศ migration class (live/warm/cold) ตรงตามกฎของ port
+
+**เกิดจาก:** "สลับได้" ที่ไม่เคยประกาศว่าสลับแบบไหน คือคำสัญญาที่คนหน้างานต้องเดา ตอนตีสาม — class ที่ประกาศต้องถูกบังคับตอนโหลด และต้องมีตัวเลขวัดรองรับ
+
+**ตัวบังคับใน reference:** `tests/test_migration_class.py`
+
 ### `csrf-guards-every-form`
 
 **กฎ:** CSRF คุมทั้งแอปและตัดก่อน login เสมอ

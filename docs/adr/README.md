@@ -46,3 +46,4 @@ ADR 0002–0008 เป็นการ backfill การตัดสินใจ
 | [0038](0038-mit-license.md) | เผยแพร่ด้วย MIT · core ต้องไม่มีภาระ copyleft | accepted |
 | [0039](0039-gates-registry-verified-two-way.md) | `gates.yaml` เป็นดัชนี enforcement ตรวจสองทิศ — ไม่ generate CI ไม่ทับ ASVS.md | accepted |
 | [0040](0040-scaffolding-scope-cuts.md) | งาน scaffolding ตัดอะไรออกโดยตั้งใจ (CDC · cross-framework runtime · overlay อื่น) | accepted |
+| [0041](0041-migration-class-per-plugin.md) | migration class ประกาศต่อ plugin (`live`/`warm`/`cold`) พร้อมเกณฑ์ตัวเลข — บังคับตอนโหลด | accepted |

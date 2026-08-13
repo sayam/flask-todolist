@@ -4,5 +4,6 @@
   "version": "1.0.0",
   "core": true,
   "stylesheet": "theme.css",
-  "description": "ชุดสีเริ่มต้นที่มากับระบบ ลบไม่ได้"
+  "description": "ชุดสีเริ่มต้นที่มากับระบบ ลบไม่ได้",
+  "migration": "live"
 }

@@ -3,5 +3,6 @@
   "name": "Ocean",
   "version": "1.0.0",
   "stylesheet": "theme.css",
-  "description": "ชุดสีโทนน้ำเงิน-ฟ้า ตัวอย่างธีมที่เพิ่มเข้ามาทีหลัง"
+  "description": "ชุดสีโทนน้ำเงิน-ฟ้า ตัวอย่างธีมที่เพิ่มเข้ามาทีหลัง",
+  "migration": "live"
 }

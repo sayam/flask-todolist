@@ -2,9 +2,15 @@
   "type": "db",
   "name": "MySQL 8+",
   "version": "1.0.0",
-  "schemes": ["mysql", "mysql+pymysql"],
+  "schemes": [
+    "mysql",
+    "mysql+pymysql"
+  ],
   "requires": {
-    "pip": ["pymysql~=1.1"]
+    "pip": [
+      "pymysql~=1.1"
+    ]
   },
-  "description": "ถอดไดเรกทอรีนี้ทิ้ง = ต่อ MySQL ไม่ได้ และ pymysql หลุดจาก supply chain ไปด้วย"
+  "description": "ถอดไดเรกทอรีนี้ทิ้ง = ต่อ MySQL ไม่ได้ และ pymysql หลุดจาก supply chain ไปด้วย",
+  "migration": "cold"
 }

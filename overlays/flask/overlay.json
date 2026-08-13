@@ -308,6 +308,11 @@
       "kind": "suite",
       "title": "overlay ต้องครอบกฎสากลครบทุกข้อ และ checker พิสูจน์สองทิศ",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "migration-class-declared": {
+      "kind": "suite",
+      "title": "ทุก plugin ประกาศ migration class (live/warm/cold) ตรงตามกฎของ port",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     }
   }
 }

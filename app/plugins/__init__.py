@@ -75,6 +75,13 @@ PROVIDE_MODULE = "provide"
 # ฟังก์ชันที่ปัจจัยที่สองต้องมีครบ — core เรียกแค่สองตัวนี้ ไม่รู้อะไรมากกว่านี้
 SECOND_FACTOR_CONTRACT = ("is_enrolled", "verify")
 
+# migration class ที่ manifest ของ plugin ระดับบนสุดต้องประกาศ (ADR 0041):
+# `live` = สลับได้โดย request ไม่หลุด · `warm` = session เดิมอยู่ต่อ ผู้ใช้ใหม่
+# ไปทางใหม่ · `cold` = ต้องหยุดเขียนช่วงสั้น ๆ (swap-at-deploy)
+# **ประกาศต่อ plugin ไม่ใช่ต่อ type** และค่าที่ไม่รู้จัก = แอปไม่ start
+# (ส่วนเสริมไม่ต้องประกาศ — มันเสียบกับ plugin แม่ ไม่ได้ถูกสลับเดี่ยว ๆ)
+MIGRATION_CLASSES = ("live", "warm", "cold")
+
 
 class Plugin:
     """ข้อมูลของ plugin หนึ่งตัวที่อ่านมาจาก manifest"""
@@ -108,6 +115,16 @@ class Plugin:
     def is_core(self) -> bool:
         """plugin ที่มากับระบบ ลบไม่ได้"""
         return bool(self.manifest.get("core", False))
+
+    @property
+    def migration(self) -> str:
+        """migration class ของ plugin (ADR 0041) — `live` / `warm` / `cold`
+
+        เป็นสัญญาของ *plugin ตัวนี้* ไม่ใช่ของ type — type `auth` ถือทั้ง
+        ปัจจัยที่สอง (`live`) และปัจจัยหลัก (`warm`) จึงประกาศที่ type ไม่ได้
+        · ค่าถูกบังคับตอนโหลดแล้ว (`_scan`) จึงอ่านตรงได้เลย
+        """
+        return str(self.manifest["migration"])
 
     @property
     def stylesheet(self) -> str | None:
@@ -219,6 +236,14 @@ def _scan(plugin_type: str) -> dict[str, Plugin]:
         manifest = _read_manifest(directory)
         if manifest is None:
             continue
+        # ADR 0041 — migration class เป็นส่วนหนึ่งของสัญญา ไม่ใช่ metadata แต่งเติม:
+        # เครื่องมือที่วางแผนการสลับ (bench, เอกสาร, คนหน้างาน) ต้องเชื่อค่านี้ได้
+        # โดยไม่ต้องเดา ค่าที่ขาด/สะกดผิดจึงต้องดังตอน start ไม่ใช่เงียบจนวันสลับจริง
+        if manifest.get("migration") not in MIGRATION_CLASSES:
+            raise PluginError(
+                f"{plugin_type}/{directory.name}: manifest ต้องประกาศ `migration` "
+                f"เป็นหนึ่งใน {MIGRATION_CLASSES} (ได้ {manifest.get('migration')!r}) — ADR 0041"
+            )
         found[directory.name] = Plugin(plugin_type, directory.name, directory.resolve(), manifest)
     return found
 
