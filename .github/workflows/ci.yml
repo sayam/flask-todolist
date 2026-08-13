@@ -367,12 +367,20 @@ jobs:
       # dependency มาหกสิบกว่าตัว ซึ่งทับกับของ pipenv ได้ (`certifi`,
       # `packaging`, `setuptools`) ตอนนี้ step นี้อยู่ท้ายสุดจึงไม่มีใครเดือดร้อน
       # แต่ด่านที่ถูกต้องเพราะลำดับ step คือด่านที่พังเงียบ ๆ วันที่มีคนสลับลำดับ
+      #
+      # **ไม่ใช้ `--error --quiet` แล้ว** — การสแกนที่ผ่านแบบเงียบ ๆ หน้าตา
+      # เหมือนกันเป๊ะกับการสแกนที่ไม่ได้ตรวจอะไร · ตัวตัดสินคือ
+      # `scripts/check_semgrep.py` ซึ่งอ่าน *รายงาน* แล้วเทียบเซตของไฟล์ที่สแกน
+      # จริงกับไฟล์ที่ควรถูกสแกน (git ls-files ลบด้วย `.semgrepignore`)
+      # **ขอบเขตอยู่ใน `.semgrepignore` ที่ commit ไว้ ไม่ใช่ค่าเริ่มต้นในตัว
+      # semgrep** ซึ่งตัด `tests/` ทิ้งเงียบ ๆ มาตลอด (61 จาก 136 ไฟล์)
       - name: semgrep (flask + python rulesets)
         run: |
           python -m venv /tmp/semgrep-venv
           /tmp/semgrep-venv/bin/pip install --quiet --require-hashes -r pins/semgrep/requirements.txt
           /tmp/semgrep-venv/bin/semgrep scan --config p/flask --config p/python \
-            --exclude migrations --exclude .venv --metrics=off --error --quiet
+            --metrics=off --json --time --output /tmp/semgrep.json
+          pipenv run python scripts/check_semgrep.py /tmp/semgrep.json
 
   plugin-audit:
     # supply chain ของ plugin แยก audit **ทีละ category** เพื่อให้ตอบได้ว่า CVE
