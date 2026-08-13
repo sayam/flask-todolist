@@ -103,12 +103,16 @@ matrix สองตัว — เทสต์ของเฟส 8 ผูกก�
 
 ## Phase 8 — ดัชนี gate (`gates.yaml`)
 
+**สถานะ: 8-01…8-04 เสร็จ (2026-08-13) · 8-05 ทำไปแล้วบางส่วน** — การตรวจ
+ทิศไป (gate → ASVS ต้องมีจริงและสถานะ "ผ่าน") อยู่ใน `tests/test_gates.py` แล้ว
+ส่วนการเติม gate id ลงแถวของ `ASVS.md` ทำทีละน้อยเมื่อแตะแถวนั้น
+
 **ทุกเฟสถัดไปพึ่งไฟล์นี้ — และทิศของมันคือคำตัดสินที่สำคัญที่สุดของแผน (ข้อ 1)**
 
 | ขั้น | งาน | ไฟล์ที่กระทบ |
 |---|---|---|
 | 8-01 | ADR 0039: `gates.yaml` เป็น**ดัชนี enforcement** ที่ตรวจสองทิศ ไม่ใช่ generator ของ CI · โครงคีย์ · ความสัมพันธ์กับ `ASVS.md` | `docs/adr/0039-*` |
-| 8-02 | ADR 0041: สิ่งที่ตัดออกโดยตั้งใจ (ข้อ 4 ของเอกสาร) — เขียนแต่แรกเพื่อกันขอบเขตบาน | `docs/adr/0041-*` |
+| 8-02 | ADR 0040: สิ่งที่ตัดออกโดยตั้งใจ (ข้อ 4 ของเอกสาร) — เขียนแต่แรกเพื่อกันขอบเขตบาน | `docs/adr/0040-*` |
 | 8-03 | `gates.yaml` ตัวแรก สร้างด้วยสคริปต์จากเทสต์นโยบาย ~24 ไฟล์ + job 22 ตัว แล้วตรวจมือ | `gates.yaml`, `scripts/build_gates.py` |
 | 8-04 | `tests/test_gates.py` — สองทิศกับ CI: ทุก gate ถูก wire อยู่ใน job จริง · ทุก job/เทสต์นโยบายมี gate id · `check:` ต้องเป็นคำสั่งเดียวกับที่ CI รัน (ห้าม paraphrase) | `tests/test_gates.py` |
 | 8-05 | สองทิศกับ `ASVS.md`: gate ที่อ้างข้อ ASVS ต้องมีแถวนั้นจริง · แถว ASVS ที่หลักฐานเป็นเทสต์/job ต้อง map กลับมาหา gate id ได้ | `tests/test_gates.py`, `docs/ASVS.md` (เติม gate id ทีละน้อย) |
@@ -163,7 +167,7 @@ gates:
 
 | ขั้น | งาน | ไฟล์ที่กระทบ |
 |---|---|---|
-| 10-01 | ADR 0040: class อยู่ที่ plugin ไม่ใช่ type (ข้อ 2.2) · `secrets` = `cold` (ข้อ 2.3) · **เกณฑ์ของแต่ละ class เป็นตัวเลข**: `live` = 0 request fail · `warm` = session เดิมอยู่ครบ · `cold` = ประกาศช่วงหยุดเขียนที่วัดได้ | `docs/adr/0040-*` |
+| 10-01 | ADR 0041: class อยู่ที่ plugin ไม่ใช่ type (ข้อ 2.2) · `secrets` = `cold` (ข้อ 2.3) · **เกณฑ์ของแต่ละ class เป็นตัวเลข**: `live` = 0 request fail · `warm` = session เดิมอยู่ครบ · `cold` = ประกาศช่วงหยุดเขียนที่วัดได้ | `docs/adr/0041-*` |
 | 10-02 | คีย์ `migration` ใน `plugin.json` ทั้ง 16 ตัว + ตรวจตอนโหลด (ค่าไม่รู้จัก = ไม่ start ตามแบบแผนของ registry) | `app/plugins/*/*/plugin.json`, `app/plugins/__init__.py` |
 | 10-03 | bench: สลับอย่างน้อย 1 คู่ต่อ port (6 port) ภายใต้ load — ซ้ำ ≥3 รอบ เกณฑ์คือ**ไม่มีรอบไหนตก** | `loadtest/swap.js`, `scripts/bench_swap.sh` |
 | 10-04 | ตัวเลขลง `docs/PERFORMANCE.md` (พร้อมสภาพเครื่อง ตามแบบแผนเดิม) + เทสต์ผูก class ↔ ตัวเลข: ประกาศ `live` แต่ตัวเลขที่บันทึกมี fail > 0 = แดง | `docs/PERFORMANCE.md`, `tests/test_migration_class.py` |
@@ -206,8 +210,8 @@ ASVS pass rate, จำนวนรอบ fail-fix
 | ADR | เรื่อง | เขียนตอน |
 |---|---|---|
 | 0039 | `gates.yaml` เป็นดัชนี enforcement ตรวจสองทิศ — ไม่ generate CI, ไม่ทับ `ASVS.md` | 8-01 |
-| 0040 | migration class ต่อ plugin · เกณฑ์ตัวเลขต่อ class · `secrets` = `cold` | 10-01 |
-| 0041 | สิ่งที่ตัดออก: CDC/dual-write · universal cross-framework runtime · overlay framework อื่น | 8-02 |
+| 0041 | migration class ต่อ plugin · เกณฑ์ตัวเลขต่อ class · `secrets` = `cold` | 10-01 |
+| 0040 | สิ่งที่ตัดออก: CDC/dual-write · universal cross-framework runtime · overlay framework อื่น | 8-02 |
 
 ## 5. Release
 

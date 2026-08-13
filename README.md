@@ -117,7 +117,7 @@ Written in Thai, because that is the language the thinking happened in.
 
 | | |
 |---|---|
-| [`docs/adr/`](docs/adr/) | 38 architecture decision records — every choice, the options rejected, and what would reverse it |
+| [`docs/adr/`](docs/adr/) | 40 architecture decision records — every choice, the options rejected, and what would reverse it |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | the seven phases, what each closed, and what was deliberately deferred |
 | [`docs/ASVS.md`](docs/ASVS.md) | OWASP ASVS 5.0 Level 2 self-assessment — all 253 in-scope requirements answered, including the 48 that do not pass |
 | [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) | measured numbers, including the ones that hurt |
@@ -226,7 +226,7 @@ coverage มีพื้นที่ **96%** และขยับขึ้น�
 
 ## เอกสาร
 
-[`docs/adr/`](docs/adr/) 38 ใบ (ทุกการตัดสินใจ ทางที่ไม่ได้เลือก และเงื่อนไข
+[`docs/adr/`](docs/adr/) 40 ใบ (ทุกการตัดสินใจ ทางที่ไม่ได้เลือก และเงื่อนไข
 ที่จะทำให้มันหมดอายุ) · [`docs/ROADMAP.md`](docs/ROADMAP.md) ·
 [`docs/ASVS.md`](docs/ASVS.md) · [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) ·
 [`docs/DATA-CLASSIFICATION.md`](docs/DATA-CLASSIFICATION.md) ·

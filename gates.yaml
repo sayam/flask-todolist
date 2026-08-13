@@ -1,0 +1,811 @@
+# ดัชนี gate ของ repo นี้ — ADR 0039
+#
+# **ไฟล์นี้เป็นดัชนี ไม่ใช่แหล่ง** — ตัวบังคับจริงคือเทสต์กับ job ใน CI
+# `tests/test_gates.py` บังคับว่าดัชนีกับความจริงตรงกันสองทิศ:
+#   - ทุก gate ชี้ไปหา job/step/ไฟล์เทสต์ที่มีจริง
+#   - ทุก job ต้องมี gate · ไฟล์เทสต์**ทุกไฟล์**ต้องถูกตัดสินว่าเป็นของ gate
+#     ตัวไหนตัวเดียว (partition — แบบแผนเดียวกับ DATA-CLASSIFICATION)
+#
+# เพิ่มไฟล์เทสต์ใหม่ = มาลงทะเบียนที่นี่ (gate ใหม่ หรือแถวใน app-behavior-suite)
+# เพิ่ม job ใหม่ = ต้องมี gate — ไม่งั้น tests/test_gates.py แดงพร้อมบอกว่าขาดอะไร
+#
+# `portable: true` = กฎสากลที่จะขึ้น SKILL.md ในเฟส 9 และต้องมี `born_from`
+# (กับดักที่ให้กำเนิดกฎ) · `standard` อ้างข้อ ASVS ได้เฉพาะแถวที่ประเมินว่า "ผ่าน"
+
+version: 1
+gates:
+  # ---------------------------------------------------------------- ดัชนีเอง
+  - id: gates-registry-total
+    title: ดัชนี gate ตรงกับความจริงสองทิศ และไฟล์เทสต์ทุกไฟล์ถูกตัดสิน
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_gates.py]}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      semgrep เคยตรวจแค่ 71/136 ไฟล์เพราะขอบเขตประกาศสองที่ —
+      ดัชนีที่ไม่ถูกบังคับให้ตรงกับความจริงคือดัชนีที่โกหกเงียบ ๆ
+
+  # ------------------------------------------------- กฎสถาปัตยกรรมของ core
+  - id: logic-knows-no-http
+    title: ตรรกะทั้งหมดอยู่ใน service layer และไม่รู้จัก HTTP
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_service_layer.py, tests/test_services.py]}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      Phase 3 — ตรรกะที่ฝังใน route ทำให้ HTML กับ API เพี้ยนจากกันทันทีที่มี
+      adapter ที่สอง · AST scan ห้าม service import ของฝั่ง request
+
+  - id: delete-means-soft-delete
+    title: ลบ = ซ่อน (soft delete) — ลบจริงได้ที่ purge เท่านั้น
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_write_discipline.py, tests/test_soft_delete.py]}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      ADR 0014 — `--dry-run` ที่ implement เป็น rollback เคยลบข้อมูลจริง
+      เพราะตัว purge commit ก่อน savepoint ปิด · ที่ลบได้จึงต้องมีที่เดียว
+
+  - id: every-write-audited
+    title: ทุกการเขียนลง audit trail แบบเติมได้อย่างเดียว + hash chain
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_audit.py]}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      ADR 0015/0035 — event หลัง flush ดักให้เองทุก insert/update/delete
+      โค้ดฟีเจอร์ไม่ต้องเรียกอะไร เพราะ "ลืมเรียก" คือบั๊กที่เงียบที่สุด
+
+  - id: core-never-names-plugins
+    title: core รู้แค่วิธีค้นหา plugin — ห้ามมีชื่อ plugin ในโค้ด core
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_plugins.py]}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      ADR 0023/0025 — วันที่ core เอ่ยชื่อ plugin คือวันที่ถอดไดเรกทอรีแล้วพัง
+      และ supply chain ของ plugin ไม่แยกจาก core อีกต่อไป
+
+  - id: every-column-classified
+    title: ทุกคอลัมน์ต้องถูกจัดชั้นข้อมูลใน DATA-CLASSIFICATION.md
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_data_classification.py]}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      ชั้นข้อมูลที่ไม่ถูกตัดสินตอนเพิ่มคอลัมน์ จะถูกตัดสินเอาตอนข้อมูลรั่ว —
+      audit เก็บอะไรได้ก็ตัดสินจากชั้นนี้
+
+  - id: every-column-export-decided
+    title: ทุกคอลัมน์ของตารางที่มีเจ้าของ ต้องถูกตัดสินว่า export หรือไม่ พร้อมเหตุผล
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_personal_data.py, tests/test_close_account.py]}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      ADR 0034 — ตอนที่ต่างคนต่างไล่ลบ CLI ลืมล้างความลับของปัจจัยที่สองทั้งดุ้น
+      · ทางเดียว + ทุกคอลัมน์ถูกตัดสิน = ไม่มีของหลงเหลือ
+
+  - id: models-match-migrations
+    title: schema มาจาก migration เท่านั้น และต้องตรงกับ model เป๊ะ
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_migrations.py]}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      index ที่อยู่ใน migration แต่ไม่อยู่ใน model เคยเกือบถูก `db migrate`
+      รุ่นถัดไป drop ทิ้งเงียบ ๆ ทั้งที่ทุก SELECT พึ่งมัน
+
+  - id: migration-dialect-lint
+    title: migration ห้ามใช้ชนิดเวลาที่ยี่ห้ออื่นตัดเศษวินาที
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_migration_lint.py]}
+    standard: []
+    requires: []
+    portable: false
+    born_from: ""
+
+  - id: dialect-discipline
+    title: คอลัมน์เวลาใช้ UTCDateTime · String ระบุความยาว · เขียนครั้งเดียวรันได้สามยี่ห้อ
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_dialect_parity.py, tests/test_db_backend.py]}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      DATETIME ของ MySQL ตัดเศษวินาทีเงียบ ๆ — งานที่สร้างห่างกันไม่กี่
+      มิลลิวินาทีได้เวลาเท่ากันแล้วเรียงสลับ · เจอได้ก็ต่อเมื่อยิงยี่ห้อจริง
+
+  # ----------------------------------------------------- กฎความปลอดภัยของแอป
+  - id: csrf-guards-every-form
+    title: CSRF คุมทั้งแอปและตัดก่อน login เสมอ
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_csrf.py]}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      เทสต์ทั่วไปปิด CSRF เพื่อความสะดวก — ถ้าไม่มีเทสต์แยกที่เปิดจริง
+      วันที่ `csrf.init_app()` หลุดจะไม่มีอะไรจับได้เลย
+
+  - id: session-hardening
+    title: idle/absolute timeout ตรวจฝั่ง server · คุกกี้ผูกกับ credential ปัจจุบัน
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_session_security.py]}
+    standard: [ASVS-V7.1.1]
+    requires: []
+    portable: true
+    born_from: >-
+      ADR 0020 — วันหมดอายุบนคุกกี้เป็นของที่ client แก้ได้ ·
+      เปลี่ยนรหัสผ่านแล้วคุกกี้ใบเก่าทุกใบต้องตายทันที ไม่ใช่รอหมดอายุ
+
+  - id: login-rate-limited-two-ways
+    title: โควตา login ต่อ IP และต่อชื่อผู้ใช้ · โดนกันแล้วต้อง 429 แม้รหัสถูก
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_ratelimit.py, tests/test_api_ratelimit.py]}
+    standard: [ASVS-V6.3.1]
+    requires: []
+    portable: true
+    born_from: >-
+      ADR 0021 — มิติต่อ IP อย่างเดียวแพ้คนเปลี่ยน IP ไปเรื่อย ๆ ·
+      และถ้ารหัสถูกทะลุด่านได้ คนไล่เดาจะรู้ทันทีว่าเจอรหัสที่ใช่
+
+  - id: authz-in-service-layer
+    title: ตรวจสิทธิ์ใน service ไม่ใช่ที่ route · ของคนอื่นตอบ 404 บทบาทไม่ถึงตอบ 403
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_rbac.py]}
+    standard: [ASVS-V8.2.2]
+    requires: []
+    portable: true
+    born_from: >-
+      ADR 0004/0022 — มี adapter สามทาง (HTML/API/CLI) — ด่านที่ route
+      คือด่านที่ adapter ใหม่ลืมได้ · การซ่อนเมนูไม่ใช่การกันสิทธิ์
+
+  - id: password-policy-nist
+    title: นโยบายรหัสผ่านตาม NIST อยู่ที่เดียว ทั้ง CLI และเว็บเรียกตัวเดียวกัน
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_passwords.py]}
+    standard: [ASVS-V11.4.2]
+    requires: []
+    portable: true
+    born_from: >-
+      ADR 0019 — normalize NFKC ต้องอยู่ใน set/check คู่กัน เกิดข้างเดียว
+      เมื่อไหร่ คนตั้งรหัสภาษาไทย (สระอำ) จะ login ไม่ได้ทั้งที่พิมพ์เหมือนเดิม
+
+  - id: logs-carry-no-pii
+    title: log เป็น JSON มี request id และ actor เป็น username ไม่ใช่ชื่อจริง
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_logging.py]}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      ADR 0011 — path อยู่ใน log ทุกบรรทัดชั้น C6 (90 วัน) —
+      อะไรที่ห้ามอยู่ใน log จึงต้องมีเทสต์ดัก ไม่ใช่ความระวังตัว
+
+  - id: csp-no-inline
+    title: CSP เป็น self ล้วน — ไม่มี inline script/style/handler ที่ไหนเลย
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_security_headers.py]}
+    standard: [ASVS-V3.4.3]
+    requires: []
+    portable: true
+    born_from: >-
+      ADR 0010 — browser บล็อก inline เงียบ ๆ ไม่มี error ฝั่ง server —
+      ด่านจึงต้องตรวจไฟล์ template ตรง ๆ ไม่ใช่รอดูอาการ
+
+  - id: config-fails-loud
+    title: ไม่มี SECRET_KEY หรือ scheme ที่ไม่รู้จัก = ไม่ start — ห้ามตกกลับเงียบ ๆ
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_config.py, tests/test_secrets.py]}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      ADR 0026/0030 — prod ที่ config ผิดแล้ว "ทำงานได้" บน SQLite จะพังในวันที่
+      มีคนถามหาข้อมูลที่หายไป · พังดังตอน start ถูกกว่าเสมอ
+
+  - id: no-debug-entrypoint
+    title: ไฟล์ entrypoint ไม่มีทางรัน Werkzeug debugger ได้แม้รันผิดตัว
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_entrypoint.py]}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      CodeQL รอบแรกชี้ `app.run(debug=True)` ใน run.py ซึ่งถูกก๊อปเข้า image —
+      `python run.py` ผิดตัวเมื่อไหร่ก็ได้ debugger ที่รันโค้ดจากหน้าเว็บ
+
+  # --------------------------------------------------------- สัญญาของ API
+  - id: api-contract-snapshot
+    title: openapi.json คือภาพถ่ายของโค้ด — แก้ API แล้วต้อง regenerate
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_openapi.py]}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      ADR 0018 — สัญญาที่ไม่มีใครเทียบกับโค้ดคือสัญญาที่เปลี่ยนได้เงียบ ๆ ·
+      v1 แก้ไม่ได้ จึงต้องมีของที่ฟ้องตอนใครแก้
+
+  - id: api-fuzzed-from-spec
+    title: fuzz สร้างคำขอจาก spec เอง — endpoint ใหม่ถูกครอบอัตโนมัติ
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_api_fuzz.py]}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      รอบแรกจับได้สามอย่างที่เทสต์ซึ่งคนเขียนเองมองข้าม (id เกิน 64 บิต → 500,
+      วันที่ย่อยไม่ได้ → 500, คำขอตกชั้น routing ได้ HTML)
+
+  - id: fk-enforced-measured
+    title: FK ถูกบังคับจริง — วัดที่ผล (IntegrityError) ไม่ใช่อ่านค่า pragma
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_db_integrity.py]}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      SQLite ปิด FK เป็นค่าเริ่มต้นต่อ connection — ถอดบรรทัด load backend
+      ออกแล้วไม่มี error ใดเลย แค่ข้อมูลเสียเงียบ ๆ · ด่านที่อ่าน pragma
+      ยังเขียวอยู่ในสภาพนั้น
+
+  # -------------------------------------------------- คุณภาพเอกสารที่มีเทสต์คุม
+  - id: a11y-structural
+    title: โครงสร้าง WCAG ตรวจทุกครั้งที่รันเทสต์ (label ครบ, ปุ่มสำรอง, target size)
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_a11y.py]}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      ADR 0012 — ฟอร์มที่พึ่ง data-auto-submit อย่างเดียวใช้ไม่ได้เลยเมื่อ JS
+      ไม่ทำงาน และไม่มีใครเห็นจนกว่าจะเป็นคนที่ปิด JS
+
+  - id: i18n-catalog-integrity
+    title: catalog ไม่มีช่องว่าง/fuzzy และครอบ msgid ที่มีในโค้ดครบ
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_i18n.py]}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      ข้อความ SSO/LDAP ทั้งชุดไม่เคยถูก extract เข้า catalog — ผู้ใช้ภาษาไทย
+      เห็นอังกฤษมาตลอดโดยไม่มีอะไรฟ้อง (P7-03b) · และ pybabel เคยเดา
+      "First name" เป็น "ชื่องาน"
+
+  - id: asvs-evidence-real
+    title: หลักฐานทุกชิ้นใน ASVS.md ชี้ไปหาของที่มีจริง · มาตรฐานตรึงด้วย checksum
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_asvs.py]}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      มาตรฐานที่เปลี่ยนใต้เท้าทำให้ "ผ่าน" ของเมื่อวานไม่ใช่ของวันนี้โดยไม่มี
+      commit ไหนบอก · หลักฐานที่ไม่ถูกตรวจว่ามีจริงจะเน่าเป็นรายการแรก
+
+  - id: adr-index-complete
+    title: ดัชนี ADR ครอบทุกใบ เลขไม่ซ้ำไม่มีรู
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_adr_index.py]}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      ดัชนีเคยหยุดที่ 0026 ขณะที่ไฟล์มีถึง 0033 — เจ็ดใบจากเฟสที่ตัดสินใจ
+      เรื่องใหญ่ที่สุดหายจากสายตา
+
+  - id: cadence-not-overdue
+    title: ตารางตรวจตามรอบถูกอ่านจริง เลยกำหนดเกิน 7 วัน = แดง
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_cadence.py]}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      งานตามรอบที่ไม่มีเครื่องทวงคืองานที่เงียบหายไปเฉย ๆ — กำหนดต้องเป็นวันที่
+      หรือเงื่อนไขที่ตัดสินได้ ไม่ใช่ "เมื่อพร้อม"
+
+  - id: ropa-current
+    title: ROPA + บัญชี log + runbook ตรงกับระบบจริง
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_ropa.py]}
+    standard: []
+    requires: []
+    portable: false
+    born_from: ""
+
+  - id: licensing-no-copyleft
+    title: core ต้องไม่มี dependency ที่แบกภาระ copyleft — และด่านห้ามผ่านเพราะอ่านไม่ได้
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_licensing.py]}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      ldap3 เป็น LGPLv3 และอยู่ใน category ของ plugin พอดี — การแยก supply
+      chain แยกภาระทางกฎหมายไปด้วยโดยไม่มีใครออกแบบ · "ไม่พบ" ≠ "อ่านไม่ได้จึงไม่พบ"
+
+  - id: security-policy-consistent
+    title: ตัวเลขกรอบเวลาใน SECURITY.md ตรงกันทุกสำเนา และไม่มีอีเมลในไฟล์
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_security_policy.py]}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      นโยบายที่เลขไม่ตรงกันสามที่ คือนโยบายที่ผู้รายงานเลือกอ่านฉบับที่ตัวเอง
+      ได้ประโยชน์ได้เสมอ
+
+  - id: contributor-docs-truthful
+    title: ตัวเลขที่โฆษณาใน docs อ่านจากแหล่งจริง (จำนวน job, ADR, coverage floor)
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_contributor_docs.py]}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      เอกสารสามที่บอก "CI 21 job" ขณะที่ workflow นิยาม 20 — ไม่มีใครโกหก
+      แต่ไม่มีใครตรวจ
+
+  - id: changelog-tracks-version
+    title: CHANGELOG ผูกกับ __version__ ของแอป
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_changelog.py]}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      เวอร์ชันที่ประกาศกับเวอร์ชันที่โค้ดรายงานแยกกันได้เงียบ ๆ ตั้งแต่
+      release แรก
+
+  # ----------------------------------------------- supply chain (ฝั่ง pytest)
+  - id: actions-sha-pinned
+    title: ทุก action ถูก pin ด้วย commit SHA + คอมเมนต์เลขรุ่น
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_workflow_pinning.py]}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      tag ย้ายได้ commit ย้ายไม่ได้ — upload-artifact เคยค้าง @v4 จุดเดียว
+      สิบวันโดย CI เขียวตลอด
+
+  - id: image-digest-pinned
+    title: base image ถูก pin ด้วย digest ของ manifest index และ Dependabot ขยับให้
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_dockerfile_pinning.py]}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      pin โดยไม่มีใครขยับคือการแช่ช่องโหว่ไว้ — สองอย่างนี้ต้องมาคู่กันเสมอ
+      และเทสต์บังคับว่าคู่นั้นไม่แยกจากกัน
+
+  - id: ci-tools-hash-pinned
+    title: เครื่องมือที่ CI ติดตั้งเองถูกตรึงด้วย hash ทั้ง python และ node
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_ci_pinning.py]}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      `pip install pipenv` หยิบรุ่นล่าสุด ณ วินาทีที่ job รัน และมันรันด้วย
+      สิทธิ์ของ workflow เรา · `npm install pkg@x` ตรึงได้แค่ตัวเดียว
+      ที่เหลือ 161 ตัวลอย
+
+  - id: pins-exceptions-honest
+    title: รายการยกเว้น advisory ตรวจสองทิศ และทุก ID มีเหตุผลในเอกสาร
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_pins_audit.py]}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      `--ignore-vuln` เงียบเสมอเมื่อ ID หายไป — รายการยกเว้นที่ไม่มีใครถอด
+      จะกลายเป็นตัวปิดของจริงในวันที่ package นั้นมี advisory ใหม่
+
+  - id: semgrep-scope-proven
+    title: semgrep ต้องพิสูจน์ว่าสแกนอะไร — เทียบเซตไฟล์จริงกับ git ls-files
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_semgrep_gate.py]}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      ค่าเริ่มต้นของ semgrep ตัด tests/ ทิ้ง — 61/136 ไฟล์ไม่เคยถูกสแกน
+      โดยไม่มีบรรทัดไหนใน repo บอก · "ไม่เจอ" หน้าตาเหมือน "ไม่ได้ตรวจ" เป๊ะ
+
+  - id: dependabot-fits-the-gates
+    title: prefix ของ Dependabot เป็นชนิดที่ commit-lint รับ และ pip ถูกจำกัดด้วย path
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_dependabot.py]}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      PR ของเครื่องที่แดงตั้งแต่ใบแรก สอนคนดูแลให้เมิน PR ของเครื่องทั้งหมด —
+      ซึ่งแย่กว่าไม่เปิดมันเลย
+
+  # -------------------------------------- ชุดพฤติกรรมของแอป (umbrella เดียว)
+  - id: app-behavior-suite
+    title: พฤติกรรมของแอปทั้งหมด — ทุกไฟล์ที่ไม่ใช่ด่านนโยบายอยู่ที่นี่
+    kind: test
+    severity: blocking
+    enforced_by:
+      job: test
+      tests:
+        - tests/test_api_auth.py
+        - tests/test_api_categories.py
+        - tests/test_api_todos.py
+        - tests/test_api_tokens.py
+        - tests/test_app.py
+        - tests/test_cache.py
+        - tests/test_cli.py
+        - tests/test_due_and_filter.py
+        - tests/test_ldap.py
+        - tests/test_metrics.py
+        - tests/test_mode.py
+        - tests/test_oidc.py
+        - tests/test_proxy.py
+        - tests/test_settings.py
+        - tests/test_start_and_filters.py
+        - tests/test_theme.py
+        - tests/test_tokens.py
+        - tests/test_totp.py
+    standard: []
+    requires: []
+    portable: false
+    born_from: ""
+
+  # ----------------------------------------------------------- job ทั้งหลาย
+  - id: suite-on-three-brands
+    title: ชุดเทสต์ทั้งชุดผ่านบน MySQL 8 และ MariaDB 11 จริง ไม่ใช่แค่ SQLite
+    kind: job
+    severity: blocking
+    enforced_by: {job: dialects}
+    standard: []
+    requires: [mysql, mariadb]
+    portable: true
+    born_from: >-
+      "รองรับหลายยี่ห้อ" ที่ไม่เคยยิงยี่ห้อจริงคือคำโฆษณา — deadlock ของสาย
+      audit เจอได้เฉพาะบน InnoDB จริงเท่านั้น (ADR 0032/0035)
+
+  - id: bare-clone-still-green
+    title: สภาพหลัง clone (ไม่มีไลบรารี plugin) ต้องเขียว — "ถอดแล้วไม่พัง" วัดได้
+    kind: job
+    severity: blocking
+    enforced_by: {job: bare}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      ADR 0025 — ห้ามใช้ importorskip เพราะมันทำให้ job หลักข้ามเทสต์เงียบ ๆ
+      ตอนไลบรารีหาย ซึ่งคือกรณีที่ต้องการให้แดงที่สุด
+
+  - id: static-quality-battery
+    title: ruff + format + xenon + interrogate + mypy + asvs-worksheet — ratchet ขึ้นทางเดียว
+    kind: job
+    severity: blocking
+    enforced_by: {job: lint}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      ทุก step มี if !cancelled() เพราะ xenon เคยแดงก่อนแล้วบัง mypy ที่แดงอยู่
+      — ด่านที่แดงตัวแรกห้ามบังตัวหลัง
+
+  - id: schema-drift-zero
+    title: db upgrade บนฐานเปล่าแล้ว flask db check ต้อง drift เป็นศูนย์
+    kind: job
+    severity: blocking
+    enforced_by: {job: schema}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      เทสต์ใช้ create_all จาก model จึงมองไม่เห็น migration ที่เพี้ยน —
+      ต้องมีด่านที่เดิน migration จริงบนฐานเปล่า
+
+  - id: openapi-regen-clean
+    title: generate spec ใหม่แล้ว git diff ต้องว่าง
+    kind: job
+    severity: blocking
+    enforced_by: {job: openapi}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      ภาพถ่ายที่ไม่ถูกเทียบกับโค้ดทุก push คือภาพถ่ายของอดีต
+
+  - id: conventional-commits
+    title: หัว commit เป็น Conventional Commits ≤72 ตัว ตรวจเฉพาะ commit ที่เพิ่มจริง
+    kind: job
+    severity: blocking
+    enforced_by: {job: commit-lint}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      required check ที่ถูก skip บน PR ทำให้ PR ค้าง BLOCKED ตลอดกาลโดยไม่มี
+      อะไรแดงให้เห็น — และ merge commit ของปุ่ม Update branch เคยตกด่านเอง
+
+  - id: core-deps-cve-audit
+    title: pip-audit ของ core — CVE ที่ถอดไม่ได้ต้องหยุด pipeline ได้
+    kind: step
+    severity: blocking
+    enforced_by: {job: security, step: "pip-audit ของ core (ตรึงรุ่น pip ใน venv ก่อน — ตัว pip เองก็ถูก audit)"}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      supply chain ของ core ถอดไม่ได้ — CVE ที่นี่ไม่มีทางออกอื่นนอกจากแก้
+      จึงแดงได้เต็มปาก ต่างจากของ plugin ที่คำตอบคือถอด
+
+  - id: deploy-deps-cve-audit
+    title: pip-audit ของ [deploy] — gunicorn ไม่มีใครเฝ้าให้ที่อื่น
+    kind: step
+    severity: blocking
+    enforced_by: {job: security, step: "pip-audit ของ deploy (gunicorn ฯลฯ — ไม่มีใครเฝ้าให้ที่อื่น)"}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      [deploy] มองไม่เห็นจากทุกเครื่องมือที่ติดตั้งด้วย pipenv sync --dev —
+      เจอสองครั้งในวันเดียวจากคนละทาง · ตัวที่รับคำขอจริงทุกใบกลับไม่มีใครเฝ้า
+
+  - id: ci-tools-cve-audit
+    title: audit ของ pins/ ทั้ง python (pip-audit) และ node (npm audit) สองทิศ
+    kind: step
+    severity: blocking
+    enforced_by: {job: security, step: "audit ของ pins/ (เครื่องมือของ CI เอง — ทั้ง python และ node)"}
+    standard: []
+    requires: [node]
+    portable: true
+    born_from: >-
+      ด่านที่ครอบภาษาเดียวในไดเรกทอรีที่มีสองภาษา คือด่านที่ชื่อของมันชวนให้
+      เข้าใจว่าครอบแล้ว — อันตรายกว่าไม่มีด่านเลย
+
+  - id: semgrep-sast
+    title: semgrep p/flask + p/python — ตัดสินด้วยรายงาน ไม่ใช่ exit code
+    kind: step
+    severity: blocking
+    enforced_by: {job: security, step: "semgrep (flask + python rulesets)"}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      การสแกนที่ผ่านแบบเงียบ ๆ หน้าตาเหมือนการสแกนที่ไม่ได้ตรวจอะไร —
+      ตัวตัดสินคือ check_semgrep.py ที่เทียบเซตไฟล์ที่สแกนจริง
+
+  - id: plugin-deps-cve-visible
+    title: CVE ของไลบรารี plugin ดังพอให้เห็น แต่ไม่หยุด pipeline (คำตอบคือถอด)
+    kind: job
+    severity: warning
+    enforced_by: {job: plugin-audit}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      ADR 0025 — CVE ของของที่ถอดได้ มีทางออกที่เร็วกว่ารอ patch เสมอ
+      คือ DISABLED_PLUGINS · จึงเตือน ไม่บล็อก — แต่ต้องเตือนจริง
+
+  - id: a11y-real-browser
+    title: pa11y + Chromium จริง สแกนรวมโหมดมืด ธีม ocean และภาษาไทย
+    kind: job
+    severity: blocking
+    enforced_by: {job: a11y}
+    standard: []
+    requires: [node, chromium]
+    portable: true
+    born_from: >-
+      contrast หลัง CSS ทำงานกับชื่อที่ AT คำนวณได้จริง ตรวจจากไฟล์ template
+      ไม่ได้ — ต้อง browser จริง และธีมมืด/ภาษาอื่น contrast ต่างกัน
+
+  - id: image-built-and-probed
+    title: build image จริงแล้วยิงใส่มัน — ไม่รัน root, โค้ดเขียนทับไม่ได้, ตอบ 200
+    kind: job
+    severity: blocking
+    enforced_by: {job: image}
+    standard: []
+    requires: [docker]
+    portable: true
+    born_from: >-
+      Dockerfile ที่ไม่มีใครเคย build คือไฟล์ข้อความธรรมดา — และ shebang ของ
+      venv เคยพังแบบที่ข้อความ error โกหกว่าไฟล์ไม่มีอยู่
+
+  - id: stack-deploys-and-serves
+    title: compose stack จริง — migrate แยกขั้น, 2 replica, โควตาแชร์, client IP ถูก
+    kind: job
+    severity: blocking
+    enforced_by: {job: stack}
+    standard: [ASVS-V3.4.1]
+    requires: [docker-compose]
+    portable: false
+    born_from: ""
+
+  - id: tls-modern-protocols-only
+    title: รับเฉพาะ TLS 1.2/1.3 — พิสูจน์ว่า server ปฏิเสธ ไม่ใช่ client ปฏิเสธเอง
+    kind: step
+    severity: blocking
+    enforced_by: {job: stack, step: "รับเฉพาะ TLS 1.2 กับ 1.3"}
+    standard: []
+    requires: [docker-compose]
+    portable: true
+    born_from: >-
+      openssl 3 ปิด TLS 1.0/1.1 ฝั่ง client อยู่แล้ว — ด่านที่ไม่เปิด SECLEVEL=0
+      พิสูจน์แค่ว่า openssl ปฏิเสธตัวเอง ผ่านทุกครั้งแม้ลบ ssl_protocols ทิ้ง
+
+  - id: tls-forward-secrecy
+    title: TLS ให้ PFS ทุกทางที่เข้าถึงได้ — บังคับชุดอ่อนแล้วต้องถูกปฏิเสธ
+    kind: step
+    severity: blocking
+    enforced_by: {job: stack, step: "TLS ต้องให้ perfect forward secrecy ทุกทางที่เข้าถึงได้"}
+    standard: []
+    requires: [docker-compose]
+    portable: true
+    born_from: >-
+      การต่อรองปกติได้ ECDHE ดูปลอดภัยดี แต่ไคลเอนต์ที่ขอชุด RSA-kx ตรง ๆ
+      ก็ได้รับ — ด่านที่ดูแค่ "ต่อรองได้อะไร" รายงานว่าผ่านทั้งที่ทางไม่มี PFS
+      ยังเปิดอยู่ (วัดจริง 2026-08-13)
+
+  - id: oidc-end-to-end
+    title: login ผ่าน IdP จริง (dex) จบทั้งวง ไม่ใช่ mock
+    kind: job
+    severity: blocking
+    enforced_by: {job: sso}
+    standard: []
+    requires: [docker-compose]
+    portable: false
+    born_from: ""
+
+  - id: ldap-end-to-end
+    title: login ผ่าน directory จริง (openldap) — รหัสของที่นี่ถูกลองก่อนเสมอ
+    kind: job
+    severity: blocking
+    enforced_by: {job: ldap}
+    standard: []
+    requires: [docker-compose]
+    portable: false
+    born_from: ""
+
+  - id: vault-end-to-end
+    title: ความลับจาก Vault จริงตอน start — ถามแหล่งไม่ได้ = ไม่ start
+    kind: job
+    severity: blocking
+    enforced_by: {job: vault}
+    standard: []
+    requires: [docker-compose]
+    portable: false
+    born_from: ""
+
+  - id: alerts-fire-for-real
+    title: กฎแจ้งเตือนใน Loki ruler ต้องดังจริงเมื่อยิงเหตุการณ์ใส่ ไม่ใช่แค่ stack ขึ้น
+    kind: job
+    severity: blocking
+    enforced_by: {job: siem}
+    standard: []
+    requires: [docker-compose]
+    portable: true
+    born_from: >-
+      ADR 0037 — กฎที่นับแต่ 401 เงียบพอดีตอนที่การโจมตีหนักที่สุด เพราะโควตา
+      ตัดที่ 5 ที่เหลือกลายเป็น 429 · ต้องพิสูจน์ว่า alert ดัง ไม่ใช่ว่ามีกฎ
+
+  - id: zap-authenticated-scan
+    title: ZAP baseline ยิง stack จริงแบบ login แล้ว — วัดว่าสแกนจริงจาก log ของแอป
+    kind: job
+    severity: blocking
+    enforced_by: {job: dast}
+    standard: []
+    requires: [docker-compose]
+    portable: true
+    born_from: >-
+      สแกนโดยไม่ login เห็นแค่หน้า login — ด่านแบบนั้นเขียวตลอดโดยไม่ได้ตรวจ
+      อะไร · และวันที่แก้จนไม่เหลือ alert การเช็คจากรายงานจะกลายเป็น
+      "ไม่เจอ = ไม่ได้สแกน"
+
+  - id: purge-timer-real-systemd
+    title: unit + timer ของ purge ติดตั้งบน systemd จริง และความล้มเหลวมองเห็นได้
+    kind: job
+    severity: blocking
+    enforced_by: {job: purge-timer}
+    standard: []
+    requires: [systemd]
+    portable: true
+    born_from: >-
+      ระยะเก็บรักษาจะเป็นจริงก็ต่อเมื่อมีอะไรรัน purge ตามรอบ — และงานตามรอบ
+      ที่เงียบตอนพังแย่กว่าไม่มีเลย · `$?` ในกิ่ง if! เป็น 0 เสมอ
+
+  - id: push-secret-scan
+    title: gitleaks ตรวจ commit ที่อยู่ใน push นั้น (ทั้งประวัติมีสคริปต์แยกตามรอบ)
+    kind: job
+    severity: blocking
+    enforced_by: {job: secret-scan}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      ความลับที่หลุดเข้า history ลบไม่ได้จริงบน GitHub — object เก่ายังถูก
+      เสิร์ฟตาม SHA · กันตั้งแต่ขาเข้าถูกกว่าเสมอ
+
+  - id: sbom-per-category
+    title: SBOM แยกต่อ category — ตอบได้ว่าถอด plugin แล้ว component ไหนหาย
+    kind: job
+    severity: blocking
+    enforced_by: {job: sbom}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      SBOM ก้อนเดียวตอบคำถามแรกของวันที่ CVE ออกไม่ได้ —
+      "ถอดตัวนี้แล้วอะไรหายไปบ้าง"
+
+  - id: codeql-sast
+    title: CodeQL security-extended ทั้ง python และ javascript — เป็น job ไม่ใช่ default setup
+    kind: job
+    severity: blocking
+    enforced_by: {job: codeql}
+    standard: []
+    requires: [github-actions]
+    portable: true
+    born_from: >-
+      ของที่คลิกไว้ใน UI ไม่มีใคร review ได้และหายเงียบ ๆ ได้ (หลัก ADR 0037)
+      · รอบแรกเจอของจริงสองอย่างรวม debugger ที่ติดไปกับ image
+
+  - id: openssf-scorecard
+    title: Scorecard วัดแนวปฏิบัติของ repo และเผยแพร่ผล — คะแนน ไม่ใช่ผ่าน/ตก
+    kind: job
+    severity: warning
+    enforced_by: {job: scorecard}
+    standard: []
+    requires: [github-actions]
+    portable: false
+    born_from: ""
