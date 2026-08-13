@@ -165,6 +165,44 @@ def test_portable_gates_carry_their_origin(gates):
     assert not missing, f"portable gate ที่ไม่มี born_from: {missing}"
 
 
+def test_the_crosswalk_is_derived_not_written(gates):
+    """`docs/GATES-ASVS.md` ต้องตรงกับผล generate ไบต์ต่อไบต์ — 8-05
+
+    mapping ที่เขียนมือคือที่ที่สามให้ drift (นอกจาก gates.yaml กับ ASVS.md)
+    จึง derive ทางเดียวจากหลักฐาน แล้วด่านนี้กันไม่ให้ไฟล์ที่ commit ค้างจากแหล่ง
+    """
+    from scripts.build_gates_crosswalk import OUT, crosswalk
+
+    assert OUT.is_file(), "ไม่มี docs/GATES-ASVS.md — รัน scripts/build_gates_crosswalk.py"
+    assert OUT.read_text(encoding="utf-8") == crosswalk(), (
+        "docs/GATES-ASVS.md ไม่ตรงกับผล generate — "
+        "รัน pipenv run python scripts/build_gates_crosswalk.py แล้ว commit มาด้วยกัน"
+    )
+
+
+def test_standard_claims_are_corroborated_by_the_rows_evidence(gates):
+    """gate ที่อ้างข้อ ASVS ต้องถูกหลักฐานของข้อนั้น**ชี้กลับมาหา** — ไม่ใช่แค่มีแถวอยู่
+
+    ตอนเขียนดัชนีรอบแรกพลาดเองสองข้อ: อ้าง V8.2.2 ให้ gate ของ rbac ทั้งที่
+    หลักฐานแถวนั้นอ้าง api_fuzz และอ้าง V3.4.1 ให้ job stack ทั้งที่หลักฐาน
+    ยังไม่ได้บันทึกว่า stack ตรวจ HSTS — คำอ้างที่ไม่มีหลักฐานหนุนคือของประดับ
+    """
+    from scripts.build_gates_crosswalk import JOB_REF, TEST_REF, passed_rows
+
+    rows = passed_rows()
+    broken = []
+    for gate in gates:
+        own_files = set(gate["enforced_by"].get("tests") or [])
+        own_job = gate["enforced_by"]["job"] if gate["kind"] in ("job", "step") else None
+        for ref in gate.get("standard") or []:
+            evidence = rows.get(ref.removeprefix("ASVS-"), "")
+            cited_files = set(TEST_REF.findall(evidence))
+            cited_jobs = set(JOB_REF.findall(evidence))
+            if not (own_files & cited_files or (own_job and own_job in cited_jobs)):
+                broken.append(f"{gate['id']} อ้าง {ref} แต่หลักฐานของแถวนั้นไม่ได้ชี้มาหา gate นี้")
+    assert not broken, "\n  ".join(["คำอ้างที่ไม่มีหลักฐานหนุน:", *broken])
+
+
 def test_cited_standards_exist_and_match_the_assessment(gates, asvs_status):
     """`standard` อ้างได้เฉพาะข้อที่ประเมินว่า "ผ่าน" — อ้างข้อที่ประเมินว่า
     "ไม่เกี่ยวข้อง"/"ยังไม่ผ่าน" คือดัชนีที่ขัดกับคำตัดสินของผู้ประเมิน

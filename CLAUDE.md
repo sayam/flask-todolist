@@ -112,7 +112,12 @@
   ตัวเดียว** (partition แบบ DATA-CLASSIFICATION) — **เพิ่มไฟล์เทสต์ใหม่ต้องมา
   ลงทะเบียนที่นี่ด้วย** (gate ใหม่ หรือแถวใน `app-behavior-suite`) ไม่งั้นแดง
   · `portable: true` ต้องมี `born_from` · `standard` อ้างได้เฉพาะข้อ ASVS
-  ที่ประเมินว่า "ผ่าน"
+  ที่ประเมินว่า "ผ่าน" **และหลักฐานของแถวนั้นต้องชี้กลับมาหา gate นี้จริง**
+  (อ้างแถวที่มีอยู่แต่หลักฐานไม่หนุน = แดง)
+- `docs/GATES-ASVS.md` — crosswalk gate ↔ ASVS **generate มา ห้ามแก้ด้วยมือ**
+  (`scripts/build_gates_crosswalk.py`) derive จากหลักฐานใน `ASVS.md` ผ่าน
+  partition ของ `gates.yaml` — บอกด้วยว่าแถวไหนผ่านด้วยด่านที่รันทุก push
+  และแถวไหนผ่านด้วยเหตุผล/เอกสารเท่านั้น (ความเชื่อมั่นคนละระดับ)
 - `pins/` — **ล็อกไฟล์ของเครื่องมือที่ CI ติดตั้งเอง** (pipenv, pip, semgrep, pa11y-ci)
   ไม่ใช่ dependency ของแอป (ของแอปอยู่ใน `Pipfile.lock`) · ทุก `pip install` ใน
   workflow และ `Dockerfile` ต้องเป็น `--require-hashes -r pins/<ชื่อ>/requirements.txt`

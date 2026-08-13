@@ -176,7 +176,7 @@ gates:
     kind: test
     severity: blocking
     enforced_by: {job: test, tests: [tests/test_rbac.py]}
-    standard: [ASVS-V8.2.2]
+    standard: [ASVS-V8.2.1]
     requires: []
     portable: true
     born_from: >-
