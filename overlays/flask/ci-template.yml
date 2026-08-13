@@ -1,0 +1,22 @@
+# workflow ตั้งต้นของโปรเจกต์ที่ import scaffolding นี้ — วางเป็น
+# .github/workflows/gates.yml (install.py ทำให้)
+#
+# นี่คือ*จุดเริ่ม* ไม่ใช่เพดาน: gate ชนิด `suite` ใน overlay.json ต้องการเทสต์
+# ของโปรเจกต์เอง — reference implementation เต็ม ๆ อยู่ที่ ci.yml ของ repo แม่
+name: gates
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  # gate: ทุกตัวที่ kind เป็น scan ใน tools/overlay.json — รันด้วย python3 เปล่า ๆ
+  scans:
+    runs-on: ubuntu-latest
+    steps:
+      # pin ด้วย SHA ตามกฎ actions-sha-pinned ของตัวเอง (v7.0.1)
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: python3 tools/gates_doctor.py

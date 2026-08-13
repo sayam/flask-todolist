@@ -1,0 +1,22 @@
+{
+  "_comment": "config ของ scaffolding สำหรับ repo นี้เอง (dogfood) — job scaffold รัน doctor ด้วยไฟล์นี้",
+  "services_path": "app/services",
+  "src_path": "app",
+  "purge_paths": [
+    "app/purge.py",
+    "app/plugins/*/*/personal_data.py",
+    "app/plugins/auth/*/factor.py"
+  ],
+  "templates_path": "app/templates",
+  "entrypoints": [
+    "run.py",
+    "wsgi.py",
+    "app.py",
+    "main.py"
+  ],
+  "dockerfiles": [
+    "Dockerfile"
+  ],
+  "adr_path": "docs/adr",
+  "_purge_paths_why": "purge.py = ที่ลบจริงของ core (ADR 0014) · personal_data ของ plugin ลบจริงทันทีตอนปิดบัญชีโดยออกแบบ (ADR 0034) · factor ลบ enrollment ที่ยังไม่ยืนยัน — ทุกที่อยู่ใต้ tests/test_write_discipline.py ของ repo ซึ่งลึกกว่า scan นี้"
+}

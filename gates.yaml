@@ -39,6 +39,18 @@ gates:
       เอกสาร skill ที่เขียนมือจะกลายเป็นทะเบียนที่สามที่ drift จากดัชนี —
       และชั้นที่ประกาศว่าสากลต้องมีเครื่องกันชื่อ framework รั่วเข้ามา
 
+  - id: overlay-covers-every-portable-gate
+    title: overlay ต้องครอบกฎสากลครบทุกข้อ และ checker พิสูจน์สองทิศ
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_overlay.py]}
+    standard: []
+    requires: []
+    portable: true
+    born_from: >-
+      กฎสากลที่ไม่มี enforcement ใน overlay คือคำขวัญ — และ checker ที่ไม่เคย
+      ถูกพิสูจน์ว่าแดงเมื่อควรแดง ก็เขียวได้ตลอดกาลโดยไม่ตรวจอะไร
+
   # ------------------------------------------------- กฎสถาปัตยกรรมของ core
   - id: logic-knows-no-http
     title: ตรรกะทั้งหมดอยู่ใน service layer และไม่รู้จัก HTTP
@@ -811,6 +823,16 @@ gates:
     born_from: >-
       ของที่คลิกไว้ใน UI ไม่มีใคร review ได้และหายเงียบ ๆ ได้ (หลัก ADR 0037)
       · รอบแรกเจอของจริงสองอย่างรวม debugger ที่ติดไปกับ image
+
+  - id: scaffold-installs-and-runs
+    title: import ลง repo เปล่าแล้วด่านครบและรันได้ — และ reference ผ่าน overlay ของตัวเอง
+    kind: job
+    severity: blocking
+    enforced_by: {job: scaffold}
+    standard: []
+    requires: []
+    portable: false
+    born_from: ""
 
   - id: openssf-scorecard
     title: Scorecard วัดแนวปฏิบัติของ repo และเผยแพร่ผล — คะแนน ไม่ใช่ผ่าน/ตก
