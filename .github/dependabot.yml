@@ -1,9 +1,14 @@
-# Dependabot version updates — **เปิดไว้เฉพาะ GitHub Actions โดยตั้งใจ**
+# Dependabot version updates — **เปิดเฉพาะของที่ถูกตรึงไว้ ไม่ใช่ทุกอย่าง**
 #
-# ทำไมไม่เปิดกับ pip ด้วย: version update ของ pip จะเปิด PR ทุกครั้งที่ dependency
-# ตัวใดตัวหนึ่งออกรุ่นใหม่ ซึ่งกับ lock ที่มีร้อยกว่า package แปลว่า PR แทบทุกวัน
-# ในโปรเจกต์ที่มีคนดูแลคนเดียว · **security update ของ pip เปิดอยู่แล้ว**
-# (ตั้งในหน้า repo ไม่ใช่ในไฟล์นี้) ซึ่งตอบคำถามที่เร่งด่วนจริงคือ "มี CVE ไหม"
+# กติกาข้อเดียวที่อธิบายไฟล์นี้ทั้งไฟล์: **ตรึงอะไรไว้ ต้องมีคนขยับให้ตัวนั้น**
+# pin โดยไม่มีใครขยับคือการแช่ช่องโหว่ไว้ตลอดกาล ซึ่งแย่กว่าไม่ pin เลย
+# (`tests/test_dockerfile_pinning.py` + `tests/test_ci_pinning.py` บังคับข้อนี้)
+#
+# ทำไม `Pipfile.lock` ของแอปไม่อยู่ที่นี่: version update ของมันจะเปิด PR ทุกครั้ง
+# ที่ dependency ตัวใดตัวหนึ่งในร้อยกว่าตัวออกรุ่นใหม่ = PR แทบทุกวันในโปรเจกต์ที่มี
+# คนดูแลคนเดียว · **security update ของ pip เปิดอยู่แล้ว** (ตั้งในหน้า repo ไม่ใช่
+# ในไฟล์นี้) ซึ่งตอบคำถามที่เร่งด่วนจริงคือ "มี CVE ไหม" · และมันไม่ได้ถูก *ตรึง*
+# ไว้ที่รุ่นใดรุ่นหนึ่ง — `Pipfile` ยังเป็น `"*"` การขยับจึงเกิดตอนใครรัน `pipenv lock`
 #
 # ทำไมเปิดกับ actions: action ที่ค้างรุ่นเป็นความเสี่ยง supply chain โดยตรง —
 # มันรันด้วยสิทธิ์ของ workflow เรา และ **จำนวน PR น้อยมาก** เพราะมีสิบกว่าตัว
@@ -52,3 +57,36 @@ updates:
         update-types:
           - "version-update:semver-major"
           - "version-update:semver-minor"
+
+  # **เครื่องมือที่ CI ติดตั้งเอง ถูกตรึงด้วย hash ใน `pins/`** (ดู pins/README.md)
+  # เหตุผลเดียวกับสองอันบน: `pip install pipenv` เปล่า ๆ หยิบรุ่นล่าสุดเสมอ ตรึง
+  # แล้วต้องมีคนขยับ · ไฟล์พวกนี้เป็นผลของ `pip-compile --generate-hashes` ซึ่ง
+  # Dependabot รู้จัก (มันอ่านหัวไฟล์แล้ว compile ใหม่ให้ ไม่ใช่แก้ hash ทีละบรรทัด)
+  # — `requirements.in` จึงต้องถูก commit ไปด้วย ไม่งั้นมันขยับให้ไม่ได้
+  - package-ecosystem: "pip"
+    directories:
+      - "/pins/pip"
+      - "/pins/pipenv"
+      - "/pins/semgrep"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "ci"
+    groups:
+      ci-tools:
+        patterns:
+          - "*"
+    open-pull-requests-limit: 3
+
+  # pa11y-ci ของ job `a11y` — ตรึงทั้งต้นไม้ (162 package) ไว้ใน package-lock.json
+  - package-ecosystem: "npm"
+    directory: "/pins/pa11y"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "ci"
+    groups:
+      pa11y:
+        patterns:
+          - "*"
+    open-pull-requests-limit: 3

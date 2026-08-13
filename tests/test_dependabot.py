@@ -50,15 +50,26 @@ def test_every_prefix_is_a_type_the_commit_linter_accepts(config, accepted_types
         )
 
 
-def test_pip_version_updates_stay_off(config):
-    """เปิด pip เมื่อไหร่จะมี PR แทบทุกวัน — **security update ของ pip เปิดอยู่แล้ว**
+def test_pip_version_updates_never_reach_the_app_lock_file(config):
+    """version update ของ `Pipfile.lock` จะมี PR แทบทุกวัน — **ไม่เปิด**
 
-    ตั้งในหน้า repo ไม่ใช่ในไฟล์นี้ · ถ้าวันหนึ่งตัดสินใจว่าอยากได้ version update
-    ของ pip จริง ๆ ให้แก้เทสต์นี้พร้อมเหตุผล ไม่ใช่เติม entry เงียบ ๆ แล้วมางง
-    ทีหลังว่าทำไม PR เยอะขึ้น
+    ร้อยกว่า package ที่ประกาศเป็น `"*"` แปลว่าตัวใดตัวหนึ่งออกรุ่นใหม่เมื่อไหร่
+    ก็มี PR · **security update ของ pip เปิดอยู่แล้ว** (ตั้งในหน้า repo ไม่ใช่
+    ในไฟล์นี้) ซึ่งตอบคำถามที่เร่งด่วนจริงคือ "มี CVE ไหม"
+
+    **แต่ ecosystem `pip` เองไม่ได้ถูกห้าม** — `pins/` เป็นของที่ *ถูกตรึงไว้*
+    ที่รุ่นหนึ่งอย่างเจาะจง ซึ่งกลับกันเลย: ไม่มีใครขยับให้ก็คือแช่ช่องโหว่ไว้
+    (ดู `tests/test_ci_pinning.py::test_dependabot_keeps_every_pin_fresh`)
+    เส้นแบ่งจึงเป็น **path ไม่ใช่ชื่อ ecosystem**
     """
-    ecosystems = {entry["package-ecosystem"] for entry in config["updates"]}
-    assert "pip" not in ecosystems, "เปิด version update ของ pip แล้ว — ตั้งใจหรือเปล่า? (ดู docstring)"
+    for entry in config["updates"]:
+        if entry["package-ecosystem"] != "pip":
+            continue
+        directories = entry.get("directories") or [entry["directory"]]
+        assert all(d.startswith("/pins/") for d in directories), (
+            f"pip ชี้ไปที่ {directories} — ที่รากคือ Pipfile ของแอปเอง "
+            "ซึ่งจะเปิด PR แทบทุกวัน · ที่ตั้งใจเฝ้าคือของที่ตรึงไว้ใน pins/ เท่านั้น"
+        )
 
 
 def test_the_actions_updates_arrive_as_one_pull_request(config):
