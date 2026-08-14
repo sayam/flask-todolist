@@ -54,6 +54,9 @@
   <nav>
     <a href="{{ url_for('main.index') }}">{{ _('Tasks') }}</a> |
     <a href="{{ url_for('main.categories') }}">{{ _('Categories') }}</a> |
+    {% if my_team_count %}
+    <a href="{{ url_for('main.teams') }}">{{ _('Teams') }}</a> |
+    {% endif %}
     <a href="{{ url_for('main.settings') }}">{{ _('Settings') }}</a> |
     {% if current_user.is_admin %}
     {# เมนูนี้แค่ซ่อนตา ไม่ใช่การกันสิทธิ์ — ตัวที่กันจริงคือ require_admin() ใน service #}

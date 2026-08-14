@@ -143,6 +143,10 @@
             "readOnly": true,
             "type": "integer"
           },
+          "is_at_risk": {
+            "readOnly": true,
+            "type": "boolean"
+          },
           "is_done": {
             "readOnly": true,
             "type": "boolean"

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Teams') }}{% endblock %}
+
+{% block content %}
+<h2>{{ _('Teams') }}</h2>
+
+{% include '_admin_nav.html' %}
+
+<form action="{{ url_for('admin.add_team') }}" method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label for="team-name">{{ _('New team name') }}</label>
+  <input id="team-name" type="text" name="name" required>
+  <button type="submit">{{ _('Create team') }}</button>
+</form>
+
+{% if not teams %}
+<p>{{ _('No teams yet') }}</p>
+{% endif %}
+
+{% for team in teams %}
+<section aria-labelledby="team-{{ team.id }}">
+  <h3 id="team-{{ team.id }}">{{ team.name }}</h3>
+  <ul>
+    {% for member in team.members if not member.is_deleted %}
+    <li>
+      {{ member.user.username }}
+      <form action="{{ url_for('admin.remove_member', team_id=team.id, user_id=member.user_id) }}"
+            method="post" class="inline-form"
+            data-confirm="{{ _('Remove %(name)s from %(team)s? Their view of this team’s shared tasks — and any dependencies that relied on it — will be cut.', name=member.user.username, team=team.name) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit">{{ _('Remove') }}</button>
+      </form>
+    </li>
+    {% else %}
+    <li>{{ _('No members yet') }}</li>
+    {% endfor %}
+  </ul>
+  <form action="{{ url_for('admin.add_member', team_id=team.id) }}" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="member-{{ team.id }}">{{ _('Add member by username') }}</label>
+    <input id="member-{{ team.id }}" type="text" name="username" required>
+    <button type="submit">{{ _('Add member') }}</button>
+  </form>
+  <form action="{{ url_for('admin.delete_team', team_id=team.id) }}" method="post"
+        data-confirm="{{ _('Delete team “%(name)s”? All its shares and the dependencies that relied on them will be cut.', name=team.name) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit">{{ _('Delete team') }}</button>
+  </form>
+</section>
+{% endfor %}
+{% endblock %}

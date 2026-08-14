@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-14 22:43+0700\n"
+"POT-Creation-Date: 2026-08-15 03:58+0700\n"
 "PO-Revision-Date: 2026-08-02 16:44+0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -30,8 +30,8 @@ msgstr ""
 msgid "This account is suspended — contact the operator"
 msgstr ""
 
-#: app/auth.py:177 app/plugins/auth/oidc/factor.py:72
-#: app/plugins/auth/oidc/factor.py:82
+#: app/auth.py:177 app/plugins/auth/oidc/factor.py:78
+#: app/plugins/auth/oidc/factor.py:104
 msgid "Single sign-on is not configured"
 msgstr ""
 
@@ -39,52 +39,80 @@ msgstr ""
 msgid "Sign-in session expired — please try again"
 msgstr ""
 
-#: app/auth.py:271 app/routes.py:484
+#: app/auth.py:271 app/routes.py:614
 msgid "That code is not valid"
 msgstr ""
 
-#: app/api/todos.py:52 app/routes.py:72 app/routes.py:113
+#: app/api/todos.py:65 app/routes.py:75 app/routes.py:116
 msgid "Invalid date format"
 msgstr ""
 
-#: app/routes.py:181
+#: app/routes.py:188
 msgid "Task saved"
 msgstr ""
 
-#: app/routes.py:326
+#: app/routes.py:256
+msgid "Task shared"
+msgstr ""
+
+#: app/routes.py:260 app/routes.py:273
+msgid "Invalid team"
+msgstr ""
+
+#: app/routes.py:269
+msgid "Task unshared"
+msgstr ""
+
+#: app/routes.py:288
+msgid "Dependency requested — waiting for the owner to accept"
+msgstr ""
+
+#: app/routes.py:292
+msgid "Invalid request"
+msgstr ""
+
+#: app/routes.py:303
+msgid "Dependency accepted"
+msgstr ""
+
+#: app/routes.py:317 app/routes.py:329
+msgid "Dependency removed"
+msgstr ""
+
+#: app/routes.py:456
 msgid "Profile saved"
 msgstr ""
 
-#: app/routes.py:340
+#: app/routes.py:470
 msgid "The two new passwords do not match"
 msgstr ""
 
-#: app/routes.py:356
+#: app/routes.py:486
 msgid "Password changed"
 msgstr ""
 
-#: app/routes.py:377 app/routes.py:497 app/routes.py:524 app/routes.py:549
+#: app/routes.py:507 app/routes.py:627 app/routes.py:654 app/routes.py:679
 #: app/services/passwords.py:168
 msgid "Current password is incorrect"
 msgstr ""
 
-#: app/routes.py:421
+#: app/routes.py:551
 msgid "Token revoked"
 msgstr ""
 
-#: app/routes.py:484
+#: app/routes.py:614
 msgid "Two-step verification is on"
 msgstr ""
 
-#: app/routes.py:536
+#: app/routes.py:666
 msgid "Your account is closed. Sign-in no longer works."
 msgstr ""
 
-#: app/routes.py:556
+#: app/routes.py:686
 msgid "Two-step verification is off"
 msgstr ""
 
-#: app/routes.py:581
+#: app/routes.py:711
 msgid "Settings saved"
 msgstr ""
 
@@ -116,6 +144,21 @@ msgstr ""
 msgid "Observability"
 msgstr ""
 
+#: app/admin/teams.py:33
+#, python-format
+msgid "Team “%(name)s” created"
+msgstr ""
+
+#: app/admin/teams.py:46
+msgid "Team deleted"
+msgstr ""
+
+#: app/admin/teams.py:83 app/templates/admin_teams.html:2
+#: app/templates/admin_teams.html:5 app/templates/base.html:58
+#: app/templates/teams.html:2 app/templates/teams.html:5
+msgid "Teams"
+msgstr ""
+
 #: app/admin/users.py:78
 #, python-format
 msgid "Role of %(name)s is now %(role)s"
@@ -132,39 +175,39 @@ msgid "%(name)s is active again"
 msgstr ""
 
 #: app/admin/users.py:111 app/templates/admin_users.html:2
-#: app/templates/admin_users.html:5 app/templates/base.html:60
+#: app/templates/admin_users.html:5 app/templates/base.html:63
 msgid "Users"
 msgstr ""
 
-#: app/plugins/auth/ldap/factor.py:58 app/plugins/auth/ldap/factor.py:69
-#: app/plugins/auth/ldap/factor.py:119
+#: app/plugins/auth/ldap/factor.py:62 app/plugins/auth/ldap/factor.py:86
+#: app/plugins/auth/ldap/factor.py:137
 msgid "The directory is not configured"
 msgstr ""
 
-#: app/plugins/auth/ldap/factor.py:104 app/plugins/auth/ldap/factor.py:132
-#: app/plugins/auth/ldap/factor.py:164
+#: app/plugins/auth/ldap/factor.py:122 app/plugins/auth/ldap/factor.py:150
+#: app/plugins/auth/ldap/factor.py:182
 msgid "Could not reach the directory"
 msgstr ""
 
-#: app/plugins/auth/oidc/factor.py:111 app/plugins/auth/oidc/factor.py:190
-#: app/plugins/auth/oidc/factor.py:195 app/plugins/auth/oidc/factor.py:200
-#: app/plugins/auth/oidc/factor.py:206 app/plugins/auth/oidc/factor.py:209
-#: app/plugins/auth/oidc/factor.py:213 app/plugins/auth/oidc/factor.py:216
-#: app/plugins/auth/oidc/factor.py:250 app/plugins/auth/oidc/factor.py:255
-#: app/plugins/auth/oidc/factor.py:281 app/plugins/auth/oidc/factor.py:284
-#: app/plugins/auth/oidc/factor.py:301
+#: app/plugins/auth/oidc/factor.py:133 app/plugins/auth/oidc/factor.py:212
+#: app/plugins/auth/oidc/factor.py:217 app/plugins/auth/oidc/factor.py:222
+#: app/plugins/auth/oidc/factor.py:228 app/plugins/auth/oidc/factor.py:231
+#: app/plugins/auth/oidc/factor.py:235 app/plugins/auth/oidc/factor.py:238
+#: app/plugins/auth/oidc/factor.py:272 app/plugins/auth/oidc/factor.py:277
+#: app/plugins/auth/oidc/factor.py:303 app/plugins/auth/oidc/factor.py:306
+#: app/plugins/auth/oidc/factor.py:323
 msgid "Sign-in failed"
 msgstr ""
 
-#: app/plugins/auth/oidc/factor.py:133
+#: app/plugins/auth/oidc/factor.py:155
 msgid "Could not reach the sign-in provider"
 msgstr ""
 
-#: app/plugins/auth/oidc/factor.py:260
+#: app/plugins/auth/oidc/factor.py:282
 msgid "No account here for that sign-in"
 msgstr ""
 
-#: app/plugins/auth/oidc/factor.py:279
+#: app/plugins/auth/oidc/factor.py:301
 msgid "Sign-in was cancelled"
 msgstr ""
 
@@ -200,7 +243,28 @@ msgid_plural "Cannot delete “%(name)s” — it still has %(num)d tasks."
 msgstr[0] ""
 msgstr[1] ""
 
-#: app/services/mfa.py:144
+#: app/services/dependencies.py:49
+msgid "A task cannot depend on your own task"
+msgstr ""
+
+#: app/services/dependencies.py:51 app/services/sharing.py:120
+#: app/services/todos.py:62
+msgid "Task not found"
+msgstr ""
+
+#: app/services/dependencies.py:59
+msgid "Dependency already exists"
+msgstr ""
+
+#: app/services/dependencies.py:76 app/services/dependencies.py:103
+msgid "Dependency not found"
+msgstr ""
+
+#: app/services/dependencies.py:83
+msgid "Already accepted"
+msgstr ""
+
+#: app/services/mfa.py:150
 msgid "Turn off two-step verification first"
 msgstr ""
 
@@ -222,7 +286,7 @@ msgstr ""
 msgid "This password has appeared in a data breach — choose a different one"
 msgstr ""
 
-#: app/services/personal_data.py:241
+#: app/services/personal_data.py:280
 msgid ""
 "You are the only administrator. Make someone else an administrator first,"
 " then close your account."
@@ -260,12 +324,40 @@ msgstr ""
 msgid "Unsupported timezone"
 msgstr ""
 
-#: app/services/sso.py:118
+#: app/services/sharing.py:61
+msgid "Already shared with this team"
+msgstr ""
+
+#: app/services/sharing.py:78
+msgid "Not shared with this team"
+msgstr ""
+
+#: app/services/sso.py:182
 msgid "Unknown sign-in provider"
 msgstr ""
 
-#: app/services/todos.py:62
-msgid "Task not found"
+#: app/services/teams.py:27 app/services/teams.py:35
+msgid "Team not found"
+msgstr ""
+
+#: app/services/teams.py:67
+msgid "Team name is required"
+msgstr ""
+
+#: app/services/teams.py:74
+msgid "A team with that name already exists"
+msgstr ""
+
+#: app/services/teams.py:104
+msgid "No user with that name"
+msgstr ""
+
+#: app/services/teams.py:112
+msgid "Already a member of this team"
+msgstr ""
+
+#: app/services/teams.py:132
+msgid "No such member"
 msgstr ""
 
 #: app/services/todos.py:81
@@ -387,7 +479,7 @@ msgstr ""
 msgid "Method"
 msgstr ""
 
-#: app/templates/admin_observability.html:16
+#: app/templates/admin_observability.html:16 app/templates/team_detail.html:17
 msgid "Status"
 msgstr ""
 
@@ -465,6 +557,52 @@ msgstr ""
 
 #: app/templates/admin_sbom.html:51
 msgid "Declared but not installed"
+msgstr ""
+
+#: app/templates/admin_teams.html:11
+msgid "New team name"
+msgstr ""
+
+#: app/templates/admin_teams.html:13
+msgid "Create team"
+msgstr ""
+
+#: app/templates/admin_teams.html:17
+msgid "No teams yet"
+msgstr ""
+
+#: app/templates/admin_teams.html:29
+#, python-format
+msgid ""
+"Remove %(name)s from %(team)s? Their view of this team’s shared tasks — "
+"and any dependencies that relied on it — will be cut."
+msgstr ""
+
+#: app/templates/admin_teams.html:31
+msgid "Remove"
+msgstr ""
+
+#: app/templates/admin_teams.html:35
+msgid "No members yet"
+msgstr ""
+
+#: app/templates/admin_teams.html:40
+msgid "Add member by username"
+msgstr ""
+
+#: app/templates/admin_teams.html:42
+msgid "Add member"
+msgstr ""
+
+#: app/templates/admin_teams.html:45
+#, python-format
+msgid ""
+"Delete team “%(name)s”? All its shares and the dependencies that relied "
+"on them will be cut."
+msgstr ""
+
+#: app/templates/admin_teams.html:47
+msgid "Delete team"
 msgstr ""
 
 #: app/templates/admin_users.html:10
@@ -557,16 +695,16 @@ msgstr ""
 msgid "Categories"
 msgstr ""
 
-#: app/templates/base.html:57 app/templates/settings.html:2
+#: app/templates/base.html:60 app/templates/settings.html:2
 #: app/templates/settings.html:9
 msgid "Settings"
 msgstr ""
 
-#: app/templates/base.html:65
+#: app/templates/base.html:68
 msgid "Sign out"
 msgstr ""
 
-#: app/templates/base.html:87 app/templates/privacy.html:2
+#: app/templates/base.html:90 app/templates/privacy.html:2
 #: app/templates/privacy.html:5
 msgid "Privacy"
 msgstr ""
@@ -599,7 +737,7 @@ msgstr ""
 msgid "Move or delete its tasks first"
 msgstr ""
 
-#: app/templates/categories.html:36 app/templates/index.html:157
+#: app/templates/categories.html:36 app/templates/index.html:163
 msgid "Delete"
 msgstr ""
 
@@ -612,6 +750,7 @@ msgid "Edit task"
 msgstr ""
 
 #: app/templates/edit_todo.html:10 app/templates/index.html:28
+#: app/templates/team_detail.html:14
 msgid "Task name"
 msgstr ""
 
@@ -637,11 +776,55 @@ msgstr ""
 
 #: app/templates/edit_todo.html:30 app/templates/index.html:45
 #: app/templates/index.html:63 app/templates/index.html:144
+#: app/templates/team_detail.html:16
 msgid "Due"
 msgstr ""
 
 #: app/templates/edit_todo.html:35
 msgid "Cancel"
+msgstr ""
+
+#: app/templates/edit_todo.html:40
+msgid "Sharing"
+msgstr ""
+
+#: app/templates/edit_todo.html:46
+#, python-format
+msgid "Shared with “%(team)s”"
+msgstr ""
+
+#: app/templates/edit_todo.html:48
+#, python-format
+msgid "Unshare from “%(team)s”? Dependencies that relied on it will be cut."
+msgstr ""
+
+#: app/templates/edit_todo.html:51
+msgid "Unshare"
+msgstr ""
+
+#: app/templates/edit_todo.html:59
+msgid "Share with team"
+msgstr ""
+
+#: app/templates/edit_todo.html:65
+msgid "Share"
+msgstr ""
+
+#: app/templates/edit_todo.html:72
+msgid "This task depends on"
+msgstr ""
+
+#: app/templates/edit_todo.html:76
+#, python-format
+msgid "“%(title)s” (%(who)s)"
+msgstr ""
+
+#: app/templates/edit_todo.html:77
+msgid "waiting for acceptance"
+msgstr ""
+
+#: app/templates/edit_todo.html:81
+msgid "Withdraw"
 msgstr ""
 
 #: app/templates/index.html:23
@@ -746,28 +929,32 @@ msgstr ""
 msgid "Due today"
 msgstr ""
 
-#: app/templates/index.html:152
+#: app/templates/index.html:155
+msgid "At risk via dependencies"
+msgstr ""
+
+#: app/templates/index.html:158
 msgid "Edit"
 msgstr ""
 
-#: app/templates/index.html:155
+#: app/templates/index.html:161
 #, python-format
 msgid "Delete “%(title)s”?"
 msgstr ""
 
-#: app/templates/index.html:161
+#: app/templates/index.html:167
 msgid "No tasks yet"
 msgstr ""
 
-#: app/templates/index.html:161
+#: app/templates/index.html:167
 msgid "No tasks match this filter"
 msgstr ""
 
-#: app/templates/index.html:166
+#: app/templates/index.html:172
 msgid "Delete all completed tasks? This cannot be undone."
 msgstr ""
 
-#: app/templates/index.html:168
+#: app/templates/index.html:174
 msgid "Clear completed"
 msgstr ""
 
@@ -958,6 +1145,7 @@ msgid "Expires"
 msgstr ""
 
 #: app/templates/settings.html:67 app/templates/settings.html:83
+#: app/templates/teams.html:46
 msgid "Revoke"
 msgstr ""
 
@@ -1094,6 +1282,87 @@ msgstr ""
 
 #: app/templates/settings.html:240
 msgid "Close my account"
+msgstr ""
+
+#: app/templates/team_detail.html:6
+msgid "Back to teams"
+msgstr ""
+
+#: app/templates/team_detail.html:11
+msgid "Tasks shared with this team"
+msgstr ""
+
+#: app/templates/team_detail.html:15
+msgid "Owner"
+msgstr ""
+
+#: app/templates/team_detail.html:18
+msgid "Depend on it"
+msgstr ""
+
+#: app/templates/team_detail.html:27
+msgid "Done"
+msgstr ""
+
+#: app/templates/team_detail.html:27
+msgid "Open"
+msgstr ""
+
+#: app/templates/team_detail.html:34
+msgid "Which of your tasks depends on it"
+msgstr ""
+
+#: app/templates/team_detail.html:40
+msgid "Request"
+msgstr ""
+
+#: app/templates/team_detail.html:51
+msgid "Nothing shared with this team yet"
+msgstr ""
+
+#: app/templates/teams.html:9
+#, python-format
+msgid "%(num)d dependency you relied on was unshared recently."
+msgid_plural "%(num)d dependencies you relied on were unshared recently."
+msgstr[0] ""
+msgstr[1] ""
+
+#: app/templates/teams.html:17
+msgid "Dependency requests waiting for you"
+msgstr ""
+
+#: app/templates/teams.html:21
+#, python-format
+msgid "%(who)s asks to depend on “%(title)s”"
+msgstr ""
+
+#: app/templates/teams.html:24
+msgid "Accept"
+msgstr ""
+
+#: app/templates/teams.html:28
+msgid "Decline"
+msgstr ""
+
+#: app/templates/teams.html:38
+msgid "Others depending on your tasks"
+msgstr ""
+
+#: app/templates/teams.html:42
+#, python-format
+msgid "%(who)s depends on “%(title)s”"
+msgstr ""
+
+#: app/templates/teams.html:44
+msgid "Revoke this dependency?"
+msgstr ""
+
+#: app/templates/teams.html:55
+msgid "Your teams"
+msgstr ""
+
+#: app/templates/teams.html:63
+msgid "You are not in any team yet — ask an administrator to add you."
 msgstr ""
 
 #: app/templates/token_created.html:2 app/templates/token_created.html:5

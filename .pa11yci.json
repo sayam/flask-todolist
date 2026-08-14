@@ -1,16 +1,28 @@
 {
   "defaults": {
     "standard": "WCAG2AA",
-    "runners": ["htmlcs", "axe"],
+    "runners": [
+      "htmlcs",
+      "axe"
+    ],
     "timeout": 30000,
     "chromeLaunchConfig": {
-      "args": ["--no-sandbox", "--disable-dev-shm-usage"]
+      "args": [
+        "--no-sandbox",
+        "--disable-dev-shm-usage"
+      ]
     }
   },
   "urls": [
-    { "url": "http://127.0.0.1:5099/login" },
-    { "url": "http://127.0.0.1:5099/login?mode=dark" },
-    { "url": "http://127.0.0.1:5099/login?theme=ocean&mode=dark" },
+    {
+      "url": "http://127.0.0.1:5099/login"
+    },
+    {
+      "url": "http://127.0.0.1:5099/login?mode=dark"
+    },
+    {
+      "url": "http://127.0.0.1:5099/login?theme=ocean&mode=dark"
+    },
     {
       "url": "http://127.0.0.1:5099/",
       "actions": [
@@ -96,6 +108,26 @@
         "click element button[type=submit]",
         "wait for path to be /",
         "navigate to http://127.0.0.1:5099/edit/1"
+      ]
+    },
+    {
+      "url": "http://127.0.0.1:5099/teams",
+      "actions": [
+        "navigate to http://127.0.0.1:5099/login",
+        "set field #username to a11y",
+        "set field #password to A11yProbe!2026",
+        "click element button[type=submit]",
+        "wait for path to be /"
+      ]
+    },
+    {
+      "url": "http://127.0.0.1:5099/teams/1",
+      "actions": [
+        "navigate to http://127.0.0.1:5099/login",
+        "set field #username to a11y",
+        "set field #password to A11yProbe!2026",
+        "click element button[type=submit]",
+        "wait for path to be /"
       ]
     }
   ]

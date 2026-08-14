@@ -68,6 +68,33 @@ def main() -> None:
                     category_id=category_id,
                 )
             )
+        # org graph (ADR 0049) — วงหนึ่งวง เพื่อนร่วมวงหนึ่งคน งานแชร์ +
+        # คำเชิญ dependency ค้าง ให้หน้า /teams กับหน้าวงมีของครบทุก state
+        from app.models import Team, TeamMember, TodoDependency, TodoShare
+
+        colleague = User(username="a11ymate")
+        colleague.set_password(PASSWORD)
+        db.session.add(colleague)
+        db.session.flush()
+        team = Team(name="A11y crew")
+        db.session.add(team)
+        db.session.flush()
+        db.session.add(TeamMember(team_id=team.id, user_id=user.id))
+        db.session.add(TeamMember(team_id=team.id, user_id=colleague.id))
+        theirs = Todo(
+            title="Shared upstream task",
+            due_date=now + timedelta(days=2),
+            user_id=colleague.id,
+        )
+        db.session.add(theirs)
+        db.session.flush()
+        db.session.add(TodoShare(todo_id=theirs.id, team_id=team.id))
+        mine_shared = Todo(title="Task shared by me", due_date=None, user_id=user.id)
+        db.session.add(mine_shared)
+        db.session.flush()
+        db.session.add(TodoShare(todo_id=mine_shared.id, team_id=team.id))
+        db.session.add(TodoDependency(todo_id=theirs.id, depends_on_todo_id=mine_shared.id))
+
         db.session.commit()
         print(f"เตรียมข้อมูลแล้ว: user={USERNAME} todos={len(rows)}")
 

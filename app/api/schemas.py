@@ -70,6 +70,9 @@ class TodoSchema(ma.Schema):
     # เขียนตรรกะ "เลยกำหนดหรือยัง" ซ้ำ (และไม่ต้องเดาว่าใช้ timezone ไหนเทียบ)
     is_overdue = ma.fields.Boolean(dump_only=True)
     is_due_today = ma.fields.Boolean(dump_only=True)
+    # สัญญาณ impact ของ org graph (ADR 0049) — เพิ่มแบบ additive ตาม ADR 0018
+    # ค่าจริงถูกติดใส่ instance โดย view (คำนวณเป็นชุดครั้งเดียว ไม่ใช่ต่อแถว)
+    is_at_risk = ma.fields.Boolean(dump_only=True, dump_default=False)
     created_at = LocalDateTime(dump_only=True, attribute="created_local")
     updated_at = LocalDateTime(dump_only=True, attribute="updated_local")
 

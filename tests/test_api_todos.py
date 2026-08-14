@@ -49,6 +49,7 @@ def test_a_created_task_comes_back_with_every_documented_field(api_client):
         "due_date",
         "is_overdue",
         "is_due_today",
+        "is_at_risk",
         "created_at",
         "updated_at",
     }
