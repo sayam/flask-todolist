@@ -167,6 +167,44 @@ def _from_plugins(user: "User") -> dict[str, Any]:
     return collected
 
 
+def _graph(user: "User") -> dict[str, Any]:
+    """ของฝั่ง org graph (ADR 0049) ที่เป็นของเจ้าตัว — สมาชิกภาพ · การแชร์ ·
+    dependency ของงานตัวเอง · **ไม่มีข้อมูลงานของคนอื่นเกินสี่ฟิลด์ที่แชร์**
+    (export คือสำเนาข้อมูลของเรา ไม่ใช่ช่องดูดข้อมูลของวง)"""
+    from app.models import Team, TeamMember, TodoDependency, TodoShare
+
+    memberships = db.session.scalars(
+        select(Team.name)
+        .join(TeamMember, TeamMember.team_id == Team.id)
+        .where(TeamMember.user_id == user.id)
+        .order_by(Team.name)
+    )
+    shares = db.session.scalars(
+        select(TodoShare).join(Todo, Todo.id == TodoShare.todo_id).where(Todo.user_id == user.id)
+    )
+    dependencies = db.session.scalars(
+        select(TodoDependency)
+        .join(Todo, Todo.id == TodoDependency.todo_id)
+        .where(Todo.user_id == user.id)
+    )
+    return {
+        "teams": list(memberships),
+        "shared_todos": [
+            {"todo_id": row.todo_id, "team": row.team.name, "shared_at": _at(row.shared_at)}
+            for row in shares
+        ],
+        "dependencies": [
+            {
+                "todo_id": row.todo_id,
+                "depends_on_todo_id": row.depends_on_todo_id,
+                "status": row.status,
+                "created_at": _at(row.created_at),
+            }
+            for row in dependencies
+        ],
+    }
+
+
 def export(user: "User", *, now: Any = None) -> dict[str, Any]:
     """สำเนาข้อมูลทั้งหมดของผู้ใช้คนนี้ในรูปที่พร้อมเขียนเป็น JSON
 
@@ -184,6 +222,7 @@ def export(user: "User", *, now: Any = None) -> dict[str, Any]:
         "todos": _todos(user),
         "api_tokens": _api_tokens(user),
         "history": _history(user),
+        "sharing": _graph(user),
         "plugins": _from_plugins(user),
     }
 
@@ -255,6 +294,32 @@ def close_account(user: "User", *, actor: "User | None" = None) -> dict[str, Any
     for token in tokens:
         token.soft_delete()
         token.disable()
+
+    # org graph (ADR 0049): สมาชิกภาพ/การแชร์/dependency ตายไปพร้อมบัญชี —
+    # dependency ของคนอื่นที่ชี้มาหางานเราก็ถูกตัดด้วย (เขามองไม่เห็นงานเราแล้ว
+    # โดยนิยาม — กติกาเดียวกับการเลิกแชร์)
+    from app.models import TeamMember, TodoDependency, TodoShare
+
+    graph_rows = [
+        *db.session.scalars(select(TeamMember).where(TeamMember.user_id == user.id)),
+        *db.session.scalars(
+            select(TodoShare)
+            .join(Todo, Todo.id == TodoShare.todo_id)
+            .where(Todo.user_id == user.id)
+        ),
+        *db.session.scalars(
+            select(TodoDependency)
+            .join(Todo, Todo.id == TodoDependency.todo_id)
+            .where(Todo.user_id == user.id)
+        ),
+        *db.session.scalars(
+            select(TodoDependency)
+            .join(Todo, Todo.id == TodoDependency.depends_on_todo_id)
+            .where(Todo.user_id == user.id)
+        ),
+    ]
+    for row in graph_rows:
+        row.soft_delete()
 
     # cascade ของ ORM ผูกกับการลบจริงเท่านั้น ไม่ทำงานกับการตั้ง deleted_at
     todos = list(db.session.scalars(select(Todo).where(Todo.user_id == user.id)))
