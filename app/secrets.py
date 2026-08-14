@@ -38,7 +38,7 @@ DEFAULT_URL = "env://"
 
 # คีย์ของ core ที่ถือความลับ — **ของ plugin ไม่อยู่ที่นี่** (ADR 0023)
 # plugin ถามเองผ่าน `get()` ด้วยชื่อคีย์ของมัน core จึงไม่ต้องรู้จักชื่อพวกนั้น
-CORE_SECRETS = ("SECRET_KEY", "AUDIT_HMAC_KEY", "DATABASE_URL", "CACHE_URL")
+CORE_SECRETS = ("SECRET_KEY", "AUDIT_HMAC_KEY", "DATA_ENCRYPTION_KEY", "DATABASE_URL", "CACHE_URL")
 # ชื่อคีย์ใน config ที่ไม่ตรงกับชื่อ env (มีตัวเดียว)
 CONFIG_ALIASES = {"DATABASE_URL": "SQLALCHEMY_DATABASE_URI"}
 

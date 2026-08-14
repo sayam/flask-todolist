@@ -25,6 +25,11 @@ from app.models import User
 from app.services import mfa
 from tests.conftest import PASSWORD
 
+# ตั้งแต่ ADR 0046 plugin นี้พึ่ง cryptography (encrypt ความลับ at rest) —
+# ทั้งไฟล์จึงต้องการไลบรารีของ plugin · ฝั่ง bare มีเทสต์ generic แยกใน
+# tests/test_plugins.py ว่า plugin ที่ไลบรารีขาดปิดตัวเองอย่างถูกต้อง
+pytestmark = pytest.mark.plugin_deps
+
 TOTP_KEY = "auth/totp"
 # ความลับตัวอย่างใน RFC 6238 คือ ASCII "12345678901234567890"
 # **เข้ารหัส base32 ตรงนี้แทนที่จะเขียนค่าที่เข้ารหัสแล้วลงไป** สองเหตุผล:

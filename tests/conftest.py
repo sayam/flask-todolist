@@ -14,6 +14,8 @@ PASSWORD = "pytest-fixture-passphrase"
 
 
 class TestConfig(Config):
+    # คีย์ encrypt คงที่สำหรับเทสต์ (ADR 0046) — base64 ของ 32 ไบต์ศูนย์ล้วน
+    DATA_ENCRYPTION_KEY = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
     """สืบทอดจาก Config จริงแล้ว override เฉพาะที่ต่าง
 
     เคยประกาศแยกเป็น class เปล่า แล้วคีย์ใหม่ใน Config ทำเทสต์พังทั้งชุด

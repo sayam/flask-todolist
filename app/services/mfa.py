@@ -32,7 +32,13 @@ def available() -> list[plugins.Plugin]:
     ด้วย "no such table" ซึ่งเป็นการเอาระบบทั้งระบบไปผูกกับขั้นตอนติดตั้งของ
     plugin ตัวเดียว
     """
-    return [plugin for plugin in plugins.second_factors() if plugins.is_installed(plugin)]
+    return [
+        plugin
+        for plugin in plugins.second_factors()
+        # ไลบรารีของ plugin ขาด = ปิดตัวเอง ไม่ใช่พังตอนผู้ใช้กด enroll
+        # (หลักเดียวกับตารางที่ยังไม่ถูกสร้าง — ADR 0046 ทำให้เส้นนี้มีจริง)
+        if plugins.requirements_met(plugin) and plugins.is_installed(plugin)
+    ]
 
 
 def enrolled(user: Any) -> list[plugins.Plugin]:

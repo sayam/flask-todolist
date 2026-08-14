@@ -38,6 +38,10 @@ class Config:
     # ไม่มีค่า default โดยตั้งใจ — ไม่ตั้งแล้วต้องแอปพังตั้งแต่ตอน start
     # ดีกว่าเผลอรันด้วยคีย์ที่ใคร ๆ ก็รู้
     SECRET_KEY = os.environ.get("SECRET_KEY")
+    # คีย์ encrypt ข้อมูลที่ระดับ field (ADR 0046) — แยกจาก SECRET_KEY โดยตั้งใจ
+    # (หมุนคนละจังหวะ: SECRET_KEY หมุนแล้ว session หลุดเฉย ๆ แต่คีย์นี้หมุนผิด
+    # คือข้อมูลถอดไม่ได้ถาวร) · ว่างได้ตราบที่ไม่มีคอลัมน์ encrypt ถูกใช้งาน
+    DATA_ENCRYPTION_KEY = os.environ.get("DATA_ENCRYPTION_KEY", "")
     SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "sqlite:///todolist.db")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 

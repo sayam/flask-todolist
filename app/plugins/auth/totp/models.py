@@ -11,12 +11,49 @@
 """
 
 from datetime import UTC, datetime
+from typing import Any
 
-from sqlalchemy import ForeignKey, Integer, String
+from sqlalchemy import ForeignKey, Integer, String, TypeDecorator
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app import db
 from app.db_types import UTCDateTime
+
+
+class EncryptedSecret(TypeDecorator):
+    """คอลัมน์ความลับที่ encrypt ที่ระดับ field (ADR 0046)
+
+    เขียน = encrypt เสมอ (idempotent — ค่า ``enc:v1:`` อยู่แล้วผ่านตรง) ·
+    อ่าน = ถอดถ้าเป็นรูป encrypt, ค่า legacy (plaintext ก่อนเฟส 15) ผ่านตรง
+    แล้วรอ encrypt-on-use ตอน verify สำเร็จครั้งถัดไป — ดู `crypto.py`
+
+    import ของ crypto เป็น lazy ในเมธอด: ไฟล์นี้ต้องโหลดได้เสมอแม้ไม่มี
+    ไลบรารี (job `bare` โหลด models ทุก plugin ผ่าน registry)
+    """
+
+    impl = String(256)
+    cache_ok = True
+
+    def process_bind_param(self, value: Any, dialect: Any) -> Any:  # noqa: ARG002
+        """ทุกค่าที่ลงดิสก์ต้องเป็น ciphertext — นี่คือใจของ at rest"""
+        if value is None:
+            return None
+        # absolute import ถึงตัวเอง — registry โหลดไฟล์นี้ใต้ชื่อสังเคราะห์
+        # (app.plugins.auth_totp.models) ซึ่งไม่มี parent package ให้ `from .`
+        # ใช้ · absolute ปลอดภัยที่นี่เพราะ crypto ไม่มี model (กับดัก
+        # "Table already defined" เกิดกับไฟล์ที่นิยามตารางเท่านั้น)
+        from app.plugins.auth.totp import crypto
+
+        return value if crypto.is_encrypted(value) else crypto.encrypt(str(value))
+
+    def process_result_value(self, value: Any, dialect: Any) -> Any:  # noqa: ARG002
+        """ค่า legacy อ่านผ่านตรง — การปฏิเสธของเก่าคือการ lock ผู้ใช้ MFA ทุกคน"""
+        if value is None:
+            return None
+        from app.plugins.auth.totp import crypto
+
+        return crypto.decrypt(str(value))
+
 
 # ชั้นของคอลัมน์ของเราเองสำหรับ audit — **plugin ประกาศเอง core ไม่รู้จักชื่อพวกนี้**
 # (ดู ADR 0023: ชื่อคอลัมน์ของ plugin ที่ไปเขียนไว้ในโค้ด core จะกลายเป็นขยะ
@@ -48,8 +85,10 @@ class TotpSecret(db.Model):  # type: ignore[name-defined]  # ดู pyproject: d
     id: Mapped[int] = mapped_column(primary_key=True)
     # หนึ่งคนหนึ่งใบ — unique ที่ระดับ DB ไม่ใช่แค่เช็คในโค้ด
     user_id: Mapped[int] = mapped_column(ForeignKey("tdl_user.id"), unique=True, index=True)
-    # base32 ตามที่แอป authenticator ทุกตัวคาดหวัง — **ชั้น C1**
-    totp_secret: Mapped[str] = mapped_column(String(64))
+    # base32 ตามที่แอป authenticator ทุกตัวคาดหวัง — **ชั้น C1 · encrypt at rest
+    # (ADR 0046)**: บนดิสก์เป็น ``enc:v1:...`` เสมอสำหรับแถวใหม่ · แถว legacy
+    # ถูก encrypt ตอน verify สำเร็จครั้งถัดไป (ตารางนี้อยู่นอกสาย alembic)
+    totp_secret: Mapped[str] = mapped_column(EncryptedSecret)
     created_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=_utcnow)
     # ค่าว่างแปลว่าออกความลับให้แล้วแต่ยังไม่ได้ยืนยันด้วยรหัสจริงสักครั้ง
     # ใบที่ยังไม่ยืนยัน **ไม่ถูกนับว่าเปิด MFA** ไม่งั้นคนที่สแกน QR ไม่ทันจะ

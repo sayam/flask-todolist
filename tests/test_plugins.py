@@ -563,8 +563,9 @@ def _pipfile():
 
 def test_a_plugin_declares_the_libraries_it_needs(app):
     with app.app_context():
-        # ตัวปัจจัยที่สองเองไม่พึ่งไลบรารีอะไรเลย — ของที่พึ่งอยู่ในส่วนเสริมของมัน
-        assert plugins.requirements(plugins.find(TOTP_KEY)) == []
+        # ตั้งแต่ ADR 0046 ตัว plugin พึ่ง cryptography เอง (encrypt ความลับ at rest)
+        # — ก่อนหน้านั้นของที่พึ่งมีแต่ในส่วนเสริม
+        assert plugins.requirements(plugins.find(TOTP_KEY)) == ["cryptography~=45.0"]
         assert plugins.requirements(plugins.find(QR_KEY)) == ["segno~=1.6"]
         assert plugins.requirements(plugins.find("themes/system")) == []
 
@@ -669,6 +670,7 @@ def test_plugin_deps_can_print_categories_for_a_script(app):
     assert result.exit_code == 0
     assert result.output.split() == [
         "plugin-auth-ldap",
+        "plugin-auth-totp",
         "plugin-auth-totp-qr-segno",
         "plugin-cache-redis",
         "plugin-db-mariadb",
@@ -736,7 +738,12 @@ def test_plugin_deps_rows_are_a_contract_that_ci_reads(app):
 # **สิ่งที่ job `bare` ยังต้องพิสูจน์ต่อไปคือ "ไม่มีไลบรารี = ปิดตัวเอง ไม่ใช่พัง"**
 # ซึ่งเทสต์ตัวนั้นอยู่ในไฟล์ที่มาร์คไว้เหมือนกัน — จึงมีเทสต์ในชุดที่ *ไม่* ถูกมาร์ค
 # ครอบเรื่องเดียวกันด้วย (`tests/test_oidc.py` กับหน้า login ที่ไม่มี plugin ไหนเลย)
-PLUGIN_DEPS_BUDGET = 32
+# ขยับ 32 → 76 ตอนเฟส 15 (ADR 0046): auth/totp มีไลบรารีจริงเป็นครั้งแรก
+# (cryptography) — enroll/verify ทุกเส้นเขียนความลับผ่าน EncryptedSecret จึง
+# ต้องการไลบรารี ทั้งไฟล์ test_totp ย้ายออกจาก job bare ตามกติกา · ฝั่ง bare
+# ยังมีเทสต์ generic คุมว่า plugin ที่ไลบรารีขาด **ปิดตัวเอง** ไม่ใช่พัง
+# — ดูเทสต์ generic ชื่อ a_factor_whose_library_is_missing_disables_itself
+PLUGIN_DEPS_BUDGET = 76
 
 TESTS_DIR = pathlib.Path(__file__).resolve().parent
 
@@ -793,7 +800,9 @@ def test_the_marker_scanner_sees_the_real_markers():
     """กันเทสต์ข้างบนเขียวเพราะสแกนไม่เจออะไรเลย ไม่ใช่เพราะไม่มีใครมาร์กเกิน"""
     marked = _marked_plugin_deps()
     assert "test_plugins.py::test_the_shipped_qr_is_plugged_in_as_an_enhancement" in marked
-    assert sum(name.startswith("test_totp.py::") for name in marked) == 4
+    # ตั้งแต่ ADR 0046 ทั้งไฟล์ totp ถูกมาร์ก (plugin มีไลบรารีจริงแล้ว) —
+    # เลขนี้คือจำนวนเทสต์ทั้งไฟล์ ไม่ใช่สี่ตัวที่แตะส่วนเสริมเหมือนก่อน
+    assert sum(name.startswith("test_totp.py::") for name in marked) >= 30
 
 
 # --- โค้ดของจุด plug ต้อง import แค่ของที่ประกาศไว้ (Phase 4.5 — ADR 0025 ข้อ 7) ---
@@ -936,8 +945,44 @@ def test_the_scanner_reads_the_real_plugin_code(app):
     with app.app_context():
         points = plugins.plug_points_on_disk()
     files = {point.key: {path.name for path in _own_files(point, points)} for point in points}
-    assert files[TOTP_KEY] == {"factor.py", "models.py", "personal_data.py"}
+    assert files[TOTP_KEY] == {"crypto.py", "factor.py", "models.py", "personal_data.py"}
     assert files[QR_KEY] == {"provide.py"}
+
+
+def test_a_factor_whose_library_is_missing_disables_itself(app):
+    """ไลบรารีของ plugin ขาด = หายจากรายการที่ใช้ได้ ไม่ใช่พังตอนผู้ใช้กด (ADR 0046)
+
+    เทสต์นี้ต้องรันได้ใน job `bare` — วาง plugin ปัจจัยที่สอง*จริง*ลงดิสก์
+    (registry อ่านดิสก์ใหม่ทุกครั้ง การแก้ object ใน memory จึงไม่ติด) พร้อม
+    manifest ที่เรียกหา distribution ซึ่งไม่มีทางติดตั้งอยู่
+    """
+    import shutil as sh
+
+    from app.services import mfa
+
+    directory = plugins.PLUGIN_ROOT / "auth" / "ghostly"
+    directory.mkdir(parents=True)
+    (directory / "plugin.json").write_text(
+        json.dumps(
+            {
+                "type": "auth",
+                "name": "ghostly",
+                "factor": "second",
+                "migration": "live",
+                "requires": {"pip": ["no-such-distribution-xyz"]},
+            }
+        )
+    )
+    (directory / "factor.py").write_text("import no_such_module_xyz\n")
+    try:
+        with app.app_context():
+            target = next(p for p in plugins.second_factors() if p.id == "ghostly")
+            assert plugins.requirements_met(target) is False
+            assert "auth/ghostly" not in {p.key for p in mfa.available()}, (
+                "plugin ที่ไลบรารีขาดต้องหายจาก available ไม่ใช่รอพังตอน enroll"
+            )
+    finally:
+        sh.rmtree(directory, ignore_errors=True)
 
 
 def test_the_scanner_catches_an_import_that_no_manifest_declares(app, host_plugin):
