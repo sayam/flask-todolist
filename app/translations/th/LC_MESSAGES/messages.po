@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-14 21:07+0700\n"
+"POT-Creation-Date: 2026-08-14 21:42+0700\n"
 "PO-Revision-Date: 2026-08-02 16:44+0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -91,6 +91,21 @@ msgstr "หมดเวลาใช้งานแล้ว กรุณาเ�
 #: app/session_security.py:218
 msgid "Your password was changed — please sign in again"
 msgstr "รหัสผ่านถูกเปลี่ยน กรุณาเข้าสู่ระบบใหม่"
+
+#: app/admin/system.py:50 app/templates/admin_environment.html:2
+#: app/templates/admin_environment.html:5
+msgid "Environment"
+msgstr "สภาพแวดล้อม"
+
+#: app/admin/system.py:51 app/templates/admin_lifecycle.html:2
+#: app/templates/admin_lifecycle.html:5
+msgid "Lifecycle"
+msgstr "วงจรชีวิต"
+
+#: app/admin/system.py:52 app/templates/admin_observability.html:2
+#: app/templates/admin_observability.html:5
+msgid "Observability"
+msgstr "การสังเกตการณ์"
 
 #: app/admin/users.py:78
 #, python-format
@@ -209,7 +224,7 @@ msgstr "ไม่พบผู้ใช้"
 msgid "Unknown role"
 msgstr "ไม่รู้จักบทบาทนี้"
 
-#: app/services/roles.py:83 app/templates/admin_users.html:40
+#: app/services/roles.py:83 app/templates/admin_users.html:36
 msgid "You cannot change your own role"
 msgstr "เปลี่ยนบทบาทของตัวเองไม่ได้"
 
@@ -271,41 +286,138 @@ msgstr "อายุต้องไม่เป็นค่าติดลบ"
 msgid "Token not found"
 msgstr "ไม่พบ token"
 
-#: app/templates/admin_users.html:7
+#: app/templates/_admin_nav.html:1
 msgid "Admin sections"
 msgstr "หมวดของผู้ดูแล"
 
-#: app/templates/admin_users.html:14
+#: app/templates/admin_environment.html:9
+msgid "What this instance is actually running on — read live, not written by hand"
+msgstr "ระบบนี้กำลังรันอยู่บนอะไรจริง ๆ — อ่านสด ไม่ได้เขียนมือ"
+
+#: app/templates/admin_environment.html:11
+#: app/templates/admin_lifecycle.html:11
+msgid "Application version"
+msgstr "เวอร์ชันของแอป"
+
+#: app/templates/admin_environment.html:13
+msgid "Platform"
+msgstr "แพลตฟอร์ม"
+
+#: app/templates/admin_environment.html:14
+msgid "Database"
+msgstr "ฐานข้อมูล"
+
+#: app/templates/admin_lifecycle.html:9
+msgid "Where this instance stands in its own life cycle"
+msgstr "ระบบนี้อยู่ตรงไหนของวงจรชีวิตตัวเอง"
+
+#: app/templates/admin_lifecycle.html:13
+msgid "Schema migration"
+msgstr "migration ของ schema"
+
+#: app/templates/admin_lifecycle.html:16
+msgid "up to date"
+msgstr "เป็นปัจจุบัน"
+
+#: app/templates/admin_lifecycle.html:18
+msgid "current:"
+msgstr "ปัจจุบัน:"
+
+#: app/templates/admin_lifecycle.html:18 app/templates/admin_lifecycle.html:19
+msgid "unreadable"
+msgstr "อ่านไม่ได้"
+
+#: app/templates/admin_lifecycle.html:19
+msgid "latest:"
+msgstr "ล่าสุด:"
+
+#: app/templates/admin_lifecycle.html:26
+msgid "Plugins on disk"
+msgstr "plugin บนดิสก์"
+
+#: app/templates/admin_lifecycle.html:28
+msgid "Everything on disk, including anything switched off"
+msgstr "ทุกตัวที่อยู่บนดิสก์ รวมตัวที่ถูกสวิตช์ปิด"
+
+#: app/templates/admin_lifecycle.html:31
+msgid "Plugin"
+msgstr "plugin"
+
+#: app/templates/admin_lifecycle.html:32
+msgid "Migration class"
+msgstr "migration class"
+
+#: app/templates/admin_lifecycle.html:33
+msgid "State"
+msgstr "สถานะ"
+
+#: app/templates/admin_lifecycle.html:41
+msgid "enabled"
+msgstr "เปิดใช้"
+
+#: app/templates/admin_lifecycle.html:41
+msgid "disabled"
+msgstr "ปิดอยู่"
+
+#: app/templates/admin_observability.html:11
+msgid "Requests seen by this process, slowest picture first-hand"
+msgstr "คำขอที่ process นี้เห็นเอง"
+
+#: app/templates/admin_observability.html:14
+msgid "Endpoint"
+msgstr "endpoint"
+
+#: app/templates/admin_observability.html:15
+msgid "Method"
+msgstr "เมธอด"
+
+#: app/templates/admin_observability.html:16
+msgid "Status"
+msgstr "สถานะตอบ"
+
+#: app/templates/admin_observability.html:17
+msgid "Count"
+msgstr "จำนวน"
+
+#: app/templates/admin_observability.html:18
+msgid "Average (ms)"
+msgstr "เฉลี่ย (มิลลิวินาที)"
+
+#: app/templates/admin_observability.html:31
+msgid "No requests recorded yet"
+msgstr "ยังไม่มีคำขอถูกบันทึก"
+
+#: app/templates/admin_users.html:10
 msgid "Everyone with an account, and what they are allowed to do"
 msgstr "ทุกคนที่มีบัญชีในระบบ และสิทธิ์ที่แต่ละคนมี"
 
-#: app/templates/admin_users.html:17 app/templates/login.html:22
+#: app/templates/admin_users.html:13 app/templates/login.html:22
 #: app/templates/settings.html:15
 msgid "Username"
 msgstr "ชื่อผู้ใช้"
 
-#: app/templates/admin_users.html:18 app/templates/settings.html:64
+#: app/templates/admin_users.html:14 app/templates/settings.html:64
 msgid "Name"
 msgstr "ชื่อ"
 
-#: app/templates/admin_users.html:19
+#: app/templates/admin_users.html:15
 msgid "Role"
 msgstr "บทบาท"
 
-#: app/templates/admin_users.html:20
+#: app/templates/admin_users.html:16
 msgid "Change role"
 msgstr "เปลี่ยนบทบาท"
 
-#: app/templates/admin_users.html:33
+#: app/templates/admin_users.html:29
 msgid "Reveal (audited)"
 msgstr "เปิดดู (ลงบันทึกตรวจสอบ)"
 
-#: app/templates/admin_users.html:45
+#: app/templates/admin_users.html:41
 #, python-format
 msgid "Role for %(name)s"
 msgstr "บทบาทของ %(name)s"
 
-#: app/templates/admin_users.html:52 app/templates/categories.html:26
+#: app/templates/admin_users.html:48 app/templates/categories.html:26
 #: app/templates/edit_todo.html:34 app/templates/index.html:130
 msgid "Save"
 msgstr "บันทึก"

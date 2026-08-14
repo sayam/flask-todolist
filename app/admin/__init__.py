@@ -30,4 +30,4 @@ def _expose_panels() -> dict:
     return {"admin_panels": PANELS}
 
 
-from app.admin import users  # noqa: E402,F401 — ลงทะเบียน view + panel ตอน import
+from app.admin import system, users  # noqa: E402,F401 — ลงทะเบียน view + panel ตอน import

@@ -479,6 +479,20 @@ gates:
       คือชั้นข้อมูลบนกระดาษ · ยกเป็น portable ได้ต่อเมื่อมี checker ของ
       overlay ที่ตรวจเรื่องนี้ในโปรเจกต์อื่นได้จริง
 
+  - id: admin-panels-read-real-state
+    title: panel ระบบของ admin อ่านจาก runtime/ดิสก์จริง ตอบตามจริง และ admin เท่านั้น
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_admin_panels.py]}
+    standard: []
+    requires: []
+    portable: false
+    layer: internal
+    born_from: >-
+      เฟส 14-04/14-06 — บทเรียนรอบตรวจเอกสาร: เลขที่ไม่ได้อ่านจากของจริงคือ
+      เลขที่ผิดอยู่แล้ว หน้า admin ที่แสดงสถานะระบบจึงต้องถูกเทียบกับแหล่งจริง
+      และของที่อ่านไม่ได้ต้องพูดตรง ๆ ไม่ใช่เดา
+
   - id: legal-pdpa-worksheet-honest
     title: worksheet PDPA อ้างหลักฐานที่มีจริงทุกชิ้น และช่องว่างทุกข้ออยู่ใน backlog
     kind: test

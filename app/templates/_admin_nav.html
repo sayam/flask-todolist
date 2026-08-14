@@ -1,0 +1,5 @@
+<nav aria-label="{{ _('Admin sections') }}">
+  {% for endpoint, title in admin_panels %}
+  <a href="{{ url_for(endpoint) }}">{{ title }}</a>{% if not loop.last %} | {% endif %}
+  {% endfor %}
+</nav>

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Lifecycle') }}{% endblock %}
+
+{% block content %}
+<h2>{{ _('Lifecycle') }}</h2>
+{% include '_admin_nav.html' %}
+
+<table>
+  <caption>{{ _('Where this instance stands in its own life cycle') }}</caption>
+  <tbody>
+    <tr><th scope="row">{{ _('Application version') }}</th><td>{{ facts.app_version }}</td></tr>
+    <tr>
+      <th scope="row">{{ _('Schema migration') }}</th>
+      <td>
+        {% if facts.migration_in_sync %}
+          {{ _('up to date') }} ({{ facts.migration_current }})
+        {% else %}
+          {{ _('current:') }} {{ facts.migration_current or _('unreadable') }} ·
+          {{ _('latest:') }} {{ facts.migration_head or _('unreadable') }}
+        {% endif %}
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>{{ _('Plugins on disk') }}</h3>
+<table>
+  <caption>{{ _('Everything on disk, including anything switched off') }}</caption>
+  <thead>
+    <tr>
+      <th scope="col">{{ _('Plugin') }}</th>
+      <th scope="col">{{ _('Migration class') }}</th>
+      <th scope="col">{{ _('State') }}</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in facts.plugins %}
+    <tr>
+      <th scope="row">{{ row.key }}</th>
+      <td>{{ row.migration }}</td>
+      <td>{{ _('enabled') if row.enabled else _('disabled') }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

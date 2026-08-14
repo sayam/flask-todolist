@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Environment') }}{% endblock %}
+
+{% block content %}
+<h2>{{ _('Environment') }}</h2>
+{% include '_admin_nav.html' %}
+
+<table>
+  <caption>{{ _('What this instance is actually running on — read live, not written by hand') }}</caption>
+  <tbody>
+    <tr><th scope="row">{{ _('Application version') }}</th><td>{{ facts.app_version }}</td></tr>
+    <tr><th scope="row">Python</th><td>{{ facts.python_version }} ({{ facts.python_implementation }})</td></tr>
+    <tr><th scope="row">{{ _('Platform') }}</th><td>{{ facts.platform }}</td></tr>
+    <tr><th scope="row">{{ _('Database') }}</th><td>{{ facts.database_dialect }} {{ facts.database_server }}</td></tr>
+  </tbody>
+</table>
+{% endblock %}
