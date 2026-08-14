@@ -8,8 +8,9 @@ The app itself is modest and finished: tasks with categories, deadlines,
 filters, two languages, three colour modes, accounts. What makes it worth reading
 is everything around it — a plugin architecture where the core never names a
 single plugin, an append-only audit trail that no feature has to remember to
-call, and 23 CI jobs that run against real databases, a real reverse proxy, a
-real identity provider, and a real directory server, with nothing mocked.
+call, and 23 CI jobs (25 checks) that run against real databases, a real reverse
+proxy, a real identity provider, and a real directory server, with nothing
+mocked.
 
 **This is a personal project, not a product.** It is deliberately
 over-engineered for its size, on purpose, as a way to practise doing things
@@ -161,8 +162,8 @@ marshmallow · Talisman · SQLite / MySQL / MariaDB · pipenv
 ตัวแอปเองเรียบและเสร็จแล้ว — งาน หมวด กำหนดส่ง ตัวกรอง สองภาษา สามโหมดสี
 บัญชีผู้ใช้ · สิ่งที่ทำให้มันน่าอ่านคือของรอบ ๆ: สถาปัตยกรรม plugin ที่ core
 ไม่รู้จักชื่อ plugin ตัวไหนเลย · audit trail แบบเติมได้อย่างเดียวที่ฟีเจอร์ใหม่
-ไม่ต้องจำว่าต้องเรียก · และ CI 23 job ที่ยิงใส่ฐานข้อมูลจริง reverse proxy จริง
-IdP จริง และ directory จริง โดยไม่มี mock สักตัว
+ไม่ต้องจำว่าต้องเรียก · และ CI 23 job (25 check) ที่ยิงใส่ฐานข้อมูลจริง
+reverse proxy จริง IdP จริง และ directory จริง โดยไม่มี mock สักตัว
 
 **นี่เป็นโปรเจกต์ส่วนตัว ไม่ใช่ผลิตภัณฑ์** และตั้งใจทำเกินขนาดของมันเพื่อใช้ฝึก
 ทำให้ครบจริง ๆ · ถ้ากำลังหาตัวอย่าง Flask to-do ที่เล็กที่สุด อันนี้ไม่ใช่แน่นอน

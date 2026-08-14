@@ -1,5 +1,10 @@
 # แผนเฟส — Verifiable Secure-by-Default Scaffolding (Phase 8–12)
 
+> **สถานะ: ปิดครบทั้งห้าเฟสแล้ว (2026-08-14)** — เฟส 8 ดัชนี gate · 9 skill +
+> overlay · 10 migration class + bench · 11 fail-fix harness · 12 การทดลอง
+> เปรียบเทียบ · เอกสารนี้เก็บ **คำตัดสินและเหตุผล** ไว้ตามที่ตัดสินตอนวางแผน
+> ตัวเลขสถานะปัจจุบันให้ดูจาก `README.md` และ `CHANGELOG.md`
+
 ที่มา: [INFRA-VISION.md](INFRA-VISION.md) · แผนนี้ตอบข้อ 6 ของเอกสารนั้น
 **เขียนก่อนแก้โค้ด** · ครบทุกเฟสแล้วออกเป็น release ถัดไป
 
@@ -79,8 +84,13 @@ referential integrity ที่ `gates.yaml` ต้องการ มีคน�
 
 ### 2.4 ตัวเลขที่เอกสารใช้
 
-"CI 22 jobs" ถูกเมื่อนับสองไฟล์ workflow (21+1) แต่เป็น **24 check** เพราะ
-matrix สองตัว — เทสต์ของเฟส 8 ผูกกับ *job* (หน่วยที่ประกาศในไฟล์) ไม่ใช่ check
+**(ตัวเลขของวันสำรวจ 2026-08-13)** "CI 22 jobs" ถูกเมื่อนับสองไฟล์ workflow
+(21+1) แต่เป็น **24 check** เพราะ matrix สองตัว — เทสต์ของเฟส 8 ผูกกับ *job*
+(หน่วยที่ประกาศในไฟล์) ไม่ใช่ check
+
+หลังเฟส 8–12 ปิดครบ ตัวเลขจริงคือ **23 job / 25 check** (required 24 — ไม่รวม
+`scorecard` ที่ไม่รันบน PR) · **อย่าคัดตัวเลขจากหัวข้อนี้ไปใช้ที่อื่น** มันเป็น
+บันทึกของวันที่สำรวจ ไม่ใช่สถานะปัจจุบัน — ที่ที่ถูกคือนับจาก `ci.yml` ตอนนั้น
 
 ---
 
@@ -101,7 +111,7 @@ matrix สองตัว — เทสต์ของเฟส 8 ผูกก�
 
 ---
 
-## Phase 8 — ดัชนี gate (`gates.yaml`)
+## Phase 8 — ดัชนี gate (`gates.yaml`) ✅ (2026-08-14 · PR #11/#12)
 
 **สถานะ: เฟส 8 เสร็จทั้งเฟส (2026-08-13)** — 8-05 ส่วนลึกไม่ได้เติม gate id
 ลงแถว `ASVS.md` มือ (ที่ที่สามให้ drift) แต่ **derive crosswalk จากหลักฐาน**:
@@ -144,10 +154,10 @@ gates:
 
 ---
 
-## Phase 9 — แยก skill + overlay
+## Phase 9 — แยก skill + overlay ✅ (2026-08-14 · PR #13/#14/#15)
 
 **สถานะ: เฟส 9 เสร็จทั้งเฟส (2026-08-14)** — required checks 24 ตัวรวม `scaffold` — `SKILL.md` **generate ทั้งใบ** จาก
-portable gate (58 กฎ) ไม่ใช่เขียนมือ: กฎ = `title` บทเรียน = `born_from`
+portable gate (ตอนนั้น 58 กฎ · ปัจจุบัน 61) ไม่ใช่เขียนมือ: กฎ = `title` บทเรียน = `born_from`
 ของคนมีที่เดียวคือหลักปฏิบัติกลาง 5 ข้อใน PREAMBLE ของ generator ·
 ban list ตรวจที่ *render สด* จึงจับชื่อไลบรารี framework ได้ตั้งแต่ตอนถูกพิมพ์
 ลง gates.yaml (จับจริง 7 จุดตอน generate ครั้งแรก — แก้ที่ต้นทางทั้งหมด)
@@ -171,7 +181,7 @@ ban list ตรวจที่ *render สด* จึงจับชื่อไ
 
 ---
 
-## Phase 10 — migration class + วัด downtime จริง
+## Phase 10 — migration class + วัด downtime จริง ✅ (2026-08-14 · PR #16/#18)
 
 **สถานะ: เฟส 10 เสร็จทั้งเฟส (2026-08-14)** — manifest ทั้ง 14 บังคับตอนโหลด ·
 bench วัดจริง 6 port × ≥3 รอบใต้โหลดใน VM (`scripts/bench_swap.sh` · ตัวเลขใน
@@ -192,7 +202,7 @@ cold ต้องมี pause_ms ≥3 รอบ
 
 ---
 
-## Phase 11 — fail-fix loop harness
+## Phase 11 — fail-fix loop harness ✅ (2026-08-14 · PR #17)
 
 **สถานะ: เฟส 11 เสร็จทั้งเฟส (2026-08-14)** — `scripts/run_gates.py` (รัน kind
 test · job/step ข้ามพร้อมเหตุผลตาม ADR 0039) · round log + รายงาน JSON ·
