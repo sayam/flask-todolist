@@ -972,6 +972,25 @@ def core_theme() -> Plugin:
     return found
 
 
+def _is_profile_switch(key: str) -> bool:
+    """คีย์แบบ `auth/oidc:corp` ปิดทีละ profile (ADR 0047) — ตรวจแล้วเตือนถ้าเคว้ง
+
+    ตัวจริงที่ต้องมีคือ plugin แม่บนดิสก์ และ profile นั้นต้องถูกประกาศใน
+    AUTH_PROFILES — คีย์ profile ที่ไม่ตรงกับอะไรเลยหน้าตาเหมือนการพิมพ์ผิดเป๊ะ
+    """
+    _base_key, _, profile = key.partition(PROFILE_SEPARATOR)
+    if not profile:
+        return False
+    declared = {
+        f"{AUTH_TYPE}/{plugin_id}{PROFILE_SEPARATOR}{name}"
+        for entry in _declared_profile_entries()
+        for plugin_id, name in [parse_profile_entry(entry)]
+    }
+    if key not in declared:
+        _warn(f"DISABLED_PLUGINS: ไม่มี profile ชื่อ {key!r} ใน AUTH_PROFILES — คีย์นี้จึงไม่ได้ปิดอะไรเลย")
+    return True
+
+
 def _check_switch() -> None:
     """ตรวจสวิตช์ปิดตอน start — ปิดของ core ไม่ได้ และของที่ปิดต้องถูกบันทึกไว้
 
@@ -983,20 +1002,7 @@ def _check_switch() -> None:
     ร่องรอยทุกครั้งที่แอป start ว่าตอนนั้นระบบเดินอยู่โดยไม่มีความสามารถอะไรบ้าง
     """
     for key in sorted(disabled_keys()):
-        # คีย์แบบ `auth/oidc:corp` ปิดทีละ profile (ADR 0047) — ตัวจริงที่ต้องมี
-        # คือ plugin แม่บนดิสก์ และ profile นั้นต้องถูกประกาศใน AUTH_PROFILES
-        _base_key, _, profile = key.partition(PROFILE_SEPARATOR)
-        if profile:
-            declared = {
-                f"{AUTH_TYPE}/{plugin_id}{PROFILE_SEPARATOR}{name}"
-                for entry in _declared_profile_entries()
-                for plugin_id, name in [parse_profile_entry(entry)]
-            }
-            if key not in declared:
-                _warn(
-                    f"DISABLED_PLUGINS: ไม่มี profile ชื่อ {key!r} ใน AUTH_PROFILES "
-                    "— คีย์นี้จึงไม่ได้ปิดอะไรเลย"
-                )
+        if _is_profile_switch(key):
             continue
         point = find_on_disk(key)
         if point is not None and point.is_core:
