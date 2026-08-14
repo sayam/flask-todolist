@@ -13,6 +13,7 @@
       <th scope="col">{{ _('Username') }}</th>
       <th scope="col">{{ _('Name') }}</th>
       <th scope="col">{{ _('Role') }}</th>
+      <th scope="col">{{ _('Account state') }}</th>
       <th scope="col">{{ _('Change role') }}</th>
     </tr>
   </thead>
@@ -31,6 +32,15 @@
         {% endif %}
       </td>
       <td>{{ person.role }}</td>
+      <td>
+        {% if person.suspended_at %}{{ _('suspended') }}{% else %}{{ _('active') }}{% endif %}
+        {% if person.id != current_user.id %}
+        <form action="{{ url_for('admin.unsuspend' if person.suspended_at else 'admin.suspend', user_id=person.id) }}" method="post" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit">{{ _('Lift suspension') if person.suspended_at else _('Suspend') }}</button>
+        </form>
+        {% endif %}
+      </td>
       <td>
         {% if person.id == current_user.id %}
           <span>{{ _('You cannot change your own role') }}</span>

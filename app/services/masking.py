@@ -35,6 +35,7 @@ DECISIONS: dict[str, str] = {
     "tdl_user.updated_at": VISIBLE,
     "tdl_user.deleted_at": VISIBLE,
     "tdl_user.purged_at": VISIBLE,
+    "tdl_user.suspended_at": VISIBLE,
     # tdl_todo — เนื้อหาของผู้ใช้ (C3) ทั้งแถวไม่ใช่ธุระของผู้ดูแล
     "tdl_todo.title": HIDDEN,
     "tdl_todo.start_date": HIDDEN,

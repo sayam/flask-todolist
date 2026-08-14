@@ -22,7 +22,7 @@
 | **C1** | ความลับ (secret) | `tdl_user.password_hash`, `tdl_api_token.token_hash`, `tdl_auth_totp_secret.totp_secret` |
 | **C2** | ระบุตัวบุคคล (PII) | `tdl_user.username`, `first_name`, `last_name`, `tdl_auth_oidc_identity.subject`, `tdl_auth_ldap_identity.external_id` |
 | **C3** | เนื้อหาของผู้ใช้ | `tdl_todo.title`, `tdl_category.name`, `tdl_api_token.name`, `start_date`, `due_date` |
-| **C4** | การตั้งค่า/metadata | `confirmed_at`, `last_counter`, `locale`, `theme`, `mode`, `timezone_name`, `role`, `is_done`, `created_at`, `updated_at`, `deleted_at`, `purged_at`, `expires_at`, `linked_at`, `issuer`, `directory`, `id`, `*_id` |
+| **C4** | การตั้งค่า/metadata | `confirmed_at`, `last_counter`, `locale`, `theme`, `mode`, `timezone_name`, `role`, `is_done`, `created_at`, `updated_at`, `deleted_at`, `purged_at`, `suspended_at`, `expires_at`, `linked_at`, `issuer`, `directory`, `id`, `*_id` |
 | **C5** | หลักฐาน (audit) | `tdl_audit.id`, `created_at`, `event`, `actor_id`, `source`, `request_id`, `table_name`, `row_id`, `changes`, `prev_hash`, `row_hash`, `tdl_audit_lock.id`, `tdl_audit_lock.last_hash` |
 | **C6** | log ปฏิบัติการ | JSON log ทาง stdout (`actor`, `remote_addr`, `path`, …) |
 

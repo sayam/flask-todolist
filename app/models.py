@@ -56,6 +56,9 @@ class User(UserMixin, SoftDeleteMixin, db.Model):
     # เวลาที่ PII ถูกล้างจริง (แถวยังอยู่เป็น tombstone ให้ audit อ้างถึงได้)
     # ดู docs/DATA-CLASSIFICATION.md — ต่างจาก deleted_at ที่แปลว่า 'ปิดบัญชีแล้ว'
     purged_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=None)
+    # ระงับการใช้ชั่วคราว (PDPA ม.34) — ห้าม login และ session เดิมถูกตัด
+    # แต่ข้อมูลไม่ถูกแตะ ต่างจาก deleted_at ตรงที่ตั้งใจให้ย้อนกลับได้เสมอ
+    suspended_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=None)
 
     categories: Mapped[list["Category"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"

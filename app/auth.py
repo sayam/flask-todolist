@@ -26,7 +26,7 @@ from sqlalchemy import select
 from app import audit, db, limiter
 from app.i18n import SESSION_KEY, is_supported
 from app.models import User
-from app.services import mfa, sso
+from app.services import mfa, sso, suspension
 from app.services.errors import ServiceError, ValidationError
 from app.session_security import (
     begin_pending,
@@ -112,6 +112,14 @@ def login():
             db.session.commit()
             flash(_("Incorrect username or password"))
             return _login_page(), 401
+        # บัญชีที่ถูกระงับ (PDPA ม.34): รหัสถูกก็เข้าไม่ได้ — บอกตรง ๆ ว่า
+        # ถูกระงับ (เจ้าของบัญชีสมควรรู้สถานะของตัวเอง ไม่ใช่เดาว่ารหัสผิด)
+        if suspension.is_suspended(user):
+            audit.record("auth.login_suspended", table_name="tdl_user", row_id=user.id)
+            db.session.commit()
+            flash(_("This account is suspended — contact the operator"))
+            return _login_page(), 403
+
         # รหัสผ่านถูกแล้วก็จริง แต่ถ้ามีปัจจัยที่สองต้องหยุดไว้ครึ่งทางก่อน
         # **ห้ามเรียก start_session() ตรงนี้** ไม่งั้นคนที่รู้แค่รหัสผ่านเข้าถึง
         # ข้อมูลได้ทันที = มี MFA ไว้เฉย ๆ โดยไม่ได้บังคับอะไรเลย

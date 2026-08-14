@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-14 22:13+0700\n"
+"POT-Creation-Date: 2026-08-14 22:43+0700\n"
 "PO-Revision-Date: 2026-08-02 16:44+0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -26,16 +26,20 @@ msgstr "กรุณาเข้าสู่ระบบก่อน"
 msgid "Incorrect username or password"
 msgstr "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง"
 
-#: app/auth.py:169 app/plugins/auth/oidc/factor.py:72
+#: app/auth.py:120 app/session_security.py:226
+msgid "This account is suspended — contact the operator"
+msgstr "บัญชีนี้ถูกระงับการใช้ — ติดต่อผู้ดูแลระบบ"
+
+#: app/auth.py:177 app/plugins/auth/oidc/factor.py:72
 #: app/plugins/auth/oidc/factor.py:82
 msgid "Single sign-on is not configured"
 msgstr "ยังไม่ได้ตั้งค่าการเข้าสู่ระบบแบบรวมศูนย์"
 
-#: app/auth.py:209
+#: app/auth.py:217
 msgid "Sign-in session expired — please try again"
 msgstr "การเข้าสู่ระบบหมดอายุแล้ว กรุณาลองใหม่"
 
-#: app/auth.py:263 app/routes.py:484
+#: app/auth.py:271 app/routes.py:484
 msgid "That code is not valid"
 msgstr "รหัสไม่ถูกต้อง"
 
@@ -117,7 +121,17 @@ msgstr "การสังเกตการณ์"
 msgid "Role of %(name)s is now %(role)s"
 msgstr "บทบาทของ %(name)s เป็น %(role)s แล้ว"
 
-#: app/admin/users.py:82 app/templates/admin_users.html:2
+#: app/admin/users.py:86
+#, python-format
+msgid "%(name)s is now suspended"
+msgstr "%(name)s ถูกระงับการใช้แล้ว"
+
+#: app/admin/users.py:93
+#, python-format
+msgid "%(name)s is active again"
+msgstr "%(name)s กลับมาใช้งานได้แล้ว"
+
+#: app/admin/users.py:111 app/templates/admin_users.html:2
 #: app/templates/admin_users.html:5 app/templates/base.html:60
 msgid "Users"
 msgstr "ผู้ใช้"
@@ -209,7 +223,7 @@ msgstr "รหัสผ่านต้องไม่มีชื่อผู้
 msgid "This password has appeared in a data breach — choose a different one"
 msgstr "รหัสผ่านนี้เคยหลุดออกไปแล้ว กรุณาใช้รหัสอื่น"
 
-#: app/services/personal_data.py:239
+#: app/services/personal_data.py:241
 msgid ""
 "You are the only administrator. Make someone else an administrator first,"
 " then close your account."
@@ -229,7 +243,7 @@ msgstr "ไม่พบผู้ใช้"
 msgid "Unknown role"
 msgstr "ไม่รู้จักบทบาทนี้"
 
-#: app/services/roles.py:83 app/templates/admin_users.html:36
+#: app/services/roles.py:83 app/templates/admin_users.html:46
 msgid "You cannot change your own role"
 msgstr "เปลี่ยนบทบาทของตัวเองไม่ได้"
 
@@ -478,19 +492,39 @@ msgid "Role"
 msgstr "บทบาท"
 
 #: app/templates/admin_users.html:16
+msgid "Account state"
+msgstr "สถานะบัญชี"
+
+#: app/templates/admin_users.html:17
 msgid "Change role"
 msgstr "เปลี่ยนบทบาท"
 
-#: app/templates/admin_users.html:29
+#: app/templates/admin_users.html:30
 msgid "Reveal (audited)"
 msgstr "เปิดดู (ลงบันทึกตรวจสอบ)"
 
-#: app/templates/admin_users.html:41
+#: app/templates/admin_users.html:36
+msgid "suspended"
+msgstr "ถูกระงับ"
+
+#: app/templates/admin_users.html:36
+msgid "active"
+msgstr "ปกติ"
+
+#: app/templates/admin_users.html:40
+msgid "Lift suspension"
+msgstr "เลิกระงับ"
+
+#: app/templates/admin_users.html:40
+msgid "Suspend"
+msgstr "ระงับ"
+
+#: app/templates/admin_users.html:51
 #, python-format
 msgid "Role for %(name)s"
 msgstr "บทบาทของ %(name)s"
 
-#: app/templates/admin_users.html:48 app/templates/categories.html:26
+#: app/templates/admin_users.html:58 app/templates/categories.html:26
 #: app/templates/edit_todo.html:34 app/templates/index.html:130
 msgid "Save"
 msgstr "บันทึก"
