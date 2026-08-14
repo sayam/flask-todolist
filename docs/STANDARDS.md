@@ -5,7 +5,8 @@
 > จุดยืนของโปรเจกต์: **ความเป็นไปได้ที่เพิ่มความน่าเชื่อถือมาก่อนความพอดี** —
 > รายการนี้จึงจัดเต็มแล้วค่อยคัดออกทีหลัง verdict อยู่ท้ายเอกสาร (ข้อ 4)
 >
-> วันที่สำรวจ: 2026-08 ณ commit `cf15794`
+> วันที่สำรวจ: 2026-08 ณ commit `cf15794` · **ทบทวนล่าสุด 2026-08-14 หลังปิด
+> เฟส 8–12** — คำตัดสินเดิมไม่มีข้อไหนถูกกลับ มีแต่ของเพิ่ม (ดูท้ายข้อ 4)
 
 ---
 
@@ -197,9 +198,25 @@ sqlfluff → เมื่อ migration ซับซ้อนขึ้น (Phase 
 และคำขอที่ตกตั้งแต่ชั้น routing ได้ HTML กลับไป (405 ไม่มี header `Allow` ด้วย)
 ตั้ง `max_examples` ไว้เตี้ยเพื่อให้รันได้ทุกครั้ง — งานหนักกว่านี้เป็นของ nightly
 
+### เข้าเพิ่มหลังเฟส 7 (ทบทวน 2026-08-14)
+
+**CodeQL เข้าแล้ว** — เหตุผลที่เคยตัดออก ("repo private → ต้องจ่าย GHAS")
+หมดอายุตอน repo เป็นสาธารณะเมื่อ 2026-08-12 · รันเป็น job ใน `ci.yml`
+ไม่ใช่ default setup และรอบแรกเจอของจริงสองอย่าง
+
+**เครื่องมือที่เฟส 8–12 เพิ่มเข้ามา** — ไม่ได้อยู่ในรายการสำรวจเดิมเพราะมันไม่ใช่
+เครื่องมือสำเร็จรูป แต่เป็นของที่เขียนเอง: `gates.yaml` (ดัชนี gate ตรวจสองทิศ)
+· `scripts/build_skill.py` → `SKILL.md` · `overlays/flask/` (scan 8 ตัว stdlib
+ล้วน สำหรับโปรเจกต์อื่น) · `scripts/run_gates.py` (fail-fix loop) ·
+`scripts/measure_generated.py` + `scripts/asvs_probe.py` (วัดผลของ scaffolding)
+· **เหตุผลที่ไม่ใช้เครื่องมือสำเร็จรูปแทน**: กฎที่ต้องบังคับเป็นข้อตกลงเฉพาะ
+โปรเจกต์ (soft delete, service layer ไม่รู้จัก HTTP, ตารางขึ้นต้น `tdl_`)
+ซึ่งไม่มี linter ไหนรู้จัก · รายละเอียดอยู่ใน [`ROADMAP-INFRA.md`](ROADMAP-INFRA.md)
+
 ### Watch list (ยังไม่ใช้ — ตรวจใหม่เมื่อ stable)
 ty (beta, conformance ต่ำ), pyrefly (ยังไล่ mypy ไม่ทัน), uv (ย้ายเมื่อคุ้มจริง)
 
 ### ตัดออกพร้อมเหตุผล
-CodeQL (repo private → ต้องจ่าย GHAS) / bandit standalone (ซ้ำ ruff-S) /
+~~CodeQL (repo private → ต้องจ่าย GHAS)~~ **เข้าแล้ว 2026-08-12 เมื่อ repo
+เป็นสาธารณะ** / bandit standalone (ซ้ำ ruff-S) /
 prefix ต่อ environment แบบ WordPress multi-site (ไม่ใช่ use case เรา)
