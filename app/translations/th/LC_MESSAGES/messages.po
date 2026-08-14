@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-14 22:43+0700\n"
+"POT-Creation-Date: 2026-08-15 03:58+0700\n"
 "PO-Revision-Date: 2026-08-02 16:44+0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -30,8 +30,8 @@ msgstr "ชื่อผู้ใช้หรือรหัสผ่านไม
 msgid "This account is suspended — contact the operator"
 msgstr "บัญชีนี้ถูกระงับการใช้ — ติดต่อผู้ดูแลระบบ"
 
-#: app/auth.py:177 app/plugins/auth/oidc/factor.py:72
-#: app/plugins/auth/oidc/factor.py:82
+#: app/auth.py:177 app/plugins/auth/oidc/factor.py:78
+#: app/plugins/auth/oidc/factor.py:104
 msgid "Single sign-on is not configured"
 msgstr "ยังไม่ได้ตั้งค่าการเข้าสู่ระบบแบบรวมศูนย์"
 
@@ -39,52 +39,80 @@ msgstr "ยังไม่ได้ตั้งค่าการเข้าส
 msgid "Sign-in session expired — please try again"
 msgstr "การเข้าสู่ระบบหมดอายุแล้ว กรุณาลองใหม่"
 
-#: app/auth.py:271 app/routes.py:484
+#: app/auth.py:271 app/routes.py:614
 msgid "That code is not valid"
 msgstr "รหัสไม่ถูกต้อง"
 
-#: app/api/todos.py:52 app/routes.py:72 app/routes.py:113
+#: app/api/todos.py:65 app/routes.py:75 app/routes.py:116
 msgid "Invalid date format"
 msgstr "รูปแบบวันที่ไม่ถูกต้อง"
 
-#: app/routes.py:181
+#: app/routes.py:188
 msgid "Task saved"
 msgstr "บันทึกงานแล้ว"
 
-#: app/routes.py:326
+#: app/routes.py:256
+msgid "Task shared"
+msgstr "แชร์งานแล้ว"
+
+#: app/routes.py:260 app/routes.py:273
+msgid "Invalid team"
+msgstr "วงไม่ถูกต้อง"
+
+#: app/routes.py:269
+msgid "Task unshared"
+msgstr "เลิกแชร์งานแล้ว"
+
+#: app/routes.py:288
+msgid "Dependency requested — waiting for the owner to accept"
+msgstr "ส่งคำขอพึ่งงานแล้ว — รอเจ้าของงานยอมรับ"
+
+#: app/routes.py:292
+msgid "Invalid request"
+msgstr "คำขอไม่ถูกต้อง"
+
+#: app/routes.py:303
+msgid "Dependency accepted"
+msgstr "ยอมรับการพึ่งงานแล้ว"
+
+#: app/routes.py:317 app/routes.py:329
+msgid "Dependency removed"
+msgstr "เอาการพึ่งงานออกแล้ว"
+
+#: app/routes.py:456
 msgid "Profile saved"
 msgstr "บันทึกโปรไฟล์แล้ว"
 
-#: app/routes.py:340
+#: app/routes.py:470
 msgid "The two new passwords do not match"
 msgstr "รหัสผ่านใหม่สองช่องไม่ตรงกัน"
 
-#: app/routes.py:356
+#: app/routes.py:486
 msgid "Password changed"
 msgstr "เปลี่ยนรหัสผ่านแล้ว"
 
-#: app/routes.py:377 app/routes.py:497 app/routes.py:524 app/routes.py:549
+#: app/routes.py:507 app/routes.py:627 app/routes.py:654 app/routes.py:679
 #: app/services/passwords.py:168
 msgid "Current password is incorrect"
 msgstr "รหัสผ่านปัจจุบันไม่ถูกต้อง"
 
-#: app/routes.py:421
+#: app/routes.py:551
 msgid "Token revoked"
 msgstr "เพิกถอน token แล้ว"
 
-#: app/routes.py:484
+#: app/routes.py:614
 msgid "Two-step verification is on"
 msgstr "เปิดการยืนยันสองขั้นแล้ว"
 
-#: app/routes.py:536
+#: app/routes.py:666
 msgid "Your account is closed. Sign-in no longer works."
 msgstr "บัญชีของคุณถูกปิดแล้ว เข้าสู่ระบบไม่ได้อีกต่อไป"
 
-#: app/routes.py:556
+#: app/routes.py:686
 msgid "Two-step verification is off"
 msgstr "ปิดการยืนยันสองขั้นแล้ว"
 
-#: app/routes.py:581
+#: app/routes.py:711
 msgid "Settings saved"
 msgstr "บันทึกการตั้งค่าแล้ว"
 
@@ -116,6 +144,21 @@ msgstr "supply chain"
 msgid "Observability"
 msgstr "การสังเกตการณ์"
 
+#: app/admin/teams.py:33
+#, python-format
+msgid "Team “%(name)s” created"
+msgstr "สร้างวง “%(name)s” แล้ว"
+
+#: app/admin/teams.py:46
+msgid "Team deleted"
+msgstr "ลบวงแล้ว"
+
+#: app/admin/teams.py:83 app/templates/admin_teams.html:2
+#: app/templates/admin_teams.html:5 app/templates/base.html:58
+#: app/templates/teams.html:2 app/templates/teams.html:5
+msgid "Teams"
+msgstr "วงทำงาน"
+
 #: app/admin/users.py:78
 #, python-format
 msgid "Role of %(name)s is now %(role)s"
@@ -132,39 +175,39 @@ msgid "%(name)s is active again"
 msgstr "%(name)s กลับมาใช้งานได้แล้ว"
 
 #: app/admin/users.py:111 app/templates/admin_users.html:2
-#: app/templates/admin_users.html:5 app/templates/base.html:60
+#: app/templates/admin_users.html:5 app/templates/base.html:63
 msgid "Users"
 msgstr "ผู้ใช้"
 
-#: app/plugins/auth/ldap/factor.py:58 app/plugins/auth/ldap/factor.py:69
-#: app/plugins/auth/ldap/factor.py:119
+#: app/plugins/auth/ldap/factor.py:62 app/plugins/auth/ldap/factor.py:86
+#: app/plugins/auth/ldap/factor.py:137
 msgid "The directory is not configured"
 msgstr "ยังไม่ได้ตั้งค่าไดเรกทอรีผู้ใช้"
 
-#: app/plugins/auth/ldap/factor.py:104 app/plugins/auth/ldap/factor.py:132
-#: app/plugins/auth/ldap/factor.py:164
+#: app/plugins/auth/ldap/factor.py:122 app/plugins/auth/ldap/factor.py:150
+#: app/plugins/auth/ldap/factor.py:182
 msgid "Could not reach the directory"
 msgstr "ติดต่อไดเรกทอรีผู้ใช้ไม่ได้"
 
-#: app/plugins/auth/oidc/factor.py:111 app/plugins/auth/oidc/factor.py:190
-#: app/plugins/auth/oidc/factor.py:195 app/plugins/auth/oidc/factor.py:200
-#: app/plugins/auth/oidc/factor.py:206 app/plugins/auth/oidc/factor.py:209
-#: app/plugins/auth/oidc/factor.py:213 app/plugins/auth/oidc/factor.py:216
-#: app/plugins/auth/oidc/factor.py:250 app/plugins/auth/oidc/factor.py:255
-#: app/plugins/auth/oidc/factor.py:281 app/plugins/auth/oidc/factor.py:284
-#: app/plugins/auth/oidc/factor.py:301
+#: app/plugins/auth/oidc/factor.py:133 app/plugins/auth/oidc/factor.py:212
+#: app/plugins/auth/oidc/factor.py:217 app/plugins/auth/oidc/factor.py:222
+#: app/plugins/auth/oidc/factor.py:228 app/plugins/auth/oidc/factor.py:231
+#: app/plugins/auth/oidc/factor.py:235 app/plugins/auth/oidc/factor.py:238
+#: app/plugins/auth/oidc/factor.py:272 app/plugins/auth/oidc/factor.py:277
+#: app/plugins/auth/oidc/factor.py:303 app/plugins/auth/oidc/factor.py:306
+#: app/plugins/auth/oidc/factor.py:323
 msgid "Sign-in failed"
 msgstr "เข้าสู่ระบบไม่สำเร็จ"
 
-#: app/plugins/auth/oidc/factor.py:133
+#: app/plugins/auth/oidc/factor.py:155
 msgid "Could not reach the sign-in provider"
 msgstr "ติดต่อผู้ให้บริการเข้าสู่ระบบไม่ได้"
 
-#: app/plugins/auth/oidc/factor.py:260
+#: app/plugins/auth/oidc/factor.py:282
 msgid "No account here for that sign-in"
 msgstr "ไม่มีบัญชีในระบบนี้สำหรับการเข้าสู่ระบบดังกล่าว"
 
-#: app/plugins/auth/oidc/factor.py:279
+#: app/plugins/auth/oidc/factor.py:301
 msgid "Sign-in was cancelled"
 msgstr "การเข้าสู่ระบบถูกยกเลิก"
 
@@ -201,7 +244,28 @@ msgid "Cannot delete “%(name)s” — it still has %(num)d task."
 msgid_plural "Cannot delete “%(name)s” — it still has %(num)d tasks."
 msgstr[0] "ลบ “%(name)s” ไม่ได้ — ยังมีงานอยู่ %(num)d รายการ"
 
-#: app/services/mfa.py:144
+#: app/services/dependencies.py:49
+msgid "A task cannot depend on your own task"
+msgstr "งานพึ่งงานของตัวเองไม่ได้"
+
+#: app/services/dependencies.py:51 app/services/sharing.py:120
+#: app/services/todos.py:62
+msgid "Task not found"
+msgstr "ไม่พบงาน"
+
+#: app/services/dependencies.py:59
+msgid "Dependency already exists"
+msgstr "มีการพึ่งงานนี้อยู่แล้ว"
+
+#: app/services/dependencies.py:76 app/services/dependencies.py:103
+msgid "Dependency not found"
+msgstr "ไม่พบการพึ่งงานนี้"
+
+#: app/services/dependencies.py:83
+msgid "Already accepted"
+msgstr "ยอมรับไปแล้ว"
+
+#: app/services/mfa.py:150
 msgid "Turn off two-step verification first"
 msgstr "ต้องปิดการยืนยันสองขั้นก่อน"
 
@@ -223,7 +287,7 @@ msgstr "รหัสผ่านต้องไม่มีชื่อผู้
 msgid "This password has appeared in a data breach — choose a different one"
 msgstr "รหัสผ่านนี้เคยหลุดออกไปแล้ว กรุณาใช้รหัสอื่น"
 
-#: app/services/personal_data.py:241
+#: app/services/personal_data.py:280
 msgid ""
 "You are the only administrator. Make someone else an administrator first,"
 " then close your account."
@@ -263,13 +327,41 @@ msgstr "ไม่รองรับธีมนี้"
 msgid "Unsupported timezone"
 msgstr "ไม่รองรับ timezone นี้"
 
-#: app/services/sso.py:118
+#: app/services/sharing.py:61
+msgid "Already shared with this team"
+msgstr "แชร์เข้าวงนี้อยู่แล้ว"
+
+#: app/services/sharing.py:78
+msgid "Not shared with this team"
+msgstr "งานนี้ไม่ได้แชร์เข้าวงนี้"
+
+#: app/services/sso.py:182
 msgid "Unknown sign-in provider"
 msgstr "ไม่รู้จักผู้ให้บริการนี้"
 
-#: app/services/todos.py:62
-msgid "Task not found"
-msgstr "ไม่พบงาน"
+#: app/services/teams.py:27 app/services/teams.py:35
+msgid "Team not found"
+msgstr "ไม่พบวงนี้"
+
+#: app/services/teams.py:67
+msgid "Team name is required"
+msgstr "ต้องตั้งชื่อวง"
+
+#: app/services/teams.py:74
+msgid "A team with that name already exists"
+msgstr "มีวงชื่อนี้อยู่แล้ว"
+
+#: app/services/teams.py:104
+msgid "No user with that name"
+msgstr "ไม่มีผู้ใช้ชื่อนั้น"
+
+#: app/services/teams.py:112
+msgid "Already a member of this team"
+msgstr "เป็นสมาชิกวงนี้อยู่แล้ว"
+
+#: app/services/teams.py:132
+msgid "No such member"
+msgstr "ไม่มีสมาชิกคนนั้น"
 
 #: app/services/todos.py:81
 msgid "Invalid category"
@@ -390,7 +482,7 @@ msgstr "endpoint"
 msgid "Method"
 msgstr "เมธอด"
 
-#: app/templates/admin_observability.html:16
+#: app/templates/admin_observability.html:16 app/templates/team_detail.html:17
 msgid "Status"
 msgstr "สถานะตอบ"
 
@@ -473,6 +565,54 @@ msgstr "เจ้าของ (category)"
 #: app/templates/admin_sbom.html:51
 msgid "Declared but not installed"
 msgstr "ประกาศแต่ไม่ได้ติดตั้ง"
+
+#: app/templates/admin_teams.html:11
+msgid "New team name"
+msgstr "ชื่อวงใหม่"
+
+#: app/templates/admin_teams.html:13
+msgid "Create team"
+msgstr "สร้างวง"
+
+#: app/templates/admin_teams.html:17
+msgid "No teams yet"
+msgstr "ยังไม่มีวง"
+
+#: app/templates/admin_teams.html:29
+#, python-format
+msgid ""
+"Remove %(name)s from %(team)s? Their view of this team’s shared tasks — "
+"and any dependencies that relied on it — will be cut."
+msgstr ""
+"เอา %(name)s ออกจาก %(team)s? สิ่งที่เขาเห็นผ่านวงนี้ "
+"และการพึ่งงานที่อาศัยมันอยู่ จะถูกตัดทั้งหมด"
+
+#: app/templates/admin_teams.html:31
+msgid "Remove"
+msgstr "เอาออก"
+
+#: app/templates/admin_teams.html:35
+msgid "No members yet"
+msgstr "ยังไม่มีสมาชิก"
+
+#: app/templates/admin_teams.html:40
+msgid "Add member by username"
+msgstr "เพิ่มสมาชิกด้วยชื่อผู้ใช้"
+
+#: app/templates/admin_teams.html:42
+msgid "Add member"
+msgstr "เพิ่มสมาชิก"
+
+#: app/templates/admin_teams.html:45
+#, python-format
+msgid ""
+"Delete team “%(name)s”? All its shares and the dependencies that relied "
+"on them will be cut."
+msgstr "ลบวง “%(name)s”? การแชร์ทั้งหมดของวงและการพึ่งงานที่อาศัยมันอยู่จะถูกตัด"
+
+#: app/templates/admin_teams.html:47
+msgid "Delete team"
+msgstr "ลบวง"
 
 #: app/templates/admin_users.html:10
 msgid "Everyone with an account, and what they are allowed to do"
@@ -564,16 +704,16 @@ msgstr "งาน"
 msgid "Categories"
 msgstr "หมวดงาน"
 
-#: app/templates/base.html:57 app/templates/settings.html:2
+#: app/templates/base.html:60 app/templates/settings.html:2
 #: app/templates/settings.html:9
 msgid "Settings"
 msgstr "ตั้งค่า"
 
-#: app/templates/base.html:65
+#: app/templates/base.html:68
 msgid "Sign out"
 msgstr "ออกจากระบบ"
 
-#: app/templates/base.html:87 app/templates/privacy.html:2
+#: app/templates/base.html:90 app/templates/privacy.html:2
 #: app/templates/privacy.html:5
 msgid "Privacy"
 msgstr "ความเป็นส่วนตัว"
@@ -605,7 +745,7 @@ msgstr "ลบหมวด “%(name)s” ใช่ไหม?"
 msgid "Move or delete its tasks first"
 msgstr "ย้ายหรือลบงานในหมวดนี้ออกก่อน"
 
-#: app/templates/categories.html:36 app/templates/index.html:157
+#: app/templates/categories.html:36 app/templates/index.html:163
 msgid "Delete"
 msgstr "ลบ"
 
@@ -618,6 +758,7 @@ msgid "Edit task"
 msgstr "แก้ไขงาน"
 
 #: app/templates/edit_todo.html:10 app/templates/index.html:28
+#: app/templates/team_detail.html:14
 msgid "Task name"
 msgstr "ชื่องาน"
 
@@ -643,12 +784,56 @@ msgstr "ไม่ใส่ก็ได้"
 
 #: app/templates/edit_todo.html:30 app/templates/index.html:45
 #: app/templates/index.html:63 app/templates/index.html:144
+#: app/templates/team_detail.html:16
 msgid "Due"
 msgstr "กำหนดส่ง"
 
 #: app/templates/edit_todo.html:35
 msgid "Cancel"
 msgstr "ยกเลิก"
+
+#: app/templates/edit_todo.html:40
+msgid "Sharing"
+msgstr "การแชร์"
+
+#: app/templates/edit_todo.html:46
+#, python-format
+msgid "Shared with “%(team)s”"
+msgstr "แชร์กับ “%(team)s” อยู่"
+
+#: app/templates/edit_todo.html:48
+#, python-format
+msgid "Unshare from “%(team)s”? Dependencies that relied on it will be cut."
+msgstr "เลิกแชร์กับ “%(team)s”? การพึ่งงานที่อาศัยการแชร์นี้จะถูกตัด"
+
+#: app/templates/edit_todo.html:51
+msgid "Unshare"
+msgstr "เลิกแชร์"
+
+#: app/templates/edit_todo.html:59
+msgid "Share with team"
+msgstr "แชร์เข้าวง"
+
+#: app/templates/edit_todo.html:65
+msgid "Share"
+msgstr "แชร์"
+
+#: app/templates/edit_todo.html:72
+msgid "This task depends on"
+msgstr "งานนี้พึ่งงาน"
+
+#: app/templates/edit_todo.html:76
+#, python-format
+msgid "“%(title)s” (%(who)s)"
+msgstr "“%(title)s” (%(who)s)"
+
+#: app/templates/edit_todo.html:77
+msgid "waiting for acceptance"
+msgstr "รอการยอมรับ"
+
+#: app/templates/edit_todo.html:81
+msgid "Withdraw"
+msgstr "ถอนคำขอ"
 
 #: app/templates/index.html:23
 msgid "Add a task"
@@ -750,28 +935,32 @@ msgstr "เลยกำหนดแล้ว"
 msgid "Due today"
 msgstr "ครบกำหนดวันนี้"
 
-#: app/templates/index.html:152
+#: app/templates/index.html:155
+msgid "At risk via dependencies"
+msgstr "เสี่ยงจากงานที่พึ่ง"
+
+#: app/templates/index.html:158
 msgid "Edit"
 msgstr "แก้ไข"
 
-#: app/templates/index.html:155
+#: app/templates/index.html:161
 #, python-format
 msgid "Delete “%(title)s”?"
 msgstr "ลบ “%(title)s” ใช่ไหม?"
 
-#: app/templates/index.html:161
+#: app/templates/index.html:167
 msgid "No tasks yet"
 msgstr "ยังไม่มีงาน"
 
-#: app/templates/index.html:161
+#: app/templates/index.html:167
 msgid "No tasks match this filter"
 msgstr "ไม่มีงานที่ตรงกับตัวกรอง"
 
-#: app/templates/index.html:166
+#: app/templates/index.html:172
 msgid "Delete all completed tasks? This cannot be undone."
 msgstr "ลบงานที่เสร็จแล้วทั้งหมดใช่ไหม? กู้คืนไม่ได้"
 
-#: app/templates/index.html:168
+#: app/templates/index.html:174
 msgid "Clear completed"
 msgstr "ลบงานที่เสร็จแล้วทั้งหมด"
 
@@ -978,6 +1167,7 @@ msgid "Expires"
 msgstr "วันหมดอายุ"
 
 #: app/templates/settings.html:67 app/templates/settings.html:83
+#: app/templates/teams.html:46
 msgid "Revoke"
 msgstr "เพิกถอน"
 
@@ -1119,6 +1309,86 @@ msgstr ""
 #: app/templates/settings.html:240
 msgid "Close my account"
 msgstr "ปิดบัญชีของฉัน"
+
+#: app/templates/team_detail.html:6
+msgid "Back to teams"
+msgstr "กลับไปหน้าวงทำงาน"
+
+#: app/templates/team_detail.html:11
+msgid "Tasks shared with this team"
+msgstr "งานที่แชร์เข้าวงนี้"
+
+#: app/templates/team_detail.html:15
+msgid "Owner"
+msgstr "เจ้าของ"
+
+#: app/templates/team_detail.html:18
+msgid "Depend on it"
+msgstr "ขอพึ่งงานนี้"
+
+#: app/templates/team_detail.html:27
+msgid "Done"
+msgstr "เสร็จแล้ว"
+
+#: app/templates/team_detail.html:27
+msgid "Open"
+msgstr "ยังไม่เสร็จ"
+
+#: app/templates/team_detail.html:34
+msgid "Which of your tasks depends on it"
+msgstr "งานไหนของคุณที่พึ่งงานนี้"
+
+#: app/templates/team_detail.html:40
+msgid "Request"
+msgstr "ขอพึ่งงาน"
+
+#: app/templates/team_detail.html:51
+msgid "Nothing shared with this team yet"
+msgstr "ยังไม่มีงานแชร์เข้าวงนี้"
+
+#: app/templates/teams.html:9
+#, python-format
+msgid "%(num)d dependency you relied on was unshared recently."
+msgid_plural "%(num)d dependencies you relied on were unshared recently."
+msgstr[0] "งานที่คุณพึ่งถูกเลิกแชร์ไป %(num)d รายการเมื่อไม่นานนี้"
+
+#: app/templates/teams.html:17
+msgid "Dependency requests waiting for you"
+msgstr "คำขอพึ่งงานที่รอคุณตัดสิน"
+
+#: app/templates/teams.html:21
+#, python-format
+msgid "%(who)s asks to depend on “%(title)s”"
+msgstr "%(who)s ขอพึ่งงาน “%(title)s”"
+
+#: app/templates/teams.html:24
+msgid "Accept"
+msgstr "ยอมรับ"
+
+#: app/templates/teams.html:28
+msgid "Decline"
+msgstr "ปฏิเสธ"
+
+#: app/templates/teams.html:38
+msgid "Others depending on your tasks"
+msgstr "คนที่พึ่งงานของคุณอยู่"
+
+#: app/templates/teams.html:42
+#, python-format
+msgid "%(who)s depends on “%(title)s”"
+msgstr "%(who)s พึ่งงาน “%(title)s” อยู่"
+
+#: app/templates/teams.html:44
+msgid "Revoke this dependency?"
+msgstr "เพิกถอนการพึ่งงานนี้?"
+
+#: app/templates/teams.html:55
+msgid "Your teams"
+msgstr "วงของคุณ"
+
+#: app/templates/teams.html:63
+msgid "You are not in any team yet — ask an administrator to add you."
+msgstr "คุณยังไม่ได้อยู่ในวงไหนเลย — ให้ผู้ดูแลระบบเพิ่มคุณเข้าวง"
 
 #: app/templates/token_created.html:2 app/templates/token_created.html:5
 msgid "New API token"

@@ -124,6 +124,7 @@ def test_every_panel_is_registered_in_the_nav(app):
     endpoints = {endpoint for endpoint, _title in PANELS}
     assert endpoints == {
         "admin.users",
+        "admin.teams",
         "admin.environment",
         "admin.lifecycle",
         "admin.sbom",

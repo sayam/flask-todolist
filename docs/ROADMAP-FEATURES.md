@@ -160,6 +160,15 @@ generate สดตรงกับดัชนี · PDPA worksheet หลัก�
 
 ## Phase 18 — Org todo graph (เฟสธง)
 
+> **สถานะ: ปิดแล้ว (2026-08-15)** — ADR 0049 accepted (เจ้าของอนุมัติตามร่าง +
+> ตัดสินคำถามเปิดสามข้อ: ไม่มีแชร์ปิดชื่อในเฟสแรก · วง admin-only · ป้าย
+> impact บนหน้า list หลัก) · สี่ตาราง core ใหม่เดินครบวงจร (จำแนกชั้น ·
+> masking · audit · ROPA · export · close_account · purge) · แชร์เผยสี่ฟิลด์
+> ผ่าน `SharedTodoView` เท่านั้น · dependency เชิญ→ยอมรับ + จุดตัดเดียว
+> `sever_invisible_dependencies()` · impact deterministic กันวงวน ·
+> `/api/v1` ได้ฟิลด์ `is_at_risk` (additive) · เทสต์ privacy สองทิศ 33 ตัว
+> (mutation 5 จุด) + หน้า /teams เข้า pa11y
+
 | ขั้น | งาน |
 |---|---|
 | 18-01 | **ADR 0049: privacy model — ต้องผ่านตาเจ้าของก่อนโค้ดทุกบรรทัด**: อะไรของงาน private ที่คนอื่นเห็นได้ (การมีอยู่? กำหนดส่ง? เจ้าของ?) · dependency ข้ามคนสร้างอย่างไร (เชิญ/ยอมรับ — ห้าม unilateral เพราะเท่ากับ probe การมีอยู่ของงานคนอื่น ขัด ADR 0004) · impact ประเมินจากอะไร |

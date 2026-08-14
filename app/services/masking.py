@@ -48,6 +48,19 @@ DECISIONS: dict[str, str] = {
     "tdl_api_token.name": HIDDEN,  # C3 — ชื่อที่ผู้ใช้ตั้งบอกว่าเครื่องไหนใช้
     "tdl_api_token.expires_at": VISIBLE,
     "tdl_api_token.revoked_at": VISIBLE,
+    # org graph (ADR 0049) — ชื่อวงเป็น C3 (คนพิมพ์เอง) แต่หน้า admin ของวง
+    # คือหน้าที่ผู้ดูแล*จัดการ*วงโดยตรง ชื่อจึงต้องอ่านออก (ดู EXCEPTIONS)
+    # ส่วนคอลัมน์อื่นเป็นแค่ตัวชี้กับเวลากับสถานะ ซึ่งจัดชั้น C4 ไว้แล้ว
+    "tdl_team.name": VISIBLE,
+    "tdl_team_member.team_id": VISIBLE,
+    "tdl_team_member.joined_at": VISIBLE,
+    "tdl_todo_share.todo_id": VISIBLE,
+    "tdl_todo_share.team_id": VISIBLE,
+    "tdl_todo_share.shared_at": VISIBLE,
+    "tdl_todo_dependency.todo_id": VISIBLE,
+    "tdl_todo_dependency.depends_on_todo_id": VISIBLE,
+    "tdl_todo_dependency.status": VISIBLE,
+    "tdl_todo_dependency.accepted_at": VISIBLE,
 }
 
 #: pattern สำหรับคอลัมน์โครงระบบ (C4–C6) ที่ชื่อซ้ำกันทุกตาราง — ตรวจท้ายสุด
@@ -66,6 +79,11 @@ PATTERN_DECISIONS: dict[str, str] = {
 
 #: คอลัมน์ที่คำตัดสิน*หลวมกว่า*ค่าเริ่มต้นของชั้น — ต้องมีเหตุผลรายตัว
 EXCEPTIONS: dict[str, str] = {
+    "tdl_team.name": (
+        "C3 แต่ visible: วงถูกสร้าง/ตั้งชื่อโดย admin เอง (ADR 0049 คำตัดสินข้อ 2) "
+        "และหน้าจัดการวงอ้างวงด้วยชื่อ — mask ชื่อที่ตัวเองเป็นคนตั้งคือการปิดตา "
+        "คนทำงานโดยไม่ปิดข้อมูลของใคร"
+    ),
     "tdl_user.username": (
         "C2 แต่ visible: เป็นตัวระบุที่งานบริหารทุกงานอ้าง (เปลี่ยนบทบาท · "
         "set-password · export-user รับ username) และ log/audit ใช้เป็น actor "

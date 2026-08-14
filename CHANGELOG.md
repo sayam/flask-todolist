@@ -18,11 +18,11 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ## [Unreleased]
 
-Ten more phases of work: five about making the engineering discipline in this
-repo **portable and checkable** (8–12), then five phases of the 1.1 feature plan
-(13–17) — rule layers and legal worksheets, an admin overhaul with data masking,
-encryption at rest, an operations phase, and named auth profiles. Nothing in the
-`/api/v1` contract changed.
+Eleven more phases of work: five about making the engineering discipline in
+this repo **portable and checkable** (8–12), then the whole 1.1 feature plan
+(13–18) — rule layers and legal worksheets, an admin overhaul with data masking,
+encryption at rest, an operations phase, named auth profiles, and the org todo
+graph. Nothing in the `/api/v1` contract changed; it only gained fields.
 
 ### Added
 
@@ -98,6 +98,17 @@ encryption at rest, an operations phase, and named auth profiles. Nothing in the
   than guessed: two workers roughly halve tail latency at 25–50 concurrent, but
   the default stays at one worker because `/metrics` counts per process — the
   measured path to scale is replicas, not workers (`docs/PERFORMANCE.md`).
+- **Org todo graph** ([ADR 0049](docs/adr/0049-org-todo-graph-privacy-model.md)):
+  tasks stay private by default; owners opt in per task by sharing it into an
+  admin-managed team, which reveals exactly four fields (title, due date, done
+  state, owner). Cross-person dependencies are invite–accept only — a private
+  task never leaks even its existence, and probing an unshared id answers 404.
+  A deterministic impact signal walks accepted dependencies (cycle-safe) and
+  marks your tasks "at risk" when something you rely on is overdue; the badge
+  carries no upstream details. Unsharing, removing a member, deleting a team,
+  and closing an account all funnel through one severing rule, and the API
+  gained an additive `is_at_risk` field. Every "cannot see" claim is proven by
+  tests across the page, the API, the impact signal, and the notices.
 
 ### Changed
 

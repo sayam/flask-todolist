@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Teams') }}{% endblock %}
+
+{% block content %}
+<h2>{{ _('Teams') }}</h2>
+
+{% if severed_count %}
+<p class="notice">
+  {{ ngettext('%(num)d dependency you relied on was unshared recently.',
+              '%(num)d dependencies you relied on were unshared recently.',
+              severed_count) }}
+</p>
+{% endif %}
+
+{% if invites %}
+<section aria-labelledby="invites-heading">
+  <h3 id="invites-heading">{{ _('Dependency requests waiting for you') }}</h3>
+  <ul>
+    {% for invite in invites %}
+    <li>
+      {{ _('%(who)s asks to depend on “%(title)s”', who=invite.todo.user.username, title=invite.depends_on.title) }}
+      <form action="{{ url_for('main.accept_dependency', dependency_id=invite.id) }}" method="post" class="inline-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit">{{ _('Accept') }}</button>
+      </form>
+      <form action="{{ url_for('main.decline_dependency', dependency_id=invite.id) }}" method="post" class="inline-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit">{{ _('Decline') }}</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% if accepted_on_mine %}
+<section aria-labelledby="accepted-heading">
+  <h3 id="accepted-heading">{{ _('Others depending on your tasks') }}</h3>
+  <ul>
+    {% for dependency in accepted_on_mine %}
+    <li>
+      {{ _('%(who)s depends on “%(title)s”', who=dependency.todo.user.username, title=dependency.depends_on.title) }}
+      <form action="{{ url_for('main.decline_dependency', dependency_id=dependency.id) }}" method="post" class="inline-form"
+            data-confirm="{{ _('Revoke this dependency?') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit">{{ _('Revoke') }}</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<section aria-labelledby="my-teams-heading">
+  <h3 id="my-teams-heading">{{ _('Your teams') }}</h3>
+  {% if my_teams %}
+  <ul>
+    {% for team in my_teams %}
+    <li><a href="{{ url_for('main.team_detail', team_id=team.id) }}">{{ team.name }}</a></li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>{{ _('You are not in any team yet — ask an administrator to add you.') }}</p>
+  {% endif %}
+</section>
+{% endblock %}

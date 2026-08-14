@@ -21,11 +21,24 @@ from app.api.schemas import (
 )
 from app.filters import FilterSpec
 from app.services import ValidationError
+from app.services import dependencies as dependencies_service
 from app.services import todos as todos_service
 
 blp = api_blueprint("todos", "/todos", "งานของผู้ใช้ที่ยืนยันตัวตนด้วย token")
 
 NO_CONTENT = 204
+
+
+def _with_risk_flags(owner: Any, todos: list[Any]) -> list[Any]:
+    """ติดค่า `is_at_risk` ให้ทั้งชุดในครั้งเดียว (ADR 0049 ข้อ 3)
+
+    คำนวณเซตครั้งเดียวต่อคำขอ ไม่ใช่ไล่เดินโซ่ต่อแถว — และเป็นแค่การติดป้าย
+    ใส่ instance ให้ schema อ่าน ไม่ใช่ตรรกะของโดเมน (ตรรกะอยู่ใน service)
+    """
+    at_risk = dependencies_service.at_risk_todo_ids(owner)
+    for todo in todos:
+        todo.is_at_risk = todo.id in at_risk
+    return todos
 
 
 @blp.route("")
@@ -51,7 +64,8 @@ class TodoCollection(MethodView):
             raise ValidationError(
                 _("Invalid date format"), code="date_invalid", field="date_from"
             ) from bad
-        return todos_service.list_todos(token_owner(), spec)
+        owner = token_owner()
+        return _with_risk_flags(owner, todos_service.list_todos(owner, spec))
 
     @blp.arguments(TodoCreateSchema)
     @blp.response(201, TodoSchema)
@@ -59,7 +73,8 @@ class TodoCollection(MethodView):
     @blp.alt_response(404, schema=ErrorSchema, description="หมวดที่อ้างถึงไม่ใช่ของผู้ใช้คนนี้")
     def post(self, data: dict[str, Any]) -> Any:
         """สร้างงานใหม่"""
-        return todos_service.create_todo(token_owner(), **data)
+        owner = token_owner()
+        return _with_risk_flags(owner, [todos_service.create_todo(owner, **data)])[0]
 
 
 @blp.route("/<int:todo_id>")
@@ -68,7 +83,8 @@ class TodoItem(MethodView):
     @blp.alt_response(404, schema=ErrorSchema, description="ไม่มีงานนี้ หรือไม่ใช่ของผู้ใช้คนนี้")
     def get(self, todo_id: int) -> Any:
         """งานหนึ่งรายการ"""
-        return todos_service.get_todo(token_owner(), todo_id)
+        owner = token_owner()
+        return _with_risk_flags(owner, [todos_service.get_todo(owner, todo_id)])[0]
 
     @blp.arguments(TodoUpdateSchema)
     @blp.response(200, TodoSchema)
@@ -79,7 +95,8 @@ class TodoItem(MethodView):
 
         ฟิลด์ที่ไม่ได้ส่งมาไม่ถูกแตะ ส่วนการส่ง `null` มาแปลว่า "ล้างค่านั้น"
         """
-        return todos_service.update_todo(token_owner(), todo_id, changes)
+        owner = token_owner()
+        return _with_risk_flags(owner, [todos_service.update_todo(owner, todo_id, changes)])[0]
 
     @blp.response(NO_CONTENT)
     @blp.alt_response(404, schema=ErrorSchema, description="ไม่มีงานนี้ หรือไม่ใช่ของผู้ใช้คนนี้")

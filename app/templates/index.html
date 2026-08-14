@@ -149,6 +149,12 @@
       {%- elif todo.is_due_today %}{{ _('Due today') }}{% endif -%}
     </strong>
 
+    {# ป้าย impact (ADR 0049 ข้อ 3 — คำตัดสินข้อ 3: อยู่หน้า list หลัก)
+       คนละความหมายกับ Overdue: งานเรายังไม่เลยกำหนด แต่ของที่เราพึ่งเลยแล้ว #}
+    {% if todo.id in at_risk_ids %}
+    <strong class="task-flag overdue">{{ _('At risk via dependencies') }}</strong>
+    {% endif %}
+
     <a class="button" href="{{ url_for('main.edit', todo_id=todo.id) }}">{{ _('Edit') }}</a>
 
     <form action="{{ url_for('main.delete', todo_id=todo.id) }}" method="post"

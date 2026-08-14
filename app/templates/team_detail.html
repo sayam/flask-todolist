@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}{{ team.name }}{% endblock %}
+
+{% block content %}
+<h2>{{ team.name }}</h2>
+<p><a href="{{ url_for('main.teams') }}">{{ _('Back to teams') }}</a></p>
+
+{# สี่ฟิลด์ต่อใบตาม ADR 0049 — view ที่ service กรองมาแล้ว template ห้ามรู้มากกว่านี้ #}
+{% if shared %}
+<table>
+  <caption>{{ _('Tasks shared with this team') }}</caption>
+  <thead>
+    <tr>
+      <th scope="col">{{ _('Task name') }}</th>
+      <th scope="col">{{ _('Owner') }}</th>
+      <th scope="col">{{ _('Due') }}</th>
+      <th scope="col">{{ _('Status') }}</th>
+      <th scope="col">{{ _('Depend on it') }}</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in shared %}
+    <tr>
+      <th scope="row">{{ item.title }}</th>
+      <td>{{ item.owner_username }}</td>
+      <td>{{ item.due_date.strftime('%Y-%m-%d %H:%M') if item.due_date else '—' }}</td>
+      <td>{{ _('Done') if item.is_done else _('Open') }}</td>
+      <td>
+        {% if item.owner_username != current_user.username and my_open_todos %}
+        <form action="{{ url_for('main.add_dependency') }}" method="post" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="team_id" value="{{ team.id }}">
+          <input type="hidden" name="depends_on" value="{{ item.todo_id }}">
+          <label for="dep-{{ item.todo_id }}" class="visually-hidden">{{ _('Which of your tasks depends on it') }}</label>
+          <select id="dep-{{ item.todo_id }}" name="todo_id">
+            {% for mine in my_open_todos %}
+            <option value="{{ mine.id }}">{{ mine.title }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit">{{ _('Request') }}</button>
+        </form>
+        {% else %}
+        —
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>{{ _('Nothing shared with this team yet') }}</p>
+{% endif %}
+{% endblock %}

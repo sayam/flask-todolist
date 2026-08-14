@@ -30,10 +30,13 @@ from app.filters import UPCOMING_CHOICES, FilterSpec
 from app.i18n import SESSION_KEY, is_supported
 from app.services import NotFoundError, ServiceError, ValidationError
 from app.services import categories as categories_service
+from app.services import dependencies as dependencies_service
 from app.services import mfa as mfa_service
 from app.services import passwords as passwords_service
 from app.services import personal_data as personal_data_service
 from app.services import settings as settings_service
+from app.services import sharing as sharing_service
+from app.services import teams as teams_service
 from app.services import todos as todos_service
 from app.services import tokens as tokens_service
 from app.session_security import end_session, renew_session
@@ -128,6 +131,7 @@ def index():
     return render_template(
         "index.html",
         todos=todos,
+        at_risk_ids=dependencies_service.at_risk_todo_ids(current_user),
         categories=categories_service.list_categories(current_user),
         status=spec.status,
         category_arg=spec.category,
@@ -168,6 +172,9 @@ def edit(todo_id):
             "edit_todo.html",
             todo=todo,
             categories=categories_service.list_categories(current_user),
+            my_teams=teams_service.teams_of(current_user),
+            shares=sharing_service.shares_of(current_user, todo_id),
+            dependencies=dependencies_service.dependencies_of(current_user, todo_id),
         )
 
     try:
@@ -210,6 +217,131 @@ def clear_completed():
     """ลบงานที่ทำเสร็จแล้วทั้งหมดของเจ้าของ session"""
     todos_service.clear_completed(current_user)
     return redirect(url_for("main.index"))
+
+
+@bp.route("/teams")
+@login_required
+def teams():
+    """วงที่ฉันอยู่ + คำเชิญ dependency ที่รอฉันตัดสิน (ADR 0049)"""
+    return render_template(
+        "teams.html",
+        my_teams=teams_service.teams_of(current_user),
+        invites=dependencies_service.incoming_invites(current_user),
+        accepted_on_mine=dependencies_service.accepted_on_my_todos(current_user),
+        severed_count=sharing_service.severed_recently(current_user),
+    )
+
+
+@bp.route("/teams/<int:team_id>")
+@login_required
+def team_detail(team_id):
+    """งานที่แชร์ในวง — สี่ฟิลด์ต่อใบ + ฟอร์มขอพึ่ง (ไม่ใช่สมาชิก = 404)"""
+    try:
+        team = teams_service.visible_team(current_user, team_id)
+        shared = sharing_service.shared_in_team(current_user, team_id)
+    except NotFoundError:
+        abort(404)
+    my_open_todos = todos_service.list_todos(
+        current_user, FilterSpec.from_params({"status": "active"})
+    )
+    return render_template(
+        "team_detail.html", team=team, shared=shared, my_open_todos=my_open_todos
+    )
+
+
+@bp.route("/share/<int:todo_id>", methods=["POST"])
+@login_required
+def share_todo(todo_id):
+    """แชร์งานของตัวเองเข้าวง — เริ่มจากหน้าแก้งาน"""
+    try:
+        sharing_service.share(current_user, todo_id, int(request.form.get("team_id", "0")))
+        flash(_("Task shared"))
+    except NotFoundError:
+        abort(404)
+    except (ServiceError, ValueError) as error:
+        flash(getattr(error, "message", _("Invalid team")))
+    return redirect(url_for("main.edit", todo_id=todo_id))
+
+
+@bp.route("/unshare/<int:todo_id>", methods=["POST"])
+@login_required
+def unshare_todo(todo_id):
+    try:
+        sharing_service.unshare(current_user, todo_id, int(request.form.get("team_id", "0")))
+        flash(_("Task unshared"))
+    except NotFoundError:
+        abort(404)
+    except (ServiceError, ValueError) as error:
+        flash(getattr(error, "message", _("Invalid team")))
+    return redirect(url_for("main.edit", todo_id=todo_id))
+
+
+@bp.route("/dependencies/add", methods=["POST"])
+@login_required
+def add_dependency():
+    """ขอพึ่งงานที่แชร์ — จากหน้าวง · เกิดเป็นคำเชิญรอเจ้าของปลายทางยอมรับ"""
+    team_id = request.form.get("team_id", "")
+    try:
+        dependencies_service.invite(
+            current_user,
+            int(request.form.get("todo_id", "0")),
+            int(request.form.get("depends_on", "0")),
+        )
+        flash(_("Dependency requested — waiting for the owner to accept"))
+    except NotFoundError:
+        abort(404)
+    except (ServiceError, ValueError) as error:
+        flash(getattr(error, "message", _("Invalid request")))
+    if team_id.isdigit():
+        return redirect(url_for("main.team_detail", team_id=int(team_id)))
+    return redirect(url_for("main.teams"))
+
+
+@bp.route("/dependencies/<int:dependency_id>/accept", methods=["POST"])
+@login_required
+def accept_dependency(dependency_id):
+    try:
+        dependencies_service.accept(current_user, dependency_id)
+        flash(_("Dependency accepted"))
+    except NotFoundError:
+        abort(404)
+    except ServiceError as error:
+        flash(error.message)
+    return redirect(url_for("main.teams"))
+
+
+@bp.route("/dependencies/<int:dependency_id>/decline", methods=["POST"])
+@login_required
+def decline_dependency(dependency_id):
+    """ปฏิเสธคำเชิญ หรือเพิกถอนที่เคยยอมรับ — ปุ่มเดียวกัน service ตัวเดียวกัน"""
+    try:
+        dependencies_service.decline(current_user, dependency_id)
+        flash(_("Dependency removed"))
+    except NotFoundError:
+        abort(404)
+    return redirect(url_for("main.teams"))
+
+
+@bp.route("/dependencies/<int:dependency_id>/withdraw", methods=["POST"])
+@login_required
+def withdraw_dependency(dependency_id):
+    todo_id = request.form.get("todo_id", "")
+    try:
+        dependencies_service.withdraw(current_user, dependency_id)
+        flash(_("Dependency removed"))
+    except NotFoundError:
+        abort(404)
+    if todo_id.isdigit():
+        return redirect(url_for("main.edit", todo_id=int(todo_id)))
+    return redirect(url_for("main.teams"))
+
+
+@bp.app_context_processor
+def _team_nav():
+    """ลิงก์ Teams บน nav โผล่เฉพาะคนที่อยู่ในวงจริง — nav ของคนใช้เดี่ยวไม่เปลี่ยน"""
+    if not current_user.is_authenticated:
+        return {"my_team_count": 0}
+    return {"my_team_count": len(teams_service.teams_of(current_user))}
 
 
 @bp.route("/categories")
