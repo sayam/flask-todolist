@@ -169,6 +169,28 @@ def _python_eol() -> dict[str, Any] | None:
     return None
 
 
+def _sbom_row(
+    name: str, version: str, declared: dict[str, dict[str, str]] | None
+) -> dict[str, str]:
+    """แถวเดียวของตาราง SBOM — คำตัดสินสถานะอยู่ที่นี่ที่เดียว"""
+    spec = declared.get(name) if declared else None
+    if spec is None:
+        return {
+            "name": name,
+            "installed": version,
+            "declared": "—",
+            "category": "—",
+            "status": "unlisted" if declared is not None else "unknown",
+        }
+    return {
+        "name": name,
+        "installed": version,
+        "declared": spec["version"],
+        "category": spec["category"],
+        "status": "match" if spec["version"] == version else "drift",
+    }
+
+
 def sbom(actor: Any) -> dict[str, Any]:
     """SBOM ฉบับ runtime: ของที่ติดตั้ง*จริง*เทียบกับที่ lock ประกาศ + เจ้าของต่อ package
 
@@ -183,32 +205,11 @@ def sbom(actor: Any) -> dict[str, Any]:
         if dist.metadata["Name"]
     }
     declared = _declared_packages()
-
-    rows = []
-    for name, version in sorted(installed.items()):
-        spec = declared.get(name) if declared else None
-        if spec is None:
-            status = "unlisted" if declared is not None else "unknown"
-            category = "—"
-            declared_version = "—"
-        else:
-            declared_version = spec["version"]
-            category = spec["category"]
-            status = "match" if spec["version"] == version else "drift"
-        rows.append(
-            {
-                "name": name,
-                "installed": version,
-                "declared": declared_version,
-                "category": category,
-                "status": status,
-            }
-        )
-    missing = sorted(set(declared) - set(installed)) if declared is not None else []
+    rows = [_sbom_row(name, version, declared) for name, version in sorted(installed.items())]
     return {
         "lockfile_readable": declared is not None,
         "rows": rows,
-        "missing": missing,
+        "missing": sorted(set(declared) - set(installed)) if declared is not None else [],
         "drift_count": sum(1 for row in rows if row["status"] == "drift"),
         "unlisted_count": sum(1 for row in rows if row["status"] == "unlisted"),
         "python_eol": _python_eol(),
