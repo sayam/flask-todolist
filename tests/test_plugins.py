@@ -652,8 +652,9 @@ def test_a_library_that_is_not_installed_is_reported(app, data_plugin):
     with app.app_context():
         plugin = plugins.find("auth/needy")
         assert plugins.missing_requirements(plugin) == ["ไม่มีแพ็กเกจนี้จริง"]
-        # ของที่ติดตั้งอยู่จริงต้องไม่ถูกรายงานว่าขาด
-        assert plugins.missing_requirements(plugins.find(TOTP_KEY)) == []
+        # ตัวเทียบ "ครบ" ต้องเป็น plugin ที่ไม่ประกาศไลบรารีเลย — totp ใช้ไม่ได้
+        # อีกแล้วตั้งแต่ ADR 0046 เพราะใน job bare มันขาด cryptography จริง ๆ
+        assert plugins.missing_requirements(plugins.find("themes/system")) == []
 
 
 def test_plugin_deps_lists_what_each_plugin_needs(app):

@@ -129,6 +129,7 @@ def test_the_cli_can_still_close_the_last_administrator(app, user_id):
         assert _closed_user(user_id).deleted_at is not None
 
 
+@pytest.mark.plugin_deps  # start_enrollment เขียนความลับแบบ encrypt แล้ว (ADR 0046)
 def test_secrets_held_by_plugins_are_erased_too(app, user_id):
     """**นี่คือบั๊กที่ ADR 0034 หาเจอ** — `flask delete-user` เดิมล้างรหัสผ่านกับ
     token ครบ แต่ไม่เคยแตะความลับของปัจจัยที่สองเลย ทั้งที่คอมเมนต์ในฟังก์ชันนั้น
