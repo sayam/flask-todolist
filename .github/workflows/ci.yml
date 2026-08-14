@@ -225,6 +225,47 @@ jobs:
       - run: PYTHONPATH=. pipenv run python scripts/build_asvs_worksheet.py --check
         if: ${{ !cancelled() }}
 
+  n-1:
+    # สัญญา N-1 (ADR 0048): โค้ดของ tag ล่าสุดต้องให้บริการบน schema ของ HEAD
+    # ได้จริง — rolling deploy มีจังหวะที่สองรุ่นรันพร้อมกันบน schema เดียวเสมอ
+    # migration ที่ฆ่าโค้ดเก่า = downtime ที่ไม่มีใครประกาศ
+    #
+    # วิธี: migrate ฐานข้อมูลด้วย HEAD → checkout tag ล่าสุดเป็น worktree →
+    # ติดตั้ง dependency ตาม lock ของรุ่นเก่า (โค้ดเก่า+ไลบรารีใหม่ = ทดสอบสิ่ง
+    # ที่ไม่มีใคร deploy) → รันสคริปต์ smoke ผ่าน /api/v1 ซึ่งสัญญาตรึงข้ามรุ่น
+    # อยู่แล้ว (ADR 0018) จึงไม่ต้องแก้เมื่อ tag ขยับ
+    runs-on: ubuntu-latest
+    env:
+      SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
+      DATABASE_URL: sqlite:////tmp/n1.db
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # ต้องเห็น tag ทั้งหมด — checkout ตื้นทำให้ git describe หา tag ไม่เจอ
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+          cache: pipenv
+      - run: pip install --require-hashes -r pins/pipenv/requirements.txt
+      - name: schema ของ HEAD
+        run: |
+          pipenv sync --dev
+          pipenv run flask db upgrade
+      - name: โค้ดของ tag ล่าสุด + dependency ตาม lock ของมันเอง
+        run: |
+          tag=$(git describe --tags --abbrev=0)
+          echo "n-1 against: $tag"
+          git worktree add /tmp/previous "$tag"
+          cd /tmp/previous
+          pipenv sync --dev
+      - name: โค้ดเก่าต้องให้บริการบน schema ใหม่ได้ (สองทิศพิสูจน์ไว้ใน ADR 0048)
+        working-directory: /tmp/previous
+        run: |
+          printf 'a-long-passphrase-from-the-past\na-long-passphrase-from-the-past\n' \
+            | pipenv run flask create-user veteran
+          pipenv run python "$GITHUB_WORKSPACE/scripts/n1_smoke.py"
+
   schema:
     # model กับ schema ที่ migration สร้างต้องตรงกันเป๊ะ
     #

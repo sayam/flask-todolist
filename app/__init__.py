@@ -186,11 +186,14 @@ def create_app(config_class=Config):
 
     from app.admin import bp as admin_bp
     from app.auth import bp as auth_bp
+    from app.health import bp as health_bp
     from app.routes import bp as main_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
+    # liveness/readiness (ADR 0048) — ไม่มี token ไม่มีข้อมูลภายใน ดู app/health.py
+    app.register_blueprint(health_bp)
 
     # /api/v1 — ต้องมาหลัง csrf.init_app() เพราะตัวมันขอยกเว้น CSRF ให้ blueprint ของ API
     from app.api import init_api
