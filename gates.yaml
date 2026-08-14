@@ -452,6 +452,19 @@ gates:
     layer: internal
     born_from: ""
 
+  - id: legal-pdpa-worksheet-honest
+    title: worksheet PDPA อ้างหลักฐานที่มีจริงทุกชิ้น และช่องว่างทุกข้ออยู่ใน backlog
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_pdpa.py]}
+    standard: []
+    requires: []
+    portable: false
+    layer: internal
+    born_from: >-
+      pilot ของชั้น legal (ADR 0042 · เฟส 13-04) — เอกสาร map กฎหมายที่ไม่มี
+      ใครตรวจหลักฐาน จะถูกใช้ตัดสินใจในวันที่มีเรื่องจริง ซึ่งสายเกินแก้
+
   - id: licensing-no-copyleft
     title: core ต้องไม่มี dependency ที่แบกภาระ copyleft — และด่านห้ามผ่านเพราะอ่านไม่ได้
     kind: test
