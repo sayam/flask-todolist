@@ -662,3 +662,27 @@ def test_two_dependents_on_the_same_late_target_are_both_at_risk(app, linked):
         row = dependencies_service.invite(malee, second.id, linked["target"])
         dependencies_service.accept(somchai, row.id)
         assert dependencies_service.at_risk_todo_ids(malee) == {linked["mine"], second.id}
+
+
+def test_every_admin_teams_action_rejects_regular_users(app, org):
+    """403 ทุกปุ่ม ไม่ใช่แค่หน้า list — การซ่อนเมนูไม่ใช่การกันสิทธิ์"""
+    client = _login(app, "malee")
+    assert client.post(f"/admin/teams/{org['team']}/delete").status_code == 403
+    assert (
+        client.post(f"/admin/teams/{org['team']}/members", data={"username": "frank"}).status_code
+        == 403
+    )
+    assert (
+        client.post(f"/admin/teams/{org['team']}/members/{org['somchai']}/remove").status_code
+        == 403
+    )
+
+
+def test_admin_form_conflicts_flash_instead_of_crashing(app, org):
+    boss = _login(app, "boss")
+    resp = boss.post("/admin/teams/add", data={"name": "alpha"}, follow_redirects=True)
+    assert resp.status_code == 200, "ชื่อวงซ้ำ = flash แล้วกลับหน้าเดิม ไม่ใช่ 500"
+    resp = boss.post(
+        f"/admin/teams/{org['team']}/members", data={"username": "somchai"}, follow_redirects=True
+    )
+    assert resp.status_code == 200, "สมาชิกซ้ำ = flash แล้วกลับหน้าเดิม ไม่ใช่ 500"
