@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import pathlib
 import shutil
 import subprocess
@@ -67,14 +66,22 @@ def run_scans(app_dir: pathlib.Path) -> dict[str, Any]:
     return status
 
 
-def run_semgrep(app_dir: pathlib.Path) -> int | None:
-    """จำนวน finding ของ semgrep — None ถ้าไม่ได้ตั้ง SEMGREP_BIN (= ข้าม ไม่ใช่ 0)"""
-    binary = os.environ.get("SEMGREP_BIN")
-    if not binary:
+def run_semgrep(app_dir: pathlib.Path, binary: pathlib.Path | None) -> int | None:
+    """จำนวน finding ของ semgrep — None ถ้าไม่ได้ส่ง `--semgrep` มา (= ข้าม ไม่ใช่ 0)
+
+    **รับ path ทาง argument ไม่ใช่ทาง environment** โดยตั้งใจ: ตัวรันที่มาจาก
+    ตัวแปรแวดล้อมคือตัวรันที่เปลี่ยนได้โดยไม่มีใครเห็นในคำสั่ง (semgrep เองก็จับ
+    รูปนี้ด้วยกฎ `dangerous-subprocess-use-tainted-env-args`) · path ถูกตรวจว่า
+    มีจริงและเป็นไฟล์ก่อนเรียกเสมอ
+    """
+    if binary is None:
         return None
+    resolved = binary.resolve(strict=True)
+    if not resolved.is_file():
+        raise SystemExit(f"--semgrep ไม่ใช่ไฟล์: {resolved}")
     result = subprocess.run(  # noqa: S603
         [
-            binary,
+            str(resolved),
             "scan",
             "--config",
             "p/flask",
@@ -115,7 +122,9 @@ def staged(app_dir: pathlib.Path, into: pathlib.Path) -> pathlib.Path:
     return target
 
 
-def measure(app_dir: pathlib.Path, side: str, into: pathlib.Path) -> dict[str, Any]:
+def measure(
+    app_dir: pathlib.Path, side: str, into: pathlib.Path, semgrep: pathlib.Path | None
+) -> dict[str, Any]:
     """วัดแอปเดียวครบทั้งสามแกน — บนสำเนาที่ตัดของ overlay ออกแล้ว"""
     original = app_dir
     app_dir = staged(app_dir, into)
@@ -137,7 +146,7 @@ def measure(app_dir: pathlib.Path, side: str, into: pathlib.Path) -> dict[str, A
         "asvs_pass": sum(1 for v in asvs.values() if v is True),
         "asvs_fail": sorted(k for k, v in asvs.items() if v is False),
         "asvs_na": sorted(k for k, v in asvs.items() if v is None),
-        "semgrep": run_semgrep(app_dir),
+        "semgrep": run_semgrep(app_dir, semgrep),
     }
 
 
@@ -146,11 +155,17 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("root", type=pathlib.Path)
     parser.add_argument("--output", type=pathlib.Path)
+    parser.add_argument("--semgrep", type=pathlib.Path, help="path ของ semgrep — ไม่ส่ง = ข้ามแกนนี้")
     args = parser.parse_args()
 
     with tempfile.TemporaryDirectory() as staging:
         rows = [
-            measure(app_dir, side_dir.name, pathlib.Path(staging) / side_dir.name / app_dir.name)
+            measure(
+                app_dir,
+                side_dir.name,
+                pathlib.Path(staging) / side_dir.name / app_dir.name,
+                args.semgrep,
+            )
             for side_dir in sorted(p for p in args.root.iterdir() if p.is_dir())
             for app_dir in sorted(p for p in side_dir.iterdir() if p.is_dir())
         ]
