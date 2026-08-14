@@ -126,6 +126,15 @@ generate สดตรงกับดัชนี · PDPA worksheet หลัก�
 
 ## Phase 16 — Operations / HA / N-1
 
+> **สถานะ: ปิดแล้ว (2026-08-15)** — ADR ตัวจริงคือ **0048** (แผนเดิมเขียน 0047
+> ก่อนลำดับ accept จริงจะลงตัว) · job `n-1` พิสูจน์โค้ด tag ล่าสุดบน schema
+> ของ HEAD ทุก push (สองทิศ) · `/healthz`+`/readyz` ไม่มี token/ไม่มีข้อมูล
+> ภายใน/ไม่ spam log · Prometheus+Grafana ดูด `/metrics` จริงผ่านด่าน token
+> (job `scrape` — token ผิดต้อง `up=0` วัดแล้ว) · วัด `--workers` แล้ว:
+> **คง 1 worker** (เหตุผลเรื่อง `/metrics` per-process — ตัวเลขใน
+> PERFORMANCE.md) · วัด rolling ซ้ำ: ยังหลุดฝั่ง proxy — graceful shutdown
+> ไม่ใช่ตัวแก้ จดเป็นงานค้าง (dynamic upstream ของ nginx)
+
 | ขั้น | งาน |
 |---|---|
 | 16-01 | ADR 0047: นิยาม compatible range (N-1) + วินัย expand-contract migration |
