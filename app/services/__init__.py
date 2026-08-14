@@ -24,6 +24,7 @@ from app.services.errors import (
     ForbiddenError,
     NotFoundError,
     ServiceError,
+    UnreachableError,
     ValidationError,
 )
 
@@ -32,5 +33,6 @@ __all__ = [
     "ForbiddenError",
     "NotFoundError",
     "ServiceError",
+    "UnreachableError",
     "ValidationError",
 ]

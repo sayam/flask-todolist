@@ -29,9 +29,9 @@ from flask import current_app
 from flask_babel import gettext as _
 from sqlalchemy import select
 
-from app import audit, db
+from app import audit, db, plugins
 from app.models import User
-from app.services.errors import ValidationError
+from app.services.errors import UnreachableError, ValidationError
 
 from .models import DirectoryIdentity
 
@@ -44,7 +44,11 @@ def _setting(name: str, default: str = "") -> str:
 
     เหตุผลเดียวกับ `auth/oidc`: core ไม่ประกาศคีย์ของ plugin ไว้ใน `config.py`
     (ADR 0023) และเทสต์ต้องตั้งค่าได้โดยไม่แตะ environment ของเครื่องที่รัน
+
+    ใต้ auth profile (ADR 0047) ชื่อคีย์ถูกสอดชื่อ profile ไว้ (`LDAP_URL` →
+    `LDAP_HQ_URL`) และ**ไม่ตกกลับคีย์เปล่า** — เหตุผลอยู่ที่ ADR
     """
+    name = plugins.profile_setting_name(name)
     value = current_app.config.get(name)
     if value is None:
         value = os.environ.get(name, default)
@@ -55,9 +59,22 @@ def _require(name: str) -> str:
     value = _setting(name)
     if not value:
         raise ValidationError(
-            _("The directory is not configured"), code="ldap_not_configured", field=name
+            _("The directory is not configured"),
+            code="ldap_not_configured",
+            field=plugins.profile_setting_name(name),
         )
     return value
+
+
+def configured() -> bool:
+    """profile นี้มี config ครบพอจะถามได้จริงไหม (ADR 0047 — ไม่ยิง network)"""
+    return bool(_setting("LDAP_URL")) and bool(_setting("LDAP_BASE_DN"))
+
+
+def label() -> str:
+    """ป้ายของ profile นี้ — ตั้งผ่าน `LDAP_<PROFILE>_LABEL` (แบบ credential ไม่มีปุ่ม
+    แต่ป้ายยังโผล่ใน log/plugin-list ให้ผู้ดูแลอ่านออก)"""
+    return _setting("LDAP_LABEL")
 
 
 def _server_url() -> str:
@@ -98,9 +115,10 @@ def _connect(user: str | None = None, password: str | None = None) -> Any:
         if not connection.bind():
             return None
     except ldap3.core.exceptions.LDAPException as error:
-        # ต่อไม่ติด/TLS ไม่ผ่าน = **ตอบไม่ได้** ไม่ใช่ตอบว่าไม่ใช่ — แต่ผลลัพธ์
-        # ที่ปลอดภัยของความไม่แน่นอนนี้คือ login ไม่ผ่าน (core จะ log ให้เอง)
-        raise ValidationError(
+        # ต่อไม่ติด/TLS ไม่ผ่าน = **ตอบไม่ได้** ไม่ใช่ตอบว่าไม่ใช่ — ชนิดนี้
+        # เป็นชนิดเดียวที่ core ยอมลอง profile ถัดไป (ADR 0047) เพราะ directory
+        # ที่ล่มไม่ได้ปฏิเสธใคร
+        raise UnreachableError(
             _("Could not reach the directory"), code="ldap_unreachable"
         ) from error
     return connection

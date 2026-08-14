@@ -905,6 +905,15 @@ jobs:
           [ "$code" = "302" ] || { echo "POST /login ด้วยรหัสของ directory → $code"; $COMPOSE logs app | tail -30; exit 1; }
           home=$(curl -s -b "$jar" -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/)
           [ "$home" = "200" ] || { echo "GET / หลัง login → $home"; exit 1; }
+      - name: profile แรก (ghost) ต้องถูกลองจริงแล้วจึง fallback — ADR 0047
+        run: |
+          # login ข้างบนสำเร็จผ่าน profile `hq` ทั้งที่ `ghost` ประกาศไว้ก่อน —
+          # แต่ "สำเร็จ" อย่างเดียวยังไม่พิสูจน์ว่าลำดับถูกเดิน: ถ้าระบบข้าม
+          # ghost ไปเฉย ๆ ผลลัพธ์ก็หน้าตาเดียวกัน ด่านนี้จึงอ่าน log ของแอปว่า
+          # มีบันทึก "ติดต่อไม่ได้ → ลองตัวถัดไป" ของ ghost จริง (สัญญาณที่วัด
+          # ต้องเป็นของเหตุการณ์ ไม่ใช่ของผลลัพธ์ — บทเรียนเฟส 5)
+          $COMPOSE logs app | grep -q "ติดต่อไม่ได้" \
+            || { echo "ไม่มีร่องรอยว่า profile ghost ถูกลองก่อน"; $COMPOSE logs app | tail -30; exit 1; }
       - name: กลุ่มใน directory ต้องกลายเป็นบทบาทที่นี่
         run: |
           # ผู้ใช้ถูกสร้างเป็น `user` แล้วต้องถูกยกเป็น admin ตอน login เพราะอยู่ใน

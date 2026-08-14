@@ -37,7 +37,7 @@
       {% for provider in sso_providers %}
         <li>
           <a href="{{ url_for('auth.sso_begin', key=provider.key) }}">
-            {{ _('Sign in with %(provider)s', provider=provider.manifest['name']) }}
+            {{ _('Sign in with %(provider)s', provider=provider.label) }}
           </a>
         </li>
       {% endfor %}

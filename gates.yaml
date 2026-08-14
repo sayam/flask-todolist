@@ -665,6 +665,7 @@ gates:
         - tests/test_api_todos.py
         - tests/test_api_tokens.py
         - tests/test_app.py
+        - tests/test_auth_profiles.py
         - tests/test_cache.py
         - tests/test_cli.py
         - tests/test_due_and_filter.py

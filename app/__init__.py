@@ -88,8 +88,13 @@ def create_app(config_class=Config):
     # อีกต่อไป (ADR 0030) ถ้าเช็คก่อนเติม แอปจะปฏิเสธที่จะ start ทั้งที่ค่ามีอยู่
     init_secrets(app)
     check_secret_key(app.config.get("SECRET_KEY"))
-    # ให้พังตั้งแต่ตอน start ถ้าโครงสร้าง plugin ไม่ถูกต้อง
-    plugins.check_installation()
+    # ให้พังตั้งแต่ตอน start ถ้าโครงสร้าง plugin ไม่ถูกต้อง — **ต้องอยู่ใน
+    # app context** เพราะด่านที่อ่าน config (DISABLED_PLUGINS/AUTH_PROFILES)
+    # คืนค่าว่างเงียบ ๆ เมื่อไม่มี context: ด่านที่มีอยู่แต่ไม่เคยถูกเรียกในสภาพ
+    # ที่มันตรวจได้ คือด่านที่เขียวเปล่า ๆ (เจอตอนเฟส 17 — เทสต์ "config ผิด
+    # ต้องไม่ start" ผ่านเฉพาะตอนเรียกด่านเองใน context ไม่ใช่ผ่าน create_app)
+    with app.app_context():
+        plugins.check_installation()
 
     # เลือก backend ของฐานข้อมูลจาก scheme ของ URL แล้วโหลดค่าเฉพาะยี่ห้อของมัน
     # (ADR 0026) — **ต้องทำก่อน `db.init_app()`** เพราะ listener ที่ backend ผูกไว้

@@ -136,6 +136,13 @@ generate สดตรงกับดัชนี · PDPA worksheet หลัก�
 
 ## Phase 17 — Auth หลาย profile
 
+> **สถานะ: ปิดแล้ว (2026-08-15)** — ADR ตัวจริงคือ **0047** (แผนเดิมตั้งเลข 0048
+> ไว้ก่อน 0046 ถูก accept — เลขจริงตามลำดับ accept) · profile = instance ของ
+> config คีย์มี prefix ไม่ตกกลับคีย์เปล่า · ปฏิเสธ = สิ้นสุด, fallback เฉพาะ
+> "ติดต่อไม่ได้" (`UnreachableError`) · ปิดทีละ profile ผ่าน `DISABLED_PLUGINS`
+> · ผูกหลาย directory เข้าผู้ใช้เดียวได้ (ปิดของค้าง "หลาย IdP") · job `ldap`
+> ใน CI เดินสอง profile จริง (ตัวแรกต่อไม่ติด ต้อง fallback แล้ว login สำเร็จ)
+
 | ขั้น | งาน |
 |---|---|
 | 17-01 | ADR 0048: named profiles — plugin เดียว หลาย config instance (`ldap:corp`, `ldap:partner`) · ลำดับลองต้อง**ประกาศ** · ไม่มี fallback เงียบ · ปิด profile เดียวได้โดยไม่กระทบตัวอื่น |

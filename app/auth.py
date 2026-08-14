@@ -188,8 +188,8 @@ def sso_begin(key):
     if current_user.is_authenticated:
         return redirect(url_for("main.index"))
     try:
-        plugin = sso.find(key)
-        target, pending = sso.begin(plugin, _callback_url(key))
+        provider = sso.find(key)
+        target, pending = sso.begin(provider, _callback_url(key))
     except ServiceError as error:
         flash(error.message)
         return _login_page(), HTTPStatus.BAD_REQUEST
@@ -210,13 +210,13 @@ def sso_callback(key):
     pending = session.pop(SSO_PENDING_KEY, None)
     started_with = session.pop(SSO_PROVIDER_KEY, None)
     try:
-        plugin = sso.find(key)
+        provider = sso.find(key)
         if pending is None or started_with != key:
             # ไม่ได้เริ่มจากที่นี่ หรือเริ่มกับผู้ให้บริการคนละเจ้า
             raise ValidationError(
                 _("Sign-in session expired — please try again"), code="sso_no_pending"
             )
-        user = sso.finish(plugin, request.args.to_dict(), pending)
+        user = sso.finish(provider, request.args.to_dict(), pending)
     except ServiceError as error:
         # **ไม่บันทึกค่าที่ผู้ใช้/IdP ส่งมา** ด้วยเหตุผลเดียวกับ login ที่ผิดรหัส
         audit.record("auth.sso_failed", table_name="tdl_user", row_id=None)
