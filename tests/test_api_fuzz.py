@@ -20,6 +20,8 @@
 import pytest
 import schemathesis
 from hypothesis import HealthCheck, settings
+from schemathesis.core.failures import AcceptedNegativeData, FailureGroup
+from schemathesis.generation import GenerationMode
 from schemathesis.specs.openapi import checks as openapi_checks
 
 from app import create_app, db
@@ -56,6 +58,29 @@ with _app.app_context():
 schema = schemathesis.openapi.from_wsgi("/api/v1/openapi.json", _app)
 
 
+def _negative_payload_survives_the_wire(case) -> bool:
+    """negative ที่อยู่ *นอก* body ไม่รอดการ serialize — ตัดสินจากของที่ถูกส่งจริง
+
+    query string กับ header เป็นสตริงโดยนิยามของ HTTP: ค่าที่ "ผิดชนิด" อย่าง
+    `[None]` หรือ property ส่วนเกินที่ชื่อมีอักขระควบคุม จะ**ระเหยหายตอน
+    serialize** — สิ่งที่ถึงแอปคือ request ที่ถูก spec ทุกประการ แอปตอบ 200
+    อย่างถูกต้อง แต่ `negative_data_rejection` ตัดสินจากข้อมูล*ก่อน* serialize
+    จึงกล่าวหาว่าแอป "รับของผิด schema" ทั้งที่ของผิดนั้นไม่เคยถูกส่งไป
+    (เจอจริง: `?date_from=` บน CI · reproduce แล้วเห็น query ที่ generate เป็น
+    `{'\\n-v·òLØF': [None], ...}` แต่บนสายเหลือแค่พารามิเตอร์ปกติ)
+
+    ส่วน **body เป็น JSON ซึ่งรักษาชนิดข้ามสายได้จริง** — negative ของ body
+    ต้องไม่ถูกกรองทิ้งเด็ดขาด · และฝั่ง query ที่*แทนค่าได้จริง* (ชื่อพารามิเตอร์
+    แปลกปลอมแบบปกติ) มีเทสต์ deterministic คุมอยู่แล้ว:
+    `tests/test_api_todos.py::test_an_unknown_query_parameter_is_refused`
+    """
+    components = case.meta.components if case.meta else {}
+    return any(
+        location.value == "body" and info.mode is GenerationMode.NEGATIVE
+        for location, info in components.items()
+    )
+
+
 @schema.parametrize()
 @settings(max_examples=15, deadline=None, suppress_health_check=[HealthCheck.too_slow])
 @pytest.mark.filterwarnings("ignore::DeprecationWarning")
@@ -67,8 +92,25 @@ def test_the_api_answers_the_way_the_spec_promises(case):
     **รูปแบบ** (`name` เป็นสตริง) ส่วนกติกา **ความหมาย** ("ห้ามว่าง") อยู่ที่
     service ชั้นเดียวตาม ADR 0016 ชื่อว่าง ๆ จึงถูกตอบ 400 อย่างตั้งใจ และ
     สัญญาก็ประกาศ 400 ไว้ในทุก operation ที่เป็นแบบนี้แล้ว
+
+    `AcceptedNegativeData` ถูกกรองเฉพาะเคสที่ negative อยู่นอก body —
+    ดูเหตุผลเต็มที่ `_negative_payload_survives_the_wire`
     """
-    case.call_and_validate(
-        headers={"Authorization": f"Bearer {TOKEN}"},
-        excluded_checks=[openapi_checks.positive_data_acceptance],
-    )
+    response = case.call(headers={"Authorization": f"Bearer {TOKEN}"})
+    try:
+        case.validate_response(
+            response,
+            excluded_checks=[openapi_checks.positive_data_acceptance],
+            # check ฝั่ง auth ต้องรู้ว่าเรา override Authorization ด้วย token จริง
+            # ไม่งั้นมันเห็น "auth ที่ generate มามั่ว ๆ ได้ 200" แล้วฟ้อง IgnoredAuth
+            headers={"Authorization": f"Bearer {TOKEN}"},
+        )
+    except FailureGroup as group:
+        real = [
+            failure
+            for failure in group.exceptions
+            if not isinstance(failure, AcceptedNegativeData)
+            or _negative_payload_survives_the_wire(case)
+        ]
+        if real:
+            raise
