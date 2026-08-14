@@ -955,6 +955,21 @@ gates:
       ADR 0037 — กฎที่นับแต่ 401 เงียบพอดีตอนที่การโจมตีหนักที่สุด เพราะโควตา
       ตัดที่ 5 ที่เหลือกลายเป็น 429 · ต้องพิสูจน์ว่า alert ดัง ไม่ใช่ว่ามีกฎ
 
+  - id: metrics-scraped-for-real
+    title: Prometheus ดูด /metrics ผ่านด่าน token จริง และตัวเลขไปถึง TSDB จริง
+    kind: job
+    severity: blocking
+    enforced_by: {job: scrape}
+    standard: []
+    requires: [docker-compose]
+    portable: false
+    layer: internal
+    born_from: >-
+      ADR 0031 ทิ้งของค้างไว้ว่า "มีของให้ดูดแล้วแต่ยังไม่มีใคร scrape" —
+      endpoint ที่ไม่มีตัวดูดจริงคือ endpoint ที่วันหนึ่งพังเงียบ ๆ ได้โดยไม่มี
+      ใครรู้ · และต้องพิสูจน์ด้วยว่าด่าน token ยังปิดอยู่ (ดูดได้เพราะกุญแจถูก
+      ไม่ใช่เพราะประตูเปิดโล่ง)
+
   - id: zap-authenticated-scan
     title: ZAP baseline ยิง stack จริงแบบ login แล้ว — วัดว่าสแกนจริงจาก log ของแอป
     kind: job

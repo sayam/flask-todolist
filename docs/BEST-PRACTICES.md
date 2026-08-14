@@ -19,7 +19,7 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 |---|---|---|
 | `description_good` MUST | ผ่าน | `README.md` ย่อหน้าแรกบอกว่าเป็นอะไรและแก้ปัญหาอะไร · **ต้องเติมช่อง About ของ repo ด้วย — ตอนนี้ว่าง** |
 | `interact` MUST | ผ่าน | `README.md` มีวิธีติดตั้ง/รัน · `CONTRIBUTING.md` มีวิธีเสนอการเปลี่ยนแปลง · Issues เปิดอยู่ |
-| `contribution` MUST | ผ่าน | `CONTRIBUTING.md` — อธิบายว่าใช้ PR, ต้องผ่าน 24 required check, merge ด้วย rebase, และกติกาลงทะเบียนไฟล์เทสต์ใน `gates.yaml` |
+| `contribution` MUST | ผ่าน | `CONTRIBUTING.md` — อธิบายว่าใช้ PR, ต้องผ่าน 26 required check, merge ด้วย rebase, และกติกาลงทะเบียนไฟล์เทสต์ใน `gates.yaml` |
 | `contribution_requirements` SHOULD | ผ่าน | `CONTRIBUTING.md` — Conventional Commits (หัว ≤72), ruff/mypy, **กติกา mutation test ของเทสต์ใหม่** |
 | `floss_license` MUST | ผ่าน | `LICENSE` (MIT) · GitHub ตรวจพบเป็น `MIT` แล้ว |
 | `floss_license_osi` SUGGESTED | ผ่าน | MIT เป็นสัญญาอนุญาตที่ OSI รับรอง — [ADR 0038](adr/0038-mit-license.md) |
