@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Supply chain') }}{% endblock %}
+
+{% block content %}
+<h2>{{ _('Supply chain') }}</h2>
+{% include '_admin_nav.html' %}
+
+{% if facts.python_eol %}
+<p>
+  Python {{ facts.python_eol.cycle }} — {{ _('end of life') }} {{ facts.python_eol.eol }}
+  ({{ facts.python_eol.days_left }} {{ _('days left') }} ·
+  {{ _('table pinned on') }} {{ facts.python_eol.fetched_on }})
+</p>
+{% else %}
+<p>{{ _('The pinned EOL table does not cover this runtime — refresh it with scripts/build_eol_table.py') }}</p>
+{% endif %}
+
+{% if not facts.lockfile_readable %}
+<p><strong>{{ _('Pipfile.lock is not readable here — showing installed packages only, drift cannot be judged') }}</strong></p>
+{% elif facts.drift_count or facts.unlisted_count or facts.missing %}
+<p><strong>{{ _('Drift detected:') }} {{ facts.drift_count }} · {{ _('unlisted:') }} {{ facts.unlisted_count }} · {{ _('declared but not installed:') }} {{ facts.missing | length }}</strong></p>
+{% else %}
+<p>{{ _('Everything installed matches the lock file exactly') }}</p>
+{% endif %}
+
+<table>
+  <caption>{{ _('What this process actually has, against what the lock file declares') }}</caption>
+  <thead>
+    <tr>
+      <th scope="col">{{ _('Package') }}</th>
+      <th scope="col">{{ _('Installed') }}</th>
+      <th scope="col">{{ _('Declared') }}</th>
+      <th scope="col">{{ _('Owner (category)') }}</th>
+      <th scope="col">{{ _('State') }}</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in facts.rows %}
+    <tr>
+      <th scope="row">{{ row.name }}</th>
+      <td>{{ row.installed }}</td>
+      <td>{{ row.declared }}</td>
+      <td>{{ row.category }}</td>
+      <td>{{ row.status }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% if facts.missing %}
+<h3>{{ _('Declared but not installed') }}</h3>
+<ul>
+  {% for name in facts.missing %}<li>{{ name }}</li>{% endfor %}
+</ul>
+{% endif %}
+{% endblock %}

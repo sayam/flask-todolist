@@ -19,7 +19,7 @@ from app.services import ForbiddenError, system_info
 from app.services import roles as roles_service
 from tests.conftest import PASSWORD
 
-PANEL_PATHS = ("/admin/environment", "/admin/lifecycle", "/admin/observability")
+PANEL_PATHS = ("/admin/environment", "/admin/lifecycle", "/admin/observability", "/admin/sbom")
 
 
 def _two_people(app):
@@ -117,7 +117,7 @@ def test_the_service_refuses_non_admins_directly(app):
                 fn(member)
 
 
-def test_all_four_panels_are_registered_in_the_nav(app):
+def test_every_panel_is_registered_in_the_nav(app):
     """หน้าใหม่ต้องลงทะเบียนเข้า registry — nav วนจาก registry ไม่ hardcode (ADR 0044)"""
     from app.admin import PANELS
 
@@ -126,5 +126,69 @@ def test_all_four_panels_are_registered_in_the_nav(app):
         "admin.users",
         "admin.environment",
         "admin.lifecycle",
+        "admin.sbom",
         "admin.observability",
     }, f"panel ที่ลงทะเบียน: {sorted(endpoints)}"
+
+
+def test_sbom_reports_real_installed_packages_with_owners(app):
+    """แถวเทียบกับ importlib.metadata จริง และ package ของ plugin ระบุเจ้าของเป็น category
+
+    flask ต้องเป็นของ default (core) — และถ้าใน env นี้มีไลบรารีของ plugin
+    ติดตั้งอยู่ เจ้าของต้องเป็น category ของ plugin นั้น ไม่ใช่ default
+    """
+    from importlib import metadata as im
+
+    _two_people(app)
+    with app.app_context():
+        boss = db.session.query(User).filter_by(username="boss").one()
+        facts = system_info.sbom(boss)
+    assert facts["lockfile_readable"], "รันจาก repo จริงต้องอ่าน Pipfile.lock ได้"
+    by_name = {row["name"]: row for row in facts["rows"]}
+    assert by_name["flask"]["installed"] == im.version("flask"), "รุ่นบนหน้าไม่ตรงกับที่ติดตั้งจริง"
+    assert by_name["flask"]["category"] == "default"
+    assert by_name["flask"]["status"] in ("match", "drift")
+
+
+def test_sbom_actually_detects_drift_and_unlisted_packages(app, monkeypatch, tmp_path):
+    """drift ต้องถูก *ตรวจ* ไม่ใช่ถูกประกาศ — ปลูก lock ปลอมแล้วดูว่ามันจับได้
+
+    mutation test รอบแรกพิสูจน์ว่าเทสต์ชุดเดิมผ่านแม้ตัวตัดสิน drift ตอบ
+    "match" เสมอ — เทสต์นี้คือคำตอบ: lock ที่ประกาศ flask รุ่นที่ไม่มีจริง
+    ต้องได้ drift และ package ที่ติดตั้งแต่ lock ไม่รู้จักต้องได้ unlisted
+    """
+    import json as jsonlib
+
+    _two_people(app)
+    fake = tmp_path / "Pipfile.lock"
+    fake.write_text(jsonlib.dumps({"default": {"flask": {"version": "==0.0.1"}}}), encoding="utf-8")
+    monkeypatch.setattr(system_info, "LOCKFILE", fake)
+    with app.app_context():
+        boss = db.session.query(User).filter_by(username="boss").one()
+        facts = system_info.sbom(boss)
+    by_name = {row["name"]: row for row in facts["rows"]}
+    assert by_name["flask"]["status"] == "drift", "รุ่นไม่ตรง lock แต่ไม่ถูกนับเป็น drift"
+    assert facts["drift_count"] >= 1
+    assert by_name["pytest"]["status"] == "unlisted", "ของที่ lock ไม่รู้จักต้องเป็น unlisted"
+
+
+def test_sbom_is_honest_when_the_lockfile_is_missing(app, monkeypatch, tmp_path):
+    """ไม่มี lock (เช่นใน image ที่ไม่ได้ copy มา) = บอกตรง ๆ ว่าตัดสิน drift ไม่ได้"""
+    _two_people(app)
+    monkeypatch.setattr(system_info, "LOCKFILE", tmp_path / "none")
+    with app.app_context():
+        boss = db.session.query(User).filter_by(username="boss").one()
+        facts = system_info.sbom(boss)
+    assert facts["lockfile_readable"] is False
+    assert all(row["status"] == "unknown" for row in facts["rows"])
+
+
+def test_sbom_shows_python_eol_from_the_pinned_table(app):
+    """EOL มาจากตารางที่ตรึงไว้ (ไม่ fetch ตอนรัน) และครอบ runtime ที่ใช้จริง"""
+    _two_people(app)
+    with app.app_context():
+        boss = db.session.query(User).filter_by(username="boss").one()
+        facts = system_info.sbom(boss)
+    eol = facts["python_eol"]
+    assert eol is not None, "ตารางที่ตรึงไม่ครอบ python ที่กำลังรัน"
+    assert eol["cycle"] == f"{sys.version_info.major}.{sys.version_info.minor}"

@@ -47,6 +47,18 @@ def observability():
     return render_template("admin_observability.html", facts=facts)
 
 
+@bp.route("/sbom")
+@login_required
+def sbom():
+    """SBOM ฉบับ runtime — ของที่ติดตั้งจริงเทียบกับที่ lock ประกาศ + เจ้าของต่อ package"""
+    try:
+        facts = system_info.sbom(current_user)
+    except ForbiddenError:
+        abort(403)
+    return render_template("admin_sbom.html", facts=facts)
+
+
 register_panel("admin.environment", _l("Environment"))
 register_panel("admin.lifecycle", _l("Lifecycle"))
+register_panel("admin.sbom", _l("Supply chain"))
 register_panel("admin.observability", _l("Observability"))

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Privacy') }}{% endblock %}
+
+{% block content %}
+<h2>{{ _('Privacy') }}</h2>
+
+<p>{{ _('This is a personal to-do application. It stores only what the service itself needs, and nothing is shared with anyone else.') }}</p>
+
+<h3>{{ _('What is stored, and why') }}</h3>
+<ul>
+  <li>{{ _('Your username and a password hash — to sign you in. No e-mail address is ever collected.') }}</li>
+  <li>{{ _('An optional first and last name, language, theme, and timezone — so the app can address and render things your way.') }}</li>
+  <li>{{ _('Your tasks and categories — that is the whole point of the app. They belong to you and are not visible to other users; administrators see them masked or not at all.') }}</li>
+  <li>{{ _('An append-only audit trail of changes — kept as evidence, storing references, never the content of secrets.') }}</li>
+</ul>
+
+<h3>{{ _('How long it is kept') }}</h3>
+<ul>
+  <li>{{ _('Deleted items and closed accounts are purged for real after %(days)d days.', days=purge_after_days) }}</li>
+  <li>{{ _('Audit entries are kept for %(days)d days, then removed from the head of the chain.', days=audit_retain_days) }}</li>
+</ul>
+
+<h3>{{ _('Your rights') }}</h3>
+<ul>
+  <li>{{ _('Export everything about you as machine-readable JSON from the settings page, at any time, without asking anyone.') }}</li>
+  <li>{{ _('Close your account yourself from the settings page — secrets are wiped immediately, the rest follows the retention period above.') }}</li>
+  <li>{{ _('Correct anything about yourself directly — profile, language, timezone, and every task are editable in place.') }}</li>
+</ul>
+
+<p>{{ _('Questions about how a specific deployment is operated belong to whoever runs it — this page describes what the software itself does.') }}</p>
+{% endblock %}

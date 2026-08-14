@@ -82,6 +82,23 @@ def _todo_fields():
     }
 
 
+@bp.route("/privacy")
+def privacy():
+    """privacy notice ที่ผู้ใช้เห็นเอง (PDPA ม.23) — เข้าถึงได้โดยไม่ login
+
+    ตัวเลขระยะเก็บรักษาอ่านจากค่าที่ purge job ใช้จริง ไม่เขียนซ้ำ — แหล่งเดียว
+    กับ `docs/ROPA.md`/`docs/DATA-CLASSIFICATION.md` (เทสต์เทียบกับค่าจริงในโค้ด
+    แบบเดียวกับ `tests/test_ropa.py`)
+    """
+    from app.purge import AUDIT_RETAIN_DAYS, PURGE_AFTER_DAYS
+
+    return render_template(
+        "privacy.html",
+        purge_after_days=PURGE_AFTER_DAYS,
+        audit_retain_days=AUDIT_RETAIN_DAYS,
+    )
+
+
 @bp.route("/")
 @login_required
 def index():

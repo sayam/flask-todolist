@@ -11,9 +11,12 @@
 
 from __future__ import annotations
 
+import datetime
+import json
 import pathlib
 import platform
 import sys
+from importlib import metadata
 from typing import Any
 
 from sqlalchemy import text
@@ -115,3 +118,98 @@ def observability(actor: Any) -> dict[str, Any]:
         for (endpoint, method, status), _counts, total, elapsed in sorted(histogram.snapshot())
     ]
     return {"caveat": PROCESS_LOCAL_CAVEAT, "rows": rows}
+
+
+# ---------------------------------------------------------------- active SBOM
+
+LOCKFILE = MIGRATIONS_DIR.parent / "Pipfile.lock"
+EOL_TABLE = MIGRATIONS_DIR.parent / "docs" / "eol-pinned.json"
+
+
+def _normalized(name: str) -> str:
+    """ชื่อ package แบบ canonical ของ pip — เทียบข้ามแหล่งได้"""
+    return name.lower().replace("_", "-")
+
+
+def _declared_packages() -> dict[str, dict[str, str]] | None:
+    """package ที่ lock ประกาศ ต่อชื่อ: {version, category} — ไม่มี lock = None
+
+    category คือคำตอบของ "ของใคร": `default`/`deploy` = core ·
+    `plugin-<ชนิด>-<ไอดี>` = supply chain ของ plugin ตัวนั้น (ADR 0025)
+    """
+    if not LOCKFILE.is_file():
+        return None
+    lock = json.loads(LOCKFILE.read_text(encoding="utf-8"))
+    declared: dict[str, dict[str, str]] = {}
+    for section, packages in lock.items():
+        if section.startswith("_"):
+            continue
+        for name, spec in packages.items():
+            version = (spec.get("version") or "").lstrip("=")
+            declared[_normalized(name)] = {"version": version, "category": section}
+    return declared
+
+
+def _python_eol() -> dict[str, Any] | None:
+    """สถานะ EOL ของ python cycle ที่กำลังรัน จากตารางที่ตรึงไว้ — อ่านไม่ได้ = None"""
+    try:
+        data = json.loads(EOL_TABLE.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    running = f"{sys.version_info.major}.{sys.version_info.minor}"
+    for row in data.get("python", []):
+        if row.get("cycle") == running:
+            eol = datetime.date.fromisoformat(row["eol"])
+            return {
+                "cycle": running,
+                "eol": row["eol"],
+                "days_left": (eol - datetime.date.today()).days,
+                "fetched_on": data.get("_fetched_on", "—"),
+            }
+    return None
+
+
+def sbom(actor: Any) -> dict[str, Any]:
+    """SBOM ฉบับ runtime: ของที่ติดตั้ง*จริง*เทียบกับที่ lock ประกาศ + เจ้าของต่อ package
+
+    ความต่างจาก SBOM ในเอกสาร (job `sbom` ของ CI): อันนั้นคือ*คำประกาศ* —
+    อันนี้คือ*ความจริงของ process นี้* สองอย่างต่างกันได้ และความต่างนั่นแหละ
+    คือสิ่งที่หน้านี้มีไว้จับ (drift = มีของที่ไม่ได้ประกาศ หรือรุ่นไม่ตรง)
+    """
+    require_admin(actor)
+    installed = {
+        _normalized(dist.metadata["Name"]): dist.version
+        for dist in metadata.distributions()
+        if dist.metadata["Name"]
+    }
+    declared = _declared_packages()
+
+    rows = []
+    for name, version in sorted(installed.items()):
+        spec = declared.get(name) if declared else None
+        if spec is None:
+            status = "unlisted" if declared is not None else "unknown"
+            category = "—"
+            declared_version = "—"
+        else:
+            declared_version = spec["version"]
+            category = spec["category"]
+            status = "match" if spec["version"] == version else "drift"
+        rows.append(
+            {
+                "name": name,
+                "installed": version,
+                "declared": declared_version,
+                "category": category,
+                "status": status,
+            }
+        )
+    missing = sorted(set(declared) - set(installed)) if declared is not None else []
+    return {
+        "lockfile_readable": declared is not None,
+        "rows": rows,
+        "missing": missing,
+        "drift_count": sum(1 for row in rows if row["status"] == "drift"),
+        "unlisted_count": sum(1 for row in rows if row["status"] == "unlisted"),
+        "python_eol": _python_eol(),
+    }
