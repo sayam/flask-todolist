@@ -8,7 +8,7 @@ from flask_login import current_user, login_required
 from app import db
 from app.admin import bp, register_panel
 from app.audit import record
-from app.services import ForbiddenError, NotFoundError, ServiceError, masking
+from app.services import ForbiddenError, NotFoundError, ServiceError, masking, suspension
 from app.services import roles as roles_service
 
 
@@ -76,6 +76,35 @@ def change_role(user_id):
         return redirect(url_for("admin.users"))
 
     flash(_("Role of %(name)s is now %(role)s", name=person.username, role=person.role))
+    return redirect(url_for("admin.users"))
+
+
+@bp.route("/users/<int:user_id>/suspend", methods=["POST"])
+@login_required
+def suspend(user_id):
+    """ระงับการใช้บัญชี (PDPA ม.34) — ย้อนกลับได้เสมอด้วยปุ่มเดียวกัน"""
+    return _toggle_suspension(suspension.suspend, user_id, _("%(name)s is now suspended"))
+
+
+@bp.route("/users/<int:user_id>/unsuspend", methods=["POST"])
+@login_required
+def unsuspend(user_id):
+    """เลิกระงับ — สถานะกลับเป็นปกติทั้งใบ"""
+    return _toggle_suspension(suspension.unsuspend, user_id, _("%(name)s is active again"))
+
+
+def _toggle_suspension(action, user_id, message):
+    """ทางร่วมของ suspend/unsuspend — แปลง exception เป็นคำตอบแบบเดียวกับ change_role"""
+    try:
+        person = action(current_user, user_id)
+    except ForbiddenError:
+        abort(403)
+    except NotFoundError:
+        abort(404)
+    except ServiceError as error:
+        flash(error.message)
+        return redirect(url_for("admin.users"))
+    flash(message % {"name": person.username})
     return redirect(url_for("admin.users"))
 
 

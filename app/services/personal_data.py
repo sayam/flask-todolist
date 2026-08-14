@@ -67,6 +67,8 @@ def _account(user: "User") -> dict[str, Any]:
         "mode": user.mode,
         "timezone_name": user.timezone_name,
         "created_at": _at(user.created_at),
+        # สถานะระงับ (PDPA ม.34) เป็นข้อเท็จจริงเกี่ยวกับบัญชีของเจ้าตัว — อยู่ในสำเนา
+        "suspended_at": _at(user.suspended_at),
     }
 
 

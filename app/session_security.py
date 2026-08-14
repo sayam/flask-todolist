@@ -217,6 +217,14 @@ def init_session_security(app: Flask) -> None:
         if not hmac.compare_digest(str(session.get(AUTH_HASH_KEY, "")), auth_hash(current_user)):
             return _sign_out(_("Your password was changed — please sign in again"))
 
+        # บัญชีที่เพิ่งถูกระงับ (PDPA ม.34): session ที่ยังเปิดค้างต้องตายด้วย
+        # ไม่ใช่รอจน timeout — การระงับที่ปล่อยให้ session เดิมทำงานต่อได้
+        # ไม่ใช่การหยุดการประมวลผล
+        from app.services.suspension import is_suspended
+
+        if is_suspended(current_user):
+            return _sign_out(_("This account is suspended — contact the operator"))
+
         session[SEEN_AT_KEY] = _now()
         return None
 

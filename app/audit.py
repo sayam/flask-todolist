@@ -93,6 +93,9 @@ PLAIN_COLUMNS = frozenset(
         "updated_at",
         "deleted_at",
         "purged_at",
+        # สถานะระงับ (PDPA ม.34) เป็นชั้น C4 และต้องอ่านออกจาก audit ได้จริง —
+        # "ใครระงับใครเมื่อไหร่" คือหลักฐานที่กลไกนี้มีไว้ตอบ
+        "suspended_at",
         "expires_at",
     }
 )

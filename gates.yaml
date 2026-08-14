@@ -662,6 +662,7 @@ gates:
         - tests/test_proxy.py
         - tests/test_settings.py
         - tests/test_start_and_filters.py
+        - tests/test_suspension.py
         - tests/test_theme.py
         - tests/test_tokens.py
         - tests/test_totp.py

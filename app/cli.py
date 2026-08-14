@@ -307,6 +307,46 @@ def _serving_state(plugin, serving):
     return f"provides {plugin.provides} ({verb}); "
 
 
+@click.command("suspend-user")
+@click.argument("username")
+@with_appcontext
+def suspend_user(username):
+    """Suspend an account (PDPA article 34) — reversible with unsuspend-user."""
+    from datetime import UTC, datetime
+
+    from sqlalchemy import select
+
+    from app.models import User
+
+    user = db.session.scalars(select(User).where(User.username == username)).first()
+    if user is None:
+        raise click.ClickException(f"No user named {username!r}.")
+    if user.suspended_at is not None:
+        raise click.ClickException(f"{username} is already suspended.")
+    user.suspended_at = datetime.now(UTC).replace(tzinfo=None)
+    db.session.commit()
+    click.echo(f"Suspended {username}. Sign-in is blocked and live sessions will be cut.")
+
+
+@click.command("unsuspend-user")
+@click.argument("username")
+@with_appcontext
+def unsuspend_user(username):
+    """Lift a suspension — the account returns to normal, nothing else changes."""
+    from sqlalchemy import select
+
+    from app.models import User
+
+    user = db.session.scalars(select(User).where(User.username == username)).first()
+    if user is None:
+        raise click.ClickException(f"No user named {username!r}.")
+    if user.suspended_at is None:
+        raise click.ClickException(f"{username} is not suspended.")
+    user.suspended_at = None
+    db.session.commit()
+    click.echo(f"{username} is active again.")
+
+
 @click.command("plugin-list")
 @with_appcontext
 def plugin_list():
@@ -516,6 +556,8 @@ def register_cli(app):
     app.cli.add_command(plugin_deps)
     app.cli.add_command(plugin_install)
     app.cli.add_command(plugin_uninstall)
+    app.cli.add_command(suspend_user)
+    app.cli.add_command(unsuspend_user)
     app.cli.add_command(purge_expired_command)
     app.cli.add_command(audit_verify)
     app.cli.add_command(audit_log)
