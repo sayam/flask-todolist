@@ -187,8 +187,54 @@ def test_the_key_name_mapping_inserts_the_profile_after_the_first_token(app):
     with app.app_context(), plugins.using_profile("corp"):
         assert plugins.profile_setting_name("OIDC_ISSUER") == "OIDC_CORP_ISSUER"
         assert plugins.profile_setting_name("LDAP_BIND_DN") == "LDAP_CORP_BIND_DN"
+        # ชื่อคีย์คำเดียว (ไม่มี _) ต่อชื่อ profile ท้ายคำ — กิ่งที่ลืมง่ายที่สุด
+        assert plugins.profile_setting_name("TOKEN") == "TOKEN_CORP"
     with app.app_context():
         assert plugins.profile_setting_name("OIDC_ISSUER") == "OIDC_ISSUER"
+
+
+def test_a_profile_on_a_second_factor_plugin_stops_the_app():
+    """profile มีความหมายกับปัจจัยหลักภายนอกเท่านั้น — ชี้ไปที่ปัจจัยที่สอง
+    (auth/totp มีจริงบนดิสก์) ต้องดังตั้งแต่ start ไม่ใช่เงียบแล้วไม่มีผลอะไร"""
+
+    class SecondFactor(TestConfig):
+        AUTH_PROFILES = ("totp:corp",)
+
+    boot = _app_with_tables(SecondFactor)
+    with pytest.raises(plugins.PluginError, match="ปัจจัยหลัก"):
+        next(boot)
+
+
+def test_disabling_an_undeclared_profile_warns_that_it_does_nothing():
+    """คีย์ profile ที่พิมพ์ผิดหน้าตาเหมือนการปิดสำเร็จเป๊ะ — ต้องมีเสียงเตือน
+    (จับที่ logger ชื่อ "app" ก่อนสร้างแอป เพราะคำเตือนดังระหว่าง create_app)"""
+    import logging
+
+    class Typo(TwoIdpConfig):
+        DISABLED_PLUGINS = frozenset({"auth/oidc:nosuch"})
+
+    lines: list[str] = []
+
+    class Grab(logging.Handler):
+        def emit(self, record):
+            lines.append(record.getMessage())
+
+    handler = Grab(level=logging.WARNING)
+    logging.getLogger("app").addHandler(handler)
+    try:
+        for _app in _app_with_tables(Typo):
+            break
+    finally:
+        logging.getLogger("app").removeHandler(handler)
+    assert any("ไม่ได้ปิดอะไรเลย" in line for line in lines), lines
+
+
+def test_a_plugin_without_the_optional_configured_hook_is_assumed_ready(two_idp_app, monkeypatch):
+    """สัญญา `configured()` เป็นของเสริม — plugin ที่เขียนก่อน ADR 0047
+    (ไม่มีฟังก์ชันนี้) ต้องยังโผล่ครบ ไม่ใช่หายไปเงียบ ๆ ทั้งตัว"""
+    monkeypatch.delattr(_oidc_module(), "configured")
+    with two_idp_app.app_context():
+        assert len(sso.available()) == 2
 
 
 # ---------------------------------------------------------------- ฝั่ง credential (LDAP)
