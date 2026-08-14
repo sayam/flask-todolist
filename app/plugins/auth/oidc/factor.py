@@ -38,7 +38,7 @@ from flask import current_app
 from flask_babel import gettext as _
 from sqlalchemy import select
 
-from app import audit, db
+from app import audit, db, plugins
 from app.models import User
 from app.services.errors import ValidationError
 
@@ -56,7 +56,12 @@ def _setting(name: str, default: str = "") -> str:
 
     ลำดับนี้ทำให้เทสต์ตั้งค่าได้โดยไม่ต้องแตะ environment ของเครื่องที่รัน
     (หลักเดียวกับ `TEST_DATABASE_URL` ที่แยกออกจาก `DATABASE_URL`)
+
+    เมื่อทำงานใต้ auth profile (ADR 0047) ชื่อคีย์ถูกสอดชื่อ profile ไว้
+    (`OIDC_ISSUER` → `OIDC_CORP_ISSUER`) และ**ไม่ตกกลับคีย์เปล่า** — สอง
+    profile ที่ยืมค่ากันเงียบ ๆ คือ profile ที่พฤติกรรมเปลี่ยนได้โดยไม่มีใครสั่ง
     """
+    name = plugins.profile_setting_name(name)
     value = current_app.config.get(name)
     if value is None:
         value = os.environ.get(name, default)
@@ -68,10 +73,27 @@ def _require(name: str) -> str:
     if not value:
         # **ไม่ตกกลับค่าเริ่มต้นเงียบ ๆ** — ปัจจัยหลักที่ config ไม่ครบต้องบอก
         # ว่าขาดอะไร ไม่ใช่พาผู้ใช้ไปหา IdP ที่ไม่มีอยู่ (หลักเดียวกับ ADR 0026)
+        # ชื่อฟิลด์ในข้อความคือชื่อจริงตาม profile — คนแก้ config ต้องรู้ว่าตั้งคีย์ไหน
         raise ValidationError(
-            _("Single sign-on is not configured"), code="sso_not_configured", field=name
+            _("Single sign-on is not configured"),
+            code="sso_not_configured",
+            field=plugins.profile_setting_name(name),
         )
     return value
+
+
+def configured() -> bool:
+    """profile นี้พร้อมใช้ไหม — ปุ่มบนหน้า login โผล่เฉพาะตอนที่กดแล้วไปได้จริง
+
+    เช็คแค่คีย์ที่ขาดแล้วเดินต่อไม่ได้เลย ไม่ยิง network — หน้า login ต้องเร็ว
+    และ IdP ที่ล่มชั่วคราวไม่ควรทำให้ปุ่มหายไป (นั่นคือคนละอาการกับ config ขาด)
+    """
+    return bool(_setting("OIDC_ISSUER")) and bool(_setting("OIDC_CLIENT_ID"))
+
+
+def label() -> str:
+    """ป้ายปุ่มของ profile นี้ — ตั้งผ่านคีย์ `OIDC_<PROFILE>_LABEL` (ADR 0047)"""
+    return _setting("OIDC_LABEL")
 
 
 def _issuer() -> str:

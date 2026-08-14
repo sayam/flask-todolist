@@ -533,5 +533,9 @@ def test_a_provider_missing_part_of_the_contract_says_who_and_what(oidc_app, mon
             """มี begin แต่ไม่มี finish"""
 
     monkeypatch.setattr(plugins, "factor_module", lambda plugin: Incomplete())  # noqa: ARG005
-    with oidc_app.app_context(), pytest.raises(plugins.PluginError, match="finish"):
-        sso.begin(plugins.find(OIDC_KEY), "https://todolist.example.test/cb")
+    with oidc_app.app_context():
+        # `begin()` รับ Provider (มี profile ติดมาด้วย) ไม่ใช่ Plugin ดิบ — ADR 0047
+        plugin = plugins.find(OIDC_KEY)
+        provider = sso.Provider(plugin, None, plugin.key, "x")
+        with pytest.raises(plugins.PluginError, match="finish"):
+            sso.begin(provider, "https://todolist.example.test/cb")

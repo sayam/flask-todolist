@@ -34,6 +34,11 @@ def _parse_keys(raw):
     return frozenset(entry.strip() for entry in raw.split(",") if entry.strip())
 
 
+def _parse_ordered(raw):
+    """แบบเดียวกับ `_parse_keys` แต่**คงลำดับ** — สำหรับ config ที่ลำดับคือความหมาย"""
+    return tuple(entry.strip() for entry in raw.split(",") if entry.strip())
+
+
 class Config:
     # ไม่มีค่า default โดยตั้งใจ — ไม่ตั้งแล้วต้องแอปพังตั้งแต่ตอน start
     # ดีกว่าเผลอรันด้วยคีย์ที่ใคร ๆ ก็รู้
@@ -108,6 +113,12 @@ class Config:
     # มีไว้สำหรับวันที่ CVE ของไลบรารีใน plugin ออกตอนบ่ายสาม: ปิดได้ทันทีโดยไม่ต้อง
     # แก้โค้ด ไม่ต้องรอ deploy และไม่ต้องลบข้อมูลของ plugin ทิ้ง
     DISABLED_PLUGINS = _parse_keys(os.environ.get("DISABLED_PLUGINS", ""))
+    # auth หลาย profile ต่อ plugin เดียว (ADR 0047) — `oidc:corp,ldap:hq`
+    # ลำดับที่เขียนคือลำดับที่ลอง · ไม่ประกาศ = ชุดค่าเดี่ยวไม่มี prefix เหมือนเดิม
+    # ค่าของแต่ละ profile ใช้คีย์ที่สอดชื่อ profile ไว้: `OIDC_CORP_ISSUER`
+    # รายการที่รูปแบบผิด/ชี้ plugin ที่ไม่มี = แอปไม่ start (ตรวจใน check_installation
+    # — auth ที่หายไปเงียบ ๆ อันตรายกว่าแอปที่ไม่ยอมขึ้น หลักเดียวกับ ADR 0026)
+    AUTH_PROFILES = _parse_ordered(os.environ.get("AUTH_PROFILES", ""))
 
     LANGUAGES = LANGUAGES
     BABEL_DEFAULT_LOCALE = DEFAULT_LANGUAGE

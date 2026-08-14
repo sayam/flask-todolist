@@ -18,10 +18,11 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ## [Unreleased]
 
-Eight more phases of work: five about making the engineering discipline in this
-repo **portable and checkable** (8–12), then the first three phases of the 1.1
-feature plan (13–15) — rule layers and legal worksheets, an admin overhaul with
-data masking, and encryption at rest. Nothing in the `/api/v1` contract changed.
+Nine more phases of work: five about making the engineering discipline in this
+repo **portable and checkable** (8–12), then four phases of the 1.1 feature plan
+(13–15 and 17) — rule layers and legal worksheets, an admin overhaul with data
+masking, encryption at rest, and named auth profiles. Nothing in the `/api/v1`
+contract changed.
 
 ### Added
 
@@ -73,6 +74,15 @@ data masking, and encryption at rest. Nothing in the `/api/v1` contract changed.
   first use — see [ADR 0046](docs/adr/0046-field-encryption-at-rest.md). A plugin
   whose declared libraries are missing now **disables itself with a warning**
   instead of breaking the page that lists it.
+- One external-auth plugin can now run **several named config profiles**
+  (`AUTH_PROFILES="oidc:corp,ldap:hq"`, per-profile keys like
+  `OIDC_CORP_ISSUER`, no silent fallback to the bare key). The declared order is
+  the order tried; a profile is only skipped when it is *unreachable* — a
+  rejection is final, so a password guesser never gets one quota per directory
+  and same-named accounts cannot log in across realms. Profiles can be disabled
+  one at a time via `DISABLED_PLUGINS=auth/oidc:corp`, and one user can hold
+  identities from several directories — see
+  [ADR 0047](docs/adr/0047-named-auth-profiles.md).
 
 ### Changed
 
@@ -90,7 +100,7 @@ data masking, and encryption at rest. Nothing in the `/api/v1` contract changed.
 ## [1.0.0] — 2026-08-12
 
 First public release. Everything below arrived across seven planned phases of
-work; the reasoning for each decision lives in the 46 records in
+work; the reasoning for each decision lives in the 47 records in
 [`docs/adr/`](docs/adr/), and the phase-by-phase plan in
 [`docs/ROADMAP.md`](docs/ROADMAP.md).
 

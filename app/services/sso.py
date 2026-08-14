@@ -12,13 +12,13 @@
 รหัสผ่านอย่างเดียวทันที** ไม่มีโค้ดตรงไหนของ core ที่พังเพราะหาไม่เจอ
 """
 
-from typing import Any
+from typing import Any, NamedTuple
 
 from flask import current_app
 from flask_babel import gettext as _
 
 from app import plugins
-from app.services.errors import ServiceError, ValidationError
+from app.services.errors import ServiceError, UnreachableError, ValidationError
 
 # ฟังก์ชันที่ปัจจัยหลักต้องมีครบ **ต่อรูปแบบ** — host เป็นคนตรวจ ไม่ใช่ registry
 # (registry ไม่รู้ว่าความสามารถแต่ละอย่างต้องมีอะไร — ADR 0025/0029)
@@ -52,15 +52,67 @@ def _usable(plugin: plugins.Plugin, contract: tuple[str, ...]) -> Any | None:
         return None
 
 
-def _installed(style: str, contract: tuple[str, ...]) -> list[plugins.Plugin]:
-    return [
-        plugin
-        for plugin in plugins.primary_factors(style)
-        if plugins.is_installed(plugin) and _usable(plugin, contract) is not None
-    ]
+class Provider(NamedTuple):
+    """ปัจจัยหลักหนึ่ง **profile** — plugin เดียวโผล่ได้หลายรายการตาม ADR 0047
+
+    `profile=None` คือชุดค่าเดี่ยวไม่มี prefix (พฤติกรรมก่อนมี profile)
+    `key` คือสิ่งที่อยู่ใน URL และ `DISABLED_PLUGINS` · `label` คือป้ายบนปุ่ม
+    """
+
+    plugin: plugins.Plugin
+    profile: str | None
+    key: str
+    label: str
 
 
-def available() -> list[plugins.Plugin]:
+def _label(plugin: plugins.Plugin, module: Any, profile: str | None) -> str:
+    """ป้ายปุ่มของ profile นี้ — ถาม plugin ก่อน (มันอ่านคีย์ `*_LABEL` ของตัวเองได้)
+
+    core ตั้งค่าเริ่มต้นจาก manifest + ชื่อ profile เพราะหลาย profile ของ plugin
+    เดียวจะได้ปุ่มชื่อซ้ำกันหมดถ้าใช้ชื่อจาก manifest ตรง ๆ (ADR 0047)
+    """
+    if hasattr(module, "label"):
+        custom = module.label()
+        if custom:
+            return str(custom)
+    name = str(plugin.manifest.get("name", plugin.id))
+    return f"{name} ({profile})" if profile else name
+
+
+def _configured(module: Any) -> bool:
+    """profile นี้มี config ครบพอจะใช้จริงไหม — สัญญาเสริม ไม่มีฟังก์ชัน = ถือว่าครบ
+
+    มีไว้ให้ปุ่มบนหน้า login โผล่เฉพาะ profile ที่ใช้งานได้จริง (ADR 0047 ปิด
+    finding เดิมที่ปุ่ม SSO โชว์ทั้งที่ไม่มี config) — core ไม่รู้ว่าคีย์ไหน
+    จำเป็น จึงต้องเป็นคำถามที่ plugin ตอบเอง
+    """
+    if not hasattr(module, "configured"):
+        return True
+    return bool(module.configured())
+
+
+def _providers(style: str, contract: tuple[str, ...]) -> list[Provider]:
+    """ทุก (plugin, profile) ที่ติดตั้งครบและใช้งานได้ ตามลำดับที่ประกาศ"""
+    found: list[Provider] = []
+    for plugin in plugins.primary_factors(style):
+        if not plugins.is_installed(plugin):
+            continue
+        module = _usable(plugin, contract)
+        if module is None:
+            continue
+        for entry in plugins.auth_profiles(plugin):
+            with plugins.using_profile(entry.name):
+                if not _configured(module):
+                    current_app.logger.info(
+                        "ข้าม auth profile ที่ config ยังไม่ครบ", extra={"provider": entry.key}
+                    )
+                    continue
+                label = _label(plugin, module, entry.name)
+                found.append(Provider(plugin, entry.name, entry.key, label))
+    return found
+
+
+def available() -> list[Provider]:
     """ปัจจัยหลักแบบ `redirect` ที่ **ติดตั้งครบแล้ว** ตอนนี้ (อ่านดิสก์ใหม่ทุกครั้ง)
 
     ตัวที่วางไดเรกทอรีไว้แต่ยังไม่ได้ `flask plugin-install` ถูกข้ามไป
@@ -68,16 +120,16 @@ def available() -> list[plugins.Plugin]:
     ผูกบัญชีไว้เลย การข้ามจึงเป็นคำตอบที่ถูก ไม่ใช่การปิดด่านความปลอดภัย
     — และถ้าไม่ข้าม **หน้า login ทั้งหน้าจะพัง** ด้วย "no such table"
     """
-    return _installed(plugins.REDIRECT_STYLE, CONTRACT)
+    return _providers(plugins.REDIRECT_STYLE, CONTRACT)
 
 
-def directories() -> list[plugins.Plugin]:
+def directories() -> list[Provider]:
     """ปัจจัยหลักแบบ `credential` ที่ติดตั้งแล้ว — ไม่มีปุ่มบนหน้า login
 
     ต่างจากแบบ `redirect` ตรงที่ผู้ใช้ไม่ต้องเลือกอะไร: กรอกชื่อกับรหัสผ่าน
     ในฟอร์มเดิม แล้วระบบเป็นคนไล่ถามให้เอง (ADR 0029 ข้อ 2)
     """
-    return _installed(plugins.CREDENTIAL_STYLE, CREDENTIAL_CONTRACT)
+    return _providers(plugins.CREDENTIAL_STYLE, CREDENTIAL_CONTRACT)
 
 
 def authenticate(username: str, password: str) -> Any:
@@ -86,54 +138,68 @@ def authenticate(username: str, password: str) -> Any:
     **เรียกหลังรหัสผ่านของที่นี่ไม่ผ่านเท่านั้น** (ADR 0029 ข้อ 2) — วันที่
     directory ล่ม ผู้ดูแลที่มีรหัสผ่านของที่นี่ต้องยังเข้าได้
 
-    ความล้มเหลวของตัวหนึ่งไม่ตัดโอกาสของตัวถัดไป: directory ที่ต่อไม่ติดคือ
-    "ตอบไม่ได้" ไม่ใช่ "ตอบว่าไม่ใช่" — แต่ถ้าไม่มีตัวไหนตอบว่าใช่เลย ผลลัพธ์
-    ก็คือ login ไม่ผ่านอยู่ดี ซึ่งเป็นฝั่งที่ปลอดภัยของความไม่แน่นอนนี้
+    ลำดับคือลำดับที่ประกาศใน `AUTH_PROFILES` และ fallback ข้าม profile เกิด
+    เฉพาะกรณี "ติดต่อไม่ได้" (`UnreachableError`) — **คำตอบใด ๆ ที่ไม่ใช่
+    "ตอบไม่ได้" เป็นที่สิ้นสุด** (ADR 0047): ทั้งการปฏิเสธ (คืน `None`) และ
+    ความล้มเหลวอื่นหยุดการไล่ถามทันที ไม่งั้นคนไล่รหัสได้โควตาคูณด้วยจำนวน
+    profile และบัญชีชื่อซ้ำสองวงจะ login ข้ามวงกันได้
     """
-    for plugin in directories():
+    for provider in directories():
         try:
-            user = _module(plugin, CREDENTIAL_CONTRACT).authenticate(username, password)
-        except ServiceError as error:
-            # **ต้องดังใน log** — directory ที่ config ผิดจะเงียบสนิทจากมุมของ
-            # ผู้ใช้ (เห็นแค่ "รหัสผ่านไม่ถูกต้อง") ซึ่งแยกไม่ออกจากการพิมพ์ผิด
+            with plugins.using_profile(provider.profile):
+                user = _module(provider.plugin, CREDENTIAL_CONTRACT).authenticate(
+                    username, password
+                )
+        except UnreachableError as error:
+            # ตอบไม่ได้ ≠ ตอบว่าไม่ใช่ — ลองแหล่งถัดไปได้ แต่**ต้องดังใน log**
+            # เพราะจากมุมผู้ใช้มันเงียบสนิท (เห็นแค่ "รหัสผ่านไม่ถูกต้อง")
             current_app.logger.warning(
-                "ถาม directory ภายนอกไม่สำเร็จ",
-                extra={"plugin": plugin.key, "reason": error.code},
+                "directory ภายนอกติดต่อไม่ได้ — ลองตัวถัดไป",
+                extra={"provider": provider.key, "reason": error.code},
             )
             continue
-        if user is not None:
-            return user
+        except ServiceError as error:
+            current_app.logger.warning(
+                "ถาม directory ภายนอกไม่สำเร็จ — หยุดการไล่ถาม (ADR 0047)",
+                extra={"provider": provider.key, "reason": error.code},
+            )
+            return None
+        # คำตอบของ directory เป็นที่สิ้นสุด — `None` คือ "ไม่ใช่" ไม่ใช่ "ถามต่อ"
+        return user
     return None
 
 
-def find(key: str) -> plugins.Plugin:
+def find(key: str) -> Provider:
     """หาปัจจัยหลักจากคีย์ที่มาจาก URL — ไม่เจอ = `ValidationError`
 
     **ต้องเทียบกับรายการที่ค้นเจอจริง** ไม่ใช่เอาคีย์ไปประกอบเป็น path
-    (หลักเดียวกับ route ที่เสิร์ฟ CSS ของธีม)
+    (หลักเดียวกับ route ที่เสิร์ฟ CSS ของธีม) — คีย์รวมชื่อ profile แล้ว
+    (`auth/oidc:corp`) profile ที่ถูกปิด/ไม่ได้ประกาศจึงตอบเหมือนไม่มีอยู่
     """
-    for plugin in available():
-        if plugin.key == key:
-            return plugin
+    for provider in available():
+        if provider.key == key:
+            return provider
     raise ValidationError(_("Unknown sign-in provider"), code="sso_unknown_provider")
 
 
-def begin(plugin: plugins.Plugin, redirect_uri: str) -> tuple[str, dict[str, Any]]:
+def begin(provider: Provider, redirect_uri: str) -> tuple[str, dict[str, Any]]:
     """เริ่มการ login — คืน URL ที่จะส่ง browser ไป และของที่ต้องจำไว้รอ callback
 
     ของที่คืนมาก้อนที่สอง core **ไม่ตีความเลย** แค่เก็บใส่ session ไว้แล้วส่ง
     คืนให้ `finish()` ตอนผู้ใช้กลับมา (มันคือ state/nonce/PKCE ของ plugin ซึ่ง
     เป็นรายละเอียดของโพรโทคอลที่ core ไม่ควรรู้)
     """
-    target, pending = _module(plugin).begin(redirect_uri)
+    with plugins.using_profile(provider.profile):
+        target, pending = _module(provider.plugin).begin(redirect_uri)
     return str(target), dict(pending)
 
 
-def finish(plugin: plugins.Plugin, params: dict[str, str], pending: dict[str, Any]) -> Any:
+def finish(provider: Provider, params: dict[str, str], pending: dict[str, Any]) -> Any:
     """ผู้ใช้กลับมาแล้ว — คืน `User` ของที่นี่ หรือ raise `ServiceError`
 
     **plugin เป็นคนหาว่าเป็นใคร** เพราะตารางที่ผูก `sub` กับผู้ใช้เป็นของ
     plugin เอง (ADR 0023) core แค่รับ `User` มาแล้วเดินด่านที่เหลือต่อ
     ซึ่งเป็นด่านเดียวกับทางรหัสผ่านเป๊ะ รวมทั้งปัจจัยที่สอง (ADR 0028 ข้อ 6)
     """
-    return _module(plugin).finish(params, pending)
+    with plugins.using_profile(provider.profile):
+        return _module(provider.plugin).finish(params, pending)

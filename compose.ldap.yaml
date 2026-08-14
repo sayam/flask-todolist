@@ -18,18 +18,28 @@ services:
         # backend ที่ config เรียกหาต้อง `import` ไลบรารีของมันได้ (ADR 0025)
         PLUGIN_CATEGORIES: plugin-cache-redis plugin-auth-ldap
     environment:
+      # **สอง profile ตาม ADR 0047** — `ghost` ชี้พอร์ตที่ไม่มีใครฟัง (ติดต่อ
+      # ไม่ได้ → ระบบต้องเลื่อนไปถาม `hq`) ส่วน `hq` คือ directory จริงของ stack
+      # นี้ · job `ldap` ใน CI พิสูจน์ทั้งลำดับที่ประกาศ, การ fallback เฉพาะกรณี
+      # ติดต่อไม่ได้ และคีย์แบบมี prefix ด้วยการ login จริงผ่านชุดนี้
+      # (คีย์เปล่าไม่ถูกใช้เมื่อประกาศ profile — จึงไม่ตั้งไว้ให้สับสน)
+      AUTH_PROFILES: ldap:ghost,ldap:hq
+      LDAP_GHOST_URL: ldap://directory:1390
+      LDAP_GHOST_INSECURE: "1"
+      LDAP_GHOST_BASE_DN: dc=example,dc=test
+      LDAP_GHOST_USER_FILTER: "(uid=%s)"
       # **`ldap://` เปล่า ๆ ต้องขออนุญาตอย่างชัดเจน** เพราะรหัสผ่านของผู้ใช้
       # เดินทางเป็นข้อความธรรมดา (ADR 0029 ข้อ 6) — แอปเตือนทุกครั้งที่ใช้
       # directory ทดสอบตัวนี้ไม่มีใบรับรอง จึงเป็นสภาพที่ตั้งใจให้เป็น
-      LDAP_URL: ldap://directory:1389
-      LDAP_INSECURE: "1"
+      LDAP_HQ_URL: ldap://directory:1389
+      LDAP_HQ_INSECURE: "1"
       # บัญชีบริการมีไว้ **ค้น `dn` เท่านั้น** ไม่ใช่ยืนยันตัวตนแทนผู้ใช้
-      LDAP_BIND_DN: cn=admin,dc=example,dc=test
-      LDAP_BIND_PASSWORD: ci-only-ldap-admin-password
-      LDAP_BASE_DN: dc=example,dc=test
+      LDAP_HQ_BIND_DN: cn=admin,dc=example,dc=test
+      LDAP_HQ_BIND_PASSWORD: ci-only-ldap-admin-password
+      LDAP_HQ_BASE_DN: dc=example,dc=test
       # `%s` ตัวเดียว — ค่าที่แทนลงไปถูก escape ก่อนเสมอ (ดู factor.py)
-      LDAP_USER_FILTER: "(uid=%s)"
-      LDAP_ADMIN_GROUP: cn=todolist-admins,ou=groups,dc=example,dc=test
+      LDAP_HQ_USER_FILTER: "(uid=%s)"
+      LDAP_HQ_ADMIN_GROUP: cn=todolist-admins,ou=groups,dc=example,dc=test
     depends_on:
       directory:
         condition: service_healthy

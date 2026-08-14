@@ -46,6 +46,7 @@ class TestConfig(Config):
     # ตัวสวิตช์เองมีเทสต์ที่ตั้งค่าเองอยู่แล้วใน tests/test_plugins.py
     DISABLED_PLUGINS = frozenset()
     PLUGIN_PICKS = {}
+    AUTH_PROFILES = ()
     # ตรึงด้วยเหตุผลเดียวกัน — เครื่องที่ตั้งไว้เพราะรันหลัง proxy จริงจะทำให้
     # เทสต์ที่ยิงตรงเข้าแอปเชื่อ `X-Forwarded-For` ที่ตัวเทสต์ไม่ได้ตั้งใจส่ง
     # ตัวมันเองมีเทสต์ที่ตั้งค่าเองอยู่ใน tests/test_proxy.py

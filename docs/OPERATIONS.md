@@ -367,6 +367,22 @@ login ไม่ได้ · มี TLS แต่ไม่เปิดแฟล�
 เพราะสองที่จะเพี้ยนจากกันวันที่มีคนแก้ `max-age` ที่เดียว · ด่านใน CI ตรวจว่า
 header นี้มีมา **หนึ่งบรรทัดพอดี**
 
+## Auth หลาย profile (เฟส 17 — ADR 0047)
+
+plugin ยืนยันตัวตนภายนอกตัวเดียวรับ config ได้หลายชุดด้วย
+`AUTH_PROFILES="oidc:corp,ldap:hq"` — ค่าของแต่ละ profile ใช้คีย์ที่สอดชื่อ
+ไว้ (`OIDC_CORP_ISSUER`, `LDAP_HQ_URL`) และ**ไม่ตกกลับคีย์เปล่า**
+
+- **ลำดับที่ประกาศคือลำดับที่ลอง** และคำปฏิเสธเป็นที่สิ้นสุด — ระบบเลื่อนไป
+  ถามวงถัดไปเฉพาะเมื่อวงก่อนหน้า *ติดต่อไม่ได้* (timeout/ต่อไม่ติด)
+- **callback URL ของ OIDC เป็นของแต่ละ profile**:
+  `https://<โฮสต์>/login/sso/auth/oidc:corp/callback` — เพิ่ม profile ใหม่
+  ต้องไปลงทะเบียน redirect URI ใบใหม่ที่ IdP ด้วย ไม่งั้น IdP ปฏิเสธตั้งแต่ขาไป
+- ปิดชั่วคราวทีละ profile ได้ด้วย `DISABLED_PLUGINS=auth/oidc:corp`
+  (คีย์ดูจาก `flask plugin-list`) — profile อื่นของ plugin เดียวกันไม่กระทบ
+- `AUTH_PROFILES` ที่ชี้ plugin ที่ไม่มี/รูปแบบผิด/ซ้ำ = **แอปไม่ start**
+  (หลักเดียวกับ scheme ของ `DATABASE_URL` — ADR 0026)
+
 ## เปิด SSO ด้วย OIDC (Phase 5 · P5-13)
 
 ```

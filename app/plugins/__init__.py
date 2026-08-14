@@ -32,6 +32,8 @@ plugin ที่ต้องเก็บข้อมูลวาง `models.py` 
 แต่ตัว registry ออกแบบให้เพิ่มชนิดอื่นได้โดยไม่ต้องรื้อ
 """
 
+import contextlib
+import contextvars
 import importlib.metadata
 import importlib.util
 import json
@@ -40,7 +42,7 @@ import pathlib
 import re
 import sys
 from types import ModuleType
-from typing import Any
+from typing import Any, NamedTuple
 
 from flask import current_app, has_app_context
 
@@ -784,6 +786,134 @@ def primary_factors(style: str | None = None) -> list[Plugin]:
     ]
 
 
+# ---------------------------------------------------------------- auth profile (ADR 0047)
+
+# `<คีย์ plugin>:<ชื่อ profile>` เช่น `auth/oidc:corp` — ใช้ทั้งที่ URL ของ SSO,
+# `DISABLED_PLUGINS` และ `flask plugin-list` (คีย์ที่ไม่เคยถูกพิมพ์ออกมา คือคีย์
+# ที่ไม่มีใครใส่ลง DISABLED_PLUGINS ได้ถูก — หลักเดิมของส่วนเสริม)
+PROFILE_SEPARATOR = ":"
+# ชื่อ profile ต้องประกอบเป็นชื่อคีย์ config ได้ตรง ๆ (`corp` → `OIDC_CORP_...`)
+_PROFILE_NAME = re.compile(r"^[a-z][a-z0-9]*$")
+
+# profile ที่กำลังทำงานอยู่ — ตั้งโดย service (sso) รอบการเรียกโมดูลของ plugin
+# เป็น contextvar ไม่ใช่ `g` เพราะชั้น service ห้ามรู้จัก request (ADR 0016)
+_active_profile: contextvars.ContextVar[str | None] = contextvars.ContextVar(
+    "tdl_auth_profile", default=None
+)
+
+
+class AuthProfile(NamedTuple):
+    """หนึ่งชุดค่า config ของปัจจัยหลักหนึ่งตัว — `name=None` คือชุดเดี่ยวไม่มี prefix"""
+
+    plugin: Any
+    name: str | None
+
+    @property
+    def key(self) -> str:
+        if self.name is None:
+            return str(self.plugin.key)
+        return f"{self.plugin.key}{PROFILE_SEPARATOR}{self.name}"
+
+
+def active_profile() -> str | None:
+    """ชื่อ profile ที่ service ตั้งไว้รอบการเรียกนี้ — plugin ใช้ประกอบชื่อคีย์ config"""
+    return _active_profile.get()
+
+
+@contextlib.contextmanager
+def using_profile(name: str | None):  # type: ignore[no-untyped-def]
+    """ขอบเขตที่การอ่าน config ของ plugin เป็นของ profile นี้ — reset เสมอแม้ raise"""
+    token = _active_profile.set(name)
+    try:
+        yield
+    finally:
+        _active_profile.reset(token)
+
+
+def profile_setting_name(name: str) -> str:
+    """ชื่อคีย์ config ตาม profile ที่ active: `OIDC_ISSUER` → `OIDC_CORP_ISSUER`
+
+    **ไม่มีการตกกลับไปคีย์เปล่าเมื่อ profile ถูกประกาศ** (ADR 0047) — การตกกลับ
+    ทำให้สอง profile ยืมค่ากันเงียบ ๆ แล้ววันที่คีย์ของตัวหนึ่งถูกลบ อีกตัว
+    เปลี่ยนพฤติกรรมโดยไม่มีใครสั่ง
+    """
+    profile = active_profile()
+    if not profile:
+        return name
+    head, separator, tail = name.partition("_")
+    if not separator:
+        return f"{name}_{profile.upper()}"
+    return f"{head}_{profile.upper()}_{tail}"
+
+
+def _declared_profile_entries() -> tuple[str, ...]:
+    if not has_app_context():
+        return ()
+    entries: tuple[str, ...] = current_app.config.get("AUTH_PROFILES", ())
+    return entries
+
+
+def parse_profile_entry(entry: str) -> tuple[str, str]:
+    """แยก `oidc:corp` เป็น (ไอดี plugin, ชื่อ profile) — รูปแบบผิด = `PluginError`
+
+    ดังแทนที่จะข้าม (ต่างจาก `PLUGIN_PICKS` โดยตั้งใจ): รายการที่หายไปเงียบ ๆ
+    จากลำดับการลอง auth คือการเปลี่ยนเส้นทางยืนยันตัวตนโดยไม่มีใครเห็น
+    """
+    plugin_id, separator, profile = entry.partition(PROFILE_SEPARATOR)
+    if not separator or not plugin_id.strip() or not _PROFILE_NAME.match(profile):
+        raise PluginError(
+            f"AUTH_PROFILES: {entry!r} ไม่ใช่รูป <ไอดี plugin>:<ชื่อ profile> "
+            "(ชื่อ profile เป็น a-z0-9 ขึ้นต้นด้วยตัวอักษร เช่น oidc:corp)"
+        )
+    return plugin_id.strip(), profile
+
+
+def auth_profiles(plugin: "Plugin") -> list[AuthProfile]:
+    """profile ของ plugin ตัวนี้ตามลำดับที่ประกาศ — กรองสวิตช์ปิด**ทีละ profile**
+
+    ไม่ประกาศอะไรไว้เลยสำหรับ plugin ตัวนี้ = ชุดค่าเดี่ยวไม่มี prefix
+    (พฤติกรรมก่อน ADR 0047 ทุกประการ) · ปิด plugin แม่ถูกกรองตั้งแต่ `discover()`
+    จึงไม่ต้องเช็คซ้ำที่นี่ — ที่เช็คคือคีย์แบบ `auth/oidc:corp` เท่านั้น
+    """
+    declared = [
+        AuthProfile(plugin, profile)
+        for entry in _declared_profile_entries()
+        for plugin_id, profile in [parse_profile_entry(entry)]
+        if f"{AUTH_TYPE}/{plugin_id}" == plugin.key
+    ]
+    if not declared:
+        return [AuthProfile(plugin, None)]
+    switched_off = disabled_keys()
+    return [profile for profile in declared if profile.key not in switched_off]
+
+
+def _check_auth_profiles() -> None:
+    """AUTH_PROFILES ต้องชี้ของจริงทั้งรายการ ไม่งั้นไม่ start (ADR 0047)
+
+    เหตุผลเดียวกับ scheme ของ `DATABASE_URL` (ADR 0026): ปัจจัยยืนยันตัวตนที่
+    หายไปเงียบ ๆ เพราะพิมพ์ผิด จะ "ทำงานได้" จนถึงวันที่มีคนถามว่าทำไมพนักงาน
+    ทั้งวง login ไม่ได้ — และวันนั้นไม่มี log บรรทัดไหนชี้มาที่ config ตัวนี้
+    """
+    seen: set[str] = set()
+    for entry in _declared_profile_entries():
+        plugin_id, profile = parse_profile_entry(entry)
+        plugin = find_on_disk(f"{AUTH_TYPE}/{plugin_id}")
+        if plugin is None:
+            raise PluginError(
+                f"AUTH_PROFILES: ไม่มี plugin ชื่อ {AUTH_TYPE}/{plugin_id} อยู่บนดิสก์ "
+                f"(จากรายการ {entry!r})"
+            )
+        if plugin.manifest.get("factor") != "primary" or plugin.manifest.get("core"):
+            raise PluginError(
+                f"AUTH_PROFILES: {plugin.key} ไม่ใช่ปัจจัยหลักภายนอก — profile ใช้กับ "
+                "ปัจจัยหลักแบบ redirect/credential เท่านั้น"
+            )
+        key = f"{plugin.key}{PROFILE_SEPARATOR}{profile}"
+        if key in seen:
+            raise PluginError(f"AUTH_PROFILES: {key} ถูกประกาศซ้ำ")
+        seen.add(key)
+
+
 _warned_missing_libs: set[str] = set()
 
 
@@ -853,6 +983,21 @@ def _check_switch() -> None:
     ร่องรอยทุกครั้งที่แอป start ว่าตอนนั้นระบบเดินอยู่โดยไม่มีความสามารถอะไรบ้าง
     """
     for key in sorted(disabled_keys()):
+        # คีย์แบบ `auth/oidc:corp` ปิดทีละ profile (ADR 0047) — ตัวจริงที่ต้องมี
+        # คือ plugin แม่บนดิสก์ และ profile นั้นต้องถูกประกาศใน AUTH_PROFILES
+        _base_key, _, profile = key.partition(PROFILE_SEPARATOR)
+        if profile:
+            declared = {
+                f"{AUTH_TYPE}/{plugin_id}{PROFILE_SEPARATOR}{name}"
+                for entry in _declared_profile_entries()
+                for plugin_id, name in [parse_profile_entry(entry)]
+            }
+            if key not in declared:
+                _warn(
+                    f"DISABLED_PLUGINS: ไม่มี profile ชื่อ {key!r} ใน AUTH_PROFILES "
+                    "— คีย์นี้จึงไม่ได้ปิดอะไรเลย"
+                )
+            continue
         point = find_on_disk(key)
         if point is not None and point.is_core:
             raise PluginError(
@@ -935,6 +1080,7 @@ def check_installation() -> None:
     (คีย์ผิดต้องบอกก่อนที่อย่างอื่นจะพังตามแบบชี้ผิดที่) แล้วธีมสำรองของ core
     """
     _check_switch()
+    _check_auth_profiles()
     core_theme()
     # โหลด model ของ plugin ที่มีข้อมูลของตัวเอง — ให้ prefix ที่ผิดพังตั้งแต่ตอน
     # start ไม่ใช่ตอนที่มีคนกด install แล้วได้ตารางชื่อประหลาดค้างในฐานข้อมูล
