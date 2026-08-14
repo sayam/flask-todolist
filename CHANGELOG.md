@@ -18,11 +18,11 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ## [Unreleased]
 
-Nine more phases of work: five about making the engineering discipline in this
-repo **portable and checkable** (8–12), then four phases of the 1.1 feature plan
-(13–15 and 17) — rule layers and legal worksheets, an admin overhaul with data
-masking, encryption at rest, and named auth profiles. Nothing in the `/api/v1`
-contract changed.
+Ten more phases of work: five about making the engineering discipline in this
+repo **portable and checkable** (8–12), then five phases of the 1.1 feature plan
+(13–17) — rule layers and legal worksheets, an admin overhaul with data masking,
+encryption at rest, an operations phase, and named auth profiles. Nothing in the
+`/api/v1` contract changed.
 
 ### Added
 
@@ -83,6 +83,21 @@ contract changed.
   one at a time via `DISABLED_PLUGINS=auth/oidc:corp`, and one user can hold
   identities from several directories — see
   [ADR 0047](docs/adr/0047-named-auth-profiles.md).
+- An **N-1 compatibility contract** with an expand–contract migration
+  discipline: CI builds the schema from HEAD and then runs the code of the
+  latest tag against it, end to end through `/api/v1` — a migration that would
+  break the replicas still serving during a rolling deploy now fails the build.
+  New `/healthz` and `/readyz` probes (no token, no internal data, liveness
+  deliberately independent of the database) and an explicit gunicorn graceful
+  timeout — see [ADR 0048](docs/adr/0048-n-minus-one-compatibility.md).
+- Prometheus and Grafana actually scrape `/metrics` now
+  (`compose.metrics.yaml`; the scrape token lives in a file that is re-read on
+  every scrape, so it can be rotated without a restart), and CI proves on every
+  push that the app's numbers reach the TSDB through the token gate — with the
+  wrong token, the target reads down. Worker-count tuning was measured rather
+  than guessed: two workers roughly halve tail latency at 25–50 concurrent, but
+  the default stays at one worker because `/metrics` counts per process — the
+  measured path to scale is replicas, not workers (`docs/PERFORMANCE.md`).
 
 ### Changed
 
