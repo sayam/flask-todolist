@@ -130,6 +130,15 @@
   (`scripts/build_gates_crosswalk.py`) derive จากหลักฐานใน `ASVS.md` ผ่าน
   partition ของ `gates.yaml` — บอกด้วยว่าแถวไหนผ่านด้วยด่านที่รันทุก push
   และแถวไหนผ่านด้วยเหตุผล/เอกสารเท่านั้น (ความเชื่อมั่นคนละระดับ)
+- `docs/comparison/` — การทดลองว่ากฎที่ export ออกไป **เปลี่ยนโค้ดที่ถูกเขียนจริง
+  ไหม**: spec กลางหนึ่งชุด (`spec-notes-app.md` — ห้ามแก้ถ้อยคำ ถ้าแก้ต้องวัดใหม่
+  ทั้งชุด) · 3 แขน แขนละ 5 แอป · battery เดียวกัน (`scripts/measure_generated.py`
+  + `scripts/asvs_probe.py`) · ผลกับข้อมูลดิบอยู่คู่กัน และ `tests/test_asvs_probe.py`
+  **บังคับว่าตัวเลขในรายงานต้องตรงกับ JSON** และรายงานต้องบันทึกโมเดล+วันที่+spec
+  · **probe ถูกตรวจสองทิศด้วย fixture สามสำนวน** — มันเคยลงโทษโครงที่ *ดีกว่า*
+  มาแล้วสี่ครั้ง (helper กลาง · `session.get()` ของ Flask · `SECRET_KEY` ใน
+  conftest · `@login_required` ที่อยู่บนบรรทัด decorator ซึ่งไม่อยู่ใน
+  `ast.get_source_segment()` ของ FunctionDef)
 - `pins/` — **ล็อกไฟล์ของเครื่องมือที่ CI ติดตั้งเอง** (pipenv, pip, semgrep, pa11y-ci)
   ไม่ใช่ dependency ของแอป (ของแอปอยู่ใน `Pipfile.lock`) · ทุก `pip install` ใน
   workflow และ `Dockerfile` ต้องเป็น `--require-hashes -r pins/<ชื่อ>/requirements.txt`
@@ -1003,7 +1012,20 @@ log ขึ้น "Running upgrade" ครบทุกตัว exit code เป�
 - **ยังไม่มีใคร scrape `/metrics` จริง** มีของให้ดูดแล้วแต่ยังไม่มี Prometheus/Grafana
   ที่เก็บเป็นรอบ (ค่าที่นับเป็นของ process นั้นคนเดียว ต้องรวมที่ฝั่ง Prometheus)
 
-## Phase 5–7 ปิดแล้ว — เฟสตามแผนครบทั้งหมด (2026-08-12)
+## Phase 8–12 ปิดแล้ว — scaffolding ที่ export ได้และวัดผลแล้ว (2026-08-14)
+
+**อะไรเปลี่ยนไป**: `gates.yaml` เป็นดัชนี gate ที่ตรวจสองทิศ · `SKILL.md`
+generate จาก portable gate · `overlays/flask/` เอากฎไปบังคับที่โปรเจกต์อื่นได้
+และ repo นี้ dogfood ตัวเองทุก push · ทุก plugin ประกาศ `migration` class ที่มี
+ตัวเลขวัดหนุน · `scripts/run_gates.py` เป็น fail-fix loop · และ `docs/comparison/`
+วัดว่าทั้งหมดนี้เปลี่ยนโค้ดจริงไหม
+
+**ผลของการวัดนั้นกลับมาแก้ความเชื่อของเราเอง**: การสั่งให้ agent "ทบทวนงาน
+ตัวเองหนึ่งรอบ" เฉย ๆ ปิดช่องว่างด้านความปลอดภัยไปได้ ~3 ใน 4 ของที่ scaffolding
+ทำได้ · สิ่งที่ scaffolding ให้แล้วอย่างอื่นให้ไม่ได้คือ **ข้อตกลงเฉพาะของ
+โปรเจกต์** (soft delete ไม่มีแอปไหนในแขนทบทวนคิดถึงเลยสักตัว) กับความสม่ำเสมอ
+
+## Phase 5–7 ปิดแล้ว (2026-08-12)
 
 **อะไรเปลี่ยนไปหลัง Phase 5**: ฐานข้อมูล/cache/แหล่งความลับ/ปัจจัยยืนยันตัวตน
 เป็น plugin ที่เลือกด้วย config ตัวเดียวทั้งหมด · มี stack ที่รันจริงพร้อม
