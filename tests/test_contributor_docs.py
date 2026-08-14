@@ -25,6 +25,8 @@ PUBLIC_DOCS = (
     "SECURITY.md",
     "CODE_OF_CONDUCT.md",
     "CHANGELOG.md",
+    # เอกสารใน docs/ ที่ทำหน้าที่เดียวกับหน้า contributor — ลิงก์ตายไม่ได้เท่ากัน
+    "docs/DEVELOPMENT.md",
 )
 
 # `[ข้อความ](เป้าหมาย)` ทุกแบบ · ใช้ยืนยันว่าตัวดึงลิงก์ยังทำงานอยู่
@@ -74,8 +76,11 @@ def test_every_relative_link_resolves(name):
     # (CODE_OF_CONDUCT ชี้ออกนอกทั้งหมด) แต่ไฟล์ที่ไม่มีลิงก์*เลย*แปลว่า regex พัง
     assert ANY_LINK.findall(text), f"ดึงลิงก์จาก {name} ไม่ได้สักอัน — ตัวดึงลิงก์พังหรือเปล่า"
 
+    # ลิงก์ relative ต้องแตกจากไดเรกทอรีของไฟล์นั้น ไม่ใช่จากรากเสมอ —
+    # ไฟล์ใน docs/ เขียน (ROADMAP.md) ซึ่งแปลว่า docs/ROADMAP.md
+    base = path.parent
     targets = set(LINK.findall(text))
-    broken = sorted(target for target in targets if not (ROOT / target.split("#")[0]).exists())
+    broken = sorted(t for t in targets if not (base / t.split("#")[0]).resolve().exists())
     assert not broken, f"{name} ชี้ไปหาไฟล์ที่ไม่มีอยู่: {broken}"
 
 

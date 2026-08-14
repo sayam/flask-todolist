@@ -452,6 +452,19 @@ gates:
     layer: internal
     born_from: ""
 
+  - id: architecture-description-current
+    title: คำอธิบายสถาปัตยกรรม (42010) อ้างอิงเฉพาะของที่มีจริง และโครง conformance ครบ
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_architecture.py]}
+    standard: []
+    requires: []
+    portable: false
+    layer: internal
+    born_from: >-
+      เฟส 13-05 — รับ 42010 ตัวเดียวจากกลุ่มกรอบมาตรฐานองค์กร (ADR 0043)
+      เพราะเป็นตัวเดียวที่ derive จากของจริง (ADR 43 ใบ) และตรวจได้ด้วยเครื่อง
+
   - id: legal-pdpa-worksheet-honest
     title: worksheet PDPA อ้างหลักฐานที่มีจริงทุกชิ้น และช่องว่างทุกข้ออยู่ใน backlog
     kind: test
