@@ -192,6 +192,24 @@ def _csrf(py_text: str, template_text: str) -> bool | None:
     return protected and any(mark in template_text for mark in CSRF_IN_TEMPLATE)
 
 
+def _decorator_names(func: ast.FunctionDef) -> set[str]:
+    """ชื่อ decorator ทั้งหมดของฟังก์ชัน
+
+    ต้องอ่านจาก AST เพราะ `ast.get_source_segment()` ของ FunctionDef
+    **ไม่รวมบรรทัด decorator** — view ที่ป้องกันด้วย `@login_required` แล้วส่ง
+    งานต่อให้ helper (จึงไม่มีคำว่า `current_user` ในตัวมันเอง) จะถูกตัดสินว่า
+    "ไม่มีด่าน" ทั้งที่มีด่านอยู่บรรทัดบน — เป็นการลงโทษการแยกหน้าที่อีกครั้ง
+    """
+    names = set()
+    for decorator in func.decorator_list:
+        node = decorator.func if isinstance(decorator, ast.Call) else decorator
+        if isinstance(node, ast.Name):
+            names.add(node.id)
+        elif isinstance(node, ast.Attribute):
+            names.add(node.attr)
+    return names
+
+
 def _route_paths(func: ast.FunctionDef) -> list[str]:
     """path ที่ decorator ของ view ตัวนี้ประกาศไว้ (อ่านจาก AST ไม่ใช่จากข้อความ)"""
     return [
@@ -223,7 +241,12 @@ def _api_auth(py_files: list[pathlib.Path]) -> bool | None:
             if not is_api:
                 continue
             body = ast.get_source_segment(code, func) or ""
-            if "login_required" not in body and "current_user" not in body:
+            guarded = (
+                "login_required" in _decorator_names(func)
+                or "login_required" in body
+                or "current_user" in body
+            )
+            if not guarded:
                 return False
             result = True
     return result

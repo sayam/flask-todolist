@@ -294,6 +294,43 @@ def test_a_csrf_macro_counts_like_a_raw_token(tmp_path):
     assert probe(app)["V4.2.2-csrf"] is True
 
 
+def test_a_guard_on_the_decorator_line_counts(tmp_path):
+    """`@login_required` เหนือ view ที่ตัวมันเองไม่เอ่ย `current_user` ต้องนับว่ามีด่าน
+
+    `ast.get_source_segment()` ของ FunctionDef ไม่รวมบรรทัด decorator — view ที่
+    ส่งงานต่อให้ helper จึงถูกตัดสินว่า "ไม่มีด่าน" ทั้งที่ด่านอยู่บรรทัดบน
+    (เจอจริงในแขน review: 2 ใน 5 แอปถูกนับว่า API ไม่บังคับตัวตน ทั้งที่มีครบ)
+    """
+    files = dict(SECURE_APP_SERVICE_LAYER)
+    files["app/api.py"] = (
+        "from flask import Blueprint\n"
+        "from flask_login import login_required\n\n"
+        "from .services.notes import list_for\n\n"
+        'api = Blueprint("api", __name__, url_prefix="/api")\n\n\n'
+        '@api.get("/notes")\n'
+        "@login_required\n"
+        "def listing():\n"
+        '    return {"notes": list_for()}\n'
+    )
+    app = _plant(tmp_path / "decorated", files)
+    assert probe(app)["V13.2.1-api-requires-auth"] is True
+
+
+def test_an_api_view_with_no_guard_at_all_still_fails(tmp_path):
+    """ยกเว้นให้ decorator ไม่ใช่ยกเว้นให้ทุก view — ไม่มีด่านเลยต้องตก"""
+    files = dict(SECURE_APP_SERVICE_LAYER)
+    files["app/api.py"] = (
+        "from flask import Blueprint\n\n"
+        "from .services.notes import list_for\n\n"
+        'api = Blueprint("api", __name__, url_prefix="/api")\n\n\n'
+        '@api.get("/notes")\n'
+        "def listing():\n"
+        '    return {"notes": list_for()}\n'
+    )
+    app = _plant(tmp_path / "unguarded", files)
+    assert probe(app)["V13.2.1-api-requires-auth"] is False
+
+
 def test_a_lookup_helper_with_no_owner_check_anywhere_still_fails(tmp_path):
     """ยกเว้นให้ helper ไม่ใช่การยกเว้นให้ทั้งระบบ — ผู้เรียกที่ไม่ตรวจต้องตก"""
     files = dict(SECURE_APP_SERVICE_LAYER)
@@ -355,7 +392,7 @@ def _report_rows() -> dict[tuple[str, str], tuple[int, int, int]]:
     rows = {}
     for line in block.splitlines():
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
-        if len(cells) == 6 and cells[0] in ("ctrl", "skill"):
+        if len(cells) == 6 and cells[0] in ("ctrl", "review", "skill"):
             rows[(cells[0], cells[1])] = (int(cells[2]), int(cells[3]), int(cells[5]))
     return rows
 
