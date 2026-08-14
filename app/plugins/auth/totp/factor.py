@@ -243,8 +243,30 @@ def verify(user: Any, code: str, at: float | None = None) -> bool:
     if row.last_counter is not None and counter <= row.last_counter:
         return False
     row.last_counter = counter
+    _encrypt_legacy_row(row)
     db.session.commit()
     return True
+
+
+def _encrypt_legacy_row(row: Any) -> None:
+    """encrypt-on-use (ADR 0046): แถว plaintext จากก่อนเฟส 15 ถูกยกเป็น
+    ciphertext ตอน verify สำเร็จครั้งถัดไป — ตารางนี้อยู่นอกสาย alembic
+    (ADR 0023) จึงไม่มี migration ให้พึ่ง · การ assign ค่าเดิมกลับทำให้
+    TypeDecorator encrypt ตอน flush และ audit บันทึกเป็น secret ({changed})"""
+    from sqlalchemy import inspect as sa_inspect
+
+    from app.plugins.auth.totp import crypto
+
+    stored = sa_inspect(row).committed_state.get("totp_secret", row.totp_secret)
+    if crypto.is_encrypted(stored):
+        return
+    # ค่าใน memory คือ plaintext (ผ่าน result processor แล้ว) — เขียนกลับให้
+    # bind processor encrypt · ต้องบังคับให้ ORM เห็นว่าเปลี่ยน เพราะค่า
+    # หลัง decrypt กับใน memory เท่ากันเป๊ะ
+    from sqlalchemy.orm.attributes import flag_modified
+
+    row.totp_secret = row.totp_secret
+    flag_modified(row, "totp_secret")
 
 
 def disable(user: Any) -> bool:

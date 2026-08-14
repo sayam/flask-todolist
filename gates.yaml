@@ -493,6 +493,20 @@ gates:
       เลขที่ผิดอยู่แล้ว หน้า admin ที่แสดงสถานะระบบจึงต้องถูกเทียบกับแหล่งจริง
       และของที่อ่านไม่ได้ต้องพูดตรง ๆ ไม่ใช่เดา
 
+  - id: secrets-encrypted-at-rest
+    title: ความลับที่ต้องอ่านคืนได้ ถูก encrypt บนดิสก์ และคีย์หาย/ผิดต้องดังพร้อมเหตุผล
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_totp_encryption.py]}
+    standard: []
+    requires: []
+    portable: false
+    layer: internal
+    born_from: >-
+      ADR 0046 (เฟส 15) — dump ฐานข้อมูลใบเดียวเคยได้ความลับ TOTP ทั้งหมด
+      เพราะมันเป็น C1 ตัวเดียวที่ต้องเก็บค่าจริง · การถอดต้องล้มดังเมื่อคีย์
+      หาย/ผิด ไม่ใช่คืนขยะ — และข้อความสองกรณีนั้นต้องบอกทางแก้คนละทาง
+
   - id: legal-pdpa-worksheet-honest
     title: worksheet PDPA อ้างหลักฐานที่มีจริงทุกชิ้น และช่องว่างทุกข้ออยู่ใน backlog
     kind: test

@@ -51,3 +51,6 @@ redis = "~=5.0"
 
 [deploy]
 gunicorn = "~=23.0"
+
+[plugin-auth-totp]
+cryptography = "~=45.0"

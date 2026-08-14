@@ -784,6 +784,37 @@ def primary_factors(style: str | None = None) -> list[Plugin]:
     ]
 
 
+_warned_missing_libs: set[str] = set()
+
+
+def requirements_met(plugin: Plugin) -> bool:
+    """ไลบรารีที่ manifest ประกาศ ติดตั้งครบไหม — ตัวตัดสิน "ปิดตัวเองเพราะไลบรารีขาด"
+
+    หลักเดิมของส่วนเสริม (ImportError = ปิดตัวเองเงียบ ๆ) ยกมาใช้กับ plugin
+    เต็มตัว: จุด plug ที่ไลบรารีขาดต้อง**หายไปจากรายการที่ใช้งานได้** ไม่ใช่
+    พังตอนผู้ใช้กดใช้ (เจอจริงตอน ADR 0046 ทำให้ auth/totp มีไลบรารีเป็น
+    ครั้งแรก — job `bare` ที่ไม่ติดตั้ง category ของ plugin ต้องยังใช้แอปได้ครบ)
+    เตือนครั้งเดียวต่อ process — สิ่งที่ผิดคือการไม่รู้ว่าอยู่สภาพไหน
+    """
+    import importlib.metadata
+
+    for requirement in plugin.manifest.get("requires", {}).get("pip", []):
+        name = re.split(r"[<>=~!\[ ;]", requirement, maxsplit=1)[0].strip()
+        try:
+            importlib.metadata.version(name)
+        except importlib.metadata.PackageNotFoundError:
+            if plugin.key not in _warned_missing_libs:
+                _warned_missing_libs.add(plugin.key)
+                logging.getLogger("app").warning(
+                    "plugin %s ปิดตัวเองเพราะไลบรารี %r ยังไม่ถูกติดตั้ง — ติดตั้งด้วย "
+                    "pipenv sync --categories ตามที่ flask plugin-deps บอก",
+                    plugin.key,
+                    name,
+                )
+            return False
+    return True
+
+
 def factor_module(plugin: Plugin) -> ModuleType:
     """โมดูลที่ทำงานจริงของปัจจัยตัวนั้น — ต้องมีเสมอ (ตรวจตอน start)"""
     module = load_module(plugin, FACTOR_MODULE)

@@ -3,5 +3,10 @@
   "name": "Authenticator app",
   "version": "1.0.0",
   "factor": "second",
-  "migration": "live"
+  "migration": "live",
+  "requires": {
+    "pip": [
+      "cryptography~=45.0"
+    ]
+  }
 }
