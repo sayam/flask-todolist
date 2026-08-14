@@ -30,9 +30,12 @@ this repo **portable and checkable** rather than adding features. Nothing in the
   `standard:` reference may only cite an ASVS requirement that passes *and* whose
   evidence points back at that gate. See
   [ADR 0039](docs/adr/0039-gates-registry-verified-two-way.md).
-- `SKILL.md` — 61 framework-agnostic rules, **generated** from the portable gates
-  (rule = the gate's title, the trap that produced it = `born_from`). Writing a
-  rule directly into the file is not possible; add a gate and regenerate.
+- `SKILL.md` — framework-agnostic baseline rules, **generated** from the portable
+  gates (rule = the gate's title, the trap that produced it = `born_from`).
+  Writing a rule directly into the file is not possible; add a gate and
+  regenerate. App-type agreements are split into their own generated sheet,
+  `SKILL-TODOLIST.md`, with every gate declaring its layer — see
+  [ADR 0042](docs/adr/0042-three-layer-skill-model.md).
 - `overlays/flask/` — the enforcement half of those rules for other Flask
   projects: 8 scanners (standard library only), `gates_doctor.py`, and a
   manifest-driven `install.py`. CI job `scaffold` proves on every push that it
@@ -67,7 +70,7 @@ this repo **portable and checkable** rather than adding features. Nothing in the
 ## [1.0.0] — 2026-08-12
 
 First public release. Everything below arrived across seven planned phases of
-work; the reasoning for each decision lives in the 41 records in
+work; the reasoning for each decision lives in the 43 records in
 [`docs/adr/`](docs/adr/), and the phase-by-phase plan in
 [`docs/ROADMAP.md`](docs/ROADMAP.md).
 

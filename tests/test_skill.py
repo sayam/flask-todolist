@@ -16,7 +16,7 @@ import re
 
 import pytest
 
-from scripts.build_skill import OUT, portable_gates, render
+from scripts.build_skill import OUT, OUT_BUSINESS, portable_gates, render
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
@@ -38,23 +38,36 @@ BANNED = (
 )
 
 
-def test_the_skill_is_a_render_of_the_registry_not_a_second_copy():
-    """แก้ gates.yaml แล้วไม่ regenerate = แดง · แก้ SKILL.md มือ = แดง"""
-    assert OUT.is_file(), "ไม่มี SKILL.md — รัน scripts/build_skill.py"
-    assert OUT.read_text(encoding="utf-8") == render(), (
-        "SKILL.md ไม่ตรงกับผล generate จาก gates.yaml — "
+@pytest.mark.parametrize(("path", "layer"), [(OUT, "baseline"), (OUT_BUSINESS, "business")])
+def test_each_skill_sheet_is_a_render_of_the_registry_not_a_second_copy(path, layer):
+    """แก้ gates.yaml แล้วไม่ regenerate = แดง · แก้ไฟล์ skill มือ = แดง — ทั้งสองใบ"""
+    assert path.is_file(), f"ไม่มี {path.name} — รัน scripts/build_skill.py"
+    assert path.read_text(encoding="utf-8") == render(layer), (
+        f"{path.name} ไม่ตรงกับผล generate จาก gates.yaml — "
         "รัน pipenv run python scripts/build_skill.py แล้ว commit มาด้วยกัน"
     )
 
 
-def test_every_portable_gate_appears_and_nothing_else():
-    """หัวข้อในไฟล์ == เซตของ portable gate เป๊ะ — ขาดหรือเกินคือเงาที่โกหก"""
-    text = OUT.read_text(encoding="utf-8")
-    in_file = set(re.findall(r"^### `([a-z0-9-]+)`$", text, re.MULTILINE))
+def _ids_in(path):
+    return set(re.findall(r"^### `([a-z0-9-]+)`$", path.read_text(encoding="utf-8"), re.MULTILINE))
+
+
+def test_the_two_sheets_partition_every_portable_gate():
+    """portable gate ทุกตัวอยู่ในใบเดียวเป๊ะ — ขาด ซ้ำ หรือเกิน คือเงาที่โกหก
+
+    partition แบบเดียวกับที่ไฟล์เทสต์ถูกตัดสินใน gates.yaml (ADR 0042):
+    baseline อยู่ SKILL.md · business อยู่ SKILL-TODOLIST.md · ห้ามทับกัน
+    และรวมกันต้องเท่ากับเซต portable ทั้งหมด
+    """
+    in_baseline = _ids_in(OUT)
+    in_business = _ids_in(OUT_BUSINESS)
+    overlap = in_baseline & in_business
+    assert not overlap, f"gate ที่โผล่สองใบ: {sorted(overlap)}"
     expected = {g["id"] for g in portable_gates()}
-    assert in_file == expected, (
-        f"ขาด: {sorted(expected - in_file)} · เกิน: {sorted(in_file - expected)}"
-    )
+    union = in_baseline | in_business
+    assert union == expected, f"ขาด: {sorted(expected - union)} · เกิน: {sorted(union - expected)}"
+    assert in_baseline == {g["id"] for g in portable_gates("baseline")}
+    assert in_business == {g["id"] for g in portable_gates("business")}
 
 
 def test_no_flask_library_name_leaks_into_the_universal_layer():
@@ -64,7 +77,7 @@ def test_no_flask_library_name_leaks_into_the_universal_layer():
     (นั่นคือส่วน reference ไม่ใช่ส่วนกฎ) — กฎกับบทเรียนต้องสะอาด
     """
     leaked = []
-    for line in render().splitlines():
+    for line in render("baseline").splitlines() + render("business").splitlines():
         if line.startswith("**ตัวบังคับใน reference:**"):
             continue
         lowered = line.lower()
@@ -72,13 +85,39 @@ def test_no_flask_library_name_leaks_into_the_universal_layer():
     assert not leaked, "\n  ".join(["ชื่อไลบรารีของ framework หลุดเข้าชั้นสากล:", *leaked])
 
 
-def test_every_rule_still_carries_its_origin():
+@pytest.mark.parametrize(("path", "layer"), [(OUT, "baseline"), (OUT_BUSINESS, "business")])
+def test_every_rule_still_carries_its_origin(path, layer):
     """ทุกข้อในไฟล์ต้องมีทั้งกฎและบทเรียน — โครงที่หายไปเงียบ ๆ คือ generator พัง"""
-    text = OUT.read_text(encoding="utf-8")
+    text = path.read_text(encoding="utf-8")
     rules = text.count("**กฎ:**")
     origins = text.count("**เกิดจาก:**")
-    total = len(portable_gates())
-    assert rules == origins == total, f"กฎ {rules} · เกิดจาก {origins} · gate {total} — ต้องเท่ากัน"
+    total = len(portable_gates(layer))
+    assert rules == origins == total, f"{path.name}: กฎ {rules} · เกิดจาก {origins} · gate {total}"
+
+
+def test_the_business_sheet_declares_baseline_as_its_prerequisite():
+    """ทิศระหว่างชั้น (ADR 0042): ใบ business ต้องประกาศว่าต่อยอด baseline
+
+    การขัดกันเชิงเนื้อหาตรวจด้วยเครื่องไม่ได้ — สิ่งที่บังคับได้คือ pointer นี้
+    กับ partition ข้างบน · ถอดประโยค prerequisite ออกจาก PREAMBLE = แดงที่นี่
+    """
+    text = OUT_BUSINESS.read_text(encoding="utf-8")
+    assert "SKILL.md" in text, "SKILL-TODOLIST.md ไม่ได้ชี้ไปหา SKILL.md เลย"
+    assert "ต้องรับ baseline ก่อน" in text, "SKILL-TODOLIST.md ไม่ได้ประกาศ baseline เป็น prerequisite"
+
+
+def test_the_readme_advertises_the_real_rule_counts():
+    """เลขที่โฆษณาใน README ต้องมาจากดิสก์ — เลขที่ไม่มีเทสต์อ่านคู่คือเลขที่ผิดอยู่แล้ว
+
+    (บทเรียนรอบตรวจเอกสาร 2026-08-14: เลขทุกตัวที่ไม่มีเทสต์เทียบ ผิดหมด)
+    """
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    baseline = len(portable_gates("baseline"))
+    for pattern in (
+        rf"{baseline} framework-agnostic baseline rules",
+        rf"กฎ baseline {baseline} ข้อ",
+    ):
+        assert re.search(pattern, readme), f"README ไม่มีข้อความ {pattern!r} — เลขจริงคือ {baseline}"
 
 
 @pytest.mark.parametrize("word", ["mutation", "ratchet", "ADR", "สองทิศ"])

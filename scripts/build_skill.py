@@ -1,4 +1,4 @@
-"""สร้าง `SKILL.md` — กฎสากลของ scaffolding ที่ import ไป project อื่นได้
+"""สร้าง `SKILL.md` (baseline) และ `SKILL-TODOLIST.md` (business) — ADR 0042
 
 `SKILL.md` ที่เขียนมือคือทะเบียนที่สามที่ drift จาก `gates.yaml` ได้ทันทีที่มี
 คนแก้ฝั่งเดียว — ที่นี่จึง **generate ทั้งใบ** จาก gate ที่ `portable: true`:
@@ -24,6 +24,7 @@ import yaml  # type: ignore[import-untyped]
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 GATES = ROOT / "gates.yaml"
 OUT = ROOT / "SKILL.md"
+OUT_BUSINESS = ROOT / "SKILL-TODOLIST.md"
 
 PREAMBLE = """# SKILL — กฎสากลของ scaffolding นี้
 
@@ -35,6 +36,10 @@ PREAMBLE = """# SKILL — กฎสากลของ scaffolding นี้
 (อยู่ใน `overlays/<framework>/` ซึ่งอ้างกฎด้วย gate id) · โครงสามชั้นนี้
 คือคำตอบของคำถาม "ทำไมไม่ทำ abstraction ข้าม framework ที่ runtime" —
 ดู `docs/adr/0040-scaffolding-scope-cuts.md`
+
+ใบนี้คือชั้น **baseline** — กฎที่แอปไหนเบี่ยงก็ถือว่าบกพร่อง ไม่ใช่ทางเลือก ·
+ข้อตกลงระดับ*ตัวแอป* (ที่เลือกต่างได้โดยชอบ เช่น soft delete) แยกอยู่
+`SKILL-TODOLIST.md` ตามชั้นใน `gates.yaml` (ADR 0042)
 
 ## หลักปฏิบัติกลาง — วิธีที่กฎทุกข้อข้างล่างถูกสร้างและถูกรักษา
 
@@ -57,10 +62,10 @@ PREAMBLE = """# SKILL — กฎสากลของ scaffolding นี้
 """
 
 
-def portable_gates() -> list[dict]:
-    """gate ที่ประกาศว่าเป็นกฎสากล — ตามลำดับในไฟล์ (เรียงตามหมวดอยู่แล้ว)"""
+def portable_gates(layer: str | None = None) -> list[dict]:
+    """gate ที่ export ได้ — กรองตามชั้นได้ (ADR 0042) · ลำดับตามไฟล์"""
     gates = yaml.safe_load(GATES.read_text(encoding="utf-8"))["gates"]
-    return [g for g in gates if g.get("portable")]
+    return [g for g in gates if g.get("portable") and (layer is None or g.get("layer") == layer)]
 
 
 def _enforcement(gate: dict) -> str:
@@ -73,10 +78,33 @@ def _enforcement(gate: dict) -> str:
     return f"job `{enforced['job']}`"
 
 
-def render() -> str:
-    """ประกอบทั้งใบ — ลำดับตาม gates.yaml ผล generate จึงซ้ำได้ไบต์ต่อไบต์"""
-    lines = [PREAMBLE]
-    for gate in portable_gates():
+BUSINESS_PREAMBLE = """# SKILL-TODOLIST — ข้อตกลงของตัวแอป (ชั้น business)
+
+**ไฟล์นี้ generate มา ห้ามแก้ด้วยมือ** — สร้างใหม่ด้วย
+`python scripts/build_skill.py` · แหล่งจริงคือ gate ที่ `layer: business`
+และ `portable: true` ใน `gates.yaml`
+
+**ใบนี้ต่อยอด `SKILL.md` (baseline) — ต้องรับ baseline ก่อนจึงรับใบนี้ได้**
+เพราะข้อตกลงข้างล่างถูกเขียนบนสมมติฐานว่าวินัยพื้นฐาน (mutation test ·
+ด่านสองทิศ · ratchet · ADR) มีอยู่แล้ว (ADR 0042)
+
+ต่างจาก baseline ตรงไหน: กฎในใบนี้เป็น**ทางเลือกของแอปชนิด todolist** —
+แอปอื่นเลือกต่างได้โดยไม่ถือว่าบกพร่อง (เช่น แอปที่กฎหมายบังคับ erasure จริง
+ย่อมไม่ใช้ soft delete) · การทดลองใน `docs/comparison/` ชี้ว่ากฎชั้นนี้แหละ
+คือสิ่งที่ scaffolding ให้แล้วการทบทวนเองให้ไม่ได้ — เพราะมันเดาไม่ได้
+ถ้าไม่มีใครเขียนไว้
+
+## กฎ
+
+แต่ละข้อ: **กฎ** (ของ app-type นี้ ไม่ผูก framework) · **เกิดจาก** (กับดักจริง)
+· **ตัวบังคับใน reference** (ของ repo นี้)
+"""
+
+
+def render(layer: str = "baseline") -> str:
+    """ประกอบหนึ่งใบตามชั้น — ลำดับตาม gates.yaml ผล generate ซ้ำได้ไบต์ต่อไบต์"""
+    lines = [PREAMBLE if layer == "baseline" else BUSINESS_PREAMBLE]
+    for gate in portable_gates(layer):
         born = re.sub(r"\s+", " ", gate["born_from"]).strip()
         lines.append(f"### `{gate['id']}`\n")
         lines.append(f"**กฎ:** {gate['title']}\n")
@@ -86,11 +114,12 @@ def render() -> str:
 
 
 def main() -> int:
-    """เขียน SKILL.md ทับไฟล์เดิม แล้วบอกว่ามีอะไรเปลี่ยนไหม"""
-    fresh = render()
-    changed = not OUT.exists() or OUT.read_text(encoding="utf-8") != fresh
-    OUT.write_text(fresh, encoding="utf-8")
-    print(f"{'เขียนใหม่' if changed else 'ไม่มีอะไรเปลี่ยน'}: {OUT.relative_to(ROOT)}")
+    """เขียนทั้งสองใบทับไฟล์เดิม แล้วบอกว่ามีอะไรเปลี่ยนไหม"""
+    for path, layer in ((OUT, "baseline"), (OUT_BUSINESS, "business")):
+        fresh = render(layer)
+        changed = not path.exists() or path.read_text(encoding="utf-8") != fresh
+        path.write_text(fresh, encoding="utf-8")
+        print(f"{'เขียนใหม่' if changed else 'ไม่มีอะไรเปลี่ยน'}: {path.relative_to(ROOT)}")
     return 0
 
 

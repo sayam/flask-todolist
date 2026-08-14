@@ -9,6 +9,10 @@
 คือคำตอบของคำถาม "ทำไมไม่ทำ abstraction ข้าม framework ที่ runtime" —
 ดู `docs/adr/0040-scaffolding-scope-cuts.md`
 
+ใบนี้คือชั้น **baseline** — กฎที่แอปไหนเบี่ยงก็ถือว่าบกพร่อง ไม่ใช่ทางเลือก ·
+ข้อตกลงระดับ*ตัวแอป* (ที่เลือกต่างได้โดยชอบ เช่น soft delete) แยกอยู่
+`SKILL-TODOLIST.md` ตามชั้นใน `gates.yaml` (ADR 0042)
+
 ## หลักปฏิบัติกลาง — วิธีที่กฎทุกข้อข้างล่างถูกสร้างและถูกรักษา
 
 1. **เทสต์ใหม่ทุกตัวต้องผ่าน mutation test ก่อนถือว่าเสร็จ** — พังโค้ด
@@ -59,22 +63,6 @@
 **เกิดจาก:** Phase 3 — ตรรกะที่ฝังใน route ทำให้ HTML กับ API เพี้ยนจากกันทันทีที่มี adapter ที่สอง · AST scan ห้าม service import ของฝั่ง request
 
 **ตัวบังคับใน reference:** `tests/test_service_layer.py` · `tests/test_services.py`
-
-### `delete-means-soft-delete`
-
-**กฎ:** ลบ = ซ่อน (soft delete) — ลบจริงได้ที่ purge เท่านั้น
-
-**เกิดจาก:** ADR 0014 — `--dry-run` ที่ implement เป็น rollback เคยลบข้อมูลจริง เพราะตัว purge commit ก่อน savepoint ปิด · ที่ลบได้จึงต้องมีที่เดียว
-
-**ตัวบังคับใน reference:** `tests/test_write_discipline.py` · `tests/test_soft_delete.py`
-
-### `every-write-audited`
-
-**กฎ:** ทุกการเขียนลง audit trail แบบเติมได้อย่างเดียว + hash chain
-
-**เกิดจาก:** ADR 0015/0035 — event หลัง flush ดักให้เองทุก insert/update/delete โค้ดฟีเจอร์ไม่ต้องเรียกอะไร เพราะ "ลืมเรียก" คือบั๊กที่เงียบที่สุด
-
-**ตัวบังคับใน reference:** `tests/test_audit.py`
 
 ### `core-never-names-plugins`
 
