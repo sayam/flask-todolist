@@ -81,6 +81,21 @@ def test_lifecycle_is_honest_when_the_schema_was_never_migrated(app):
     assert facts["migration_head"], "สาย migration บนดิสก์มีจริง ต้องอ่าน head ได้"
 
 
+def test_lifecycle_is_honest_when_the_migration_chain_is_unreadable(app, monkeypatch, tmp_path):
+    """สาย migration บนดิสก์หาย/อ่านไม่ได้ → head ต้องเป็น None ไม่ใช่เดา
+
+    เกิดจริงได้ใน image ที่ไม่ได้ copy migrations/ มา — หน้า lifecycle ต้อง
+    รายงานว่าอ่านไม่ได้ ไม่ใช่โชว์ค่ามั่วให้คนเชื่อว่า schema เป็นปัจจุบัน
+    """
+    _two_people(app)
+    monkeypatch.setattr(system_info, "MIGRATIONS_DIR", tmp_path / "gone")
+    with app.app_context():
+        boss = db.session.query(User).filter_by(username="boss").one()
+        facts = system_info.lifecycle(boss)
+    assert facts["migration_head"] is None
+    assert facts["migration_in_sync"] is False
+
+
 def test_observability_counts_real_requests_and_carries_the_caveat(app):
     """ตัวเลขต้องมาจากคำขอที่เกิดจริงใน process นี้ และป้าย ADR 0031 ต้องอยู่บนหน้า"""
     _two_people(app)
