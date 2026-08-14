@@ -379,16 +379,24 @@ def plugin_list():
         off = " DISABLED" if plugins.is_disabled(plugin) else ""
         column = _serving_state(plugin, serving)
         click.echo(f"{plugin.key}\tv{plugin.version}{core}{off}\t{column}{state}")
-        # auth profile (ADR 0047) พิมพ์เป็นลูกของ plugin แม่ **รวมตัวที่ถูกปิด**
-        # — คีย์พวกนี้ใส่ลง DISABLED_PLUGINS ได้ทีละตัว จึงต้องถูกพิมพ์ออกมา
-        # เหมือนคีย์อื่นทุกตัว (ไล่จากที่ประกาศ ไม่ใช่จากที่ใช้งานได้)
-        for raw in current_app.config.get("AUTH_PROFILES", ()):
-            plugin_id, name = plugins.parse_profile_entry(raw)
-            if f"{plugins.AUTH_TYPE}/{plugin_id}" != plugin.key:
-                continue
-            profile_key = f"{plugin.key}{plugins.PROFILE_SEPARATOR}{name}"
-            profile_off = " DISABLED" if profile_key in plugins.disabled_keys() else ""
-            click.echo(f"{profile_key}\tprofile of {plugin.key}{profile_off}")
+        _echo_profiles_of(plugin)
+
+
+def _echo_profiles_of(plugin):
+    """auth profile (ADR 0047) พิมพ์เป็นลูกของ plugin แม่ **รวมตัวที่ถูกปิด**
+
+    คีย์พวกนี้ใส่ลง DISABLED_PLUGINS ได้ทีละตัว จึงต้องถูกพิมพ์ออกมาเหมือน
+    คีย์อื่นทุกตัว — ไล่จากที่ประกาศ ไม่ใช่จากที่ใช้งานได้
+    """
+    from app import plugins
+
+    for raw in current_app.config.get("AUTH_PROFILES", ()):
+        plugin_id, name = plugins.parse_profile_entry(raw)
+        if f"{plugins.AUTH_TYPE}/{plugin_id}" != plugin.key:
+            continue
+        profile_key = f"{plugin.key}{plugins.PROFILE_SEPARATOR}{name}"
+        profile_off = " DISABLED" if profile_key in plugins.disabled_keys() else ""
+        click.echo(f"{profile_key}\tprofile of {plugin.key}{profile_off}")
 
 
 @click.command("plugin-deps")
