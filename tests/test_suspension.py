@@ -148,6 +148,39 @@ def test_a_regular_user_cannot_suspend_anyone(app):
     assert client.post(f"/admin/users/{boss_id}/suspend").status_code == 403
 
 
+def test_the_admin_page_reports_conflicts_and_missing_targets(app):
+    """เส้นทาง error ของปุ่ม: 404 เมื่อไม่มีคน · Conflict = flash แล้วพากลับหน้าเดิม
+    · ระงับตัวเอง = flash เหตุผล (ServiceError → ไม่ใช่ 500)"""
+    boss_id, member_id = _people(app)
+    client = _sign_in(app, "boss")
+
+    assert client.post("/admin/users/99999/suspend").status_code == 404
+
+    client.post(f"/admin/users/{member_id}/suspend")
+    resp = client.post(f"/admin/users/{member_id}/suspend", follow_redirects=True)
+    assert resp.status_code == 200, "ระงับซ้ำต้องพากลับหน้าเดิมพร้อมข้อความ ไม่ใช่พัง"
+    assert "ถูกระงับอยู่แล้ว" in resp.data.decode()
+
+    resp = client.post(f"/admin/users/{boss_id}/suspend", follow_redirects=True)
+    assert "ตัวเอง" in resp.data.decode(), "ระงับตัวเองต้องถูกปฏิเสธพร้อมเหตุผล"
+
+
+def test_the_cli_refuses_unknown_users_and_double_suspend(app):
+    """เส้นทาง error ของ CLI ต้องดังพร้อมเหตุผล ไม่ใช่เงียบหรือ traceback"""
+    _people(app)
+    runner = app.test_cli_runner()
+
+    result = runner.invoke(args=["suspend-user", "nobody"])
+    assert "No user named" in result.output
+
+    runner.invoke(args=["suspend-user", "member"])
+    result = runner.invoke(args=["suspend-user", "member"])
+    assert "already suspended" in result.output
+
+    result = runner.invoke(args=["unsuspend-user", "nobody"])
+    assert "No user named" in result.output
+
+
 def test_the_cli_can_suspend_and_lift(app):
     """CLI ต้องเดินเส้นทางเดียวกับหน้าเว็บ — พฤติกรรมเดียว สองประตู"""
     _people(app)
