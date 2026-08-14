@@ -1009,8 +1009,9 @@ log ขึ้น "Running upgrade" ครบทุกตัว exit code เป�
 - **ยังไม่ปรับ `--workers` ของ gunicorn** ตัวเลขใน `docs/PERFORMANCE.md` เป็นของ
   worker เดียวต่อ container ซึ่งเป็นสภาพที่คน deploy ตามเอกสารจะได้จริง
   — ปรับแล้วต้องวัดใหม่ ไม่ใช่เดาว่าดีขึ้น
-- **ยังไม่มีใคร scrape `/metrics` จริง** มีของให้ดูดแล้วแต่ยังไม่มี Prometheus/Grafana
-  ที่เก็บเป็นรอบ (ค่าที่นับเป็นของ process นั้นคนเดียว ต้องรวมที่ฝั่ง Prometheus)
+- ~~ยังไม่มีใคร scrape `/metrics` จริง~~ **ปิดแล้ว (เฟส 16)** — `compose.metrics.yaml`
+  (Prometheus + Grafana · token จากไฟล์ อ่านใหม่ทุกรอบ scrape) และ job `scrape`
+  พิสูจน์ทุก push ว่าตัวเลขถึง TSDB ผ่านด่าน token จริง
 
 ## Phase 8–12 ปิดแล้ว — scaffolding ที่ export ได้และวัดผลแล้ว (2026-08-14)
 

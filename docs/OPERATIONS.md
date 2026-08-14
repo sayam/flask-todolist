@@ -383,6 +383,25 @@ plugin ยืนยันตัวตนภายนอกตัวเดีย�
 - `AUTH_PROFILES` ที่ชี้ plugin ที่ไม่มี/รูปแบบผิด/ซ้ำ = **แอปไม่ start**
   (หลักเดียวกับ scheme ของ `DATABASE_URL` — ADR 0026)
 
+## Prometheus + Grafana ดูด `/metrics` (เฟส 16 · 16-04)
+
+```bash
+# 1) ออก token ให้ตัวดูด (/metrics ต้องมี token เสมอ — ADR 0031)
+flask token-create <ผู้ใช้> --name "prometheus"   # เก็บบรรทัด token ลงไฟล์
+echo 'tdl_...' > ./metrics-token
+
+# 2) ขึ้น stack — Prometheus อ่าน token จากไฟล์ (อ่านใหม่ทุกรอบ scrape
+#    เพิกถอนใบเก่า/ออกใบใหม่แล้วแก้ไฟล์ได้เลย ไม่ต้อง restart)
+METRICS_TOKEN_FILE=$PWD/metrics-token GRAFANA_PASSWORD=... \
+  docker compose -f compose.yaml -f compose.metrics.yaml up -d
+```
+
+- Prometheus: `:9090` · Grafana: `:3001` (datasource ถูก provision จากไฟล์)
+- ค่าที่แอปนับเป็นของ process นั้นคนเดียว (ADR 0031) — การรวมข้าม replica
+  เป็นหน้าที่ของฝั่ง Prometheus
+- job `scrape` ใน CI พิสูจน์ทุก push ว่าตัวเลขไปถึง TSDB จริงผ่านด่าน token
+  (และ token ผิดต้อง `up=0` — วัดจริงแล้วทั้งสองทิศ)
+
 ## เปิด SSO ด้วย OIDC (Phase 5 · P5-13)
 
 ```
