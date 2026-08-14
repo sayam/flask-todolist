@@ -18,9 +18,10 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ## [Unreleased]
 
-Five more phases of work, all of it about making the engineering discipline in
-this repo **portable and checkable** rather than adding features. Nothing in the
-`/api/v1` contract changed.
+Eight more phases of work: five about making the engineering discipline in this
+repo **portable and checkable** (8–12), then the first three phases of the 1.1
+feature plan (13–15) — rule layers and legal worksheets, an admin overhaul with
+data masking, and encryption at rest. Nothing in the `/api/v1` contract changed.
 
 ### Added
 
@@ -53,6 +54,25 @@ this repo **portable and checkable** rather than adding features. Nothing in the
   changes the code that actually gets written: one spec, three arms of five
   generated apps each, one measurement battery
   (`scripts/measure_generated.py`, `scripts/asvs_probe.py`).
+- `docs/PDPA.md` — a legal worksheet in the same shape as the ASVS one (a status
+  per article, evidence in backticks that a test resolves), the pilot of the
+  *legal* rule layer. Includes the two features it demanded: a public `/privacy`
+  page and **account suspension** (suspend ≠ delete, reversible, admin page and
+  CLI, live sessions cut on the next request) — PDPA articles 23 and 34.
+- The admin area is now a package with a panel registry: user rows pass through
+  a **masking layer driven by the data classification** (C1/C3 hidden, C2 masked,
+  unmask is an audited POST — see
+  [ADR 0045](docs/adr/0045-admin-data-masking-by-classification.md)), plus read-only
+  panels for the runtime environment, an active SBOM view that diffs installed
+  packages against `Pipfile.lock`, lifecycle (alembic current vs head, plugin
+  state), and per-process latency histograms.
+- TOTP secrets are now **encrypted at rest** (AES-256-GCM, `enc:v1:` format with
+  the version inside the value so keys can rotate row by row). The key is
+  `DATA_ENCRYPTION_KEY`, separate from `SECRET_KEY` by design and fed from the
+  secrets source; legacy plaintext rows still verify and are re-encrypted on
+  first use — see [ADR 0046](docs/adr/0046-field-encryption-at-rest.md). A plugin
+  whose declared libraries are missing now **disables itself with a warning**
+  instead of breaking the page that lists it.
 
 ### Changed
 

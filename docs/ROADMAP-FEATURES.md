@@ -71,6 +71,9 @@
 
 ## Phase 13 — ชั้นของกฎ + governance
 
+> **สถานะ: ปิดแล้ว (2026-08-14)** — ADR 0042/0043 · `layer:` ครบทุก gate ·
+> `SKILL-TODOLIST.md` แยกใบ · `docs/PDPA.md` + `tests/test_pdpa.py`
+
 **เป้า**: กฎทุกข้อรู้ว่าตัวเองอยู่ชั้นไหน (baseline / business / internal) ·
 business skill แยกใบ · ชั้น legal เป็น overlay ที่ไม่ break พื้นฐาน ·
 มาตรฐานการพัฒนาที่ยังขาดถูกเติมด้วยของที่ตรวจได้
@@ -90,6 +93,10 @@ generate สดตรงกับดัชนี · PDPA worksheet หลัก�
 
 ## Phase 14 — Admin ยกเครื่อง
 
+> **สถานะ: ปิดแล้ว (2026-08-14)** — ADR 0044/0045 · `app/admin/` package +
+> panel registry · masking ตามชั้นข้อมูล · หน้า environment/SBOM/lifecycle/
+> observability · `/privacy` + ระงับบัญชี (PDPA ม.23/ม.34)
+
 **หลักที่ล็อกไว้ก่อนเริ่ม**: masking มาก่อนหน้าใหม่ทุกหน้า — ห้ามมีหน้า admin
 ใหม่ที่แสดงข้อมูลผู้ใช้โดยไม่ผ่านชั้น mask
 
@@ -103,6 +110,13 @@ generate สดตรงกับดัชนี · PDPA worksheet หลัก�
 | 14-06 | หน้า lifecycle: `__version__` · alembic current vs head · plugin ติดตั้ง/เปิด/ปิด · หน้า observability: histogram จาก `/metrics` ของ process ตัวเอง + ป้าย "process นี้คนเดียว" |
 
 ## Phase 15 — Encryption at rest
+
+> **สถานะ: ปิดแล้ว (2026-08-15)** — ADR 0046 · ที่ต่างจากแผน (บันทึกใน ADR):
+> ตัวคอลัมน์ `EncryptedSecret` อยู่ใน `models.py` ของ plugin ไม่ใช่
+> `app/db_types.py` (คอลัมน์แรกที่ encrypt เป็นของ plugin — core ไม่ควรแบก
+> type ที่ยังไม่มีคอลัมน์ core ใช้) · การย้ายข้อมูลเดิมเป็น encrypt-on-use
+> ไม่ใช่ migration (ตารางของ plugin อยู่นอกสาย alembic — ADR 0023) ·
+> ได้กลไกแถม: `plugins.requirements_met()` — plugin ที่ไลบรารีขาดปิดตัวเอง
 
 | ขั้น | งาน |
 |---|---|
