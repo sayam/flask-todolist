@@ -115,7 +115,7 @@ encryption at rest, an operations phase, and named auth profiles. Nothing in the
 ## [1.0.0] — 2026-08-12
 
 First public release. Everything below arrived across seven planned phases of
-work; the reasoning for each decision lives in the 48 records in
+work; the reasoning for each decision lives in the 49 records in
 [`docs/adr/`](docs/adr/), and the phase-by-phase plan in
 [`docs/ROADMAP.md`](docs/ROADMAP.md).
 

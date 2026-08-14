@@ -54,3 +54,4 @@ ADR 0002–0008 เป็นการ backfill การตัดสินใจ
 | [0046](0046-field-encryption-at-rest.md) | field-level encryption at rest — totp_secret ก่อน · คีย์แยกผ่าน secrets source · encrypt-on-use | accepted |
 | [0047](0047-named-auth-profiles.md) | auth หลาย profile ต่อ plugin เดียว — ลำดับประกาศ · fallback เฉพาะ "ติดต่อไม่ได้" | accepted |
 | [0048](0048-n-minus-one-compatibility.md) | สัญญา N-1 + วินัย expand–contract · readiness/liveness ไม่มี token · job `n-1` | accepted |
+| [0049](0049-org-todo-graph-privacy-model.md) | privacy model ของ org graph — private ไม่เผยแม้การมีอยู่ · dependency เชิญ→ยอมรับ · impact จากของที่แชร์เท่านั้น | accepted |
