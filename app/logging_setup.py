@@ -102,6 +102,14 @@ def init_logging(app):
 
     @app.after_request
     def _log_request(response):
+        from app.health import HEALTH_PATHS
+
+        if request.path in HEALTH_PATHS:
+            # liveness/readiness มาทุกไม่กี่วินาทีโดยไม่มีสาระ (ADR 0048) —
+            # log ที่มีแต่เสียงเดิมซ้ำคือ log ที่ไม่มีใครอ่าน · ความล้มเหลวของ
+            # readiness ยัง log จากในตัว handler เองเสมอ
+            response.headers[REQUEST_ID_HEADER] = g.get("request_id", "")
+            return response
         duration_ms = round((time.perf_counter() - g.get("request_started_at", 0)) * 1000, 2)
         app.logger.info(
             "request",

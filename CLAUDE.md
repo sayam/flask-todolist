@@ -1029,7 +1029,7 @@ generate จาก portable gate · `overlays/flask/` เอากฎไปบ�
 
 **อะไรเปลี่ยนไปหลัง Phase 5**: ฐานข้อมูล/cache/แหล่งความลับ/ปัจจัยยืนยันตัวตน
 เป็น plugin ที่เลือกด้วย config ตัวเดียวทั้งหมด · มี stack ที่รันจริงพร้อม
-reverse proxy, TLS, ≥2 replica, IdP และ directory · CI มี **23 job (25 check)** ที่ยิง
+reverse proxy, TLS, ≥2 replica, IdP และ directory · CI มี **24 job (26 check)** ที่ยิง
 ของจริงทุก push (ไม่ใช่ mock): สามยี่ห้อฐานข้อมูล, stack, SSO, LDAP, Vault,
 image, timer ของงานลบข้อมูล
 

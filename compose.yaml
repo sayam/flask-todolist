@@ -32,6 +32,18 @@ services:
       - "8000:8000"
     volumes:
       - app-data:/data
+    healthcheck:
+      # ถาม readiness จริง (ADR 0048) ไม่ใช่แค่ "โปรเซสยังอยู่" — ใช้ python
+      # เพราะ image ไม่มี curl/wget (และไม่ควรมีเพิ่มเพื่อการนี้)
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen("http://127.0.0.1:8000/readyz", timeout=3)
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
     depends_on:
       redis:
         # รอให้ redis ตอบ ping ได้จริง ไม่ใช่แค่ container ถูกสร้าง —

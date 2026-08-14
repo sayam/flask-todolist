@@ -669,6 +669,7 @@ gates:
         - tests/test_cache.py
         - tests/test_cli.py
         - tests/test_due_and_filter.py
+        - tests/test_health.py
         - tests/test_ldap.py
         - tests/test_metrics.py
         - tests/test_mode.py
@@ -726,6 +727,20 @@ gates:
     born_from: >-
       ทุก step มี if !cancelled() เพราะ xenon เคยแดงก่อนแล้วบัง mypy ที่แดงอยู่
       — ด่านที่แดงตัวแรกห้ามบังตัวหลัง
+
+  - id: n-minus-one-served
+    title: โค้ดของ tag ล่าสุดต้องให้บริการบน schema ของ HEAD ได้จริง (expand–contract)
+    kind: job
+    severity: blocking
+    enforced_by: {job: n-1}
+    standard: []
+    requires: []
+    portable: true
+    layer: baseline
+    born_from: >-
+      rolling deploy มีจังหวะที่สองรุ่นรันพร้อมกันบน schema เดียวเสมอ —
+      migration ที่ถูกต้องสำหรับโค้ดใหม่แต่ฆ่าโค้ดเก่าคือ downtime ที่ไม่มีใคร
+      ประกาศ · สัญญาที่ไม่มีด่านรันหนุนคือสัญญาที่รอวันเน่า (ADR 0048)
 
   - id: schema-drift-zero
     title: เดิน migration บนฐานเปล่าแล้วเทียบกับ model — drift ต้องเป็นศูนย์

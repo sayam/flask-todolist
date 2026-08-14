@@ -128,4 +128,6 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 # จำนวน worker ตั้งจากภายนอกด้วย `GUNICORN_CMD_ARGS` หรือ `WEB_CONCURRENCY`
 # **รันหลาย worker แล้วต้องตั้ง `CACHE_URL` ให้ชี้ store ที่แชร์ได้ด้วย**
 # ไม่งั้นเพดาน rate limit จะเป็น N เท่า (แอปเตือนตอน start — ดู app/cache.py)
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--access-logfile", "-", "run:app"]
+# `--graceful-timeout` ชัดเจนเป็นส่วนหนึ่งของสัญญา rolling (ADR 0048) —
+# SIGTERM แล้วคำขอที่กำลังทำอยู่ต้องได้จบก่อนโปรเซสตาย ไม่ใช่ถูกตัดกลางคัน
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--graceful-timeout", "30", "--access-logfile", "-", "run:app"]
