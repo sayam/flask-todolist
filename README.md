@@ -111,6 +111,18 @@ Coverage is gated at **96%** and moves in one direction only. The API is
 additionally fuzzed against its own OpenAPI spec, which found three bugs that
 hand-written tests had walked straight past.
 
+## Taking the discipline somewhere else
+
+The rules above are not prose in a wiki. They are indexed, generated, exportable,
+and measured:
+
+| | |
+|---|---|
+| [`gates.yaml`](gates.yaml) | an index of every gate, verified **in both directions** — every CI job must have a gate, and every test file must belong to exactly one gate. A gate may only cite an ASVS requirement whose own evidence points back at it |
+| [`SKILL.md`](SKILL.md) | 61 framework-agnostic rules, **generated** from the portable gates. Each one carries the trap that produced it. You cannot write a rule into this file by hand — you add a gate and regenerate |
+| [`overlays/flask/`](overlays/flask/) | the enforcement half for other Flask projects: 8 scanners in the standard library only, a doctor, and an installer. CI proves on every push that it installs into an empty repo **and** that this repo passes its own overlay |
+| [`docs/comparison/`](docs/comparison/) | does any of it change the code that actually gets written? One spec, three arms of five generated apps, one measurement battery — including the finding that a plain "review your own work once" pass closes about three quarters of the gap |
+
 ## Documentation
 
 Written in Thai, because that is the language the thinking happened in.
@@ -118,7 +130,8 @@ Written in Thai, because that is the language the thinking happened in.
 | | |
 |---|---|
 | [`docs/adr/`](docs/adr/) | 41 architecture decision records — every choice, the options rejected, and what would reverse it |
-| [`docs/ROADMAP.md`](docs/ROADMAP.md) | the seven phases, what each closed, and what was deliberately deferred |
+| [`docs/ROADMAP.md`](docs/ROADMAP.md) | the first seven phases — the application itself — what each closed, and what was deliberately deferred |
+| [`docs/ROADMAP-INFRA.md`](docs/ROADMAP-INFRA.md) | phases 8–12 — the index, the exported skill, the overlay, the fail-fix harness, and the comparison experiment |
 | [`docs/ASVS.md`](docs/ASVS.md) | OWASP ASVS 5.0 Level 2 self-assessment — all 253 in-scope requirements answered, including the 48 that do not pass |
 | [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) | measured numbers, including the ones that hurt |
 | [`docs/DATA-CLASSIFICATION.md`](docs/DATA-CLASSIFICATION.md) | what is stored, how sensitive it is, how long it is kept |
@@ -224,10 +237,29 @@ pa11y-ci บน Chromium จริงทั้งโหมดมืด ธีม
 coverage มีพื้นที่ **96%** และขยับขึ้นทางเดียว · API ยังถูก fuzz ด้วยสเปคของ
 ตัวเอง ซึ่งเจอบั๊กสามตัวที่เทสต์ที่คนเขียนเองเดินผ่านไป
 
+## เอาวินัยนี้ไปใช้ที่อื่น
+
+กฎทั้งหมดข้างบนไม่ได้อยู่ในรูปข้อความที่ต้องเชื่อ — มันถูกทำดัชนี generate
+export และวัดผลแล้ว:
+
+- [`gates.yaml`](gates.yaml) — ดัชนี gate ทั้ง repo **ตรวจสองทิศ**: ทุก job
+  ต้องมี gate และไฟล์เทสต์ทุกไฟล์ต้องเป็นของ gate เดียว · gate จะอ้างข้อ ASVS
+  ได้ก็ต่อเมื่อหลักฐานของข้อนั้นชี้กลับมาหามันจริง
+- [`SKILL.md`](SKILL.md) — กฎสากล 61 ข้อ **generate จาก gate ที่ portable**
+  แต่ละข้อพก "กับดักที่ให้กำเนิดมัน" มาด้วย · เขียนกฎลงไฟล์นี้ตรง ๆ ไม่ได้
+  ต้องเพิ่ม gate แล้ว regenerate
+- [`overlays/flask/`](overlays/flask/) — ฝั่งบังคับใช้สำหรับโปรเจกต์ Flask อื่น
+  (scan 8 ตัวที่ใช้ stdlib ล้วน + doctor + installer) · CI พิสูจน์ทุก push ว่า
+  ติดตั้งลง repo เปล่าได้จริง **และ repo นี้ผ่าน overlay ของตัวเอง**
+- [`docs/comparison/`](docs/comparison/) — แล้วมันเปลี่ยนโค้ดที่เขียนออกมาจริงไหม
+  spec เดียว 3 แขน แขนละ 5 แอป วัดด้วยชุดเดียวกัน — รวมถึงผลที่ว่า **การสั่งให้
+  "ทบทวนงานตัวเองหนึ่งรอบ" เฉย ๆ ปิดช่องว่างไปได้ราวสามในสี่**
+
 ## เอกสาร
 
 [`docs/adr/`](docs/adr/) 41 ใบ (ทุกการตัดสินใจ ทางที่ไม่ได้เลือก และเงื่อนไข
-ที่จะทำให้มันหมดอายุ) · [`docs/ROADMAP.md`](docs/ROADMAP.md) ·
+ที่จะทำให้มันหมดอายุ) · [`docs/ROADMAP.md`](docs/ROADMAP.md) (เฟส 0–7 ของตัวแอป)
+· [`docs/ROADMAP-INFRA.md`](docs/ROADMAP-INFRA.md) (เฟส 8–12 ของ scaffolding) ·
 [`docs/ASVS.md`](docs/ASVS.md) · [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) ·
 [`docs/DATA-CLASSIFICATION.md`](docs/DATA-CLASSIFICATION.md) ·
 [`docs/OPERATIONS.md`](docs/OPERATIONS.md) ·

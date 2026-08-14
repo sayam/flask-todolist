@@ -18,7 +18,51 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ## [Unreleased]
 
-Nothing yet.
+Five more phases of work, all of it about making the engineering discipline in
+this repo **portable and checkable** rather than adding features. Nothing in the
+`/api/v1` contract changed.
+
+### Added
+
+- `gates.yaml` — an index of every gate in the repo, verified in both directions:
+  every job must have a gate, and every test file must be assigned to exactly one
+  gate (a full partition, the same shape as `docs/DATA-CLASSIFICATION.md`). A
+  `standard:` reference may only cite an ASVS requirement that passes *and* whose
+  evidence points back at that gate. See
+  [ADR 0039](docs/adr/0039-gates-registry-verified-two-way.md).
+- `SKILL.md` — 61 framework-agnostic rules, **generated** from the portable gates
+  (rule = the gate's title, the trap that produced it = `born_from`). Writing a
+  rule directly into the file is not possible; add a gate and regenerate.
+- `overlays/flask/` — the enforcement half of those rules for other Flask
+  projects: 8 scanners (standard library only), `gates_doctor.py`, and a
+  manifest-driven `install.py`. CI job `scaffold` proves on every push that it
+  installs into an empty repo *and* that this repo passes its own overlay
+  (dogfooding).
+- A `migration` class (`live` / `warm` / `cold`) declared by every plugin and
+  enforced at load time, with the numbers to back each claim measured under load
+  — see [ADR 0041](docs/adr/0041-migration-class-per-plugin.md) and
+  `docs/PERFORMANCE.md`. The `cache` port was **demoted from `live` to `warm` by
+  measurement**, not by relaxing the criterion.
+- `scripts/run_gates.py` — a fail-fix loop over `gates.yaml` that reports three
+  honest states (ran / skipped-with-a-reason / failed), proven against a real
+  planted vulnerability in `docs/GATE-LOG.md`.
+- `docs/comparison/` — an experiment measuring whether the exported scaffolding
+  changes the code that actually gets written: one spec, three arms of five
+  generated apps each, one measurement battery
+  (`scripts/measure_generated.py`, `scripts/asvs_probe.py`).
+
+### Changed
+
+- `docs/GATES-ASVS.md` (generated) now states which ASVS rows are backed by a
+  gate that runs on every push and which pass on documented reasoning alone —
+  117 versus 21 of the 138 that pass. Same assessment, honest confidence levels.
+
+### Fixed
+
+- `tests/test_api_fuzz.py` no longer fails on negative payloads that evaporate
+  before reaching the app: query strings and headers are strings by definition in
+  HTTP, so a wrong-typed value never reaches the wire, while the check judged the
+  data *before* serialisation. Negative bodies are still enforced.
 
 ## [1.0.0] — 2026-08-12
 
