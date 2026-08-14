@@ -18,7 +18,7 @@ from sqlalchemy import func
 
 from app import audit, db, tz
 from app.audit import AuditEntry
-from app.models import ApiToken, Category, Todo, User
+from app.models import ApiToken, Category, Team, TeamMember, Todo, TodoDependency, TodoShare, User
 from app.soft_delete import INCLUDE_DELETED, SoftDeleteMixin
 
 # ระยะที่อนุมัติไว้ (ADR 0014) — เปลี่ยนต้องแก้เอกสารจำแนกชั้นข้อมูลด้วย
@@ -35,12 +35,18 @@ class PurgeResult:
     categories: int = 0
     api_tokens: int = 0
     users_purged: int = 0
+    graph_rows: int = 0
     audit_entries: int = 0
 
     @property
     def total(self) -> int:
         return (
-            self.todos + self.categories + self.api_tokens + self.users_purged + self.audit_entries
+            self.todos
+            + self.categories
+            + self.api_tokens
+            + self.users_purged
+            + self.graph_rows
+            + self.audit_entries
         )
 
 
@@ -67,18 +73,28 @@ def _expired[T: SoftDeleteMixin](model: type[T], cutoff: datetime) -> list[T]:
 
 def _collect(
     days: int,
-) -> tuple[list[Todo], list[Category], list[ApiToken], list[User]]:
+) -> tuple[list[Todo], list[Category], list[ApiToken], list[User], list[SoftDeleteMixin]]:
     """หาแถวที่ถึงกำหนดล้าง — ใช้ร่วมกันทั้ง preview และของจริง
 
     แยกการ "หา" ออกจากการ "ลบ" เพื่อให้ทั้งสองทางมองเห็นชุดเดียวกันเสมอ
     ถ้าเขียนแยกกันสองที่ วันหนึ่งเงื่อนไขจะเพี้ยนกันแล้ว preview จะโกหก
     """
     cutoff = _cutoff(days)
+    graph_rows: list[SoftDeleteMixin] = [
+        # แถวของ org graph (ADR 0049) — สมาชิกภาพ/การแชร์/dependency ที่ถูกถอน
+        # แล้วพ้นระยะ ลบทิ้งจริงได้ทั้งแถว (ไม่มี tombstone — ไม่มี audit ตัวไหน
+        # อ้างแถวพวกนี้ด้วย id ข้ามตาราง) · Team อยู่ท้ายเพราะแถวลูกอ้างถึงมัน
+        *_expired(TodoDependency, cutoff),
+        *_expired(TodoShare, cutoff),
+        *_expired(TeamMember, cutoff),
+        *_expired(Team, cutoff),
+    ]
     return (
         _expired(Todo, cutoff),
         _expired(Category, cutoff),
         _expired(ApiToken, cutoff),
         [u for u in _expired(User, cutoff) if u.purged_at is None],
+        graph_rows,
     )
 
 
@@ -149,11 +165,12 @@ def preview_expired(
     เพราะตัว purge commit ไปก่อนแล้ว savepoint จึงถูกปิดไปแล้วตอน rollback
     ทางที่ปลอดภัยคือทางที่ไม่มีคำสั่งลบอยู่ในนั้นเลย ไม่ใช่ทางที่ตั้งใจจะย้อน
     """
-    todos, categories, api_tokens, users = _collect(days)
+    todos, categories, api_tokens, users, graph_rows = _collect(days)
     return PurgeResult(
         todos=len(todos),
         categories=len(categories),
         api_tokens=len(api_tokens),
+        graph_rows=len(graph_rows),
         users_purged=len(users),
         audit_entries=len(_expired_audit(audit_days)),
     )
@@ -168,8 +185,10 @@ def purge_expired(days: int = PURGE_AFTER_DAYS, audit_days: int = AUDIT_RETAIN_D
     ล้าง audit **หลัง** ล้างข้อมูล เพราะการล้างข้อมูลเองก็สร้างแถว audit
     (เหตุการณ์ `*.purge`) ซึ่งเป็นแถวใหม่เอี่ยม ไม่มีทางพ้นระยะอยู่แล้ว
     """
-    todos, categories, api_tokens, users = _collect(days)
+    todos, categories, api_tokens, users, graph_rows = _collect(days)
 
+    for row in graph_rows:
+        db.session.delete(row)
     for todo in todos:
         db.session.delete(todo)
     for category in categories:
@@ -191,5 +210,6 @@ def purge_expired(days: int = PURGE_AFTER_DAYS, audit_days: int = AUDIT_RETAIN_D
         categories=len(categories),
         api_tokens=len(api_tokens),
         users_purged=len(users),
+        graph_rows=len(graph_rows),
         audit_entries=purge_audit(audit_days),
     )

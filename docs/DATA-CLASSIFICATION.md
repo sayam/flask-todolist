@@ -21,8 +21,8 @@
 |---|---|---|
 | **C1** | ความลับ (secret) | `tdl_user.password_hash`, `tdl_api_token.token_hash`, `tdl_auth_totp_secret.totp_secret` (encrypted at rest — ADR 0046) |
 | **C2** | ระบุตัวบุคคล (PII) | `tdl_user.username`, `first_name`, `last_name`, `tdl_auth_oidc_identity.subject`, `tdl_auth_ldap_identity.external_id` |
-| **C3** | เนื้อหาของผู้ใช้ | `tdl_todo.title`, `tdl_category.name`, `tdl_api_token.name`, `start_date`, `due_date` |
-| **C4** | การตั้งค่า/metadata | `confirmed_at`, `last_counter`, `locale`, `theme`, `mode`, `timezone_name`, `role`, `is_done`, `created_at`, `updated_at`, `deleted_at`, `purged_at`, `suspended_at`, `expires_at`, `linked_at`, `issuer`, `directory`, `id`, `*_id` |
+| **C3** | เนื้อหาของผู้ใช้ | `tdl_todo.title`, `tdl_category.name`, `tdl_api_token.name`, `start_date`, `due_date`, `tdl_team.name` |
+| **C4** | การตั้งค่า/metadata | `confirmed_at`, `last_counter`, `locale`, `theme`, `mode`, `timezone_name`, `role`, `is_done`, `created_at`, `updated_at`, `deleted_at`, `purged_at`, `suspended_at`, `expires_at`, `linked_at`, `issuer`, `directory`, `id`, `*_id`, `joined_at`, `shared_at`, `accepted_at`, `tdl_todo_dependency.status` |
 | **C5** | หลักฐาน (audit) | `tdl_audit.id`, `created_at`, `event`, `actor_id`, `source`, `request_id`, `table_name`, `row_id`, `changes`, `prev_hash`, `row_hash`, `tdl_audit_lock.id`, `tdl_audit_lock.last_hash` |
 | **C6** | log ปฏิบัติการ | JSON log ทาง stdout (`actor`, `remote_addr`, `path`, …) |
 
@@ -31,6 +31,8 @@
 - **C3 อาจมี PII ของบุคคลที่สามปนอยู่** — ผู้ใช้พิมพ์ "โทรหาคุณสมชาย 08x-xxxxxxx"
   ลงในชื่องานได้ ระบบไม่มีทางรู้ จึงต้องปฏิบัติกับ C3 ระมัดระวังเท่า C2
   ในเรื่องการส่งออกและการเก็บลง audit
+- **`tdl_team.name` เป็น C3 ไม่ใช่ C4** — ชื่อวงคือข้อความที่คนพิมพ์
+  (org graph — ADR 0049) ใช้กติกาเดียวกับชื่องาน/ชื่อหมวด
 - **`remote_addr` ใน C6 เป็นข้อมูลส่วนบุคคล** ไม่ใช่แค่ metadata ทางเทคนิค
 - **`deleted_at`/`purged_at` เป็น C4 ไม่ใช่ C5** — เป็นสถานะของแถวนั้น ไม่ใช่หลักฐาน
   การมีอยู่ของมันบอกแค่ว่าแถวถูกลบเมื่อไหร่ ไม่ได้บอกว่าใครลบ (นั่นเป็นงานของ audit)

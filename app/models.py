@@ -286,3 +286,89 @@ class Todo(SoftDeleteMixin, db.Model):
 
     def __repr__(self) -> str:
         return f"<Todo {self.id} {self.title!r} is_done={self.is_done}>"
+
+
+class Team(SoftDeleteMixin, db.Model):
+    """วงแบ่งปันงานขององค์กร (ADR 0049) — สร้าง/จัดการโดย admin เท่านั้น
+
+    ไม่มีคอลัมน์เจ้าของ: วงเป็นของระบบ (admin ดูแล) ไม่ใช่ของผู้ใช้คนใดคนหนึ่ง
+    การมองเห็นทุกอย่างในวงตัดสินจาก `TeamMember` เสมอ
+    """
+
+    __tablename__ = "tdl_team"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(80), unique=True)
+    created_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=_utcnow)
+
+    members: Mapped[list["TeamMember"]] = relationship(back_populates="team")
+
+    def __repr__(self) -> str:
+        return f"<Team {self.id} {self.name!r}>"
+
+
+class TeamMember(SoftDeleteMixin, db.Model):
+    """สมาชิกภาพในวง — แถวนี้คือ**สิทธิ์การมองเห็น**งานที่ถูกแชร์เข้าวงนั้น"""
+
+    __tablename__ = "tdl_team_member"
+    __table_args__ = (UniqueConstraint("team_id", "user_id"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    team_id: Mapped[int] = mapped_column(ForeignKey("tdl_team.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("tdl_user.id", ondelete="CASCADE"), index=True)
+    joined_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=_utcnow)
+
+    team: Mapped["Team"] = relationship(back_populates="members")
+    user: Mapped["User"] = relationship()
+
+
+class TodoShare(SoftDeleteMixin, db.Model):
+    """งานหนึ่งใบที่เจ้าของเลือกแชร์เข้าวงหนึ่งวง (ADR 0049 ข้อ 1)
+
+    สิ่งที่สมาชิกวงเห็นจากแถวนี้มีสี่อย่างเท่านั้น: ชื่องาน · กำหนดส่ง ·
+    สถานะเสร็จ/ไม่เสร็จ · ชื่อเจ้าของ — การกรองอยู่ที่ service ไม่ใช่ที่นี่
+    เลิกแชร์ = soft delete แถวนี้ และ dependency ที่ชี้มาถูกตัดตาม
+    """
+
+    __tablename__ = "tdl_todo_share"
+    __table_args__ = (UniqueConstraint("todo_id", "team_id"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    todo_id: Mapped[int] = mapped_column(ForeignKey("tdl_todo.id", ondelete="CASCADE"), index=True)
+    team_id: Mapped[int] = mapped_column(ForeignKey("tdl_team.id", ondelete="CASCADE"), index=True)
+    shared_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=_utcnow)
+
+    todo: Mapped["Todo"] = relationship()
+    team: Mapped["Team"] = relationship()
+
+
+# สถานะของ dependency — ชุดปิด ตรวจใน service (แบบเดียวกับ role ใน ADR 0022)
+DEPENDENCY_INVITED = "invited"
+DEPENDENCY_ACCEPTED = "accepted"
+
+
+class TodoDependency(SoftDeleteMixin, db.Model):
+    """คำประกาศ "งานของฉันพึ่งงานของคุณ" (ADR 0049 ข้อ 2)
+
+    เกิดเป็น `invited` เสมอ และ**ไม่มีผลใด ๆ** (รวมทั้งต่อสัญญาณ impact)
+    จนกว่าเจ้าของงานปลายทางจะยอมรับ — unilateral dependency คือช่องให้เดา
+    สถานะงานคนอื่นและการเอาชื่อเราไปแขวนใน UI ของคนอื่นโดยไม่ถาม
+    """
+
+    __tablename__ = "tdl_todo_dependency"
+    __table_args__ = (UniqueConstraint("todo_id", "depends_on_todo_id"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    # `todo_id` = งานของคนขอพึ่ง (ฝั่งที่จะได้ป้ายความเสี่ยง) ส่วน
+    # `depends_on_todo_id` = งานปลายทางที่ถูกพึ่ง ซึ่งต้องเป็นงานที่แชร์อยู่
+    # ในวงที่คนขอเป็นสมาชิก ณ ตอนขอ (service เป็นคนตรวจ)
+    todo_id: Mapped[int] = mapped_column(ForeignKey("tdl_todo.id", ondelete="CASCADE"), index=True)
+    depends_on_todo_id: Mapped[int] = mapped_column(
+        ForeignKey("tdl_todo.id", ondelete="CASCADE"), index=True
+    )
+    status: Mapped[str] = mapped_column(String(16), default=DEPENDENCY_INVITED)
+    created_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=_utcnow)
+    accepted_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=None)
+
+    todo: Mapped["Todo"] = relationship(foreign_keys=[todo_id])
+    depends_on: Mapped["Todo"] = relationship(foreign_keys=[depends_on_todo_id])

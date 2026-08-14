@@ -97,6 +97,16 @@ PLAIN_COLUMNS = frozenset(
         # "ใครระงับใครเมื่อไหร่" คือหลักฐานที่กลไกนี้มีไว้ตอบ
         "suspended_at",
         "expires_at",
+        # org graph (ADR 0049) — ล้วนเป็นตัวชี้/เวลา/สถานะของความสัมพันธ์
+        # ไม่ใช่เนื้อหางาน · "ใครแชร์อะไรเข้าวงไหน ใครยอมรับ dependency เมื่อไหร่"
+        # คือคำถามที่ audit ของ feature นี้มีไว้ตอบ จึงต้องอ่านออกได้จริง
+        "team_id",
+        "joined_at",
+        "todo_id",
+        "shared_at",
+        "depends_on_todo_id",
+        "status",
+        "accepted_at",
     }
 )
 
