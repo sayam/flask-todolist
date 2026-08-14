@@ -34,7 +34,7 @@
 | 1. benchmark plugin ใน admin | หน้า observability (อ่าน `/metrics` ของ process ตัวเอง + ป้ายกำกับ ADR 0031) — เฟส 14 | ตัวรัน benchmark จากหน้าเว็บ — Phase 6: ตัวเลขที่ตัดสินต้องมาจากฝั่ง client การยิงโหลดจากในแอปวัดผิดโดยนิยาม |
 | 5. active SBOM + timeline | runtime SBOM จาก `importlib.metadata` เทียบ lock (จับ drift) + ระบุเจ้าของต่อ plugin (ADR 0025) · EOL ใช้ตาราง generate+ตรึงแบบ `asvs-5.0.0.json` — เฟส 14 | fetch ข้อมูลสดตอนรัน — หน้า/ด่านที่ต้องต่อเน็ตคือหน้า/ด่านที่พังเพราะเน็ต |
 | 6. bytecode / multi-CPU / cache tiers | gunicorn workers (ของค้างเดิม — ปรับแล้ววัดใหม่) — เฟส 16 | fragment cache: **เลื่อนจนกว่าการวัดจะชี้** (Phase 6 วัดแล้ว คอขวดคือจำนวน process ไม่ใช่ query) · bytecode: Python คอมไพล์ `.pyc` อยู่แล้ว |
-| 9. enforce policy แบบ SOA | มีเกือบครบ (`ASVS.md` = SOA · `GATES-ASVS.md` = หลักฐานเชื่อม) · เติม: ทิศของ `requires:` ระหว่างชั้น (business พึ่ง baseline ได้ ห้ามกลับทาง) — เฟส 13 | เอกสาร SOA ใบใหม่แยกต่างหาก — ที่ที่สามคือที่ให้ drift |
+| 9. enforce policy แบบ SOA | มีเกือบครบ (`ASVS.md` = SOA · `GATES-ASVS.md` = หลักฐานเชื่อม) · เติม: การแยกชั้นที่บังคับด้วย partition + ใบ business ต้องประกาศ baseline เป็น prerequisite — เฟส 13 | เอกสาร SOA ใบใหม่แยกต่างหาก — ที่ที่สามคือที่ให้ drift |
 | 11+17. encryption | **at rest**: `EncryptedType` ตามชั้นข้อมูล คีย์จาก secrets source (ADR 0030) · KMS-ready ตาม seam ใน backlog — เฟส 15 · **in transit**: มีแล้ว (TLS+PFS วัดจริง) | **in process** — ไม่มีกลไกจริงใน Python webapp เคลมไปคือคำขวัญ (ลง ADR ตัด) |
 | 20. software development standards | ส่วนที่ขาดจริง: issue/PR template + `docs/DEVELOPMENT.md` map ข้อกำหนด → ตัวบังคับ — เฟส 13 | ที่เหลือมีครบแล้วและ*มีตัวบังคับ*แล้ว — บทความเองเตือนเรื่องมาตรฐานเกินพอดี (repo นี้ตอบด้วย 96% ratchet ไม่ใช่ 100%) |
 
@@ -77,8 +77,8 @@ business skill แยกใบ · ชั้น legal เป็น overlay ที
 
 | ขั้น | งาน | ไฟล์หลัก |
 |---|---|---|
-| 13-01 | ADR 0042: โมเดลสามชั้น (baseline skill → framework overlay → business skill) · คีย์ `layer:` · กฎทิศของ `requires:` (baseline ห้ามพึ่ง business/internal) · ADR 0043: scope cuts ของแผนนี้ทั้งหมด | `docs/adr/0042-*`, `0043-*` |
-| 13-02 | เติม `layer:` ให้ gate ทั้ง 71 + `tests/test_gates.py` บังคับ: ทุก gate มี layer · `portable: true` ⟺ layer ∈ {baseline, business} · ทิศของ `requires:` | `gates.yaml`, `tests/test_gates.py` |
+| 13-01 | ADR 0042: โมเดลสามชั้น (baseline skill → framework overlay → business skill) · คีย์ `layer:` · ทิศระหว่างชั้นบังคับที่ตัว render (partition ของสองใบ + ใบ business ประกาศ baseline เป็น prerequisite — `requires:` ใน gates.yaml เป็นของ environment อยู่แล้ว ไม่ยืมมาใช้) · ADR 0043: scope cuts ของแผนนี้ทั้งหมด | `docs/adr/0042-*`, `0043-*` |
+| 13-02 | เติม `layer:` ให้ gate ทั้ง 71 + `tests/test_gates.py` บังคับ: ทุก gate มี layer · baseline ⇒ portable · internal ⇒ ไม่ portable | `gates.yaml`, `tests/test_gates.py` |
 | 13-03 | `build_skill.py` render สองใบ: `SKILL.md` (baseline) + `SKILL-TODOLIST.md` (business) · `tests/test_skill.py` สองทิศ: portable gate ทุกตัวอยู่ในใบเดียวเป๊ะ · ban list ชื่อ framework ใช้ทั้งสองใบ · overlay ยังครอบ portable ทุกตัวเหมือนเดิม (todolist บน framework อื่นใช้ checker ชุดเดียวกัน) | `scripts/build_skill.py`, `SKILL.md`, `SKILL-TODOLIST.md` |
 | 13-04 | PDPA overlay (pilot ของชั้น legal): `docs/PDPA.md` worksheet แบบเดียวกับ `ASVS.md` (สถานะต่อข้อ + หลักฐานใน backtick ที่เทสต์ตรวจว่ามีจริง) — ส่วนใหญ่ผ่านด้วยของที่มีแล้ว (export=ม.30/31 · close=ม.33 · ROPA=ม.39 · breach 72 ชม.=ม.37(4) · retention=DATA-CLASSIFICATION) | `docs/PDPA.md`, `tests/test_pdpa.py` |
 | 13-05 | `docs/ARCHITECTURE.md` ตามโครง ISO/IEC/IEEE 42010 — view/viewpoint/stakeholder/concern โดย rationale ชี้ไป ADR จริง · เทสต์ตรวจ citation | `docs/ARCHITECTURE.md`, เทสต์ |

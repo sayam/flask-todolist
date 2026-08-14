@@ -47,3 +47,5 @@ ADR 0002–0008 เป็นการ backfill การตัดสินใจ
 | [0039](0039-gates-registry-verified-two-way.md) | `gates.yaml` เป็นดัชนี enforcement ตรวจสองทิศ — ไม่ generate CI ไม่ทับ ASVS.md | accepted |
 | [0040](0040-scaffolding-scope-cuts.md) | งาน scaffolding ตัดอะไรออกโดยตั้งใจ (CDC · cross-framework runtime · overlay อื่น) | accepted |
 | [0041](0041-migration-class-per-plugin.md) | migration class ประกาศต่อ plugin (`live`/`warm`/`cold`) พร้อมเกณฑ์ตัวเลข — บังคับตอนโหลด | accepted |
+| [0042](0042-three-layer-skill-model.md) | กฎทุกข้อประกาศชั้น baseline/business/internal — SKILL แยกสองใบ partition บังคับ | accepted |
+| [0043](0043-feature-roadmap-scope-cuts.md) | แผน feature ตัดอะไรออกโดยตั้งใจ (A/B · maturity frameworks · in-process encryption · benchmark runner · fragment cache) | accepted |

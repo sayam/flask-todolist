@@ -33,6 +33,7 @@ ASVS_ROW = re.compile(
 )
 
 KINDS = {"test", "step", "job"}
+LAYERS = {"baseline", "business", "internal"}
 SEVERITIES = {"blocking", "warning"}
 
 
@@ -155,6 +156,27 @@ def test_every_test_file_is_decided_exactly_once(gates):
 
     doubled = {f: gs for f, gs in claims.items() if len(gs) > 1}
     assert not doubled, f"ไฟล์ที่ถูกอ้างมากกว่าหนึ่ง gate (partition แตก): {doubled}"
+
+
+def test_every_gate_declares_a_coherent_layer(gates):
+    """ทุก gate ประกาศชั้น และชั้นต้องไม่ขัดกับ portable (ADR 0042)
+
+    `baseline` = สากล จึงต้อง export ได้ · `internal` = ของ repo นี้เอง จึง
+    export ไม่ได้ · ชั้นที่ขัดกับ portable คือ gate ที่จะไปโผล่ผิดใบ (หรือหาย
+    จากทุกใบ) ตอน generate skill โดยไม่มีอะไรฟ้อง
+    """
+    for gate in gates:
+        gid = gate["id"]
+        layer = gate.get("layer")
+        assert layer in LAYERS, f"{gid}: layer {layer!r} ไม่รู้จัก (ต้องเป็น {sorted(LAYERS)})"
+        if layer == "baseline":
+            assert gate.get("portable") is True, (
+                f"{gid}: baseline ต้อง portable — สากลแล้วไม่ export คือขัดแย้งในตัว"
+            )
+        if layer == "internal":
+            assert gate.get("portable") is False, (
+                f"{gid}: internal ห้าม portable — ของ repo นี้เองไม่มีความหมายข้างนอก"
+            )
 
 
 def test_portable_gates_carry_their_origin(gates):
