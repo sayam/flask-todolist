@@ -91,6 +91,31 @@ def test_every_exception_carries_a_reason_and_a_real_column(app):
         assert len(reason.strip()) >= 20, f"{key}: เหตุผลสั้นจนไม่ใช่เหตุผล"
 
 
+def test_plugin_columns_are_decided_by_the_plugin_itself(app):
+    """คอลัมน์ของ plugin มาจาก MASKING_DECISIONS ใน models ของมันเอง (ADR 0023)
+
+    core ห้ามรู้จักชื่อคอลัมน์พวกนี้ — เส้นทางที่ตรวจคือ registry จริง ไม่ใช่
+    ตาราง DECISIONS ของ core (จับได้ครั้งแรกโดย `tests/test_plugins.py` ตอน
+    ร่างแรกเผลอเขียนชื่อ plugin ลง core)
+    """
+    from app import plugins
+
+    with app.app_context():
+        declared = plugins.masking_decisions()
+    assert declared, "ไม่มี plugin ไหนประกาศ MASKING_DECISIONS เลย — registry พังหรือเปล่า"
+    column, decision = next(iter(declared.items()))
+    table = "tdl_auth_whatever"  # ชื่อตารางอะไรก็ได้ — คีย์แบบชื่อคอลัมน์เปล่าต้องเจอ
+    with app.app_context():
+        assert masking.decision_for(table, column.split(".")[-1]) == decision
+
+
+def test_an_unknown_column_has_no_decision_and_never_leaves(app):
+    """คอลัมน์ที่ไม่รู้จัก = ไม่ตัดสิน (None) และ display ไม่ปล่อยค่าออก — ไม่เดา"""
+    with app.app_context():
+        assert masking.decision_for("tdl_mystery", "surprise") is None
+        assert masking.display("tdl_mystery", "surprise", "ค่า", unmasked=True) is None
+
+
 def test_masked_value_shows_only_the_first_character():
     assert masking.masked("Somchai") == "S•••"
     assert masking.masked("") == "—"
@@ -103,6 +128,7 @@ def test_hidden_never_leaves_even_when_unmasked():
     assert masking.display("tdl_todo", "title", "ความลับ", unmasked=True) is None
     assert masking.display("tdl_user", "first_name", "Somchai", unmasked=True) == "Somchai"
     assert masking.display("tdl_user", "first_name", "Somchai") == "S•••"
+    assert masking.display("tdl_user", "role", "admin") == "admin"  # visible ผ่านตรง
 
 
 def test_admin_templates_never_touch_raw_masked_columns():
