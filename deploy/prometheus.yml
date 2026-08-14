@@ -1,0 +1,22 @@
+# Prometheus scrape `/metrics` ของแอปจริง (เฟส 16 · 16-04 — ปิดของค้าง
+# "มีของให้ดูดแล้วแต่ยังไม่มีใคร scrape" จาก ADR 0031)
+#
+# `/metrics` ต้องมี API token เสมอ ไม่มีโหมดสาธารณะ (ADR 0031) — token อยู่ใน
+# ไฟล์ที่ mount เข้ามา ไม่ใช่เขียนตายในไฟล์นี้ (ไฟล์นี้ commit ลง git ส่วน token
+# ออกใหม่ได้เสมอด้วย `flask token-create` และเพิกถอนได้ทีละใบ)
+#
+# ค่าที่แอปนับเป็นของ process นั้นคนเดียว (ADR 0031) — การรวมข้าม replica
+# เป็นหน้าที่ของฝั่ง Prometheus ตามที่ ADR วางไว้ตั้งแต่ต้น
+
+global:
+  scrape_interval: 5s
+  scrape_timeout: 4s
+
+scrape_configs:
+  - job_name: todolist
+    metrics_path: /metrics
+    authorization:
+      type: Bearer
+      credentials_file: /etc/prometheus/token
+    static_configs:
+      - targets: ["app:8000"]

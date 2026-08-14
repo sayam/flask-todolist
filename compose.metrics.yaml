@@ -1,0 +1,51 @@
+# override: Prometheus + Grafana scrape `/metrics` ของแอปจริง (เฟส 16 · 16-04)
+#
+#   METRICS_TOKEN_FILE=./secrets/metrics-token \
+#     docker compose -f compose.yaml -f compose.metrics.yaml up -d
+#
+# ก่อน start ต้องมีไฟล์ token จริง: ออกด้วย
+#   flask token-create <ผู้ใช้> --name "prometheus" แล้วเก็บบรรทัด token ลงไฟล์
+# — `/metrics` ต้องมี token เสมอ ไม่มีโหมดสาธารณะ (ADR 0031) และไฟล์ compose
+# ไม่ถือความลับเอง (`:?` บังคับให้คนตั้ง path เองจึงไม่มีค่า default ให้ลืมลบ)
+#
+# แอปไม่รู้จักปลายทางนี้เลย — ถอดไฟล์ override ทิ้งแล้วทุกอย่างเหมือนเดิม
+# (หลักเดียวกับ compose.siem.yaml — ADR 0037)
+
+services:
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=15d
+    volumes:
+      - ./deploy/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ${METRICS_TOKEN_FILE:?ต้องชี้ไฟล์ที่เก็บ API token สำหรับ scrape /metrics (ออกด้วย flask token-create)}:/etc/prometheus/token:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:9090/-/ready | grep -qi ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+
+  # หน้าจอสำหรับคน — ไม่ใช่ตัวที่ CI ใช้ตัดสิน (หลักเดียวกับ Grafana ของ siem)
+  grafana:
+    image: grafana/grafana:12.0.2
+    environment:
+      # ค่านี้มีผลเฉพาะตอน start ครั้งแรก — Grafana เก็บรหัสไว้ใน volume ของมัน
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:?ต้องตั้ง GRAFANA_PASSWORD ก่อน}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./deploy/grafana-datasource-prometheus.yaml:/etc/grafana/provisioning/datasources/prometheus.yaml:ro
+      - grafana-metrics-data:/var/lib/grafana
+    depends_on:
+      prometheus:
+        condition: service_healthy
+
+volumes:
+  prometheus-data:
+  grafana-metrics-data:

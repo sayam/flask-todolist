@@ -1298,6 +1298,68 @@ jobs:
         if: always()
         run: $C down -v --remove-orphans
 
+  scrape:
+    # **Prometheus ดูด /metrics ของแอปจริง** (เฟส 16 · 16-04) — ปิดของค้าง
+    # จาก ADR 0031 ("มีของให้ดูดแล้วแต่ยังไม่มีใคร scrape") · สิ่งที่พิสูจน์:
+    # ตัวเลขของแอปไปโผล่ใน TSDB ของ Prometheus จริง ผ่านด่าน token จริง —
+    # ไม่ใช่แค่ stack ขึ้นได้ (หลักเดียวกับ job siem ที่ถามปลายทางเสมอ)
+    runs-on: ubuntu-latest
+    env:
+      SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
+      GRAFANA_PASSWORD: ci-only-grafana-password-not-a-real-one
+      LOCAL_PASSWORD: ci-only-local-password-phrase
+      COMPOSE: docker compose -f compose.yaml -f compose.metrics.yaml
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: ออก token ก่อน start ตัวดูด — /metrics ไม่มีโหมดสาธารณะ (ADR 0031)
+        run: |
+          touch metrics-token
+          export METRICS_TOKEN_FILE=$PWD/metrics-token
+          $COMPOSE build --quiet app
+          $COMPOSE run --rm app flask db upgrade
+          printf "$LOCAL_PASSWORD\n$LOCAL_PASSWORD\n" \
+            | $COMPOSE run --rm -T app flask create-user somchai
+          $COMPOSE run --rm -T app flask token-create somchai --name prometheus \
+            | grep -o 'tdl_[A-Za-z0-9_-]*' | tail -1 > metrics-token
+          test -s metrics-token
+      - name: ขึ้น stack ทั้งชุด
+        run: |
+          export METRICS_TOKEN_FILE=$PWD/metrics-token
+          $COMPOSE up -d --quiet-pull
+          for _ in $(seq 1 40); do
+            bad=$($COMPOSE ps --format '{{.Service}}:{{.Health}}' | grep -E ':(starting|unhealthy)' || true)
+            [ -z "$bad" ] && break
+            sleep 5
+          done
+          $COMPOSE ps --format '{{.Service}}\t{{.Status}}'
+      - name: ตัวเลขของแอปต้องไปถึง TSDB จริง
+        run: |
+          export METRICS_TOKEN_FILE=$PWD/metrics-token
+          # สร้าง traffic ให้มีตัวเลขให้ดูด — histogram นับตามคำขอจริง
+          for _ in $(seq 1 5); do curl -sf -o /dev/null http://127.0.0.1:8000/login; done
+          found=0
+          for _ in $(seq 1 30); do
+            result=$(curl -sf 'http://127.0.0.1:9090/api/v1/query?query=todolist_request_duration_seconds_count' || true)
+            echo "$result" | grep -q '"__name__"' && { found=1; break; }
+            sleep 5
+          done
+          [ "$found" = "1" ] || { echo "metric ของแอปไม่เคยไปถึง Prometheus"; $COMPOSE logs prometheus | tail -30; exit 1; }
+          echo "เจอ metric ของแอปใน TSDB แล้ว"
+          # target ต้องรายงานว่า scrape สำเร็จด้วย (ไม่ใช่ metric ตกค้างจากรอบก่อน)
+          curl -sf 'http://127.0.0.1:9090/api/v1/query?query=up%7Bjob%3D%22todolist%22%7D' | grep -q '"1"' \
+            || { echo "target todolist ไม่ up"; exit 1; }
+      - name: ด่าน token ของ /metrics ต้องยังทำงาน — สองทิศ
+        run: |
+          # ไม่มี token = 401 · ถ้าข้อนี้หลุด การที่ Prometheus ดูดได้จะพิสูจน์
+          # อะไรไม่ได้เลย (ดูดได้เพราะประตูเปิดโล่ง ไม่ใช่เพราะกุญแจถูก)
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/metrics)
+          [ "$code" = "401" ] || { echo "/metrics ไม่มี token ได้ $code ไม่ใช่ 401"; exit 1; }
+      - name: เก็บกวาด
+        if: always()
+        run: |
+          export METRICS_TOKEN_FILE=$PWD/metrics-token
+          $COMPOSE down -v --remove-orphans
+
   secret-scan:
     runs-on: ubuntu-latest
     steps:
