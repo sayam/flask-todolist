@@ -253,11 +253,21 @@ def _encrypt_legacy_row(row: Any) -> None:
     ciphertext ตอน verify สำเร็จครั้งถัดไป — ตารางนี้อยู่นอกสาย alembic
     (ADR 0023) จึงไม่มี migration ให้พึ่ง · การ assign ค่าเดิมกลับทำให้
     TypeDecorator encrypt ตอน flush และ audit บันทึกเป็น secret ({changed})"""
-    from sqlalchemy import inspect as sa_inspect
+    import sqlalchemy as sa
 
     from app.plugins.auth.totp import crypto
 
-    stored = sa_inspect(row).committed_state.get("totp_secret", row.totp_secret)
+    # ดูค่า **บนดิสก์จริง** — ค่าใน memory ผ่าน result processor มาแล้วจึงเป็น
+    # plaintext เสมอ ตัดสินจากมันไม่ได้ (เวอร์ชันแรกใช้ committed_state ซึ่ง
+    # มีเฉพาะ attribute ที่ถูกแก้ค้างอยู่ → ตกไปที่ค่าใน memory → เขียนซ้ำ
+    # ทุก verify — เทสต์เทียบ ciphertext ก่อน/หลังจับได้เพราะ nonce ใหม่ทุกครั้ง)
+    # cast เป็น String ทำให้ SQLAlchemy ไม่ใช้ตัว decrypt ของคอลัมน์ตอนอ่าน
+    table = type(row).__table__
+    stored = db.session.execute(
+        sa.select(sa.cast(table.c.totp_secret, sa.String(256))).where(
+            table.c.user_id == row.user_id
+        )
+    ).scalar()
     if crypto.is_encrypted(stored):
         return
     # ค่าใน memory คือ plaintext (ผ่าน result processor แล้ว) — เขียนกลับให้
