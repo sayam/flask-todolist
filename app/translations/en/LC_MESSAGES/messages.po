@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-14 21:07+0700\n"
+"POT-Creation-Date: 2026-08-14 21:42+0700\n"
 "PO-Revision-Date: 2026-08-02 16:44+0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -90,6 +90,21 @@ msgstr ""
 
 #: app/session_security.py:218
 msgid "Your password was changed — please sign in again"
+msgstr ""
+
+#: app/admin/system.py:50 app/templates/admin_environment.html:2
+#: app/templates/admin_environment.html:5
+msgid "Environment"
+msgstr ""
+
+#: app/admin/system.py:51 app/templates/admin_lifecycle.html:2
+#: app/templates/admin_lifecycle.html:5
+msgid "Lifecycle"
+msgstr ""
+
+#: app/admin/system.py:52 app/templates/admin_observability.html:2
+#: app/templates/admin_observability.html:5
+msgid "Observability"
 msgstr ""
 
 #: app/admin/users.py:78
@@ -206,7 +221,7 @@ msgstr ""
 msgid "Unknown role"
 msgstr ""
 
-#: app/services/roles.py:83 app/templates/admin_users.html:40
+#: app/services/roles.py:83 app/templates/admin_users.html:36
 msgid "You cannot change your own role"
 msgstr ""
 
@@ -268,41 +283,138 @@ msgstr ""
 msgid "Token not found"
 msgstr ""
 
-#: app/templates/admin_users.html:7
+#: app/templates/_admin_nav.html:1
 msgid "Admin sections"
 msgstr "Admin sections"
 
-#: app/templates/admin_users.html:14
+#: app/templates/admin_environment.html:9
+msgid "What this instance is actually running on — read live, not written by hand"
+msgstr ""
+
+#: app/templates/admin_environment.html:11
+#: app/templates/admin_lifecycle.html:11
+msgid "Application version"
+msgstr ""
+
+#: app/templates/admin_environment.html:13
+msgid "Platform"
+msgstr ""
+
+#: app/templates/admin_environment.html:14
+msgid "Database"
+msgstr ""
+
+#: app/templates/admin_lifecycle.html:9
+msgid "Where this instance stands in its own life cycle"
+msgstr ""
+
+#: app/templates/admin_lifecycle.html:13
+msgid "Schema migration"
+msgstr ""
+
+#: app/templates/admin_lifecycle.html:16
+msgid "up to date"
+msgstr ""
+
+#: app/templates/admin_lifecycle.html:18
+msgid "current:"
+msgstr ""
+
+#: app/templates/admin_lifecycle.html:18 app/templates/admin_lifecycle.html:19
+msgid "unreadable"
+msgstr ""
+
+#: app/templates/admin_lifecycle.html:19
+msgid "latest:"
+msgstr ""
+
+#: app/templates/admin_lifecycle.html:26
+msgid "Plugins on disk"
+msgstr ""
+
+#: app/templates/admin_lifecycle.html:28
+msgid "Everything on disk, including anything switched off"
+msgstr ""
+
+#: app/templates/admin_lifecycle.html:31
+msgid "Plugin"
+msgstr ""
+
+#: app/templates/admin_lifecycle.html:32
+msgid "Migration class"
+msgstr ""
+
+#: app/templates/admin_lifecycle.html:33
+msgid "State"
+msgstr ""
+
+#: app/templates/admin_lifecycle.html:41
+msgid "enabled"
+msgstr ""
+
+#: app/templates/admin_lifecycle.html:41
+msgid "disabled"
+msgstr ""
+
+#: app/templates/admin_observability.html:11
+msgid "Requests seen by this process, slowest picture first-hand"
+msgstr ""
+
+#: app/templates/admin_observability.html:14
+msgid "Endpoint"
+msgstr ""
+
+#: app/templates/admin_observability.html:15
+msgid "Method"
+msgstr ""
+
+#: app/templates/admin_observability.html:16
+msgid "Status"
+msgstr ""
+
+#: app/templates/admin_observability.html:17
+msgid "Count"
+msgstr ""
+
+#: app/templates/admin_observability.html:18
+msgid "Average (ms)"
+msgstr ""
+
+#: app/templates/admin_observability.html:31
+msgid "No requests recorded yet"
+msgstr ""
+
+#: app/templates/admin_users.html:10
 msgid "Everyone with an account, and what they are allowed to do"
 msgstr ""
 
-#: app/templates/admin_users.html:17 app/templates/login.html:22
+#: app/templates/admin_users.html:13 app/templates/login.html:22
 #: app/templates/settings.html:15
 msgid "Username"
 msgstr ""
 
-#: app/templates/admin_users.html:18 app/templates/settings.html:64
+#: app/templates/admin_users.html:14 app/templates/settings.html:64
 msgid "Name"
 msgstr ""
 
-#: app/templates/admin_users.html:19
+#: app/templates/admin_users.html:15
 msgid "Role"
 msgstr ""
 
-#: app/templates/admin_users.html:20
+#: app/templates/admin_users.html:16
 msgid "Change role"
 msgstr ""
 
-#: app/templates/admin_users.html:33
+#: app/templates/admin_users.html:29
 msgid "Reveal (audited)"
 msgstr "Reveal (audited)"
 
-#: app/templates/admin_users.html:45
+#: app/templates/admin_users.html:41
 #, python-format
 msgid "Role for %(name)s"
 msgstr ""
 
-#: app/templates/admin_users.html:52 app/templates/categories.html:26
+#: app/templates/admin_users.html:48 app/templates/categories.html:26
 #: app/templates/edit_todo.html:34 app/templates/index.html:130
 msgid "Save"
 msgstr ""

@@ -4,11 +4,7 @@
 {% block content %}
 <h2>{{ _('Users') }}</h2>
 
-<nav aria-label="{{ _('Admin sections') }}">
-  {% for endpoint, title in admin_panels %}
-  <a href="{{ url_for(endpoint) }}">{{ title }}</a>{% if not loop.last %} | {% endif %}
-  {% endfor %}
-</nav>
+{% include '_admin_nav.html' %}
 
 <table>
   <caption>{{ _('Everyone with an account, and what they are allowed to do') }}</caption>
