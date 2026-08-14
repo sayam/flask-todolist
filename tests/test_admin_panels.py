@@ -172,6 +172,31 @@ def test_sbom_actually_detects_drift_and_unlisted_packages(app, monkeypatch, tmp
     assert by_name["pytest"]["status"] == "unlisted", "ของที่ lock ไม่รู้จักต้องเป็น unlisted"
 
 
+def test_the_sbom_page_renders_for_an_admin(app):
+    """เส้นทางปกติบนหน้าเว็บ — package จริงกับ EOL ของ runtime ต้องอยู่บนหน้า"""
+    _two_people(app)
+    client = _sign_in(app, "boss")
+    page = client.get("/admin/sbom").data.decode()
+    assert "flask" in page
+    assert f"{sys.version_info.major}.{sys.version_info.minor}" in page
+
+
+def test_eol_is_none_when_the_pinned_table_is_unreadable(app, monkeypatch, tmp_path):
+    """ตารางตรึงหาย/พัง = None (หน้าโชว์คำแนะนำ refresh) ไม่ใช่ crash หรือค่าเดา"""
+    _two_people(app)
+    monkeypatch.setattr(system_info, "EOL_TABLE", tmp_path / "gone.json")
+    with app.app_context():
+        boss = db.session.query(User).filter_by(username="boss").one()
+        assert system_info.sbom(boss)["python_eol"] is None
+
+    bad = tmp_path / "bad.json"
+    bad.write_text('{"python": [{"cycle": "2.7", "eol": "2020-01-01"}]}', encoding="utf-8")
+    monkeypatch.setattr(system_info, "EOL_TABLE", bad)
+    with app.app_context():
+        boss = db.session.query(User).filter_by(username="boss").one()
+        assert system_info.sbom(boss)["python_eol"] is None, "ตารางไม่ครอบ cycle ที่รัน ต้องเป็น None"
+
+
 def test_sbom_is_honest_when_the_lockfile_is_missing(app, monkeypatch, tmp_path):
     """ไม่มี lock (เช่นใน image ที่ไม่ได้ copy มา) = บอกตรง ๆ ว่าตัดสิน drift ไม่ได้"""
     _two_people(app)
