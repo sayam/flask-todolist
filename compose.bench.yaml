@@ -1,0 +1,12 @@
+# override ของ bench 10-03 (scripts/bench_swap.sh) — ไม่ใช้กับ production
+#
+# - bind-mount app/plugins เพื่อสลับไดเรกทอรี plugin แบบเป็น ๆ ใต้โหลด
+# - CACHE_URL/DISABLED_PLUGINS รับจาก env ของ shell เพื่อทำ rolling swap
+#   (replica ใหม่ที่ compose สร้างแทนตัวที่ถูกฆ่า จะได้ค่าปัจจุบันของ shell)
+services:
+  app:
+    volumes:
+      - ./app/plugins:/app/app/plugins:ro
+    environment:
+      CACHE_URL: ${BENCH_CACHE_URL:-redis://redis:6379/0}
+      DISABLED_PLUGINS: ${BENCH_DISABLED:-}

@@ -173,9 +173,12 @@ ban list ตรวจที่ *render สด* จึงจับชื่อไ
 
 ## Phase 10 — migration class + วัด downtime จริง
 
-**สถานะ: 10-01/10-02 เสร็จ (2026-08-14)** — ADR 0041 + `migration` ใน manifest
-ทั้ง 14 ตัว บังคับตอนโหลด (ขาด/สะกดผิด = ไม่ start) · กฎของ port อยู่ในเทสต์
-แบบ rule-based ไม่ hardcode ชื่อ plugin · เหลือ 10-03/10-04 (bench วัดจริง)
+**สถานะ: เฟส 10 เสร็จทั้งเฟส (2026-08-14)** — manifest ทั้ง 14 บังคับตอนโหลด ·
+bench วัดจริง 6 port × ≥3 รอบใต้โหลดใน VM (`scripts/bench_swap.sh` · ตัวเลขใน
+`docs/PERFORMANCE.md`) · **cache ถูกลดชั้น live → warm ด้วยการวัด** (rolling บน
+nginx แบบ DNS หลุด 1 request ใน 2/6 รอบ — แก้คำประกาศ ไม่ใช่แก้เกณฑ์) ·
+เทสต์ผูก class ↔ ตัวเลข: live ต้อง 0 ทุกรอบ · warm ต้อง session รอดครบ ·
+cold ต้องมี pause_ms ≥3 รอบ
 
 | ขั้น | งาน | ไฟล์ที่กระทบ |
 |---|---|---|

@@ -20,3 +20,4 @@ htmlcov/
 deploy/tls/
 .zap/out/
 .gate-rounds.jsonl
+secretdir/
