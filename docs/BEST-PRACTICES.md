@@ -5,7 +5,8 @@
 badge ถูกทบทวนเป็นรอบ และคำตอบที่ไม่มีที่มาคือคำตอบที่เขียนใหม่ทุกครั้ง
 (หลักเดียวกับ [ASVS.md](ASVS.md))
 
-**สถานะ: 66 ผ่าน · 1 ไม่เกี่ยวข้อง · 0 ยังไม่ผ่าน**
+**สถานะ: 66 ผ่าน · 1 ไม่เกี่ยวข้อง · 0 ยังไม่ผ่าน** (ทบทวน 2026-08-14 หลังปิด
+เฟส 8–12 — ไม่มีข้อไหนเปลี่ยนสถานะ มีแต่หลักฐานที่หนักขึ้น ดูหมายเหตุท้ายไฟล์)
 
 เกณฑ์ทั้งหมด 67 ข้อ: MUST 43 · SHOULD 10 · SUGGESTED 14
 **MUST ผ่านครบทั้ง 43 ข้อ** ซึ่งเป็นเงื่อนไขของ badge ระดับ passing
@@ -18,7 +19,7 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 |---|---|---|
 | `description_good` MUST | ผ่าน | `README.md` ย่อหน้าแรกบอกว่าเป็นอะไรและแก้ปัญหาอะไร · **ต้องเติมช่อง About ของ repo ด้วย — ตอนนี้ว่าง** |
 | `interact` MUST | ผ่าน | `README.md` มีวิธีติดตั้ง/รัน · `CONTRIBUTING.md` มีวิธีเสนอการเปลี่ยนแปลง · Issues เปิดอยู่ |
-| `contribution` MUST | ผ่าน | `CONTRIBUTING.md` — อธิบายว่าใช้ PR, ต้องผ่าน 23 required check, merge ด้วย rebase |
+| `contribution` MUST | ผ่าน | `CONTRIBUTING.md` — อธิบายว่าใช้ PR, ต้องผ่าน 24 required check, merge ด้วย rebase, และกติกาลงทะเบียนไฟล์เทสต์ใน `gates.yaml` |
 | `contribution_requirements` SHOULD | ผ่าน | `CONTRIBUTING.md` — Conventional Commits (หัว ≤72), ruff/mypy, **กติกา mutation test ของเทสต์ใหม่** |
 | `floss_license` MUST | ผ่าน | `LICENSE` (MIT) · GitHub ตรวจพบเป็น `MIT` แล้ว |
 | `floss_license_osi` SUGGESTED | ผ่าน | MIT เป็นสัญญาอนุญาตที่ OSI รับรอง — [ADR 0038](adr/0038-mit-license.md) |
@@ -68,8 +69,8 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 | `test_invocation` SHOULD | ผ่าน | `pipenv run pytest` |
 | `test_most` SUGGESTED | ผ่าน | coverage gate `fail_under = 96` (**ratchet: ขยับขึ้นได้อย่างเดียว**) + `diff-cover` บังคับบรรทัดที่แก้ 100% |
 | `test_continuous_integration` SUGGESTED | ผ่าน | 24 check ทุก push — รวมสามยี่ห้อฐานข้อมูล, stack จริง, SSO, LDAP, DAST |
-| `test_policy` MUST | ผ่าน | `CONTRIBUTING.md` + `CLAUDE.md`: **เทสต์ใหม่ทุกตัวต้องถูกพิสูจน์ด้วย mutation test ว่าจับของจริงได้ก่อนถือว่าเสร็จ** และ `diff-cover` บังคับที่ CI |
-| `tests_are_added` MUST | ผ่าน | PR #3–#7 ล่าสุดมีเทสต์มาด้วยทุกใบ (`tests/test_ci_pinning.py`, `test_pins_audit.py`, `test_semgrep_gate.py`) |
+| `test_policy` MUST | ผ่าน | `CONTRIBUTING.md` + `CLAUDE.md`: **เทสต์ใหม่ทุกตัวต้องถูกพิสูจน์ด้วย mutation test ว่าจับของจริงได้ก่อนถือว่าเสร็จ** และ `diff-cover` บังคับที่ CI · ตั้งแต่เฟส 8 มี `gates.yaml` บังคับอีกชั้นว่า **ไฟล์เทสต์ทุกไฟล์ต้องถูกตัดสินว่าเป็นของ gate ไหน** (`tests/test_gates.py`) |
+| `tests_are_added` MUST | ผ่าน | PR ล่าสุดมีเทสต์มาด้วยทุกใบ — และ `gates.yaml` ทำให้ "ลืมเพิ่มเทสต์" กลายเป็น CI แดง ไม่ใช่เรื่องที่ต้องมีคนสังเกต (`tests/test_gates.py`, `test_overlay.py`, `test_harness.py`, `test_asvs_probe.py`) |
 | `tests_documented_added` SUGGESTED | ผ่าน | `CONTRIBUTING.md` |
 | `warnings` MUST | ผ่าน | ruff (รวมกฎแนว bandit) · mypy โหมด strict · xenon (ความซับซ้อน) · interrogate (docstring) |
 | `warnings_fixed` MUST | ผ่าน | job `lint` บล็อก merge — และเป็น required check |
@@ -147,3 +148,23 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
    `contribution_requirements`, `license_location`, `vulnerability_report_process`
    และข้ออื่นที่ระบบขอ — ใช้ลิงก์ตรงไปยังไฟล์บน `main`
 4. ได้เลขโครงการมาแล้วเติม badge ลง `README.md`
+
+---
+
+## ทบทวน 2026-08-14 (หลังปิดเฟส 8–12)
+
+ไล่ทั้ง 67 ข้อใหม่เทียบกับสภาพปัจจุบัน — **ไม่มีข้อไหนเปลี่ยนสถานะ** สิ่งที่
+เปลี่ยนคือความหนักของหลักฐาน สามข้อ:
+
+- `test_policy` / `tests_are_added` — กติกาเดิมเป็น "คนต้องจำ" ตอนนี้มี
+  `gates.yaml` ที่บังคับให้ไฟล์เทสต์ทุกไฟล์ถูกตัดสินว่าเป็นของ gate ไหน
+  ลืมแล้ว CI แดงทันที
+- `contribution` — required check ขยับจาก 23 เป็น 24 (job `scaffold` เข้าเป็น
+  ด่านบังคับตอนเฟส 9) และ `CONTRIBUTING.md` มีกติกา `gates.yaml` แล้ว
+- `build_reproducible` / `installation_common` — ไม่เปลี่ยน แต่ `overlays/flask/`
+  ทำให้มีของที่ *คนอื่น* ติดตั้งได้จริงเป็นครั้งแรก และ job `scaffold` พิสูจน์
+  ทุก push ว่าติดตั้งลง repo เปล่าได้
+
+**ยังไม่ได้ทำ (ของเจ้าของ ไม่ใช่ของ repo)**: สมัคร badge จริงที่
+<https://www.bestpractices.dev> แล้วเอาเลขโครงการมาใส่ README · และเติมช่อง
+About ของ repo ซึ่งข้อ `description_good` อ้างถึง
