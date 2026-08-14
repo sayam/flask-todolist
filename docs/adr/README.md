@@ -49,3 +49,5 @@ ADR 0002–0008 เป็นการ backfill การตัดสินใจ
 | [0041](0041-migration-class-per-plugin.md) | migration class ประกาศต่อ plugin (`live`/`warm`/`cold`) พร้อมเกณฑ์ตัวเลข — บังคับตอนโหลด | accepted |
 | [0042](0042-three-layer-skill-model.md) | กฎทุกข้อประกาศชั้น baseline/business/internal — SKILL แยกสองใบ partition บังคับ | accepted |
 | [0043](0043-feature-roadmap-scope-cuts.md) | แผน feature ตัดอะไรออกโดยตั้งใจ (A/B · maturity frameworks · in-process encryption · benchmark runner · fragment cache) | accepted |
+| [0044](0044-admin-is-a-core-package-with-panels.md) | admin เป็น package ของ core ที่เสียบ panel ได้ — ไม่ใช่ plugin | accepted |
+| [0045](0045-admin-data-masking-by-classification.md) | หน้า admin เห็นข้อมูลแบบ mask ตามชั้นข้อมูล · unmask ลง audit | accepted |

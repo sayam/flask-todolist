@@ -26,6 +26,13 @@ AUDIT_POLICIES = {
     "linked_at": "plain",
 }
 
+# คำตัดสิน masking บนหน้า admin (ADR 0045) — plugin ประกาศเอง เหตุผลเดียวกับข้างบน
+MASKING_DECISIONS = {
+    "external_id": "masked",  # C2 — ตัวระบุจาก directory ภายนอก
+    "directory": "visible",
+    "linked_at": "visible",
+}
+
 
 def _utcnow() -> datetime:
     return datetime.now(UTC)

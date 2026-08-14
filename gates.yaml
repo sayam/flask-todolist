@@ -465,6 +465,20 @@ gates:
       เฟส 13-05 — รับ 42010 ตัวเดียวจากกลุ่มกรอบมาตรฐานองค์กร (ADR 0043)
       เพราะเป็นตัวเดียวที่ derive จากของจริง (ADR 43 ใบ) และตรวจได้ด้วยเครื่อง
 
+  - id: admin-masking-by-classification
+    title: หน้า admin เห็นข้อมูลผู้ใช้แบบ mask ตามชั้นข้อมูล และ unmask ต้องลง audit
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_masking.py]}
+    standard: []
+    requires: []
+    portable: false
+    layer: internal
+    born_from: >-
+      ADR 0045 (เฟส 14-02) — ชั้นข้อมูลที่ไม่มีผลกับสิ่งที่ admin เห็นบนจอ
+      คือชั้นข้อมูลบนกระดาษ · ยกเป็น portable ได้ต่อเมื่อมี checker ของ
+      overlay ที่ตรวจเรื่องนี้ในโปรเจกต์อื่นได้จริง
+
   - id: legal-pdpa-worksheet-honest
     title: worksheet PDPA อ้างหลักฐานที่มีจริงทุกชิ้น และช่องว่างทุกข้ออยู่ใน backlog
     kind: test

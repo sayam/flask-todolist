@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-12 01:13+0700\n"
+"POT-Creation-Date: 2026-08-14 21:07+0700\n"
 "PO-Revision-Date: 2026-08-02 16:44+0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -18,13 +18,8 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: app/__init__.py:63
+#: app/__init__.py:69
 msgid "Please sign in first"
-msgstr ""
-
-#: app/admin.py:46
-#, python-format
-msgid "Role of %(name)s is now %(role)s"
 msgstr ""
 
 #: app/auth.py:113
@@ -97,6 +92,16 @@ msgstr ""
 msgid "Your password was changed — please sign in again"
 msgstr ""
 
+#: app/admin/users.py:78
+#, python-format
+msgid "Role of %(name)s is now %(role)s"
+msgstr ""
+
+#: app/admin/users.py:82 app/templates/admin_users.html:2
+#: app/templates/admin_users.html:5 app/templates/base.html:60
+msgid "Users"
+msgstr ""
+
 #: app/plugins/auth/ldap/factor.py:58 app/plugins/auth/ldap/factor.py:69
 #: app/plugins/auth/ldap/factor.py:119
 msgid "The directory is not configured"
@@ -129,31 +134,32 @@ msgstr ""
 msgid "Sign-in was cancelled"
 msgstr ""
 
-#: app/services/categories.py:34
+#: app/services/categories.py:35
 msgid "Category not found"
 msgstr ""
 
-#: app/services/categories.py:72
-msgid "Please enter a category name"
-msgstr ""
-
-#: app/services/categories.py:77 app/services/categories.py:100
+#: app/services/categories.py:82 app/services/categories.py:100
+#: app/services/categories.py:123
 #, python-format
 msgid "Category “%(name)s” already exists"
 msgstr ""
 
-#: app/services/categories.py:93
+#: app/services/categories.py:95
+msgid "Please enter a category name"
+msgstr ""
+
+#: app/services/categories.py:116
 msgid "Category name cannot be empty"
 msgstr ""
 
-#: app/services/categories.py:103
+#: app/services/categories.py:126
 #, python-format
 msgid ""
 "The name “%(name)s” belongs to a category you deleted. Create a category "
 "with that name to bring it back."
 msgstr ""
 
-#: app/services/categories.py:125
+#: app/services/categories.py:148
 #, python-format
 msgid "Cannot delete “%(name)s” — it still has %(num)d task."
 msgid_plural "Cannot delete “%(name)s” — it still has %(num)d tasks."
@@ -200,7 +206,7 @@ msgstr ""
 msgid "Unknown role"
 msgstr ""
 
-#: app/services/roles.py:83 app/templates/admin_users.html:25
+#: app/services/roles.py:83 app/templates/admin_users.html:40
 msgid "You cannot change your own role"
 msgstr ""
 
@@ -262,38 +268,41 @@ msgstr ""
 msgid "Token not found"
 msgstr ""
 
-#: app/templates/admin_users.html:2 app/templates/admin_users.html:5
-#: app/templates/base.html:60
-msgid "Users"
-msgstr ""
+#: app/templates/admin_users.html:7
+msgid "Admin sections"
+msgstr "Admin sections"
 
-#: app/templates/admin_users.html:8
+#: app/templates/admin_users.html:14
 msgid "Everyone with an account, and what they are allowed to do"
 msgstr ""
 
-#: app/templates/admin_users.html:11 app/templates/login.html:22
+#: app/templates/admin_users.html:17 app/templates/login.html:22
 #: app/templates/settings.html:15
 msgid "Username"
 msgstr ""
 
-#: app/templates/admin_users.html:12 app/templates/settings.html:64
+#: app/templates/admin_users.html:18 app/templates/settings.html:64
 msgid "Name"
 msgstr ""
 
-#: app/templates/admin_users.html:13
+#: app/templates/admin_users.html:19
 msgid "Role"
 msgstr ""
 
-#: app/templates/admin_users.html:14
+#: app/templates/admin_users.html:20
 msgid "Change role"
 msgstr ""
 
-#: app/templates/admin_users.html:30
+#: app/templates/admin_users.html:33
+msgid "Reveal (audited)"
+msgstr "Reveal (audited)"
+
+#: app/templates/admin_users.html:45
 #, python-format
 msgid "Role for %(name)s"
 msgstr ""
 
-#: app/templates/admin_users.html:37 app/templates/categories.html:26
+#: app/templates/admin_users.html:52 app/templates/categories.html:26
 #: app/templates/edit_todo.html:34 app/templates/index.html:130
 msgid "Save"
 msgstr ""
@@ -543,7 +552,7 @@ msgid "Clear completed"
 msgstr ""
 
 #: app/templates/login.html:2 app/templates/login.html:29
-#: tests/test_i18n.py:132
+#: tests/test_i18n.py:135
 msgid "Sign in"
 msgstr ""
 
