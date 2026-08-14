@@ -28,6 +28,13 @@ AUDIT_POLICIES = {
     "last_counter": "plain",
 }
 
+# คำตัดสิน masking บนหน้า admin (ADR 0045) — plugin ประกาศเอง เหตุผลเดียวกับข้างบน
+MASKING_DECISIONS = {
+    "totp_secret": "hidden",  # C1 — ไม่มีงานบริหารไหนต้องเห็น
+    "confirmed_at": "visible",
+    "last_counter": "visible",
+}
+
 
 def _utcnow() -> datetime:
     return datetime.now(UTC)

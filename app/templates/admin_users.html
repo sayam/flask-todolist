@@ -4,6 +4,12 @@
 {% block content %}
 <h2>{{ _('Users') }}</h2>
 
+<nav aria-label="{{ _('Admin sections') }}">
+  {% for endpoint, title in admin_panels %}
+  <a href="{{ url_for(endpoint) }}">{{ title }}</a>{% if not loop.last %} | {% endif %}
+  {% endfor %}
+</nav>
+
 <table>
   <caption>{{ _('Everyone with an account, and what they are allowed to do') }}</caption>
   <thead>
@@ -15,10 +21,19 @@
     </tr>
   </thead>
   <tbody>
-    {% for person in people %}
+    {% for row in rows %}
+    {% set person = row.person %}
     <tr>
       <th scope="row">{{ person.username }}</th>
-      <td>{{ person.full_name or '—' }}</td>
+      <td>
+        {{ row.name }}
+        {% if not row.unmasked %}
+        <form action="{{ url_for('admin.unmask', user_id=person.id) }}" method="post" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit">{{ _('Reveal (audited)') }}</button>
+        </form>
+        {% endif %}
+      </td>
       <td>{{ person.role }}</td>
       <td>
         {% if person.id == current_user.id %}

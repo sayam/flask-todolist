@@ -644,6 +644,20 @@ def audit_policies() -> dict[str, str]:
     return merged
 
 
+def masking_decisions() -> dict[str, str]:
+    """คำตัดสิน masking ของคอลัมน์ที่ plugin ประกาศใน `models.py` ของตัวเอง
+
+    หลักเดียวกับ `audit_policies()` (ADR 0023): ชื่อคอลัมน์ของ plugin ห้ามไป
+    โผล่ในโค้ด core — `app/services/masking.py` ถามที่นี่ตอนคอลัมน์ไม่อยู่ใน
+    ตารางของ core (ADR 0045) · คีย์เป็น "ตาราง.คอลัมน์" หรือชื่อคอลัมน์เปล่า
+    """
+    load_models()
+    merged: dict[str, str] = {}
+    for module in _modules.values():
+        merged.update(getattr(module, "MASKING_DECISIONS", {}))
+    return merged
+
+
 def forget_models() -> None:
     """ลืมผลการ import ทิ้ง เพื่อให้ `load_models()` อ่านดิสก์ใหม่
 
