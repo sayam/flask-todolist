@@ -104,3 +104,64 @@ def test_the_wrong_key_fails_loud_not_garbage(app):
         app.config["DATA_ENCRYPTION_KEY"] = other
         with pytest.raises(crypto.DecryptionFailedError):
             _totp().secret_of(db.session.get(User, user_id))
+
+
+def test_a_key_that_is_not_base64_or_wrong_length_names_the_problem(app):
+    """คีย์ผิดรูปสองแบบ ("ไม่ใช่ base64" กับ "ความยาวผิด") ต้องได้ข้อความ
+    คนละเรื่องกัน — ข้อความที่บอกผิดสาเหตุพาคนไปแก้ผิดที่"""
+    user_id, _ = _enrolled_user(app)
+    with app.app_context():
+        user = db.session.get(User, user_id)
+
+        app.config["DATA_ENCRYPTION_KEY"] = "ไม่ใช่ base64 แน่ ๆ"
+        with pytest.raises(crypto.EncryptionUnavailableError) as caught:
+            _totp().secret_of(user)
+        assert "base64" in str(caught.value)
+
+        app.config["DATA_ENCRYPTION_KEY"] = base64.b64encode(b"short").decode()
+        with pytest.raises(crypto.EncryptionUnavailableError) as caught:
+            _totp().secret_of(user)
+        assert "32 ไบต์" in str(caught.value)
+
+
+def test_a_mangled_ciphertext_is_reported_as_tampering(app):
+    """ค่า `enc:v1:` ที่ข้างในไม่ใช่ base64 = ข้อมูลถูกแก้นอกระบบ — ต้องดัง
+    เป็น DecryptionFailedError ก่อนถึงชั้น AES ไม่ใช่ ValueError ดิบ"""
+    user_id, _ = _enrolled_user(app)
+    with app.app_context():
+        db.session.execute(
+            text("UPDATE tdl_auth_totp_secret SET totp_secret = :s WHERE user_id = :uid"),
+            {"s": crypto.PREFIX + "@@@:@@@", "uid": user_id},
+        )
+        db.session.commit()
+        db.session.expunge_all()
+        with pytest.raises(crypto.DecryptionFailedError) as caught:
+            _totp().secret_of(db.session.get(User, user_id))
+        assert "รูปแบบ" in str(caught.value)
+
+
+def test_verifying_an_already_encrypted_row_does_not_rewrite_it(app):
+    """encrypt-on-use ต้องหยุดเมื่อของบนดิสก์ encrypt แล้ว — ไม่งั้นทุก login
+    ที่มี MFA จะเขียนแถว (และแถว audit) ทิ้งเปล่า ๆ หนึ่งใบเสมอ"""
+    user_id, secret = _enrolled_user(app)
+    before = _raw_stored(app, user_id)
+    assert crypto.is_encrypted(before)
+    with app.app_context():
+        user = db.session.get(User, user_id)
+        code = _totp().code_at(secret, _totp()._counter(3_000_000.0))
+        assert _totp().verify(user, code, at=3_000_000.0)
+    assert _raw_stored(app, user_id) == before, (
+        "แถวที่ encrypt แล้วถูกเขียนซ้ำตอน verify — nonce ใหม่ทุกครั้งแปลว่า"
+        "ค่าต้องเปลี่ยนถ้ามีการเขียน จับได้จากการเทียบตรงนี้"
+    )
+
+
+def test_a_null_secret_passes_through_the_column_type_untouched(app):
+    """กิ่ง None ของ TypeDecorator ทั้งสองทิศ — คอลัมน์ nullable ที่ค่า None
+    ถูกส่งเข้า encrypt จะระเบิดด้วย AttributeError แทนที่จะเก็บ NULL เฉย ๆ"""
+    with app.app_context():
+        # เอา instance จริงจาก metadata — import models แบบ absolute ตรงนี้จะ
+        # นิยามตารางซ้ำกับที่ registry โหลดไว้ใต้ชื่อสังเคราะห์ (กับดักใน CLAUDE.md)
+        column_type = db.metadata.tables["tdl_auth_totp_secret"].c.totp_secret.type
+        assert column_type.process_bind_param(None, None) is None
+        assert column_type.process_result_value(None, None) is None
