@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-14 21:42+0700\n"
+"POT-Creation-Date: 2026-08-14 22:13+0700\n"
 "PO-Revision-Date: 2026-08-02 16:44+0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -35,52 +35,52 @@ msgstr ""
 msgid "Sign-in session expired — please try again"
 msgstr ""
 
-#: app/auth.py:263 app/routes.py:467
+#: app/auth.py:263 app/routes.py:484
 msgid "That code is not valid"
 msgstr ""
 
-#: app/api/todos.py:52 app/routes.py:72 app/routes.py:96
+#: app/api/todos.py:52 app/routes.py:72 app/routes.py:113
 msgid "Invalid date format"
 msgstr ""
 
-#: app/routes.py:164
+#: app/routes.py:181
 msgid "Task saved"
 msgstr ""
 
-#: app/routes.py:309
+#: app/routes.py:326
 msgid "Profile saved"
 msgstr ""
 
-#: app/routes.py:323
+#: app/routes.py:340
 msgid "The two new passwords do not match"
 msgstr ""
 
-#: app/routes.py:339
+#: app/routes.py:356
 msgid "Password changed"
 msgstr ""
 
-#: app/routes.py:360 app/routes.py:480 app/routes.py:507 app/routes.py:532
+#: app/routes.py:377 app/routes.py:497 app/routes.py:524 app/routes.py:549
 #: app/services/passwords.py:168
 msgid "Current password is incorrect"
 msgstr ""
 
-#: app/routes.py:404
+#: app/routes.py:421
 msgid "Token revoked"
 msgstr ""
 
-#: app/routes.py:467
+#: app/routes.py:484
 msgid "Two-step verification is on"
 msgstr ""
 
-#: app/routes.py:519
+#: app/routes.py:536
 msgid "Your account is closed. Sign-in no longer works."
 msgstr ""
 
-#: app/routes.py:539
+#: app/routes.py:556
 msgid "Two-step verification is off"
 msgstr ""
 
-#: app/routes.py:564
+#: app/routes.py:581
 msgid "Settings saved"
 msgstr ""
 
@@ -92,17 +92,22 @@ msgstr ""
 msgid "Your password was changed — please sign in again"
 msgstr ""
 
-#: app/admin/system.py:50 app/templates/admin_environment.html:2
+#: app/admin/system.py:61 app/templates/admin_environment.html:2
 #: app/templates/admin_environment.html:5
 msgid "Environment"
 msgstr ""
 
-#: app/admin/system.py:51 app/templates/admin_lifecycle.html:2
+#: app/admin/system.py:62 app/templates/admin_lifecycle.html:2
 #: app/templates/admin_lifecycle.html:5
 msgid "Lifecycle"
 msgstr ""
 
-#: app/admin/system.py:52 app/templates/admin_observability.html:2
+#: app/admin/system.py:63 app/templates/admin_sbom.html:2
+#: app/templates/admin_sbom.html:5
+msgid "Supply chain"
+msgstr ""
+
+#: app/admin/system.py:64 app/templates/admin_observability.html:2
 #: app/templates/admin_observability.html:5
 msgid "Observability"
 msgstr ""
@@ -344,7 +349,7 @@ msgstr ""
 msgid "Migration class"
 msgstr ""
 
-#: app/templates/admin_lifecycle.html:33
+#: app/templates/admin_lifecycle.html:33 app/templates/admin_sbom.html:34
 msgid "State"
 msgstr ""
 
@@ -382,6 +387,70 @@ msgstr ""
 
 #: app/templates/admin_observability.html:31
 msgid "No requests recorded yet"
+msgstr ""
+
+#: app/templates/admin_sbom.html:10
+msgid "end of life"
+msgstr ""
+
+#: app/templates/admin_sbom.html:11
+msgid "days left"
+msgstr ""
+
+#: app/templates/admin_sbom.html:12
+msgid "table pinned on"
+msgstr ""
+
+#: app/templates/admin_sbom.html:15
+msgid ""
+"The pinned EOL table does not cover this runtime — refresh it with "
+"scripts/build_eol_table.py"
+msgstr ""
+
+#: app/templates/admin_sbom.html:19
+msgid ""
+"Pipfile.lock is not readable here — showing installed packages only, "
+"drift cannot be judged"
+msgstr ""
+
+#: app/templates/admin_sbom.html:21
+msgid "Drift detected:"
+msgstr ""
+
+#: app/templates/admin_sbom.html:21
+msgid "unlisted:"
+msgstr ""
+
+#: app/templates/admin_sbom.html:21
+msgid "declared but not installed:"
+msgstr ""
+
+#: app/templates/admin_sbom.html:23
+msgid "Everything installed matches the lock file exactly"
+msgstr ""
+
+#: app/templates/admin_sbom.html:27
+msgid "What this process actually has, against what the lock file declares"
+msgstr ""
+
+#: app/templates/admin_sbom.html:30
+msgid "Package"
+msgstr ""
+
+#: app/templates/admin_sbom.html:31
+msgid "Installed"
+msgstr ""
+
+#: app/templates/admin_sbom.html:32
+msgid "Declared"
+msgstr ""
+
+#: app/templates/admin_sbom.html:33
+msgid "Owner (category)"
+msgstr ""
+
+#: app/templates/admin_sbom.html:51
+msgid "Declared but not installed"
 msgstr ""
 
 #: app/templates/admin_users.html:10
@@ -461,6 +530,11 @@ msgstr ""
 
 #: app/templates/base.html:65
 msgid "Sign out"
+msgstr ""
+
+#: app/templates/base.html:87 app/templates/privacy.html:2
+#: app/templates/privacy.html:5
+msgid "Privacy"
 msgstr ""
 
 #: app/templates/categories.html:14 app/templates/categories.html:25
@@ -704,6 +778,85 @@ msgstr ""
 
 #: app/templates/login_verify.html:31
 msgid "Start over"
+msgstr ""
+
+#: app/templates/privacy.html:7
+msgid ""
+"This is a personal to-do application. It stores only what the service "
+"itself needs, and nothing is shared with anyone else."
+msgstr ""
+
+#: app/templates/privacy.html:9
+msgid "What is stored, and why"
+msgstr ""
+
+#: app/templates/privacy.html:11
+msgid ""
+"Your username and a password hash — to sign you in. No e-mail address is "
+"ever collected."
+msgstr ""
+
+#: app/templates/privacy.html:12
+msgid ""
+"An optional first and last name, language, theme, and timezone — so the "
+"app can address and render things your way."
+msgstr ""
+
+#: app/templates/privacy.html:13
+msgid ""
+"Your tasks and categories — that is the whole point of the app. They "
+"belong to you and are not visible to other users; administrators see them"
+" masked or not at all."
+msgstr ""
+
+#: app/templates/privacy.html:14
+msgid ""
+"An append-only audit trail of changes — kept as evidence, storing "
+"references, never the content of secrets."
+msgstr ""
+
+#: app/templates/privacy.html:17
+msgid "How long it is kept"
+msgstr ""
+
+#: app/templates/privacy.html:19
+#, python-format
+msgid "Deleted items and closed accounts are purged for real after %(days)d days."
+msgstr ""
+
+#: app/templates/privacy.html:20
+#, python-format
+msgid ""
+"Audit entries are kept for %(days)d days, then removed from the head of "
+"the chain."
+msgstr ""
+
+#: app/templates/privacy.html:23
+msgid "Your rights"
+msgstr ""
+
+#: app/templates/privacy.html:25
+msgid ""
+"Export everything about you as machine-readable JSON from the settings "
+"page, at any time, without asking anyone."
+msgstr ""
+
+#: app/templates/privacy.html:26
+msgid ""
+"Close your account yourself from the settings page — secrets are wiped "
+"immediately, the rest follows the retention period above."
+msgstr ""
+
+#: app/templates/privacy.html:27
+msgid ""
+"Correct anything about yourself directly — profile, language, timezone, "
+"and every task are editable in place."
+msgstr ""
+
+#: app/templates/privacy.html:30
+msgid ""
+"Questions about how a specific deployment is operated belong to whoever "
+"runs it — this page describes what the software itself does."
 msgstr ""
 
 #: app/templates/settings.html:11

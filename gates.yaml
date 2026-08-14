@@ -658,6 +658,7 @@ gates:
         - tests/test_metrics.py
         - tests/test_mode.py
         - tests/test_oidc.py
+        - tests/test_privacy_page.py
         - tests/test_proxy.py
         - tests/test_settings.py
         - tests/test_start_and_filters.py

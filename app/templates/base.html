@@ -83,5 +83,8 @@
   <main>
     {% block content %}{% endblock %}
   </main>
+  <footer>
+    <a href="{{ url_for('main.privacy') }}">{{ _('Privacy') }}</a>
+  </footer>
 </body>
 </html>

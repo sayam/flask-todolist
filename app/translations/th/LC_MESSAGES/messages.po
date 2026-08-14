@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-14 21:42+0700\n"
+"POT-Creation-Date: 2026-08-14 22:13+0700\n"
 "PO-Revision-Date: 2026-08-02 16:44+0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -35,52 +35,52 @@ msgstr "ยังไม่ได้ตั้งค่าการเข้าส
 msgid "Sign-in session expired — please try again"
 msgstr "การเข้าสู่ระบบหมดอายุแล้ว กรุณาลองใหม่"
 
-#: app/auth.py:263 app/routes.py:467
+#: app/auth.py:263 app/routes.py:484
 msgid "That code is not valid"
 msgstr "รหัสไม่ถูกต้อง"
 
-#: app/api/todos.py:52 app/routes.py:72 app/routes.py:96
+#: app/api/todos.py:52 app/routes.py:72 app/routes.py:113
 msgid "Invalid date format"
 msgstr "รูปแบบวันที่ไม่ถูกต้อง"
 
-#: app/routes.py:164
+#: app/routes.py:181
 msgid "Task saved"
 msgstr "บันทึกงานแล้ว"
 
-#: app/routes.py:309
+#: app/routes.py:326
 msgid "Profile saved"
 msgstr "บันทึกโปรไฟล์แล้ว"
 
-#: app/routes.py:323
+#: app/routes.py:340
 msgid "The two new passwords do not match"
 msgstr "รหัสผ่านใหม่สองช่องไม่ตรงกัน"
 
-#: app/routes.py:339
+#: app/routes.py:356
 msgid "Password changed"
 msgstr "เปลี่ยนรหัสผ่านแล้ว"
 
-#: app/routes.py:360 app/routes.py:480 app/routes.py:507 app/routes.py:532
+#: app/routes.py:377 app/routes.py:497 app/routes.py:524 app/routes.py:549
 #: app/services/passwords.py:168
 msgid "Current password is incorrect"
 msgstr "รหัสผ่านปัจจุบันไม่ถูกต้อง"
 
-#: app/routes.py:404
+#: app/routes.py:421
 msgid "Token revoked"
 msgstr "เพิกถอน token แล้ว"
 
-#: app/routes.py:467
+#: app/routes.py:484
 msgid "Two-step verification is on"
 msgstr "เปิดการยืนยันสองขั้นแล้ว"
 
-#: app/routes.py:519
+#: app/routes.py:536
 msgid "Your account is closed. Sign-in no longer works."
 msgstr "บัญชีของคุณถูกปิดแล้ว เข้าสู่ระบบไม่ได้อีกต่อไป"
 
-#: app/routes.py:539
+#: app/routes.py:556
 msgid "Two-step verification is off"
 msgstr "ปิดการยืนยันสองขั้นแล้ว"
 
-#: app/routes.py:564
+#: app/routes.py:581
 msgid "Settings saved"
 msgstr "บันทึกการตั้งค่าแล้ว"
 
@@ -92,17 +92,22 @@ msgstr "หมดเวลาใช้งานแล้ว กรุณาเ�
 msgid "Your password was changed — please sign in again"
 msgstr "รหัสผ่านถูกเปลี่ยน กรุณาเข้าสู่ระบบใหม่"
 
-#: app/admin/system.py:50 app/templates/admin_environment.html:2
+#: app/admin/system.py:61 app/templates/admin_environment.html:2
 #: app/templates/admin_environment.html:5
 msgid "Environment"
 msgstr "สภาพแวดล้อม"
 
-#: app/admin/system.py:51 app/templates/admin_lifecycle.html:2
+#: app/admin/system.py:62 app/templates/admin_lifecycle.html:2
 #: app/templates/admin_lifecycle.html:5
 msgid "Lifecycle"
 msgstr "วงจรชีวิต"
 
-#: app/admin/system.py:52 app/templates/admin_observability.html:2
+#: app/admin/system.py:63 app/templates/admin_sbom.html:2
+#: app/templates/admin_sbom.html:5
+msgid "Supply chain"
+msgstr "supply chain"
+
+#: app/admin/system.py:64 app/templates/admin_observability.html:2
 #: app/templates/admin_observability.html:5
 msgid "Observability"
 msgstr "การสังเกตการณ์"
@@ -347,7 +352,7 @@ msgstr "plugin"
 msgid "Migration class"
 msgstr "migration class"
 
-#: app/templates/admin_lifecycle.html:33
+#: app/templates/admin_lifecycle.html:33 app/templates/admin_sbom.html:34
 msgid "State"
 msgstr "สถานะ"
 
@@ -386,6 +391,74 @@ msgstr "เฉลี่ย (มิลลิวินาที)"
 #: app/templates/admin_observability.html:31
 msgid "No requests recorded yet"
 msgstr "ยังไม่มีคำขอถูกบันทึก"
+
+#: app/templates/admin_sbom.html:10
+msgid "end of life"
+msgstr "หมดอายุการดูแล"
+
+#: app/templates/admin_sbom.html:11
+msgid "days left"
+msgstr "วันที่เหลือ"
+
+#: app/templates/admin_sbom.html:12
+msgid "table pinned on"
+msgstr "ตารางตรึงเมื่อ"
+
+#: app/templates/admin_sbom.html:15
+msgid ""
+"The pinned EOL table does not cover this runtime — refresh it with "
+"scripts/build_eol_table.py"
+msgstr ""
+"ตาราง EOL ที่ตรึงไว้ไม่ครอบ runtime นี้ — รีเฟรชด้วย "
+"scripts/build_eol_table.py"
+
+#: app/templates/admin_sbom.html:19
+msgid ""
+"Pipfile.lock is not readable here — showing installed packages only, "
+"drift cannot be judged"
+msgstr ""
+"อ่าน Pipfile.lock จากที่นี่ไม่ได้ — แสดงเฉพาะของที่ติดตั้ง ตัดสิน drift "
+"ไม่ได้"
+
+#: app/templates/admin_sbom.html:21
+msgid "Drift detected:"
+msgstr "พบ drift:"
+
+#: app/templates/admin_sbom.html:21
+msgid "unlisted:"
+msgstr "ไม่ได้ประกาศ:"
+
+#: app/templates/admin_sbom.html:21
+msgid "declared but not installed:"
+msgstr "ประกาศแต่ไม่ได้ติดตั้ง:"
+
+#: app/templates/admin_sbom.html:23
+msgid "Everything installed matches the lock file exactly"
+msgstr "ของที่ติดตั้งตรงกับ lock ทุกตัว"
+
+#: app/templates/admin_sbom.html:27
+msgid "What this process actually has, against what the lock file declares"
+msgstr "ของที่ process นี้มีจริง เทียบกับที่ lock ประกาศ"
+
+#: app/templates/admin_sbom.html:30
+msgid "Package"
+msgstr "package"
+
+#: app/templates/admin_sbom.html:31
+msgid "Installed"
+msgstr "ติดตั้งจริง"
+
+#: app/templates/admin_sbom.html:32
+msgid "Declared"
+msgstr "ที่ประกาศ"
+
+#: app/templates/admin_sbom.html:33
+msgid "Owner (category)"
+msgstr "เจ้าของ (category)"
+
+#: app/templates/admin_sbom.html:51
+msgid "Declared but not installed"
+msgstr "ประกาศแต่ไม่ได้ติดตั้ง"
 
 #: app/templates/admin_users.html:10
 msgid "Everyone with an account, and what they are allowed to do"
@@ -465,6 +538,11 @@ msgstr "ตั้งค่า"
 #: app/templates/base.html:65
 msgid "Sign out"
 msgstr "ออกจากระบบ"
+
+#: app/templates/base.html:87 app/templates/privacy.html:2
+#: app/templates/privacy.html:5
+msgid "Privacy"
+msgstr "ความเป็นส่วนตัว"
 
 #: app/templates/categories.html:14 app/templates/categories.html:25
 msgid "Category name"
@@ -705,6 +783,101 @@ msgstr "ยืนยัน"
 #: app/templates/login_verify.html:31
 msgid "Start over"
 msgstr "เริ่มใหม่"
+
+#: app/templates/privacy.html:7
+msgid ""
+"This is a personal to-do application. It stores only what the service "
+"itself needs, and nothing is shared with anyone else."
+msgstr ""
+"นี่คือแอปจดงานส่วนตัว — เก็บเฉพาะสิ่งที่ตัวบริการต้องใช้ "
+"และไม่ส่งต่อให้ใครทั้งสิ้น"
+
+#: app/templates/privacy.html:9
+msgid "What is stored, and why"
+msgstr "เก็บอะไร และทำไม"
+
+#: app/templates/privacy.html:11
+msgid ""
+"Your username and a password hash — to sign you in. No e-mail address is "
+"ever collected."
+msgstr "ชื่อผู้ใช้และ hash ของรหัสผ่าน — ไว้ให้คุณเข้าระบบ · ไม่เก็บอีเมลเลย"
+
+#: app/templates/privacy.html:12
+msgid ""
+"An optional first and last name, language, theme, and timezone — so the "
+"app can address and render things your way."
+msgstr ""
+"ชื่อ-นามสกุล (ไม่บังคับ) ภาษา ธีม และโซนเวลา — "
+"เพื่อแสดงผลอย่างที่คุณตั้งไว้"
+
+#: app/templates/privacy.html:13
+msgid ""
+"Your tasks and categories — that is the whole point of the app. They "
+"belong to you and are not visible to other users; administrators see them"
+" masked or not at all."
+msgstr ""
+"งานและหมวดของคุณ — หัวใจของแอป เป็นของคุณคนเดียว ผู้ใช้อื่นมองไม่เห็น "
+"และผู้ดูแลเห็นแบบถูก mask หรือไม่เห็นเลย"
+
+#: app/templates/privacy.html:14
+msgid ""
+"An append-only audit trail of changes — kept as evidence, storing "
+"references, never the content of secrets."
+msgstr ""
+"บันทึกการเปลี่ยนแปลงแบบเติมได้อย่างเดียว — "
+"เก็บเป็นหลักฐานโดยอ้างอิงถึงข้อมูล ไม่เก็บเนื้อความลับ"
+
+#: app/templates/privacy.html:17
+msgid "How long it is kept"
+msgstr "เก็บนานแค่ไหน"
+
+#: app/templates/privacy.html:19
+#, python-format
+msgid "Deleted items and closed accounts are purged for real after %(days)d days."
+msgstr "ของที่ลบและบัญชีที่ปิด ถูกลบจริงหลัง %(days)d วัน"
+
+#: app/templates/privacy.html:20
+#, python-format
+msgid ""
+"Audit entries are kept for %(days)d days, then removed from the head of "
+"the chain."
+msgstr "บันทึกตรวจสอบเก็บ %(days)d วัน แล้วถูกตัดจากหัวสาย"
+
+#: app/templates/privacy.html:23
+msgid "Your rights"
+msgstr "สิทธิ์ของคุณ"
+
+#: app/templates/privacy.html:25
+msgid ""
+"Export everything about you as machine-readable JSON from the settings "
+"page, at any time, without asking anyone."
+msgstr ""
+"ขอสำเนาข้อมูลทั้งหมดเป็น JSON ที่เครื่องอ่านได้ จากหน้า settings "
+"ได้ทุกเมื่อ โดยไม่ต้องขอใคร"
+
+#: app/templates/privacy.html:26
+msgid ""
+"Close your account yourself from the settings page — secrets are wiped "
+"immediately, the rest follows the retention period above."
+msgstr ""
+"ปิดบัญชีเองได้จากหน้า settings — ความลับถูกล้างทันที "
+"ที่เหลือเป็นไปตามระยะข้างบน"
+
+#: app/templates/privacy.html:27
+msgid ""
+"Correct anything about yourself directly — profile, language, timezone, "
+"and every task are editable in place."
+msgstr ""
+"แก้ข้อมูลของตัวเองได้ตรง ๆ — โปรไฟล์ ภาษา โซนเวลา "
+"และงานทุกรายการแก้ได้ในที่"
+
+#: app/templates/privacy.html:30
+msgid ""
+"Questions about how a specific deployment is operated belong to whoever "
+"runs it — this page describes what the software itself does."
+msgstr ""
+"คำถามเกี่ยวกับการดูแลระบบแต่ละที่เป็นของผู้รันระบบนั้น — "
+"หน้านี้อธิบายสิ่งที่ตัวซอฟต์แวร์ทำ"
 
 #: app/templates/settings.html:11
 msgid "Profile"
