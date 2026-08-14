@@ -14,5 +14,5 @@
     ]
   },
   "description": "เก็บใน redis แชร์ข้ามโปรเซสและข้าม replica ได้จริง",
-  "migration": "live"
+  "migration": "warm"
 }

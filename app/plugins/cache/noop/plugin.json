@@ -8,5 +8,5 @@
     "memory"
   ],
   "description": "ค่าเริ่มต้น ไม่เก็บอะไรเลย — cache เป็น optimization ห้ามเป็น correctness",
-  "migration": "live"
+  "migration": "warm"
 }

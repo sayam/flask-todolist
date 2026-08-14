@@ -1,0 +1,5 @@
+# bench: ย้ายพอร์ต keycloak หนี proxy (ทั้งคู่อยาก 8080 — ใน CI job sso ไม่มี proxy)
+services:
+  keycloak:
+    ports: !reset
+      - "8090:8080"
