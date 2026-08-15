@@ -1,5 +1,7 @@
+{# แถบ panel ของหน้า admin — เฉพาะตัว panel เท่านั้น (CR#2 ข้อ 4):
+   ทางเข้า "Site administration" มีที่เดียวคือ top nav ใน base.html
+   การมีลิงก์เดียวกันสองระดับทำให้ผู้ใช้เดาไม่ได้ว่าตัวเองอยู่ชั้นไหน #}
 <nav aria-label="{{ _('Admin sections') }}">
-  <a href="{{ url_for('admin.index') }}">{{ _('Site administration') }}</a> |
   {% for endpoint, title, category in admin_panels %}
   <a href="{{ url_for(endpoint) }}">{{ title }}</a>{% if not loop.last %} | {% endif %}
   {% endfor %}

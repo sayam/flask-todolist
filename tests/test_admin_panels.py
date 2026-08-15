@@ -245,3 +245,22 @@ def test_the_nav_says_site_administration_not_users(app):
     assert "Site administration" in admin_nav
     member_nav = _sign_in(app, "member").get("/").data.decode()
     assert 'href="/admin"' not in member_nav, "เมนู admin โผล่ให้ผู้ใช้ทั่วไป (แค่ซ่อนตา แต่ก็ต้องซ่อน)"
+
+
+def test_the_admin_subnav_lists_only_panels_not_the_hub(app):
+    """CR#2 ข้อ 4 — sub-menu ของหน้า admin มีเฉพาะ [panel ทั้งหก] ไม่มีลิงก์
+    Site administration ซ้ำ (ทางเข้า hub มีที่เดียวคือ top nav)"""
+    import re
+
+    from app.admin import PANELS
+
+    _two_people(app)
+    page = _sign_in(app, "boss").get("/admin/environment").data.decode()
+    subnav = re.search(r'<nav aria-label="[^"]*">(.*?)</nav>', page, re.DOTALL)
+    assert subnav, "ไม่พบ sub-nav ของหน้า admin"
+    inside = subnav.group(1)
+    assert 'href="/admin"' not in inside, "ลิงก์ hub ยังซ้ำอยู่ใน sub-menu"
+    for _endpoint, title, _category in PANELS:
+        assert str(title) in inside, f"panel {title} หายจาก sub-menu"
+    # top nav ยังต้องมีทางเข้า hub อยู่ (คนละ element กัน)
+    assert 'href="/admin"' in page.split("<hr>")[0], "ทางเข้า hub หายจาก top nav ไปด้วย"
