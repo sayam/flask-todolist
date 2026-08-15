@@ -39,9 +39,9 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 | `repo_track` MUST | ผ่าน | git |
 | `repo_interim` MUST | ผ่าน | commit ระหว่างทางอยู่ครบบน `main` ไม่ใช่แค่ของที่ release |
 | `repo_distributed` SUGGESTED | ผ่าน | git |
-| `version_unique` MUST | ผ่าน | `v1.0.0` |
+| `version_unique` MUST | ผ่าน | ทุกรุ่นมี tag ไม่ซ้ำ — `v1.0.0`, `v1.1.0` |
 | `version_semver` SUGGESTED | ผ่าน | SemVer · นิยามของ 1.0.0 บันทึกไว้ใน `docs/ROADMAP.md` |
-| `version_tags` SUGGESTED | ผ่าน | git tag `v1.0.0` |
+| `version_tags` SUGGESTED | ผ่าน | git tag ทุกรุ่น (`v1.0.0`, `v1.1.0`) |
 | `release_notes` MUST | ผ่าน | `CHANGELOG.md` (Keep a Changelog) ผูกกับ `app.__version__` และมีเทสต์คุม |
 | `release_notes_vulns` MUST | ผ่าน | ยังไม่มี release ไหนที่แก้ช่องโหว่ซึ่งมี CVE — เมื่อมีจะระบุใน `CHANGELOG.md` ตามกรอบเวลาใน `docs/SECURITY-CADENCE.md` |
 
