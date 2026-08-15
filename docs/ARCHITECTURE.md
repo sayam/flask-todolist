@@ -130,6 +130,8 @@ proxy เชื่อ header ตามจำนวนชั้นที่ปร
 | worksheet ISO 27001 ↔ outline ที่ตรึง + หลักฐานจริง | `tests/test_iso27001.py` |
 | ดัชนีแกน supply chain ↔ ธง axis ใน `gates.yaml` | `tests/test_supply_chain.py` |
 | ดัชนี compliance รายประเทศ ↔ gate ชั้น legal | `tests/test_compliance_index.py` |
+| ทะเบียนความเสี่ยง ↔ สูตรระดับ + กลไกที่อ้าง | `tests/test_risk_assessment.py` |
+| runbook backup ↔ การซ้อม restore ที่รันจริง | `tests/test_backup_drill.py` |
 | เอกสารฉบับนี้ ↔ ไฟล์/เทสต์ที่มันอ้าง | `tests/test_architecture.py` |
 | เลขที่โฆษณาในเอกสาร ↔ ดิสก์ | `tests/test_contributor_docs.py` · `tests/test_changelog.py` · `tests/test_skill.py` |
 
