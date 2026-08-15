@@ -42,7 +42,8 @@
 - `app/__init__.py` — app factory (`create_app`), init db/migrate/csrf/limiter/login_manager
   และ errorhandler ของ 429
 - `app/models.py` — SQLAlchemy models ของ core (`User`, `ApiToken`, `Category`,
-  `Todo` และของ org graph: `Team`, `TeamMember`, `TodoShare`, `TodoDependency`)
+  `Todo` และของ org graph: `Team`, `TeamMember`, `TodoShare`, `TodoDependency`,
+  `TeamNameChange` — บันทึกเปลี่ยนชื่อวงที่สมาชิกอ่านได้ CR#3)
   แบบ 2.0 typed (`Mapped[]`) — ของ plugin อยู่ใน `models.py` ของ plugin เอง
 - `app/services/` — **ตรรกะทั้งหมดอยู่ที่นี่ และไม่รู้จัก HTTP เลย** (ดูหัวข้อ service layer)
   `lookup.by_id()` เป็นทางเดียวที่หาแถวตาม id ที่มาจากภายนอก (กัน id เกิน 64 บิต → 500)
@@ -53,7 +54,8 @@
 - `app/admin/` — **package** ของผู้ดูแลระบบ (blueprint `admin` — ADR 0044):
   `__init__.py` (registry ของ panel — หน้าใหม่เรียก `register_panel(endpoint,
   title, category)` ตอน import · หน้า `/admin` = Site administration จัดกลุ่ม
-  ตามหมวดแบบ Moodle และ nav วนจาก registry) · `users.py` (บทบาท + **unmask ที่ลง audit** +
+  ตามหมวดแบบ Moodle · ลิงก์เข้า hub มีที่เดียวคือ top nav — sub-nav ของหน้า
+  admin มีเฉพาะตัว panel (CR#2) และ nav วนจาก registry) · `users.py` (บทบาท + **unmask ที่ลง audit** +
   ระงับ/เลิกระงับ) · `teams.py` (วงของ org graph — ADR 0049) · `system.py`
   (environment/lifecycle/observability/SBOM) · ทำงานกับข้อมูล **ของคนอื่น**
   จึงแยกจาก `routes.py` ที่ทำงานกับข้อมูลของเจ้าของ session เท่านั้น
@@ -73,6 +75,8 @@
   (ADR 0049): วง admin-only · แชร์เผยสี่ฟิลด์ผ่าน `SharedTodoView` เท่านั้น ·
   dependency เชิญ→ยอมรับ · จุดตัดสินการมองเห็นเดียว `sharing.can_see_todo()`
   และจุดตัดเดียว `sever_invisible_dependencies()` · impact deterministic กันวงวน
+  · เปลี่ยนชื่อวง (`teams.rename` — เหตุผลบังคับ) ลง `TeamNameChange` ให้
+  สมาชิกอ่านที่ `/teams/<id>/info` (สิทธิ์ = สมาชิก**หรือ** admin — CR#3)
 - `app/services/suspension.py` — ระงับบัญชี (ม.34) · `app/services/masking.py` —
   mask ตามชั้นข้อมูล (ADR 0045) · `app/services/system_info.py` — ข้อมูลหน้า
   environment/SBOM/lifecycle ของ admin
