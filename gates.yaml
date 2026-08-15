@@ -743,6 +743,23 @@ gates:
       migration ที่ถูกต้องสำหรับโค้ดใหม่แต่ฆ่าโค้ดเก่าคือ downtime ที่ไม่มีใคร
       ประกาศ · สัญญาที่ไม่มีด่านรันหนุนคือสัญญาที่รอวันเน่า (ADR 0048)
 
+  - id: codeql-can-parse-the-app
+    title: โค้ดใต้ app/ ต้อง parse ได้โดย CodeQL — ห้าม PEP 695 จนกว่า extractor จะรองรับ
+    kind: test
+    severity: blocking
+    enforced_by:
+      job: test
+      tests:
+        - tests/test_codeql_compat.py
+    standard: []
+    requires: []
+    portable: false
+    layer: internal
+    born_from: >-
+      2026-08-15 — `type X = ...` ใน audit.py ทำให้ CodeQL ข้ามไฟล์ทั้งไฟล์
+      โดยมีแค่ warning บนหน้า status ที่ไม่มีใครเปิดดู · ไฟล์ที่หลุดจาก SAST
+      เงียบ ๆ อันตรายกว่าสำนวน generic รุ่นใหม่
+
   - id: schema-drift-zero
     title: เดิน migration บนฐานเปล่าแล้วเทียบกับ model — drift ต้องเป็นศูนย์
     kind: job

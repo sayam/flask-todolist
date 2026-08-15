@@ -62,7 +62,11 @@ CHECKPOINT_EVENT = "audit.checkpoint"
 
 # db.session เป็น scoped_session ไม่ใช่ Session ตรง ๆ — รับทั้งสองแบบเพื่อให้
 # เรียกจากทั้ง event handler (ได้ Session) และจากโค้ดแอป (ได้ db.session) ได้
-type SessionLike = Session | scoped_session[Any]
+# **จงใจใช้สำนวนก่อน PEP 695** (TypeVar/การ assign ธรรมดา ไม่ใช่ `type X = ...`
+# หรือ `def f[T](...)`) — parser ของ CodeQL (2.26.3) ยังย่อย PEP 695 ไม่ได้
+# แล้วไฟล์*ทั้งไฟล์*จะหลุดจากการสแกนความปลอดภัยเงียบ ๆ (เจอจริง: audit.py
+# ไม่ถูกวิเคราะห์เลยทั้งไฟล์) · `tests/test_codeql_compat.py` กันการเผลอใช้ซ้ำ
+SessionLike = Session | scoped_session[Any]
 
 SOURCE_WEB = "web"
 SOURCE_CLI = "cli"

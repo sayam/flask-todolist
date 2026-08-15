@@ -12,6 +12,7 @@ Phase 7 · P7-04 — **นโยบายนี้มีเทสต์คุม
 | `lint` | ruff · ruff format · xenon · interrogate · mypy · ตาราง ASVS ตรงกับมาตรฐานที่ตรึงไว้ | แดง |
 | `security` | pip-audit ของ **core และ `[deploy]`** — ช่องโหว่ของสิ่งที่ถอดไม่ได้ · semgrep | แดง |
 | `codeql` | SAST ของโค้ดที่เราเขียนเอง (python + javascript, ชุด `security-extended`) — ต่างจาก `security` ที่ดูไลบรารีของคนอื่น | แดง |
+| (กติกาคู่ `codeql`) | **ห้าม PEP 695 ใต้ `app/`** จนกว่า extractor จะอ่านได้ (`tests/test_codeql_compat.py`) — ตอน bump รุ่น CodeQL ให้ลองถอดด่านนี้แล้วดูหน้า status ว่า warning "Could not process" หายจริงก่อนถอดถาวร | แดง |
 | `scorecard` | OpenSSF Scorecard — วัดแนวปฏิบัติของ *repo* (branch protection, pinned deps, สิทธิ์ของ token) ไม่ใช่โค้ด · อยู่คนละไฟล์ workflow เพราะต้องการ trigger `branch_protection_rule` + `schedule` | **ไม่บล็อก** — เป็นคะแนน ไม่ใช่ผ่าน/ไม่ผ่าน และไม่รันบน PR |
 | `plugin-audit` | pip-audit ของ **plugin** | **ไม่แดง** ตั้งใจ — คำตอบของ CVE ที่ถอดได้คือ "ถอดก่อน" จึงเตือนแทนที่จะบล็อก |
 | `sbom` | รายการไลบรารีทั้งหมดที่ประกอบเป็น image | แดง |
