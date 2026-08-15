@@ -20,6 +20,13 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Added
 
+- **The per-country compliance index** (`docs/COMPLIANCE.md` — G4 of the
+  governance plan): Thailand (PDPA) today, plus the contract for adding a
+  country — additive only, a four-point minimum bar set by the PDPA
+  worksheet, and two deliberate non-goals (no worksheets for countries
+  nobody deploys in, no cross-law abstraction). Legal-layer gates follow a
+  `legal-*` naming convention and `tests/test_compliance_index.py` keeps
+  the index honest both ways (gate `country-compliance-indexed`).
 - **The supply-chain axis** (`docs/SUPPLY-CHAIN.md` — G3 of the governance
   plan): the constitution names supply chain an independent axis of the
   security pillar; this index tells its story in five layers (what enters

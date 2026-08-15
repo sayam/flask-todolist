@@ -17,7 +17,7 @@
 | G1 | ธรรมนูญ + intake เข้าเอกสาร + `pillar:` ครบทุก gate + เทสต์คุม | ✅ เสร็จ (PR แรกของแผน) |
 | G2 | ISO/IEC 27001:2022 self-assessment ครบทุกข้อ | ✅ เสร็จ (`ISO27001.md`) |
 | G3 | ดัชนีแกน supply chain (`docs/SUPPLY-CHAIN.md`) | ✅ เสร็จ |
-| G4 | โครง compliance รายประเทศ (`docs/COMPLIANCE.md`) | ⬜ ถัดไป |
+| G4 | โครง compliance รายประเทศ (`docs/COMPLIANCE.md`) | ✅ เสร็จ |
 | G5 | ชั้น 2: multi-worker แบบไม่ลดด่าน + คำตัดสิน caching | ⬜ หลัง G1–G4 |
 
 ## G1 — ธรรมนูญเข้าระบบ
@@ -60,12 +60,15 @@ backlog ของไฟล์: วิธีประเมินความเ�
 `tests/test_supply_chain.py` บังคับดัชนี↔ธงสองทิศ · gate:
 `supply-chain-axis-indexed`
 
-## G4 — โครง compliance รายประเทศ
+## G4 — โครง compliance รายประเทศ ✅ (เสร็จ 2026-08-16)
 
-- `docs/COMPLIANCE.md` เป็นดัชนี: ไทย = PDPA (มีแล้ว ไม่ย้ายไฟล์ —
-  ลิงก์เดิมไม่ตาย) · ประเทศใหม่ = เพิ่มไฟล์ + แถวในดัชนีแบบ additive
-- นิยามขั้นต่ำของ "ผ่านหนึ่งประเทศ": worksheet ที่หลักฐาน resolve + เทสต์คุม
-  + ช่องว่างอยู่ใน backlog — แบบเดียวกับที่ PDPA ตั้งไว้
+ผลจริง: `docs/COMPLIANCE.md` — ดัชนีประเทศ (ไทย = PDPA ไม่ย้ายไฟล์) +
+นิยามขั้นต่ำสี่ข้อของ "ประเมินแล้วหนึ่งประเทศ" + สิ่งที่ตั้งใจไม่ทำ
+(ไม่ประเมินประเทศที่ไม่มีใคร deploy · ไม่ทำ abstraction ข้ามกฎหมาย —
+เหตุผลเดียวกับ ADR 0040) · ผูกด้วย convention: gate ชั้น legal ใช้ id
+`legal-*` — `tests/test_compliance_index.py` บังคับดัชนี↔gate สองทิศ +
+worksheet มีจริง + legal ทุกตัวอยู่ pillar security · gate:
+`country-compliance-indexed`
 
 ## G5 — ชั้น 2 (ทำหลังชั้น 1 ครบ)
 

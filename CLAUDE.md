@@ -206,6 +206,10 @@
   advisory** ต้นตออยู่ใน `via` ที่เป็น object เท่านั้น (6 หัวข่าว = 1 เรื่อง)
 - `docs/openapi.json` — **ไฟล์ที่ generate มา ห้ามแก้ด้วยมือ** (ดูหัวข้อ API v1)
 - `docs/ASVS.md` — self-assessment ต่อ ASVS 5.0 L2 (ดูหัวข้อ ASVS)
+- `docs/COMPLIANCE.md` — ดัชนี legal รายประเทศ (G4 — ADR 0051): gate ชั้น
+  legal ใช้ id `legal-*` เป็น convention (`tests/test_compliance_index.py`
+  บังคับสองทิศ + pillar security) · ประเทศใหม่ = worksheet + gate + แถว
+  แบบ additive ตามนิยามขั้นต่ำสี่ข้อในไฟล์
 - `docs/SUPPLY-CHAIN.md` — ดัชนีแกน supply chain (G3 — ADR 0051): สมาชิก
   ประกาศที่ gate ด้วย `axis: supply-chain` (14 ตัว) · เพิ่มด่าน supply chain
   ใหม่ต้องติดธง+ลงดัชนี ไม่งั้น `tests/test_supply_chain.py` แดงสองทิศ

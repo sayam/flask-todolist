@@ -499,6 +499,21 @@ gates:
       เฟส 13-05 — รับ 42010 ตัวเดียวจากกลุ่มกรอบมาตรฐานองค์กร (ADR 0043)
       เพราะเป็นตัวเดียวที่ derive จากของจริง (ADR 43 ใบ) และตรวจได้ด้วยเครื่อง
 
+  - id: country-compliance-indexed
+    title: ดัชนี compliance รายประเทศตรงกับ gate ชั้น legal (legal-*) สองทิศ และ worksheet มีจริง
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_compliance_index.py]}
+    standard: []
+    requires: []
+    portable: false
+    layer: internal
+    pillar: security
+    born_from: >-
+      G4 ของ ADR 0051 — กฎหมายรายประเทศเป็นแกนของชั้น security และการเพิ่ม
+      ประเทศต้องเป็น additive ที่มองเห็นจากดัชนีเดียว · convention ชื่อ
+      legal-* ทำให้ประเทศที่มีด่านแต่ไม่ลงทะเบียนถูกจับได้เอง
+
   - id: supply-chain-axis-indexed
     title: แกน supply chain ตรงกับธง axis ใน gates.yaml สองทิศ — ด่านใหม่ของแกนต้องเข้าดัชนี
     kind: test
