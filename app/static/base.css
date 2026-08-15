@@ -296,3 +296,11 @@ small {
   white-space: nowrap;
   border: 0;
 }
+
+/* caption ของทุกตารางชิดซ้ายเสมอกับหัวเรื่องของหน้า (CR#4) —
+   ค่าเริ่มต้นของ browser คือกึ่งกลาง ซึ่งลอยหลุดจากแนวอ่านของทั้งหน้า */
+caption {
+  text-align: left;
+  caption-side: top;
+}
+
