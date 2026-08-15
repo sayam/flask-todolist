@@ -18,7 +18,14 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- `docs/DESIGN.md` — the UI's identity, a per-page mode table
+  (Operate/Read/Enter, adapted from the *impeccable* skill), the
+  refine-vs-redesign rule for UI changes, and a bounded-verification
+  discipline. Guarded two ways by `tests/test_design_doc.py`: every full-page
+  template must be assigned a mode, and the theme-variable set in the document
+  must match what `base.css` actually uses.
 
 ## [1.2.0] — 2026-08-15
 

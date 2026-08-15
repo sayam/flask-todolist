@@ -200,6 +200,10 @@
   `docs/RUNBOOK-BREACH.md` — ขั้นตอนตอนข้อมูลรั่ว (ทั้งคู่มี `tests/test_ropa.py` คุม)
   `docs/asvs-5.0.0.json` คือมาตรฐานที่ตรึงไว้ **generate มา ห้ามแก้ด้วยมือ**
 - `app/templates/` — Jinja2 templates (ทุกหน้า extend `base.html`)
+  **ก่อนแตะ template หรือ `base.css` ให้อ่าน `docs/DESIGN.md` ก่อน** — ตัวตน
+  ของ UI + โหมดต่อหน้า (Operate/Read/Enter) · งาน UI ต้องประกาศ refine หรือ
+  redesign (redesign = แก้ DESIGN.md ใน PR เดียวกัน) · หน้าเต็มใหม่ต้องเพิ่ม
+  แถวในตารางโหมดด้วย (`tests/test_design_doc.py` บังคับสองทิศ)
 - `app/static/` — `logo.svg` (120px ใช้หน้า login) และ `logo-small.svg` (32px ใช้บน header + favicon)
   ตัวเล็กไม่ใช่ตัวใหญ่ย่อลงมา แต่ตัดรายละเอียดออกให้เหลือแค่เครื่องหมายถูก
 - `migrations/` — alembic migration scripts (commit ลง git ด้วย)

@@ -465,6 +465,20 @@ gates:
       เฟส 13-05 — รับ 42010 ตัวเดียวจากกลุ่มกรอบมาตรฐานองค์กร (ADR 0043)
       เพราะเป็นตัวเดียวที่ derive จากของจริง (ADR 43 ใบ) และตรวจได้ด้วยเครื่อง
 
+  - id: design-doc-matches-the-ui
+    title: docs/DESIGN.md ตรงกับ UI จริง — ทุกหน้าเต็มถูกตัดสินโหมด และตัวแปรสีตรงกับ base.css สองทิศ
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_design_doc.py]}
+    standard: []
+    requires: []
+    portable: false
+    layer: internal
+    born_from: >-
+      CR#4 — caption ลอยกึ่งกลางหลายหน้าเพราะแนวอ่านของทั้งหน้าไม่เคยถูกเขียน
+      หน้าใหม่จึงเกิดตามค่าเริ่มต้นของ browser · เอกสาร design ที่ไม่มีด่าน
+      คือเอกสารที่เน่าแล้วพาหน้าถัดไปหลงทาง
+
   - id: admin-masking-by-classification
     title: หน้า admin เห็นข้อมูลผู้ใช้แบบ mask ตามชั้นข้อมูล และ unmask ต้องลง audit
     kind: test
