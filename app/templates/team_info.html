@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}{{ team.name }}{% endblock %}
+
+{% block content %}
+<h2>{{ team.name }}</h2>
+<p><a class="button" href="{{ back_url }}">&larr; {{ _('Back') }}</a></p>
+
+<dl>
+  <dt>{{ _('Display name') }}</dt>
+  <dd>{{ team.name }}</dd>
+  <dt>{{ _('Created') }}</dt>
+  <dd>{{ created_local }}</dd>
+</dl>
+
+<section aria-labelledby="name-log-heading">
+  <h3 id="name-log-heading">{{ _('Name change log') }}</h3>
+  {# วงถูกบริหารโดย admin — การเปลี่ยนชื่อทุกครั้งประกาศที่นี่ให้สมาชิกอ่าน (CR#3) #}
+  {% if changes %}
+  <table>
+    <caption>{{ _('Every rename, newest first') }}</caption>
+    <thead>
+      <tr>
+        <th scope="col">{{ _('When') }}</th>
+        <th scope="col">{{ _('Who') }}</th>
+        <th scope="col">{{ _('From') }}</th>
+        <th scope="col">{{ _('To') }}</th>
+        <th scope="col">{{ _('Reason') }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for change in changes %}
+      <tr>
+        <td>{{ change.at }}</td>
+        <td>{{ change.who }}</td>
+        <td>{{ change.old }}</td>
+        <td>{{ change.new }}</td>
+        <td>{{ change.reason }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>{{ _('This team has never been renamed') }}</p>
+  {% endif %}
+</section>
+{% endblock %}

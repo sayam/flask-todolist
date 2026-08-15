@@ -61,6 +61,13 @@ DECISIONS: dict[str, str] = {
     "tdl_todo_dependency.depends_on_todo_id": VISIBLE,
     "tdl_todo_dependency.status": VISIBLE,
     "tdl_todo_dependency.accepted_at": VISIBLE,
+    # change log ของชื่อวง (CR#3) — C3 แต่ visible โดยออกแบบ (ดู EXCEPTIONS)
+    "tdl_team_name_change.team_id": VISIBLE,
+    "tdl_team_name_change.changed_by_id": VISIBLE,
+    "tdl_team_name_change.changed_at": VISIBLE,
+    "tdl_team_name_change.old_name": VISIBLE,
+    "tdl_team_name_change.new_name": VISIBLE,
+    "tdl_team_name_change.reason": VISIBLE,
 }
 
 #: pattern สำหรับคอลัมน์โครงระบบ (C4–C6) ที่ชื่อซ้ำกันทุกตาราง — ตรวจท้ายสุด
@@ -79,6 +86,13 @@ PATTERN_DECISIONS: dict[str, str] = {
 
 #: คอลัมน์ที่คำตัดสิน*หลวมกว่า*ค่าเริ่มต้นของชั้น — ต้องมีเหตุผลรายตัว
 EXCEPTIONS: dict[str, str] = {
+    "tdl_team_name_change.old_name": (
+        "C3 แต่ visible: จุดประสงค์ของตารางนี้คือ**ประกาศ**การเปลี่ยนชื่อให้สมาชิก"
+        "อ่าน (CR#3) — ชื่อวงเป็นของที่ admin ตั้งเองอยู่แล้ว (เหตุผลเดียวกับ "
+        "tdl_team.name) และ reason คือคำอธิบายที่เขียนมาเพื่อให้คนอื่นอ่านโดยตรง"
+    ),
+    "tdl_team_name_change.new_name": ("เหตุผลเดียวกับ old_name ข้างบน"),
+    "tdl_team_name_change.reason": ("เหตุผลเดียวกับ old_name ข้างบน"),
     "tdl_team.name": (
         "C3 แต่ visible: วงถูกสร้าง/ตั้งชื่อโดย admin เอง (ADR 0049 คำตัดสินข้อ 2) "
         "และหน้าจัดการวงอ้างวงด้วยชื่อ — mask ชื่อที่ตัวเองเป็นคนตั้งคือการปิดตา "

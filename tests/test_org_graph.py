@@ -686,3 +686,96 @@ def test_admin_form_conflicts_flash_instead_of_crashing(app, org):
         f"/admin/teams/{org['team']}/members", data={"username": "somchai"}, follow_redirects=True
     )
     assert resp.status_code == 200, "สมาชิกซ้ำ = flash แล้วกลับหน้าเดิม ไม่ใช่ 500"
+
+
+# ---------------------------------------------------------------- CR#3: เปลี่ยนชื่อวง + change log
+
+
+def test_renaming_a_team_records_who_from_to_and_why(app, org):
+    with app.app_context():
+        boss = _get(app, org["boss"])
+        teams_service.rename(boss, org["team"], "alpha squad", "aligning names with the org chart")
+        history = teams_service.name_history(boss, org["team"])
+        assert len(history) == 1
+        entry = history[0]
+        assert entry.changed_by.username == "boss"
+        assert entry.old_name == "alpha"
+        assert entry.new_name == "alpha squad"
+        assert entry.reason == "aligning names with the org chart"
+        assert entry.changed_at is not None
+        assert db.session.get(Team, org["team"]).name == "alpha squad"
+
+
+def test_rename_requires_admin_a_reason_and_a_fresh_unique_name(app, org):
+    with app.app_context():
+        boss = _get(app, org["boss"])
+        somchai = _get(app, org["somchai"])
+        with pytest.raises(ForbiddenError):
+            teams_service.rename(somchai, org["team"], "sneaky", "no rights")
+        with pytest.raises(ValidationError):
+            teams_service.rename(boss, org["team"], "alpha", "same name")
+        with pytest.raises(ValidationError):
+            teams_service.rename(boss, org["team"], "new name", "   ")
+        other = teams_service.create_team(boss, "beta")
+        with pytest.raises(ConflictError):
+            teams_service.rename(boss, other.id, "alpha", "collide")
+        assert teams_service.name_history(boss, org["team"]) == [], (
+            "การเปลี่ยนชื่อที่ถูกปฏิเสธต้องไม่ทิ้งบันทึกไว้"
+        )
+
+
+def test_members_and_admins_see_the_team_info_page_but_outsiders_get_404(app, org):
+    with app.app_context():
+        boss = _get(app, org["boss"])
+        teams_service.rename(boss, org["team"], "alpha squad", "quarterly cleanup")
+
+    member_page = _login(app, "malee").get(f"/teams/{org['team']}/info").data.decode()
+    assert "alpha squad" in member_page
+    assert "quarterly cleanup" in member_page, "สมาชิกต้องอ่านเหตุผลได้ — นั่นคือ point ของ CR#3"
+    assert "boss" in member_page
+    assert "alpha" in member_page
+
+    # admin ที่ไม่ได้เป็นสมาชิกวงก็ดูได้ (คนบริหารวง)
+    admin_page = _login(app, "boss").get(f"/teams/{org['team']}/info")
+    assert admin_page.status_code == 200
+
+    assert _login(app, "frank").get(f"/teams/{org['team']}/info").status_code == 404, (
+        "คนนอกวงต้องไม่รู้แม้แต่ว่าวงนี้มีอยู่ (ADR 0004)"
+    )
+
+
+def test_the_admin_page_renames_through_the_form(app, org):
+    boss = _login(app, "boss")
+    resp = boss.post(
+        f"/admin/teams/{org['team']}/rename",
+        data={"name": "renamed via web", "reason": "testing the form"},
+        follow_redirects=True,
+    )
+    assert resp.status_code == 200
+    assert "renamed via web" in resp.data.decode()
+    # ปฏิเสธ: ไม่มีเหตุผล = flash ไม่ใช่ 500 · วงผี = 404 · ไม่ใช่ admin = 403
+    resp = boss.post(
+        f"/admin/teams/{org['team']}/rename",
+        data={"name": "x", "reason": ""},
+        follow_redirects=True,
+    )
+    assert resp.status_code == 200
+    assert (
+        boss.post("/admin/teams/99999/rename", data={"name": "x", "reason": "y"}).status_code == 404
+    )
+    member = _login(app, "malee")
+    assert (
+        member.post(
+            f"/admin/teams/{org['team']}/rename", data={"name": "x", "reason": "y"}
+        ).status_code
+        == 403
+    )
+
+
+def test_the_member_team_page_links_to_details(app, org):
+    with app.app_context():
+        somchai = _get(app, org["somchai"])
+        target = _todo(somchai, "linked task")
+        sharing_service.share(somchai, target.id, org["team"])
+    page = _login(app, "malee").get(f"/teams/{org['team']}").data.decode()
+    assert f"/teams/{org['team']}/info" in page, "ลิงก์ Team details หายจากหน้าวง"
