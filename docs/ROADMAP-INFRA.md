@@ -16,7 +16,7 @@
 
 > กติกาเดิมของ repo มีผลกับงานนี้ทั้งหมด: coverage ratchet ขึ้นทางเดียว ·
 > เทสต์ใหม่ต้องพิสูจน์ด้วย mutation test · core ห้ามรู้จักชื่อ plugin ·
-> ทุก PR ผ่าน 24 check · **งานปรับ infra ต้องผ่าน gate ของตัวเอง**
+> ทุก PR ผ่าน check ครบทั้งชุด · **งานปรับ infra ต้องผ่าน gate ของตัวเอง**
 
 ---
 
@@ -60,7 +60,7 @@ referential integrity ที่ `gates.yaml` ต้องการ มีคน�
 
 ### 2.2 migration class เป็นของ *port* ไม่ใช่ของ *type*
 
-5 type / 16 plugin บนดิสก์ และ type `auth` ถือ port คนละแบบสองอัน:
+5 type / 14 plugin บนดิสก์ และ type `auth` ถือ port คนละแบบสองอัน:
 
 | port | plugin | class ที่คาด |
 |---|---|---|
@@ -157,7 +157,7 @@ gates:
 ## Phase 9 — แยก skill + overlay ✅ (2026-08-14 · PR #13/#14/#15)
 
 **สถานะ: เฟส 9 เสร็จทั้งเฟส (2026-08-14)** — required checks 24 ตัวรวม `scaffold` — `SKILL.md` **generate ทั้งใบ** จาก
-portable gate (ตอนนั้น 58 กฎ · ปัจจุบัน 61) ไม่ใช่เขียนมือ: กฎ = `title` บทเรียน = `born_from`
+portable gate (ตอนนั้น 58 กฎ · ปัจจุบัน 62) ไม่ใช่เขียนมือ: กฎ = `title` บทเรียน = `born_from`
 ของคนมีที่เดียวคือหลักปฏิบัติกลาง 5 ข้อใน PREAMBLE ของ generator ·
 ban list ตรวจที่ *render สด* จึงจับชื่อไลบรารี framework ได้ตั้งแต่ตอนถูกพิมพ์
 ลง gates.yaml (จับจริง 7 จุดตอน generate ครั้งแรก — แก้ที่ต้นทางทั้งหมด)

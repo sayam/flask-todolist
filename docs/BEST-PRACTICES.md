@@ -5,8 +5,9 @@
 badge ถูกทบทวนเป็นรอบ และคำตอบที่ไม่มีที่มาคือคำตอบที่เขียนใหม่ทุกครั้ง
 (หลักเดียวกับ [ASVS.md](ASVS.md))
 
-**สถานะ: 66 ผ่าน · 1 ไม่เกี่ยวข้อง · 0 ยังไม่ผ่าน** (ทบทวน 2026-08-14 หลังปิด
-เฟส 8–12 — ไม่มีข้อไหนเปลี่ยนสถานะ มีแต่หลักฐานที่หนักขึ้น ดูหมายเหตุท้ายไฟล์)
+**สถานะ: 66 ผ่าน · 1 ไม่เกี่ยวข้อง · 0 ยังไม่ผ่าน** (ทบทวน 2026-08-15 หลัง
+v1.2.0 ออก — ไม่มีข้อไหนเปลี่ยนสถานะ มีแต่หลักฐานที่หนักขึ้น: แถว version
+ครอบสาม tag แล้ว · รอบก่อนหน้า 2026-08-14 ดูหมายเหตุท้ายไฟล์)
 
 เกณฑ์ทั้งหมด 67 ข้อ: MUST 43 · SHOULD 10 · SUGGESTED 14
 **MUST ผ่านครบทั้ง 43 ข้อ** ซึ่งเป็นเงื่อนไขของ badge ระดับ passing
@@ -39,9 +40,9 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 | `repo_track` MUST | ผ่าน | git |
 | `repo_interim` MUST | ผ่าน | commit ระหว่างทางอยู่ครบบน `main` ไม่ใช่แค่ของที่ release |
 | `repo_distributed` SUGGESTED | ผ่าน | git |
-| `version_unique` MUST | ผ่าน | ทุกรุ่นมี tag ไม่ซ้ำ — `v1.0.0`, `v1.1.0` |
+| `version_unique` MUST | ผ่าน | ทุกรุ่นมี tag ไม่ซ้ำ — `v1.0.0`, `v1.1.0`, `v1.2.0` |
 | `version_semver` SUGGESTED | ผ่าน | SemVer · นิยามของ 1.0.0 บันทึกไว้ใน `docs/ROADMAP.md` |
-| `version_tags` SUGGESTED | ผ่าน | git tag ทุกรุ่น (`v1.0.0`, `v1.1.0`) |
+| `version_tags` SUGGESTED | ผ่าน | git tag ทุกรุ่น (`v1.0.0`, `v1.1.0`, `v1.2.0`) |
 | `release_notes` MUST | ผ่าน | `CHANGELOG.md` (Keep a Changelog) ผูกกับ `app.__version__` และมีเทสต์คุม |
 | `release_notes_vulns` MUST | ผ่าน | ยังไม่มี release ไหนที่แก้ช่องโหว่ซึ่งมี CVE — เมื่อมีจะระบุใน `CHANGELOG.md` ตามกรอบเวลาใน `docs/SECURITY-CADENCE.md` |
 
@@ -65,7 +66,7 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 | `build` MUST | ผ่าน | `Dockerfile` (multi-stage) · job `image` ใน CI **build จริงแล้วยิงใส่มันทุก push** ไม่ใช่แค่ตรวจ syntax |
 | `build_common_tools` SUGGESTED | ผ่าน | Docker + pipenv |
 | `build_floss_tools` SHOULD | ผ่าน | ทุกตัวเป็น FLOSS |
-| `test` MUST | ผ่าน | pytest — **1,002 เทสต์** |
+| `test` MUST | ผ่าน | pytest — **1,239 เทสต์** (นับรอบทบทวน v1.2.0) |
 | `test_invocation` SHOULD | ผ่าน | `pipenv run pytest` |
 | `test_most` SUGGESTED | ผ่าน | coverage gate `fail_under = 96` (**ratchet: ขยับขึ้นได้อย่างเดียว**) + `diff-cover` บังคับบรรทัดที่แก้ 100% |
 | `test_continuous_integration` SUGGESTED | ผ่าน | 27 check ทุก push — รวมสามยี่ห้อฐานข้อมูล, stack จริง, SSO, LDAP, DAST |

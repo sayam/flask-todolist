@@ -90,7 +90,8 @@ proxy เชื่อ header ตามจำนวนชั้นที่ปร
 · internal ไม่ export (`ADR 0042`) · ตัวบังคับสำหรับโปรเจกต์อื่นคือ
 `overlays/flask/` ซึ่ง dogfood กับ repo นี้เองทุก push · ผลลัพธ์ถูกวัดจริง
 ด้วยการทดลองสามแขนใน `docs/comparison/` · วินัยการพัฒนาโดยละเอียดอยู่ใน
-`docs/DEVELOPMENT.md` และ `CONTRIBUTING.md`
+`docs/DEVELOPMENT.md` และ `CONTRIBUTING.md` · งาน UI มีเอกสารตัวตนของตัวเอง
+ที่ `docs/DESIGN.md` (โหมดต่อหน้า + refine/redesign)
 
 ## 4. กติกาความสอดคล้องข้ามภาพ (correspondence rules)
 
@@ -108,6 +109,7 @@ proxy เชื่อ header ตามจำนวนชั้นที่ปร
 | คำตัดสิน masking ↔ ชั้นข้อมูล | `tests/test_masking.py` |
 | PDPA worksheet ↔ หลักฐานจริง | `tests/test_pdpa.py` |
 | คำประกาศ privacy ของ org graph ↔ พฤติกรรมจริงทุกช่องทาง | `tests/test_org_graph.py` |
+| ตารางหน้า↔โหมดใน `docs/DESIGN.md` ↔ template จริง + ตัวแปรสีของ `app/static/base.css` | `tests/test_design_doc.py` |
 | เอกสารฉบับนี้ ↔ ไฟล์/เทสต์ที่มันอ้าง | `tests/test_architecture.py` |
 | เลขที่โฆษณาในเอกสาร ↔ ดิสก์ | `tests/test_contributor_docs.py` · `tests/test_changelog.py` · `tests/test_skill.py` |
 

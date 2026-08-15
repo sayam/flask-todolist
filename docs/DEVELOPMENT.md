@@ -19,6 +19,7 @@
 | CI/CD | 25 job (27 check) ยิงของจริงทุก push — สามยี่ห้อฐานข้อมูล, stack จริง, IdP จริง | `.github/workflows/ci.yml` · required checks |
 | Small batches | ทุกเฟสแตกเป็นขั้นที่ merge ได้ทีละขั้นโดย CI เขียว | ธรรมเนียมใน `docs/ROADMAP-FEATURES.md` (ภาพรวมเฟส) |
 | Feature toggles | สวิตช์ปิด plugin ตอน runtime โดยไม่ deploy ใหม่ | `DISABLED_PLUGINS` / `PLUGIN_PICKS` (`tests/test_plugins.py`) |
+| UI / design discipline | ตัวตนของ UI + โหมดต่อหน้า (Operate/Read/Enter) · งาน UI ประกาศ refine/redesign | `docs/DESIGN.md` · `tests/test_design_doc.py` · `ci:a11y` |
 | Observability | log JSON + request id · `/metrics` ต้องมี token · `/healthz`+`/readyz` (ADR 0048) · SIEM stack ที่ alert ดังจริง · Prometheus ดูดจริง | `app/logging_setup.py` · `app/metrics.py` · `app/health.py` · `compose.metrics.yaml` · `ci:siem` · `ci:scrape` |
 | Ownership | ผู้ดูแลคนเดียวถือ end-to-end — เครื่องมือถูกสร้างให้ "ลืมแล้วแดง" แทนการพึ่งความจำ | `gates.yaml` ทั้งดัชนี |
 

@@ -37,9 +37,11 @@ is emphatically not it.
   "my task depends on yours" by invitation, and get an *at risk* badge when
   something you rely on is overdue — private tasks never leak even their
   existence ([ADR 0049](docs/adr/0049-org-todo-graph-privacy-model.md))
-- An admin console — users, teams, runtime environment, live SBOM, lifecycle,
-  latency — where personal data appears **masked by its data class** and
-  revealing it is an audited action; accounts can be suspended reversibly
+- A Moodle-style **Site administration** hub — users, teams, runtime
+  environment, live SBOM, lifecycle, latency, grouped by category — where
+  personal data appears **masked by its data class** and revealing it is an
+  audited action; accounts can be suspended reversibly, and team renames
+  require a reason and leave a change log every member can read
 - TOTP secrets are **encrypted at rest** (AES-256-GCM under a key separate from
   `SECRET_KEY` — [ADR 0046](docs/adr/0046-field-encryption-at-rest.md))
 - A REST API at `/api/v1` with an OpenAPI 3.1 contract generated from the code
@@ -149,6 +151,7 @@ Written in Thai, because that is the language the thinking happened in.
 | [`docs/ASVS.md`](docs/ASVS.md) | OWASP ASVS 5.0 Level 2 self-assessment — all 253 in-scope requirements answered, including the 48 that do not pass |
 | [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) | measured numbers, including the ones that hurt |
 | [`docs/DATA-CLASSIFICATION.md`](docs/DATA-CLASSIFICATION.md) | what is stored, how sensitive it is, how long it is kept |
+| [`docs/DESIGN.md`](docs/DESIGN.md) | the UI's identity and a per-page mode table, both enforced by a test |
 | [`docs/OPERATIONS.md`](docs/OPERATIONS.md) | running it for real |
 | [`CLAUDE.md`](CLAUDE.md) | the working notes — every trap this project has already fallen into |
 
@@ -196,9 +199,10 @@ reverse proxy จริง IdP จริง และ directory จริง โ
 - วงทำงาน: แชร์งานเข้าวง (เผยสี่ฟิลด์เท่านั้น) · ประกาศ "งานของฉันพึ่งงานของคุณ"
   แบบเชิญ–ยอมรับ · ป้าย *เสี่ยง* เมื่อของที่พึ่งเลยกำหนด — งาน private
   ไม่เผยแม้การมีอยู่ ([ADR 0049](docs/adr/0049-org-todo-graph-privacy-model.md))
-- หน้าผู้ดูแล — ผู้ใช้ วง สภาพแวดล้อม SBOM สด lifecycle latency — ข้อมูล
-  ส่วนบุคคลถูก **mask ตามชั้นข้อมูล** เปิดดูเต็มต้องลง audit · ระงับบัญชี
-  แบบย้อนกลับได้
+- hub **Site administration** จัดหมวดแบบ Moodle — ผู้ใช้ วง สภาพแวดล้อม
+  SBOM สด lifecycle latency — ข้อมูลส่วนบุคคลถูก **mask ตามชั้นข้อมูล**
+  เปิดดูเต็มต้องลง audit · ระงับบัญชีแบบย้อนกลับได้ · เปลี่ยนชื่อวงต้องมี
+  เหตุผลและทิ้ง change log ที่สมาชิกทุกคนอ่านได้
 - ความลับ TOTP **encrypt at rest** (AES-256-GCM ใต้คีย์ที่แยกจาก
   `SECRET_KEY` — [ADR 0046](docs/adr/0046-field-encryption-at-rest.md))
 - REST API ที่ `/api/v1` พร้อมสัญญา OpenAPI 3.1 ที่ generate จากโค้ด
@@ -296,6 +300,7 @@ org graph) · [`docs/PDPA.md`](docs/PDPA.md) (worksheet แบบเดียว
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) (42010) ·
 [`docs/ASVS.md`](docs/ASVS.md) · [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) ·
 [`docs/DATA-CLASSIFICATION.md`](docs/DATA-CLASSIFICATION.md) ·
+[`docs/DESIGN.md`](docs/DESIGN.md) (ตัวตนของ UI + ตารางโหมดต่อหน้า มีเทสต์คุม) ·
 [`docs/OPERATIONS.md`](docs/OPERATIONS.md) ·
 [`CLAUDE.md`](CLAUDE.md) (บันทึกการทำงาน — กับดักทุกอันที่โปรเจกต์นี้เคยตกไปแล้ว)
 
