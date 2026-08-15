@@ -499,6 +499,21 @@ gates:
       เฟส 13-05 — รับ 42010 ตัวเดียวจากกลุ่มกรอบมาตรฐานองค์กร (ADR 0043)
       เพราะเป็นตัวเดียวที่ derive จากของจริง (ADR 43 ใบ) และตรวจได้ด้วยเครื่อง
 
+  - id: supply-chain-axis-indexed
+    title: แกน supply chain ตรงกับธง axis ใน gates.yaml สองทิศ — ด่านใหม่ของแกนต้องเข้าดัชนี
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_supply_chain.py]}
+    standard: []
+    requires: []
+    portable: false
+    layer: internal
+    pillar: security
+    born_from: >-
+      G3 ของ ADR 0051 — ธรรมนูญแยก supply chain เป็นแกนอิสระ แต่ด่านของมัน
+      กระจายอยู่ 14 ตัว · ดัชนีที่ไม่ถูกบังคับให้ตรงกับความจริงคือดัชนีที่
+      โกหกเงียบ ๆ (บทเรียน semgrep scope เดิม)
+
   - id: iso27001-worksheet-honest
     title: worksheet ISO/IEC 27001:2022 ครบทุกข้อ (116) · หลักฐานชี้ของจริง · outline ตรึงด้วย checksum
     kind: test
@@ -613,6 +628,7 @@ gates:
     portable: true
     layer: baseline
     pillar: security
+    axis: supply-chain
     born_from: >-
       ldap3 เป็น LGPLv3 และอยู่ใน category ของ plugin พอดี — การแยก supply
       chain แยกภาระทางกฎหมายไปด้วยโดยไม่มีใครออกแบบ · "ไม่พบ" ≠ "อ่านไม่ได้จึงไม่พบ"
@@ -670,6 +686,7 @@ gates:
     portable: true
     layer: baseline
     pillar: security
+    axis: supply-chain
     born_from: >-
       tag ย้ายได้ commit ย้ายไม่ได้ — upload-artifact เคยค้าง @v4 จุดเดียว
       สิบวันโดย CI เขียวตลอด
@@ -684,6 +701,7 @@ gates:
     portable: true
     layer: baseline
     pillar: security
+    axis: supply-chain
     born_from: >-
       pin โดยไม่มีใครขยับคือการแช่ช่องโหว่ไว้ — สองอย่างนี้ต้องมาคู่กันเสมอ
       และเทสต์บังคับว่าคู่นั้นไม่แยกจากกัน
@@ -698,6 +716,7 @@ gates:
     portable: true
     layer: baseline
     pillar: security
+    axis: supply-chain
     born_from: >-
       คำสั่งติดตั้งเครื่องมือแบบไม่ตรึง หยิบรุ่นล่าสุด ณ วินาทีที่ job รัน
       และมันรันด้วยสิทธิ์ของ workflow เรา · การตรึงทีละ package ตรึงได้แค่
@@ -713,6 +732,7 @@ gates:
     portable: true
     layer: baseline
     pillar: security
+    axis: supply-chain
     born_from: >-
       `--ignore-vuln` เงียบเสมอเมื่อ ID หายไป — รายการยกเว้นที่ไม่มีใครถอด
       จะกลายเป็นตัวปิดของจริงในวันที่ package นั้นมี advisory ใหม่
@@ -741,6 +761,7 @@ gates:
     portable: true
     layer: baseline
     pillar: security
+    axis: supply-chain
     born_from: >-
       PR ของเครื่องที่แดงตั้งแต่ใบแรก สอนคนดูแลให้เมิน PR ของเครื่องทั้งหมด —
       ซึ่งแย่กว่าไม่เปิดมันเลย
@@ -808,6 +829,7 @@ gates:
     portable: true
     layer: baseline
     pillar: manageability
+    axis: supply-chain
     born_from: >-
       ADR 0025 — ห้ามใช้ importorskip เพราะมันทำให้ job หลักข้ามเทสต์เงียบ ๆ
       ตอนไลบรารีหาย ซึ่งคือกรณีที่ต้องการให้แดงที่สุด
@@ -910,6 +932,7 @@ gates:
     portable: true
     layer: baseline
     pillar: security
+    axis: supply-chain
     born_from: >-
       supply chain ของ core ถอดไม่ได้ — CVE ที่นี่ไม่มีทางออกอื่นนอกจากแก้
       จึงแดงได้เต็มปาก ต่างจากของ plugin ที่คำตอบคือถอด
@@ -924,6 +947,7 @@ gates:
     portable: true
     layer: baseline
     pillar: security
+    axis: supply-chain
     born_from: >-
       หมวด deploy มองไม่เห็นจากทุกเครื่องมือที่ติดตั้งชุด dev — เจอสองครั้ง
       ในวันเดียวจากคนละทาง · ตัวที่รับคำขอจริงทุกใบกลับไม่มีใครเฝ้า
@@ -938,6 +962,7 @@ gates:
     portable: true
     layer: baseline
     pillar: security
+    axis: supply-chain
     born_from: >-
       ด่านที่ครอบภาษาเดียวในไดเรกทอรีที่มีสองภาษา คือด่านที่ชื่อของมันชวนให้
       เข้าใจว่าครอบแล้ว — อันตรายกว่าไม่มีด่านเลย
@@ -966,6 +991,7 @@ gates:
     portable: true
     layer: baseline
     pillar: security
+    axis: supply-chain
     born_from: >-
       ADR 0025 — CVE ของของที่ถอดได้ มีทางออกที่เร็วกว่ารอ patch เสมอ
       คือ DISABLED_PLUGINS · จึงเตือน ไม่บล็อก — แต่ต้องเตือนจริง
@@ -1144,6 +1170,7 @@ gates:
     portable: true
     layer: baseline
     pillar: security
+    axis: supply-chain
     born_from: >-
       ความลับที่หลุดเข้า history ลบไม่ได้จริงบน GitHub — object เก่ายังถูก
       เสิร์ฟตาม SHA · กันตั้งแต่ขาเข้าถูกกว่าเสมอ
@@ -1158,6 +1185,7 @@ gates:
     portable: true
     layer: baseline
     pillar: security
+    axis: supply-chain
     born_from: >-
       SBOM ก้อนเดียวตอบคำถามแรกของวันที่ CVE ออกไม่ได้ —
       "ถอดตัวนี้แล้วอะไรหายไปบ้าง"
@@ -1198,4 +1226,5 @@ gates:
     portable: false
     layer: internal
     pillar: security
+    axis: supply-chain
     born_from: ""

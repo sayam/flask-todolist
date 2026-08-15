@@ -32,7 +32,7 @@ ADR — ไฟล์นี้จึงเป็น**ดัชนีที่จ�
 
 1. **Security** — กฎหมายรายประเทศ (ไทย/PDPA — `docs/PDPA.md`) ·
    มาตรฐานสากล (42010 = เอกสารนี้ · ASVS — `docs/ASVS.md` · ISO 27001 —
-   `docs/ISO27001.md`) · supply chain เป็นแกนอิสระ
+   `docs/ISO27001.md`) · supply chain เป็นแกนอิสระ (`docs/SUPPLY-CHAIN.md`)
 2. **Scalability & performance** — ภายใต้ข้อจำกัดที่ชั้น 1 กำหนด
 3. **Manageability** — plug/unplug · ถอดของที่มีช่องโหว่ได้จริง
 4. **DevSecOps friendliness** — skill · overlay · เครื่องมือ
