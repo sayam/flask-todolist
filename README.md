@@ -1,5 +1,7 @@
 # Todolist
 
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/14085/badge)](https://www.bestpractices.dev/projects/14085)
+
 A personal to-do list built with Flask — and, more to the point, a place where
 the engineering practices around a small app are taken all the way rather than
 partway.
@@ -167,6 +169,8 @@ own dependency category) · SQLite / MySQL / MariaDB · gunicorn · pipenv
 ---
 
 # Todolist (ฉบับภาษาไทย)
+
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/14085/badge)](https://www.bestpractices.dev/projects/14085)
 
 แอปจดงานส่วนตัวเขียนด้วย Flask — และที่สำคัญกว่านั้น เป็นที่ที่วินัยทางวิศวกรรม
 รอบ ๆ แอปเล็ก ๆ ตัวหนึ่งถูกทำจนสุดทาง แทนที่จะทำครึ่งทาง
