@@ -7,7 +7,7 @@
 
 The code, commit messages, and this file are in English. **Almost everything that
 explains *why* the code looks the way it does is in Thai** — [`CLAUDE.md`](CLAUDE.md)
-(the working notes), the 38 records in [`docs/adr/`](docs/adr/), and the rest of
+(the working notes), the 49 records in [`docs/adr/`](docs/adr/), and the rest of
 `docs/`. Machine translation handles them acceptably, but you should know that
 before you invest an afternoon.
 
@@ -81,7 +81,8 @@ transactions. See [ADR 0016](docs/adr/0016-service-layer-boundary.md).
 ### 5. Some files are generated — do not hand-edit them
 
 `docs/openapi.json`, `app/password_blocklist.txt`, `app/sun_data.py`, the compiled
-`.mo` catalogues, and — since the scaffolding phases — [`SKILL.md`](SKILL.md) and
+`.mo` catalogues, and — since the scaffolding phases — [`SKILL.md`](SKILL.md),
+[`SKILL-TODOLIST.md`](SKILL-TODOLIST.md), and
 [`docs/GATES-ASVS.md`](docs/GATES-ASVS.md). Each has a script in `scripts/` that
 produces it, and CI compares the committed copy against a fresh run. Changing
 `app/api/` without running
@@ -115,9 +116,12 @@ full partition, the same shape as the data-classification table. Adding a test
 file without an entry turns CI red on purpose. You have two options:
 
 - it belongs to an existing gate → add it to that gate's `tests:` list
-- it enforces a new rule → add a gate. If the rule would hold in any project, not
-  just this one, mark it `portable: true` and write `born_from`: the trap that
-  produced the rule. Portable gates are what [`SKILL.md`](SKILL.md) and
+- it enforces a new rule → add a gate, and declare its `layer:` —
+  `baseline` (universal — must also be `portable: true`), `business`
+  (an app-type agreement), or `internal` (this repo only). If the rule would
+  hold in any project, mark it `portable: true` and write `born_from`: the trap
+  that produced the rule. Portable gates are what [`SKILL.md`](SKILL.md),
+  [`SKILL-TODOLIST.md`](SKILL-TODOLIST.md), and
   [`overlays/flask/`](overlays/flask/) are generated from, so the entry has to
   carry its own reason for existing.
 
@@ -185,15 +189,17 @@ pipenv run flask create-user <ชื่อ>
 3. **เพดานคุณภาพขยับขึ้นทางเดียว** — ลดเพื่อให้งานผ่านไม่ใช่ตัวเลือกที่มีอยู่
 4. **ตรรกะอยู่ใน `app/services/`** route เป็น adapter บาง ๆ (มี AST scan บังคับ)
 5. **ไฟล์ที่ generate มาห้ามแก้ด้วยมือ** — `docs/openapi.json`,
-   `app/password_blocklist.txt`, `app/sun_data.py`, ไฟล์ `.mo`, `SKILL.md`
-   และ `docs/GATES-ASVS.md`
+   `app/password_blocklist.txt`, `app/sun_data.py`, ไฟล์ `.mo`, `SKILL.md`,
+   `SKILL-TODOLIST.md` และ `docs/GATES-ASVS.md`
 6. **ข้อความในโค้ดเป็นภาษาอังกฤษ** เพราะ msgid คือภาษาอังกฤษ · ไทยอยู่ใน `.po`
 7. **commit เป็น Conventional Commits หัวไม่เกิน 72 ตัว**
 8. **เพิ่มไฟล์เทสต์ใหม่ต้องมาลงทะเบียนใน `gates.yaml`** — ดัชนีนั้นถูกบังคับ
    สองทิศ: ทุก job ต้องมี gate และ**ไฟล์ใต้ `tests/` ทุกไฟล์ต้องเป็นของ gate
-   เดียว** (partition เต็ม) · ไม่ลงทะเบียน = CI แดงโดยตั้งใจ · ถ้ากฎนั้นใช้ได้
-   กับโปรเจกต์อื่นด้วย ให้ตั้ง `portable: true` + `born_from` (กับดักที่ให้กำเนิด
-   กฎข้อนั้น) เพราะ `SKILL.md` กับ `overlays/flask/` generate มาจากตรงนั้น
+   เดียว** (partition เต็ม) · ไม่ลงทะเบียน = CI แดงโดยตั้งใจ · gate ใหม่ต้อง
+   ประกาศ `layer:` ด้วย (`baseline`/`business`/`internal` — baseline ต้อง
+   portable) · ถ้ากฎนั้นใช้ได้กับโปรเจกต์อื่นด้วย ให้ตั้ง `portable: true` +
+   `born_from` (กับดักที่ให้กำเนิดกฎข้อนั้น) เพราะ `SKILL.md`,
+   `SKILL-TODOLIST.md` กับ `overlays/flask/` generate มาจากตรงนั้น
 
 ## ก่อนเปิด pull request
 

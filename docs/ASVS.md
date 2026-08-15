@@ -76,14 +76,14 @@ PYTHONPATH=. pipenv run python scripts/build_asvs_worksheet.py           # เ�
 ทุกข้อที่มีสถานะ `ยังไม่ผ่าน` ในตารางต้องมีชื่ออยู่ตรงนี้ (`tests/test_asvs.py`
 บังคับ) — ข้อที่ซ่อนอยู่กลางตาราง 253 แถวคือข้อที่ไม่มีใครกลับมาทำ
 
-ผลรวมของการประเมิน: **ผ่าน 138 · ไม่เกี่ยวข้อง 67 · ยังไม่ผ่าน 48** จาก 253 ข้อ
+ผลรวมของการประเมิน: **ผ่าน 141 · ไม่เกี่ยวข้อง 64 · ยังไม่ผ่าน 48** จาก 253 ข้อ
 
 ช่องที่ยังไม่ผ่านทั้ง 48 ข้ออยู่ในตารางนี้ครบ จัดกลุ่มตาม *สิ่งที่ต้องทำ*
 ไม่ใช่ตามหมวดของ ASVS เพราะข้อที่อยู่คนละหมวดมักถูกปลดล็อกด้วยงานชิ้นเดียวกัน
 
 | กลุ่ม | ข้อ | สาระ | ปลดล็อกด้วย |
 |---|---|---|---|
-| **เอกสารที่ยังไม่ได้เขียน** | V2.1.1 · V2.1.2 · V2.1.3 · V2.3.2 · V6.1.2 · V6.2.11 · V7.1.2 · V7.1.3 · V8.1.2 · V11.1.1 · V11.1.2 · V11.2.2 · V12.2.2 · V13.1.1 · V13.3.2 · V15.1.3 · V15.2.2 | กฎมีอยู่จริงในโค้ดเกือบทุกข้อ แต่ **ไม่มีที่ไหนประกาศไว้ให้คนที่ไม่ได้อ่านโค้ดรู้** — ครึ่งหนึ่งของช่องที่ไม่ผ่านทั้งหมดเป็นแบบนี้ | **P7-04 ทำส่วนกรอบเวลาแก้ช่องโหว่ไปแล้ว** ที่เหลือรอ P7-08 (ROPA + บัญชีรายการ log + นโยบายกุญแจ) |
+| **เอกสารที่ยังไม่ได้เขียน** | V2.1.1 · V2.1.2 · V2.1.3 · V2.3.2 · V6.1.2 · V6.2.11 · V7.1.2 · V7.1.3 · V8.1.2 · V11.1.1 · V11.1.2 · V11.2.2 · V12.2.2 · V13.3.2 · V15.1.3 · V15.2.2 | กฎมีอยู่จริงในโค้ดเกือบทุกข้อ แต่ **ไม่มีที่ไหนประกาศไว้ให้คนที่ไม่ได้อ่านโค้ดรู้** — ครึ่งหนึ่งของช่องที่ไม่ผ่านทั้งหมดเป็นแบบนี้ | **P7-04 (กรอบเวลา) กับ P7-08 (ROPA + บัญชีรายการ log) ทำไปแล้ว** — เหลือเฉพาะนโยบาย/บัญชีกุญแจ ซึ่งตอนนี้ต้องครอบ `DATA_ENCRYPTION_KEY` ของ `ADR 0046` ด้วย |
 | **ลายเซ็นของ ID token** | V6.8.2 · V9.1.1 · V9.1.2 | เบี่ยงโดยตั้งใจตาม `ADR 0028` (ยืนยันด้วย TLS ตาม OIDC Core 3.1.3.7) ซึ่ง **OIDC อนุญาตแต่ ASVS ไม่ยกเว้นให้** | ตัดสินใจใหม่พร้อม ADR — บังคับทันทีถ้าวันหนึ่งรับ token ผ่านเบราว์เซอร์ |
 | **การตรวจที่ขาดไปทีละนิด** | V9.2.1 · V10.5.3 · V6.8.4 | ไม่ตรวจ nbf · ไม่เทียบฟิลด์ issuer ในเอกสาร discovery · ไม่อ่าน acr/amr/auth_time และไม่มีทางถอยที่ประกาศไว้ | งานเล็กสามชิ้น ทำได้เลย แต่ละชิ้นต้องมีเทสต์ของตัวเอง |
 | **ต้องมี session store ฝั่ง server ก่อน** | V7.4.1 · V7.4.3 · V7.4.5 · V7.5.2 · V7.6.1 | logout ไม่ฆ่าคุกกี้ที่ถูกดักไว้ · ไม่มีหน้า "อุปกรณ์ที่ login อยู่" · ผู้ดูแลจบ session ของคนอื่นไม่ได้ · ปิด MFA ไม่ไล่ session อื่น | `ADR 0020` บันทึกไว้แล้วว่าต้องมี store ก่อน — เป็นงานของเฟสถัดไป |
@@ -548,9 +548,9 @@ PYTHONPATH=. pipenv run python scripts/build_asvs_worksheet.py           # เ�
 
 | ข้อ | L | ข้อกำหนด | สถานะ | หลักฐาน / เหตุผล |
 |---|---|---|---|---|
-| V11.3.1 | 1 | Verify that insecure block modes (e.g., ECB) and weak padding schemes (e.g., PKCS#1 v1.5) are not used. | ไม่เกี่ยวข้อง | ระบบไม่เข้ารหัสข้อมูลเลย จึงไม่มี block mode หรือ padding ให้เลือกผิด — ความลับทุกตัวถูกเก็บเป็น hash และคุกกี้ session ถูก *เซ็น* ไม่ใช่ *เข้ารหัส* (`ADR 0020`) |
-| V11.3.2 | 1 | Verify that only approved ciphers and modes such as AES with GCM are used. | ไม่เกี่ยวข้อง | ไม่มีการเข้ารหัสข้อมูลในระบบ (ดู V11.3.1) · การเข้ารหัสระหว่างทางเป็นเรื่องของ TLS ซึ่งประเมินที่ V12 |
-| V11.3.3 | 2 | Verify that encrypted data is protected against unauthorized modification preferably by using an approved authenticated encryption method or by combining an approved encryption method with an approved MAC algorithm. | ไม่เกี่ยวข้อง | ไม่มีข้อมูลที่ถูกเข้ารหัส · ความสมบูรณ์ของ audit ใช้ hash chain ซึ่งประเมินที่ V11.4.3 |
+| V11.3.1 | 1 | Verify that insecure block modes (e.g., ECB) and weak padding schemes (e.g., PKCS#1 v1.5) are not used. | ผ่าน | การเข้ารหัสเดียวในระบบคือ AES-256-**GCM** ของความลับ TOTP (`ADR 0046`) — ไม่มี ECB/padding scheme ที่ไหนเลย · `app/plugins/auth/totp/crypto.py` · ความลับอื่นยังเก็บเป็น hash และคุกกี้ session ถูก *เซ็น* ไม่ใช่ *เข้ารหัส* (`ADR 0020`) |
+| V11.3.2 | 1 | Verify that only approved ciphers and modes such as AES with GCM are used. | ผ่าน | ใช้ AES-256-GCM ตัวเดียวตรงตามที่ข้อกำหนดยกตัวอย่าง (`ADR 0046`) · `tests/test_totp_encryption.py::test_a_new_secret_lands_on_disk_as_ciphertext` · การเข้ารหัสระหว่างทางเป็นเรื่องของ TLS ซึ่งประเมินที่ V12 |
+| V11.3.3 | 2 | Verify that encrypted data is protected against unauthorized modification preferably by using an approved authenticated encryption method or by combining an approved encryption method with an approved MAC algorithm. | ผ่าน | GCM เป็น authenticated encryption ในตัว — ciphertext ที่ถูกแก้ทำให้ tag ไม่ผ่านและระบบดังเป็น DecryptionFailedError ไม่ใช่คืนขยะเงียบ ๆ · `tests/test_totp_encryption.py::test_a_mangled_ciphertext_is_reported_as_tampering` · ความสมบูรณ์ของ audit ใช้ hash chain ซึ่งประเมินที่ V11.4.3 |
 
 ### V11.4 Hashing and Hash-based Functions
 

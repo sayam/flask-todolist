@@ -115,17 +115,24 @@ def test_the_readme_advertises_the_real_ci_job_count(ci_jobs):
 
 
 def test_the_readme_advertises_the_real_number_of_adrs():
-    """ทั้งครึ่งอังกฤษและครึ่งไทยพูดถึงจำนวน ADR — ทั้งคู่ต้องตรงกับดิสก์"""
-    text = (ROOT / "README.md").read_text(encoding="utf-8")
+    """ทั้งครึ่งอังกฤษและครึ่งไทยพูดถึงจำนวน ADR — ทั้งคู่ต้องตรงกับดิสก์
+
+    ครอบ `CONTRIBUTING.md` ด้วย — รอบตรวจหลังเฟส 18 เจอ "the 38 records" ค้าง
+    อยู่ที่นั่นทั้งที่ดิสก์มี 49 เพราะ regex เดิมอ่านแต่ README (เลขที่ไม่มีเทสต์
+    อ่านคู่คือเลขที่ผิดอยู่แล้วโดยยังไม่มีใครรู้)
+    """
     actual = len([path for path in (ROOT / "docs" / "adr").glob("*.md") if path.name[:4].isdigit()])
 
-    claims = re.findall(r"(\d+) architecture decision records", text) + re.findall(
-        r"\)\s*(\d+)\s*ใบ", text
-    )
-    assert claims, "README ไม่ได้บอกจำนวน ADR ในรูปแบบที่เทสต์อ่านได้"
-
-    wrong = sorted({claimed for claimed in claims if int(claimed) != actual})
-    assert not wrong, f"README บอกว่ามี ADR {wrong} ใบ แต่บนดิสก์มี {actual} ใบ"
+    for name in ("README.md", "CONTRIBUTING.md"):
+        text = (ROOT / name).read_text(encoding="utf-8")
+        claims = (
+            re.findall(r"(\d+) architecture decision records", text)
+            + re.findall(r"the (\d+) records in", text)
+            + re.findall(r"\)\s*(\d+)\s*ใบ", text)
+        )
+        assert claims, f"{name} ไม่ได้บอกจำนวน ADR ในรูปแบบที่เทสต์อ่านได้"
+        wrong = sorted({claimed for claimed in claims if int(claimed) != actual})
+        assert not wrong, f"{name} บอกว่ามี ADR {wrong} ใบ แต่บนดิสก์มี {actual} ใบ"
 
 
 def test_the_readme_advertises_the_real_coverage_floor():
