@@ -18,7 +18,12 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ## [Unreleased]
 
-Post-release change requests from real use, plus one scanner fix.
+Nothing yet.
+
+## [1.2.0] — 2026-08-15
+
+Post-release change requests from real use, plus one scanner fix. Cut before a
+planned structural rework so the N-1 gate has a fresh anchor.
 
 ### Added
 
@@ -35,6 +40,9 @@ Post-release change requests from real use, plus one scanner fix.
   a member-visible change log (when / who / from / to / reason) on the new
   `/teams/<id>/info` page — separate from the audit trail on purpose, because
   the audit trail keeps C3 values as HMACs while this log exists to be read.
+
+- Table captions are now left-aligned with the page instead of floating in
+  the centre — one rule in the core stylesheet, applied to every table.
 
 ### Fixed
 
@@ -251,6 +259,7 @@ work; the reasoning for each decision lives in the 49 records in
 - WCAG 2.2 AA, checked both by a structural test suite and by pa11y-ci driving a
   real Chromium over dark mode, an alternate theme, and Thai.
 
-[Unreleased]: https://github.com/sayam/flask-todolist/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/sayam/flask-todolist/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/sayam/flask-todolist/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/sayam/flask-todolist/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/sayam/flask-todolist/releases/tag/v1.0.0
