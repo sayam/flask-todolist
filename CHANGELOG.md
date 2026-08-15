@@ -18,6 +18,16 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ## [Unreleased]
 
+### Changed
+
+- Documentation refresh after the governance plan landed: the gate count in
+  the ISO worksheet no longer hardcodes a number that rots, the OpenSSF
+  worksheet's test count moved to the current suite (1,258, counted after
+  plan G), the annual ASVS review row in the security cadence now names its
+  PDPA and ISO 27001 companions, ADR 0043's "42010 only" verdict carries a
+  dated note pointing at ADR 0051, and the architecture correspondence
+  table gains rows for the three new document↔reality tests.
+
 ### Added
 
 - **The per-country compliance index** (`docs/COMPLIANCE.md` — G4 of the

@@ -30,7 +30,7 @@ v1.2.0 ออก — ไม่มีข้อไหนเปลี่ยนส�
 | `sites_https` MUST | ผ่าน | โฮสต์บน GitHub ทั้งหมด |
 | `discussion` MUST | ผ่าน | GitHub Issues (ค้นได้ · เธรดได้ · เห็นได้โดยไม่ต้องล็อกอิน) |
 | `english` SHOULD | ผ่าน | `README.md` สองภาษา **อังกฤษขึ้นก่อน** · ข้อความในโค้ดเป็นอังกฤษเสมอ (ภาษาไทยอยู่ในไฟล์คำแปล) |
-| `maintained` MUST | ผ่าน | commit ล่าสุด 2026-08-15 · เจ้าของตอบ issue เอง |
+| `maintained` MUST | ผ่าน | commit ล่าสุด 2026-08-16 · เจ้าของตอบ issue เอง |
 
 ## Change Control
 
@@ -66,7 +66,7 @@ v1.2.0 ออก — ไม่มีข้อไหนเปลี่ยนส�
 | `build` MUST | ผ่าน | `Dockerfile` (multi-stage) · job `image` ใน CI **build จริงแล้วยิงใส่มันทุก push** ไม่ใช่แค่ตรวจ syntax |
 | `build_common_tools` SUGGESTED | ผ่าน | Docker + pipenv |
 | `build_floss_tools` SHOULD | ผ่าน | ทุกตัวเป็น FLOSS |
-| `test` MUST | ผ่าน | pytest — **1,239 เทสต์** (นับรอบทบทวน v1.2.0) |
+| `test` MUST | ผ่าน | pytest — **1,258 เทสต์** (นับรอบทบทวนหลังแผน G) |
 | `test_invocation` SHOULD | ผ่าน | `pipenv run pytest` |
 | `test_most` SUGGESTED | ผ่าน | coverage gate `fail_under = 96` (**ratchet: ขยับขึ้นได้อย่างเดียว**) + `diff-cover` บังคับบรรทัดที่แก้ 100% |
 | `test_continuous_integration` SUGGESTED | ผ่าน | 27 check ทุก push — รวมสามยี่ห้อฐานข้อมูล, stack จริง, SSO, LDAP, DAST |

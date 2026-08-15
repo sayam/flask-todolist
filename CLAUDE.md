@@ -157,7 +157,7 @@
   `performance` > `manageability` > `devx` คือลำดับความสำคัญของโปรเจกต์
   ชนกันเมื่อไหร่ชั้นบนชนะ · ของใหม่จากภายนอกเข้าผ่าน intake (CONTRIBUTING
   กฎข้อ 10) — baseline ห้าม break · แผนงาน governance อยู่ใน
-  `docs/ROADMAP-GOVERNANCE.md` (G2 ถัดไป = ISO 27001 worksheet)
+  `docs/ROADMAP-GOVERNANCE.md` (G1–G4 เสร็จแล้ว · เหลือ G5 ชั้น performance รอเจ้าของตัดสิน ADR 0052)
 - `SKILL.md` — กฎสากลของ scaffolding **generate มา ห้ามแก้ด้วยมือ**
   (`scripts/build_skill.py` จาก portable gate ใน `gates.yaml`) · กฎใหม่ที่เป็น
   สากล = เพิ่ม gate `portable: true` + `born_from` แล้ว regenerate — ห้ามเขียน

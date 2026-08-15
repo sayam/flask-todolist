@@ -9,7 +9,9 @@
 > [`ROADMAP-INFRA.md`](ROADMAP-INFRA.md) คนละไฟล์โดยตั้งใจ — คนละคำถาม
 > (แอปนี้ดีพอหรือยัง กับ วินัยนี้ย้ายไปที่อื่นได้ไหม) และคนละเกณฑ์ตัดสิน
 > · ส่วนเฟส 13–18 (ชั้นฟีเจอร์ของ v1.1.0 — ปิดครบ 2026-08-15) อยู่ใน
-> [`ROADMAP-FEATURES.md`](ROADMAP-FEATURES.md)
+> [`ROADMAP-FEATURES.md`](ROADMAP-FEATURES.md) · และแผน G (governance ตาม
+> ธรรมนูญ ADR 0051 — เริ่ม 2026-08-16) อยู่ใน
+> [`ROADMAP-GOVERNANCE.md`](ROADMAP-GOVERNANCE.md)
 >
 > หมวดที่ตัดออกโดยเจตนา (บันทึกไว้ แต่ไม่ทำใน app นี้):
 > - **Reliability & Availability** — SLA/RTO/RPO/backup 3-2-1 ผูกกับ infra จริง
