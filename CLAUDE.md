@@ -158,6 +158,11 @@
   สากล = เพิ่ม gate `portable: true` + `born_from` แล้ว regenerate — ห้ามเขียน
   กฎลงไฟล์นี้ตรง ๆ · **ห้ามมีชื่อไลบรารีของ Flask ในชั้นนี้** (`tests/test_skill.py`
   ตรวจที่ผล render สด จับได้ตั้งแต่ตอนพิมพ์ลง gates.yaml)
+- `skill/` — **แพ็กเกจ agent skill ที่ generate ล้วน ห้ามแก้ด้วยมือ** (ADR 0050
+  — `scripts/build_agent_skill.py`): frontmatter + render ชั้น baseline ตัวเดียว
+  กับ `SKILL.md` + business sheet ใน `reference/` + checker คัดลอกตาม manifest
+  ของ overlay · `tests/test_agent_skill.py` เทียบผล generate สด**รวมทั้งเซตไฟล์**
+  (ไฟล์แปลกปลอม = แดง) — แก้กฎ = แก้ `gates.yaml` แล้ว regenerate สองที่
 - `overlays/flask/` — enforcement ของกฎสากลสำหรับโปรเจกต์ Flask อื่น:
   scan checker 8 ตัว (stdlib ล้วน) + `gates_doctor.py` + `install.py`
   (copy ตาม manifest `overlay.json` — ไม่ครบ = ล้มดัง) · job `scaffold` พิสูจน์

@@ -20,6 +20,13 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Added
 
+- `skill/` — the exported rules repackaged as an installable **agent skill**
+  ([ADR 0050](docs/adr/0050-agent-skill-package-export.md)): frontmatter and
+  a usage preface wrapped around the same generated baseline sheet, the
+  business sheet as a reference file, and the overlay's eight stdlib checkers
+  copied per its manifest. Built by `scripts/build_agent_skill.py`;
+  `tests/test_agent_skill.py` compares every committed byte — including the
+  file set itself — against a fresh render.
 - `docs/DESIGN.md` — the UI's identity, a per-page mode table
   (Operate/Read/Enter, adapted from the *impeccable* skill), the
   refine-vs-redesign rule for UI changes, and a bounded-verification
@@ -180,7 +187,7 @@ graph. Nothing in the `/api/v1` contract changed; it only gained fields.
 ## [1.0.0] — 2026-08-12
 
 First public release. Everything below arrived across seven planned phases of
-work; the reasoning for each decision lives in the 49 records in
+work; the reasoning for each decision lives in the 50 records in
 [`docs/adr/`](docs/adr/), and the phase-by-phase plan in
 [`docs/ROADMAP.md`](docs/ROADMAP.md).
 

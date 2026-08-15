@@ -465,6 +465,20 @@ gates:
       เฟส 13-05 — รับ 42010 ตัวเดียวจากกลุ่มกรอบมาตรฐานองค์กร (ADR 0043)
       เพราะเป็นตัวเดียวที่ derive จากของจริง (ADR 43 ใบ) และตรวจได้ด้วยเครื่อง
 
+  - id: agent-skill-package-derived
+    title: แพ็กเกจ agent skill (skill/) derive จากแหล่งเดิมทุกไบต์ — กฎจาก gates.yaml · checker จาก overlay
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_agent_skill.py]}
+    standard: []
+    requires: []
+    portable: false
+    layer: internal
+    born_from: >-
+      ADR 0050 — ช่องทางแจกจ่ายที่สามตามข้อเสนอจากการวิเคราะห์ impeccable/
+      skillsmp · สำเนาที่แก้เองได้คือทะเบียนที่สามที่ drift เงียบ ๆ จึงเทียบ
+      กับผล generate สดทุกไฟล์รวมทั้งเซตไฟล์
+
   - id: design-doc-matches-the-ui
     title: docs/DESIGN.md ตรงกับ UI จริง — ทุกหน้าเต็มถูกตัดสินโหมด และตัวแปรสีตรงกับ base.css สองทิศ
     kind: test

@@ -137,6 +137,7 @@ and measured:
 | [`gates.yaml`](gates.yaml) | an index of every gate, verified **in both directions** — every CI job must have a gate, and every test file must belong to exactly one gate. A gate may only cite an ASVS requirement whose own evidence points back at it |
 | [`SKILL.md`](SKILL.md) | 60 framework-agnostic baseline rules, **generated** from the portable gates. Each one carries the trap that produced it. You cannot write a rule into this file by hand — you add a gate and regenerate. App-type agreements (the rules a different app could legitimately choose differently, like soft delete) live in their own generated sheet, [`SKILL-TODOLIST.md`](SKILL-TODOLIST.md) |
 | [`overlays/flask/`](overlays/flask/) | the enforcement half for other Flask projects: 8 scanners in the standard library only, a doctor, and an installer. CI proves on every push that it installs into an empty repo **and** that this repo passes its own overlay |
+| [`skill/`](skill/) | the same rules packaged as an installable agent skill (ADR 0050) — frontmatter + the generated rule sheets + the overlay's checkers, every byte derived; a test rejects hand edits and stray files |
 | [`docs/comparison/`](docs/comparison/) | does any of it change the code that actually gets written? One spec, three arms of five generated apps, one measurement battery — including the finding that a plain "review your own work once" pass closes about three quarters of the gap |
 
 ## Documentation
@@ -145,7 +146,7 @@ Written in Thai, because that is the language the thinking happened in.
 
 | | |
 |---|---|
-| [`docs/adr/`](docs/adr/) | 49 architecture decision records — every choice, the options rejected, and what would reverse it |
+| [`docs/adr/`](docs/adr/) | 50 architecture decision records — every choice, the options rejected, and what would reverse it |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | the first seven phases — the application itself — what each closed, and what was deliberately deferred |
 | [`docs/ROADMAP-INFRA.md`](docs/ROADMAP-INFRA.md) | phases 8–12 — the index, the exported skill, the overlay, the fail-fix harness, and the comparison experiment |
 | [`docs/ASVS.md`](docs/ASVS.md) | OWASP ASVS 5.0 Level 2 self-assessment — all 253 in-scope requirements answered, including the 48 that do not pass |
@@ -285,13 +286,16 @@ export และวัดผลแล้ว:
 - [`overlays/flask/`](overlays/flask/) — ฝั่งบังคับใช้สำหรับโปรเจกต์ Flask อื่น
   (scan 8 ตัวที่ใช้ stdlib ล้วน + doctor + installer) · CI พิสูจน์ทุก push ว่า
   ติดตั้งลง repo เปล่าได้จริง **และ repo นี้ผ่าน overlay ของตัวเอง**
+- [`skill/`](skill/) — กฎชุดเดียวกันแพ็กเป็น **agent skill ที่ติดตั้งได้**
+  (ADR 0050): frontmatter + ใบกฎที่ generate + checker ของ overlay —
+  ทุกไบต์ derive มีเทสต์กันแก้มือและไฟล์แปลกปลอม
 - [`docs/comparison/`](docs/comparison/) — แล้วมันเปลี่ยนโค้ดที่เขียนออกมาจริงไหม
   spec เดียว 3 แขน แขนละ 5 แอป วัดด้วยชุดเดียวกัน — รวมถึงผลที่ว่า **การสั่งให้
   "ทบทวนงานตัวเองหนึ่งรอบ" เฉย ๆ ปิดช่องว่างไปได้ราวสามในสี่**
 
 ## เอกสาร
 
-[`docs/adr/`](docs/adr/) 49 ใบ (ทุกการตัดสินใจ ทางที่ไม่ได้เลือก และเงื่อนไข
+[`docs/adr/`](docs/adr/) 50 ใบ (ทุกการตัดสินใจ ทางที่ไม่ได้เลือก และเงื่อนไข
 ที่จะทำให้มันหมดอายุ) · [`docs/ROADMAP.md`](docs/ROADMAP.md) (เฟส 0–7 ของตัวแอป)
 · [`docs/ROADMAP-INFRA.md`](docs/ROADMAP-INFRA.md) (เฟส 8–12 ของ scaffolding) ·
 [`docs/ROADMAP-FEATURES.md`](docs/ROADMAP-FEATURES.md) (เฟส 13–18 — ชั้นฟีเจอร์
