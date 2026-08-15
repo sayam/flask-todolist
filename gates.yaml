@@ -499,6 +499,21 @@ gates:
       เฟส 13-05 — รับ 42010 ตัวเดียวจากกลุ่มกรอบมาตรฐานองค์กร (ADR 0043)
       เพราะเป็นตัวเดียวที่ derive จากของจริง (ADR 43 ใบ) และตรวจได้ด้วยเครื่อง
 
+  - id: iso27001-worksheet-honest
+    title: worksheet ISO/IEC 27001:2022 ครบทุกข้อ (116) · หลักฐานชี้ของจริง · outline ตรึงด้วย checksum
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_iso27001.py]}
+    standard: []
+    requires: []
+    portable: false
+    layer: internal
+    pillar: security
+    born_from: >-
+      G2 ของ ADR 0051 — มาตรฐานสากลเป็นแกนหนึ่งของชั้น security ตามธรรมนูญ
+      และ worksheet ที่ไม่มีด่านคือ worksheet ที่เน่าแบบเดียวกับที่ ASVS/PDPA
+      เคยพิสูจน์มาแล้วว่ากันได้ด้วยเทสต์
+
   - id: agent-skill-package-derived
     title: แพ็กเกจ agent skill (skill/) derive จากแหล่งเดิมทุกไบต์ — กฎจาก gates.yaml · checker จาก overlay
     kind: test
