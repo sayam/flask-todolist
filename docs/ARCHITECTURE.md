@@ -127,6 +127,9 @@ proxy เชื่อ header ตามจำนวนชั้นที่ปร
 | PDPA worksheet ↔ หลักฐานจริง | `tests/test_pdpa.py` |
 | คำประกาศ privacy ของ org graph ↔ พฤติกรรมจริงทุกช่องทาง | `tests/test_org_graph.py` |
 | ตารางหน้า↔โหมดใน `docs/DESIGN.md` ↔ template จริง + ตัวแปรสีของ `app/static/base.css` | `tests/test_design_doc.py` |
+| worksheet ISO 27001 ↔ outline ที่ตรึง + หลักฐานจริง | `tests/test_iso27001.py` |
+| ดัชนีแกน supply chain ↔ ธง axis ใน `gates.yaml` | `tests/test_supply_chain.py` |
+| ดัชนี compliance รายประเทศ ↔ gate ชั้น legal | `tests/test_compliance_index.py` |
 | เอกสารฉบับนี้ ↔ ไฟล์/เทสต์ที่มันอ้าง | `tests/test_architecture.py` |
 | เลขที่โฆษณาในเอกสาร ↔ ดิสก์ | `tests/test_contributor_docs.py` · `tests/test_changelog.py` · `tests/test_skill.py` |
 

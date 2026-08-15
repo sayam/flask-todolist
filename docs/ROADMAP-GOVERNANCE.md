@@ -18,7 +18,7 @@
 | G2 | ISO/IEC 27001:2022 self-assessment ครบทุกข้อ | ✅ เสร็จ (`ISO27001.md`) |
 | G3 | ดัชนีแกน supply chain (`docs/SUPPLY-CHAIN.md`) | ✅ เสร็จ |
 | G4 | โครง compliance รายประเทศ (`docs/COMPLIANCE.md`) | ✅ เสร็จ |
-| G5 | ชั้น 2: multi-worker แบบไม่ลดด่าน + คำตัดสิน caching | ⬜ หลัง G1–G4 |
+| G5 | ชั้น 2: multi-worker แบบไม่ลดด่าน + คำตัดสิน caching | ⬜ รอเจ้าของตัดสิน ADR 0052 (ร่างอยู่นอก main) |
 
 ## G1 — ธรรมนูญเข้าระบบ
 
