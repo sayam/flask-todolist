@@ -195,7 +195,8 @@ sqlfluff → เมื่อ migration ซับซ้อนขึ้น (Phase 
 > **ทบทวน 2026-08-15 (หลังเฟส 13–18):** สี่ตัวในแผนข้างบนไม่เคยถูกนำเข้า
 > และตอนนี้**ตัดออกอย่างเปิดเผย**แทนที่จะค้างเป็นนัดที่เลยมานาน —
 > **djlint/sqlfluff**: template กับ migration มีด่านพฤติกรรมจริงคุมอยู่แล้ว
-> (test_security_headers อ่าน template ตรง ๆ · job `schema` เดิน migration จริง)
+> (test_security_headers อ่าน template ตรง ๆ · test_design_doc เทียบหน้ากับ
+> ตารางโหมดใน DESIGN.md · job `schema` เดิน migration จริง)
 > lint เชิงรูปแบบไม่เพิ่มการจับบั๊กชั้นที่เหลือ · **hypothesis**: ชุด mutation
 > discipline + fuzz ของ schemathesis ครอบเส้นที่ property-based จะครอบ ในสเกล
 > แอปนี้ · **mutmut nightly**: กติกา mutation ทำมือทุกเทสต์ใหม่ (บังคับใน

@@ -125,6 +125,16 @@ file without an entry turns CI red on purpose. You have two options:
   [`overlays/flask/`](overlays/flask/) are generated from, so the entry has to
   carry its own reason for existing.
 
+### 9. UI work starts from the design document
+
+Read [`docs/DESIGN.md`](docs/DESIGN.md) before touching anything under
+`app/templates/` or `app/static/base.css`, and say which kind of change you
+are making: **refine** (the default — hold the identity the document
+describes) or **redesign** (change the identity — then the document must be
+amended in the same PR). A new full page must also claim a mode
+(Operate / Read / Enter) in the document's table — `tests/test_design_doc.py`
+enforces the table against the templates on disk in both directions.
+
 ## Before you open a pull request
 
 ```bash
@@ -200,6 +210,11 @@ pipenv run flask create-user <ชื่อ>
    portable) · ถ้ากฎนั้นใช้ได้กับโปรเจกต์อื่นด้วย ให้ตั้ง `portable: true` +
    `born_from` (กับดักที่ให้กำเนิดกฎข้อนั้น) เพราะ `SKILL.md`,
    `SKILL-TODOLIST.md` กับ `overlays/flask/` generate มาจากตรงนั้น
+9. **งาน UI เริ่มจาก [`docs/DESIGN.md`](docs/DESIGN.md)** — อ่านก่อนแตะ
+   `app/templates/` หรือ `app/static/base.css` และประกาศว่าเป็น **refine**
+   (ค่าเริ่มต้น — รักษาตัวตนตามเอกสาร) หรือ **redesign** (เปลี่ยนตัวตน —
+   ต้องแก้เอกสารใน PR เดียวกัน) · หน้าเต็มใหม่ต้องเพิ่มแถวในตารางโหมดด้วย
+   (`tests/test_design_doc.py` บังคับสองทิศ)
 
 ## ก่อนเปิด pull request
 

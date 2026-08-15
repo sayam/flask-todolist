@@ -37,7 +37,7 @@ LINK = re.compile(r"\[[^\]]+\]\((?!https?:|mailto:|#)([^)\s]+)\)")
 # `20 jobs (21 checks)` และ `20 job (21 check)`
 JOB_CLAIM = re.compile(r"(\d+)\s+jobs?\s*\((\d+)\s+checks?\)")
 
-DOCS_CLAIMING_JOB_COUNTS = ("CONTRIBUTING.md", "CLAUDE.md")
+DOCS_CLAIMING_JOB_COUNTS = ("CONTRIBUTING.md", "CLAUDE.md", "docs/DEVELOPMENT.md")
 
 
 @pytest.fixture(scope="module")

@@ -27,6 +27,18 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
   template must be assigned a mode, and the theme-variable set in the document
   must match what `base.css` actually uses.
 
+### Fixed
+
+- Documentation refresh after v1.2.0: README now describes the Site
+  administration hub and the team-rename change log in both languages and
+  links `docs/DESIGN.md`; the OpenSSF worksheet's version rows cover all
+  three tags and its test count is current (1,239, was 1,002); the password
+  blocklist size is stated as the shipped file's real count (46,476, was
+  46,483 since Phase 4); stale plugin/gate/check tallies in the
+  infrastructure roadmap corrected. `docs/DEVELOPMENT.md` now carries a
+  UI-discipline row and joined the docs whose advertised CI numbers are
+  enforced by `tests/test_contributor_docs.py`.
+
 ## [1.2.0] — 2026-08-15
 
 Post-release change requests from real use, plus one scanner fix. Cut before a
