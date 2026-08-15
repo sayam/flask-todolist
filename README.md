@@ -151,6 +151,7 @@ Written in Thai, because that is the language the thinking happened in.
 | [`docs/ROADMAP-INFRA.md`](docs/ROADMAP-INFRA.md) | phases 8–12 — the index, the exported skill, the overlay, the fail-fix harness, and the comparison experiment |
 | [`docs/ASVS.md`](docs/ASVS.md) | OWASP ASVS 5.0 Level 2 self-assessment — all 253 in-scope requirements answered, including the 48 that do not pass |
 | [`docs/ISO27001.md`](docs/ISO27001.md) | ISO/IEC 27001:2022 self-assessment — all 116 items answered (clauses 4–10 and every Annex A control), including the 5 that do not pass |
+| [`docs/SUPPLY-CHAIN.md`](docs/SUPPLY-CHAIN.md) | the supply-chain axis — five layers of the chain and the 14 gates that guard them, kept honest against `gates.yaml` both ways |
 | [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) | measured numbers, including the ones that hurt |
 | [`docs/DATA-CLASSIFICATION.md`](docs/DATA-CLASSIFICATION.md) | what is stored, how sensitive it is, how long it is kept |
 | [`docs/DESIGN.md`](docs/DESIGN.md) | the UI's identity and a per-page mode table, both enforced by a test |
@@ -307,6 +308,8 @@ org graph) · [`docs/PDPA.md`](docs/PDPA.md) (worksheet แบบเดียว
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) (42010) ·
 [`docs/ASVS.md`](docs/ASVS.md) ·
 [`docs/ISO27001.md`](docs/ISO27001.md) (27001:2022 ครบ 116 ข้อ) ·
+[`docs/SUPPLY-CHAIN.md`](docs/SUPPLY-CHAIN.md) (แกน supply chain — ห้าชั้น
+14 gate ตรวจกับ gates.yaml สองทิศ) ·
 [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) ·
 [`docs/DATA-CLASSIFICATION.md`](docs/DATA-CLASSIFICATION.md) ·
 [`docs/DESIGN.md`](docs/DESIGN.md) (ตัวตนของ UI + ตารางโหมดต่อหน้า มีเทสต์คุม) ·

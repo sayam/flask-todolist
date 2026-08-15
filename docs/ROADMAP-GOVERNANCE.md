@@ -16,8 +16,8 @@
 |---|---|---|
 | G1 | ธรรมนูญ + intake เข้าเอกสาร + `pillar:` ครบทุก gate + เทสต์คุม | ✅ เสร็จ (PR แรกของแผน) |
 | G2 | ISO/IEC 27001:2022 self-assessment ครบทุกข้อ | ✅ เสร็จ (`ISO27001.md`) |
-| G3 | ดัชนีแกน supply chain (`docs/SUPPLY-CHAIN.md`) | ⬜ ถัดไป |
-| G4 | โครง compliance รายประเทศ (`docs/COMPLIANCE.md`) | ⬜ |
+| G3 | ดัชนีแกน supply chain (`docs/SUPPLY-CHAIN.md`) | ✅ เสร็จ |
+| G4 | โครง compliance รายประเทศ (`docs/COMPLIANCE.md`) | ⬜ ถัดไป |
 | G5 | ชั้น 2: multi-worker แบบไม่ลดด่าน + คำตัดสิน caching | ⬜ หลัง G1–G4 |
 
 ## G1 — ธรรมนูญเข้าระบบ
@@ -51,13 +51,14 @@ backlog ของไฟล์: วิธีประเมินความเ�
   หลักฐานเดิมได้) · ROPA/RUNBOOK-BREACH/SECURITY-CADENCE = หลักฐานฝั่ง
   operational อยู่แล้ว
 
-## G3 — ดัชนีแกน supply chain
+## G3 — ดัชนีแกน supply chain ✅ (เสร็จ 2026-08-16)
 
-- `docs/SUPPLY-CHAIN.md`: แกนอิสระตามปรัชญา — รวม pins/ · SBOM ·
-  plugin category (ADR 0025) · Scorecard · Dependabot ·
-  accepted-advisories · gitleaks เข้าดัชนีเดียวที่ชี้ gate จริง
-  (`pillar: security` ทุกตัวอยู่แล้ว — ดัชนีนี้ derive จาก gates.yaml
-  ได้บางส่วน ห้ามเขียนเลขคู่ขนาน) + เทสต์กันเน่า
+ผลจริง: `docs/SUPPLY-CHAIN.md` — ห้าชั้นของห่วงโซ่ (ของในแอป · เครื่องมือ
+ของ CI · ของที่รันจริง · ใครขยับ pin · หลักฐาน posture) · สมาชิกแกนประกาศ
+ที่ gate ด้วย field `axis: supply-chain` (14 ตัว — ข้าม pillar ได้:
+`bare-clone-still-green` เป็น manageability แต่รับใช้แกนนี้) ·
+`tests/test_supply_chain.py` บังคับดัชนี↔ธงสองทิศ · gate:
+`supply-chain-axis-indexed`
 
 ## G4 — โครง compliance รายประเทศ
 

@@ -206,6 +206,9 @@
   advisory** ต้นตออยู่ใน `via` ที่เป็น object เท่านั้น (6 หัวข่าว = 1 เรื่อง)
 - `docs/openapi.json` — **ไฟล์ที่ generate มา ห้ามแก้ด้วยมือ** (ดูหัวข้อ API v1)
 - `docs/ASVS.md` — self-assessment ต่อ ASVS 5.0 L2 (ดูหัวข้อ ASVS)
+- `docs/SUPPLY-CHAIN.md` — ดัชนีแกน supply chain (G3 — ADR 0051): สมาชิก
+  ประกาศที่ gate ด้วย `axis: supply-chain` (14 ตัว) · เพิ่มด่าน supply chain
+  ใหม่ต้องติดธง+ลงดัชนี ไม่งั้น `tests/test_supply_chain.py` แดงสองทิศ
 - `docs/ISO27001.md` — self-assessment ต่อ ISO/IEC 27001:2022 ครบ 116 ข้อ
   (G2 — ADR 0051) · outline ตรึงใน `docs/iso27001-2022-outline.json` +
   checksum ในเทสต์ · หลักฐานใน backtick ถูกตรวจเหมือน ASVS และรับสองรูปเพิ่ม:

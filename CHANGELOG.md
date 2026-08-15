@@ -20,6 +20,14 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Added
 
+- **The supply-chain axis** (`docs/SUPPLY-CHAIN.md` — G3 of the governance
+  plan): the constitution names supply chain an independent axis of the
+  security pillar; this index tells its story in five layers (what enters
+  the app, what CI installs, what runs in production, who moves the pins,
+  what proves the posture) over the 14 gates that guard them. Membership
+  is declared on the gates themselves (`axis: supply-chain` in
+  `gates.yaml`) and `tests/test_supply_chain.py` keeps the index honest in
+  both directions (gate `supply-chain-axis-indexed`).
 - **ISO/IEC 27001:2022 self-assessment** (`docs/ISO27001.md` — G2 of the
   governance plan): all 116 items answered — clauses 4–10 at the second
   level plus every Annex A control — with resolvable evidence, honest
