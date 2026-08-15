@@ -286,7 +286,15 @@ USER todolist
 **รันหลาย worker/replica ต้องตั้ง `CACHE_URL` ให้ชี้ store ที่แชร์ได้ด้วย**
 ไม่งั้นเพดาน rate limit จะเป็น N เท่าตามจำนวน process (แอปเตือนตอน start
 ถ้ารู้ว่า store ไม่แชร์ — ดู `app/cache.py`) จำนวน worker ตั้งด้วย
-`WEB_CONCURRENCY` หรือ `GUNICORN_CMD_ARGS`
+`WEB_CONCURRENCY` (ปุ่มเดียวที่รองรับสำหรับหลาย worker — ADR 0052)
+
+**หลาย worker ในหนึ่ง container (opt-in — ADR 0052)**: ตั้ง
+`WEB_CONCURRENCY=N` คู่กับ `METRICS_MULTIPROC_DIR` เสมอ — ไม่ตั้งคู่
+แอป refuse ตอน start (ไม่งั้นตัวเลข `/metrics` สลับตัวนับต่อ scrape) ·
+dir ต้องเป็นที่ที่**ตายพร้อม container** (เช่น `/tmp/metrics` บน tmpfs)
+เพราะไฟล์ตัวนับของ boot เก่าไม่ควรรอด restart · ไฟล์ของ worker ที่ตาย
+ระหว่างรันถูกนับต่อโดยตั้งใจ (counter สะสม) · ค่าเริ่มต้นยังเป็น worker
+เดียว และทาง scale หลักยังเป็น replica ตามเดิม (ADR 0048)
 
 **สิ่งที่ image รับประกันและมีด่านใน CI (`job: image`) ตรวจทุก push**
 - รันในนามผู้ใช้ `todolist` ไม่ใช่ root

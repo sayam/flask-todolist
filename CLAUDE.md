@@ -1102,10 +1102,12 @@ log ขึ้น "Running upgrade" ครบทุกตัว exit code เป�
 - **ยังไม่ลองใหม่เมื่อ MySQL deadlock (error 1213)** — หลังแก้ ADR 0032 แล้ว
   ยังเจอ 2 ครั้งต่อรอบที่ 25 VUs · deadlock ลองใหม่ได้ตามนิยาม (ฐานข้อมูลยกเลิก
   ฝ่ายหนึ่งให้เอง) ต่างจากการชน `prev_hash` ที่ต้องย้อนทั้ง transaction
-- ~~ยังไม่ปรับ `--workers` ของ gunicorn~~ **วัดแล้ว (เฟส 16)** — workers=2 ให้
-  p95/p99 ดีขึ้นราวครึ่งที่ 25–50 VUs แต่**คง 1 worker เป็นค่าเริ่มต้น**เพราะ
-  หลาย worker ทำให้ `/metrics` (per-process — ADR 0031) สลับตัวนับต่อ scrape
-  · scale ที่ไม่แตะข้อนี้ = เพิ่ม replica · ตัวเลขและเหตุผลใน `docs/PERFORMANCE.md`
+- ~~ยังไม่ปรับ `--workers` ของ gunicorn~~ **แก้แล้ว (ADR 0052 — G5)**:
+  multi-worker เป็น opt-in — `WEB_CONCURRENCY>1` ต้องคู่กับ
+  `METRICS_MULTIPROC_DIR` (ไม่คู่ = ไม่ start) แล้ว `/metrics` รวมทุก worker
+  ของ container ถูกต้อง (กลไก stdlib: ไฟล์ snapshot ต่อ worker + merge ตอน
+  scrape — `tests/test_metrics_multiproc.py`) · ค่าเริ่มต้นยัง 1 worker ·
+  scale หลักยัง replica · ตัวเลขเฟส 16 ใน `docs/PERFORMANCE.md`
 - ~~ยังไม่มีใคร scrape `/metrics` จริง~~ **ปิดแล้ว (เฟส 16)** — `compose.metrics.yaml`
   (Prometheus + Grafana · token จากไฟล์ อ่านใหม่ทุกรอบ scrape) และ job `scrape`
   พิสูจน์ทุก push ว่าตัวเลขถึง TSDB ผ่านด่าน token จริง

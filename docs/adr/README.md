@@ -57,3 +57,4 @@ ADR 0002–0008 เป็นการ backfill การตัดสินใจ
 | [0049](0049-org-todo-graph-privacy-model.md) | privacy model ของ org graph — private ไม่เผยแม้การมีอยู่ · dependency เชิญ→ยอมรับ · impact จากของที่แชร์เท่านั้น | accepted |
 | [0050](0050-agent-skill-package-export.md) | แพ็กเกจ agent skill (`skill/`) เป็นช่องทางแจกจ่ายที่สาม — generate ล้วน ห้ามเขียนคู่ขนาน | accepted |
 | [0051](0051-project-constitution-and-intake.md) | ธรรมนูญ: ลำดับสี่ชั้น (security > perf > manageability > devx) · intake ของใหม่ · `pillar:` ทุก gate | accepted |
+| [0052](0052-performance-layer-g5.md) | ชั้น performance (G5): multiproc `/metrics` แบบ opt-in ไม่ลดด่าน · caching วัดก่อน ไม่ชนะ=จดว่าไม่ทำ | accepted |

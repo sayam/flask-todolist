@@ -15,6 +15,9 @@
 สิ่งนี้แพงกว่าการเขียนเอง (หลักเดียวกับ ADR 0007 และ ADR 0024)
 """
 
+import json
+import os
+import pathlib
 import threading
 import time
 from typing import Any
@@ -32,6 +35,65 @@ HELP = (
     "เวลาที่ใช้ตอบคำขอ (วินาที) — **ของ process นี้คนเดียว** "
     "หลาย worker/replica ต้อง scrape แยกแล้วรวมที่ Prometheus (ADR 0031)"
 )
+HELP_MULTIPROC = (
+    "เวลาที่ใช้ตอบคำขอ (วินาที) — **รวมทุก worker ของ container นี้** "
+    "(โหมด multiproc — ADR 0052) ต่าง replica ยัง scrape แยกตามเดิม"
+)
+
+# โหมด multiproc (ADR 0052 — opt-in): แต่ละ worker เขียน snapshot ของตัวเอง
+# ลงไฟล์ใน dir ที่ประกาศ แล้วตัวที่รับ scrape เป็นคนรวม — กลไกเดียวกับ
+# multiprocess mode ของ prometheus_client แต่เขียนเองด้วย stdlib ตามหลักของ
+# โมดูลนี้ (histogram คือ counter — เครื่องจักร mmap ของไลบรารีคือของที่เรา
+# ไม่ต้องแบก supply chain เพิ่มเพื่อให้ได้มา) · ไฟล์ของ worker ที่ตายแล้วถูก
+# นับต่อโดยตั้งใจ (งานที่เคยเกิดไม่หายไปกับ process — counter สะสมโดยนิยาม)
+# dir ต้องตายพร้อม container (tmpfs) — ดู docs/OPERATIONS.md
+DUMP_INTERVAL_SECONDS = 1.0
+
+
+def dump_snapshot(histogram: "Histogram", directory: pathlib.Path, pid: int) -> None:
+    """เขียน snapshot ของ worker หนึ่งตัวแบบ atomic (เขียน tmp แล้ว rename)
+
+    ไฟล์ต่อ pid — ไม่มีการเขียนชนกันข้าม worker และผู้อ่านไม่มีวันเห็นไฟล์
+    ครึ่งใบ (`os.replace` เป็น atomic บน filesystem เดียวกัน)
+    """
+    rows = [
+        [endpoint, method, status, counts, total, elapsed]
+        for (endpoint, method, status), counts, total, elapsed in histogram.snapshot()
+    ]
+    tmp = directory / f".histogram-{pid}.tmp"
+    tmp.write_text(json.dumps(rows), encoding="utf-8")
+    tmp.replace(directory / f"histogram-{pid}.json")
+
+
+def merged_series(
+    histogram: "Histogram", directory: pathlib.Path, pid: int
+) -> list[tuple[tuple[str, str, str], list[int], int, float]]:
+    """รวมค่าของทุก worker: ตัวเอง (สด จากหน่วยความจำ) + ไฟล์ของตัวอื่น
+
+    ไฟล์ของ pid ตัวเองถูกข้าม — ค่าสดในหน่วยความจำใหม่กว่าเสมอ · ไฟล์ที่
+    อ่านไม่ได้ (กำลังถูกเขียนบน filesystem ที่ replace ไม่ atomic) ถูกข้าม
+    รอบนี้ — รอบ scrape ถัดไปได้ค่าที่โตขึ้นเอง counter ไม่ถอยหลัง
+    """
+    merged: dict[tuple[str, str, str], list[Any]] = {}
+
+    def _add(key: tuple[str, str, str], counts: list[int], total: int, elapsed: float) -> None:
+        entry = merged.setdefault(key, [[0] * len(BUCKETS), 0, 0.0])
+        entry[0] = [a + b for a, b in zip(entry[0], counts, strict=True)]
+        entry[1] += total
+        entry[2] += elapsed
+
+    for key, counts, total, elapsed in histogram.snapshot():
+        _add(key, counts, total, elapsed)
+    for path in sorted(directory.glob("histogram-*.json")):
+        if path.name == f"histogram-{pid}.json":
+            continue
+        try:
+            rows = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        for endpoint, method, status, counts, total, elapsed in rows:
+            _add((endpoint, method, status), counts, total, elapsed)
+    return [(key, entry[0], entry[1], entry[2]) for key, entry in merged.items()]
 
 
 class Histogram:
@@ -86,16 +148,23 @@ def _escape(value: str) -> str:
 
 
 def render(histogram: Histogram) -> str:
+    """แปลงค่าของ process เดียวเป็น exposition text (โหมดเดิม — ค่าเริ่มต้น)"""
+    return render_series(histogram.snapshot(), HELP)
+
+
+def render_series(
+    series: list[tuple[tuple[str, str, str], list[int], int, float]], help_text: str
+) -> str:
     """แปลงเป็นข้อความตามรูปแบบ exposition ของ Prometheus
 
     **bucket เป็นแบบสะสม** (`le` = น้อยกว่าหรือเท่ากับ) และต้องมี `+Inf` ปิดท้าย
     เสมอ ซึ่งต้องมีค่าเท่ากับ `_count` — Prometheus ปฏิเสธ histogram ที่ไม่ครบ
     """
     lines = [
-        f"# HELP todolist_request_duration_seconds {HELP}",
+        f"# HELP todolist_request_duration_seconds {help_text}",
         "# TYPE todolist_request_duration_seconds histogram",
     ]
-    for (endpoint, method, status), counts, total, elapsed in sorted(histogram.snapshot()):
+    for (endpoint, method, status), counts, total, elapsed in sorted(series):
         labels = (
             f'endpoint="{_escape(endpoint)}",method="{_escape(method)}",status="{_escape(status)}"'
         )
@@ -111,10 +180,44 @@ def render(histogram: Histogram) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _multiproc_dir(app: Any) -> pathlib.Path | None:
+    """ตรวจ config ของโหมด multiproc — ครึ่ง ๆ กลาง ๆ = ไม่ start (ADR 0052)
+
+    หลาย worker โดยไม่มี dir คือสภาพที่ตัวเลข `/metrics` สลับตัวนับต่อ scrape
+    — ความผิดไม่ใช่การรันหลาย worker แต่คือการไม่รู้ว่าตัวเลขมั่ว จึง refuse
+    ดัง ๆ พร้อมบอกทาง (หลักเดียวกับ scheme ของ DATABASE_URL ที่ไม่รู้จัก)
+    """
+    workers = int(app.config.get("WEB_CONCURRENCY", 1) or 1)
+    configured = app.config.get("METRICS_MULTIPROC_DIR")
+    if workers > 1 and not configured:
+        raise RuntimeError(
+            f"WEB_CONCURRENCY={workers} แต่ไม่มี METRICS_MULTIPROC_DIR — "
+            "หลาย worker ทำให้ /metrics สลับตัวนับต่อ scrape (ADR 0031) "
+            "ตั้ง METRICS_MULTIPROC_DIR ชี้ tmpfs ของ container (ADR 0052) "
+            "หรือกลับไปใช้ worker เดียวแล้ว scale ด้วย replica"
+        )
+    if not configured:
+        return None
+    directory = pathlib.Path(configured)
+    try:
+        directory.mkdir(parents=True, exist_ok=True)
+        probe = directory / f".probe-{os.getpid()}"
+        probe.write_text("", encoding="utf-8")
+        probe.unlink()
+    except OSError as exc:
+        raise RuntimeError(
+            f"METRICS_MULTIPROC_DIR={configured} เขียนไม่ได้ ({exc}) — "
+            "โหมด multiproc ที่เขียนไฟล์ไม่ได้คือโหมดที่ตัวเลขหายเงียบ ๆ"
+        ) from exc
+    return directory
+
+
 def init_metrics(app: Any) -> Histogram:
     """ผูกตัวนับเข้ากับทุกคำขอ และเปิด `/metrics` (ต้องมี token — ADR 0031 ข้อ 5)"""
     histogram = Histogram()
     app.extensions[EXTENSION_KEY] = histogram
+    multiproc = _multiproc_dir(app)
+    last_dump = [0.0]
 
     @app.after_request
     def _record(response: Response) -> Response:
@@ -130,6 +233,13 @@ def init_metrics(app: Any) -> Histogram:
                 (endpoint, request.method, str(response.status_code)),
                 time.perf_counter() - started,
             )
+            if multiproc is not None:
+                # dump แบบผ่อน — ความสดของไฟล์มีเพดานที่ DUMP_INTERVAL_SECONDS
+                # และตัวที่รับ scrape ใช้ค่าสดของตัวเองเสมอ counter จึงไม่ถอยหลัง
+                now = time.monotonic()
+                if now - last_dump[0] >= DUMP_INTERVAL_SECONDS:
+                    last_dump[0] = now
+                    dump_snapshot(histogram, multiproc, os.getpid())
         return response
 
     @app.route(METRICS_PATH)
@@ -138,8 +248,14 @@ def init_metrics(app: Any) -> Histogram:
         from app.api.auth import require_api_token
 
         require_api_token()
+        if multiproc is not None:
+            pid = os.getpid()
+            dump_snapshot(histogram, multiproc, pid)
+            body = render_series(merged_series(histogram, multiproc, pid), HELP_MULTIPROC)
+        else:
+            body = render(histogram)
         return Response(
-            render(histogram),
+            body,
             mimetype="text/plain; version=0.0.4; charset=utf-8",
         )
 

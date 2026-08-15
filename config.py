@@ -50,6 +50,14 @@ class Config:
     SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "sqlite:///todolist.db")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
+    # multi-worker (ADR 0052 — G5): `WEB_CONCURRENCY` คือปุ่มเดียวที่รองรับ
+    # (มาตรฐานของ gunicorn) · >1 worker ต้องประกาศ METRICS_MULTIPROC_DIR ด้วย
+    # ไม่งั้นตัวเลข /metrics สลับตัวนับต่อ scrape — แอป refuse ตอน start
+    # (fail-loud ตามธรรมนูญ) แทนที่จะให้ตัวเลขมั่วเงียบ ๆ · dir ต้องเป็นที่
+    # ที่ตายพร้อม container (tmpfs) — ดู docs/OPERATIONS.md
+    WEB_CONCURRENCY = int(os.environ.get("WEB_CONCURRENCY", "1") or "1")
+    METRICS_MULTIPROC_DIR = os.environ.get("METRICS_MULTIPROC_DIR")
+
     # นับเฉพาะ login ที่ล้มเหลว ล็อกอินถูกไม่กินโควตา
     LOGIN_RATE_LIMIT = os.environ.get("LOGIN_RATE_LIMIT", "5 per minute; 20 per hour")
     # โควตาที่นับ **ต่อชื่อผู้ใช้** ไม่ใช่ต่อ IP — ปิดช่องคนที่เปลี่ยน IP ไปเรื่อย ๆ

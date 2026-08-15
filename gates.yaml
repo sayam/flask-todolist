@@ -499,6 +499,21 @@ gates:
       เฟส 13-05 — รับ 42010 ตัวเดียวจากกลุ่มกรอบมาตรฐานองค์กร (ADR 0043)
       เพราะเป็นตัวเดียวที่ derive จากของจริง (ADR 43 ใบ) และตรวจได้ด้วยเครื่อง
 
+  - id: metrics-correct-across-workers
+    title: โหมด multiproc ของ /metrics รวมทุก worker ถูกต้อง · config ครึ่ง ๆ = ไม่ start · โหมดเดิมไม่เปลี่ยน
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_metrics_multiproc.py]}
+    standard: []
+    requires: []
+    portable: false
+    layer: internal
+    pillar: performance
+    born_from: >-
+      ADR 0052 (G5) — เฟส 16 วัดแล้วว่า workers=2 ลด tail ~ครึ่ง แต่ถูกกัน
+      ด้วยความถูกต้องของ /metrics per-process (ADR 0031) · แก้เงื่อนไขด้วย
+      การออกแบบ (รวมข้าม worker แบบ opt-in + fail-loud) ไม่ใช่ด้วยการลดด่าน
+
   - id: risk-method-and-register-current
     title: วิธีประเมินความเสี่ยงมีจริง ระดับตรงสูตร กลไกของแถวสูงชี้ของจริง และรอบเต็มถูกทวง
     kind: test
