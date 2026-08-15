@@ -715,6 +715,8 @@ def test_rename_requires_admin_a_reason_and_a_fresh_unique_name(app, org):
         with pytest.raises(ValidationError):
             teams_service.rename(boss, org["team"], "alpha", "same name")
         with pytest.raises(ValidationError):
+            teams_service.rename(boss, org["team"], "   ", "blank name")
+        with pytest.raises(ValidationError):
             teams_service.rename(boss, org["team"], "new name", "   ")
         other = teams_service.create_team(boss, "beta")
         with pytest.raises(ConflictError):
