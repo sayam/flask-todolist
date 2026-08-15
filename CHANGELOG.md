@@ -18,6 +18,10 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [1.1.0] — 2026-08-15
+
 Eleven more phases of work: five about making the engineering discipline in
 this repo **portable and checkable** (8–12), then the whole 1.1 feature plan
 (13–18) — rule layers and legal worksheets, an admin overhaul with data masking,
@@ -224,5 +228,6 @@ work; the reasoning for each decision lives in the 49 records in
 - WCAG 2.2 AA, checked both by a structural test suite and by pa11y-ci driving a
   real Chromium over dark mode, an alternate theme, and Thai.
 
-[Unreleased]: https://github.com/sayam/flask-todolist/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/sayam/flask-todolist/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/sayam/flask-todolist/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/sayam/flask-todolist/releases/tag/v1.0.0
