@@ -94,7 +94,9 @@
 - `app/metrics.py` — latency histogram ต่อ endpoint + `/metrics` (Prometheus)
   **ต้องมี token เสมอ** (ด่านเดียวกับ `/api/v1`) · **label เป็นชื่อ endpoint
   ไม่ใช่ `request.path`** ไม่งั้นคนนอกยิง path มั่ว ๆ ให้ time series ระเบิดได้
-  · ค่าที่นับ **เป็นของ process นั้นคนเดียว** (ADR 0031)
+  · ค่าที่นับ **เป็นของ process นั้นคนเดียว** (ADR 0031) — ยกเว้นเปิดโหมด
+  multiproc (`METRICS_MULTIPROC_DIR` — ADR 0052) ซึ่งรวมทุก worker ของ
+  container · `WEB_CONCURRENCY>1` โดยไม่เปิด = ไม่ start
 - `app/security_headers.py` — CSP + security header (Talisman), `app/logging_setup.py` — JSON log + request id
 - `app/db_engine.py` — **เลือก backend ของฐานข้อมูลจาก scheme ของ `DATABASE_URL`**
   (ADR 0026) ค่าเฉพาะยี่ห้ออยู่ใน `backend.py` ของ plugin ชนิด `db` ไม่ใช่ที่นี่

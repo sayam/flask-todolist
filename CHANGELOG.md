@@ -18,6 +18,17 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [1.3.0] — 2026-08-16
+
+The governance release: the owner declared the project's philosophy — security
+first (country law, worldwide standards, an independent supply-chain axis),
+then scalability, then manageability, then DevSecOps friendliness — and this
+release makes that constitution machine-checked, closes plan G in full
+(G1–G5), and ships the three adopted ideas from the bmad/impeccable/skillsmp
+analysis. Cut as a fresh N-1 anchor, as tradition now demands.
+
 ### Changed
 
 - Documentation refresh after the governance plan landed: the gate count in
@@ -369,7 +380,8 @@ work; the reasoning for each decision lives in the 52 records in
 - WCAG 2.2 AA, checked both by a structural test suite and by pa11y-ci driving a
   real Chromium over dark mode, an alternate theme, and Thai.
 
-[Unreleased]: https://github.com/sayam/flask-todolist/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/sayam/flask-todolist/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/sayam/flask-todolist/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/sayam/flask-todolist/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/sayam/flask-todolist/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/sayam/flask-todolist/releases/tag/v1.0.0

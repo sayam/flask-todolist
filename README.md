@@ -313,6 +313,10 @@ org graph) · [`docs/PDPA.md`](docs/PDPA.md) (worksheet แบบเดียว
 14 gate ตรวจกับ gates.yaml สองทิศ) ·
 [`docs/COMPLIANCE.md`](docs/COMPLIANCE.md) (ดัชนี legal รายประเทศ +
 สัญญาการเพิ่มประเทศแบบ additive) ·
+[`docs/RISK-ASSESSMENT.md`](docs/RISK-ASSESSMENT.md) (วิธีประเมินความเสี่ยง
+ที่เครื่องตรวจสูตรได้ + ทะเบียน) ·
+[`docs/RUNBOOK-BACKUP.md`](docs/RUNBOOK-BACKUP.md) (backup/restore ที่การ
+ซ้อมเป็นเทสต์ทุก push) ·
 [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) ·
 [`docs/DATA-CLASSIFICATION.md`](docs/DATA-CLASSIFICATION.md) ·
 [`docs/DESIGN.md`](docs/DESIGN.md) (ตัวตนของ UI + ตารางโหมดต่อหน้า มีเทสต์คุม) ·
