@@ -39,7 +39,7 @@ def main() -> None:
     _guard(app)
 
     with app.app_context():
-        user = User(username=USERNAME)
+        user = User(username=USERNAME, role="admin")  # ให้สแกนหน้า Site administration ได้
         user.set_password(PASSWORD)
         db.session.add(user)
         db.session.flush()

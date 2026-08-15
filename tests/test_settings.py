@@ -258,3 +258,26 @@ def test_timezone_used_on_fresh_session(app, user_id):
     with app.app_context():
         # user อยู่โซน UTC ค่าที่เก็บจึงเท่ากับที่กรอกพอดี
         assert Todo.query.filter_by(title="งานใหม่").one().due_date == datetime(2026, 9, 1, 9, 0)
+
+
+def test_the_language_reset_link_stays_english_and_works(app, client):
+    """Change Req #1 ข้อ 2 — ทางหนีของคนเลือกภาษาที่อ่านไม่ออก
+
+    สาระของเทสต์: (1) ลิงก์อยู่บนหน้า settings (2) **ข้อความเป็นอังกฤษตายตัว
+    แม้เปิดหน้าเป็นภาษาไทย** — ถ้าใครเผลอห่อ gettext ข้อความจะถูกแปลแล้วทางหนี
+    หายไปพร้อมกัน (3) กดแล้วภาษากลับเป็นอังกฤษจริงทั้ง session และโปรไฟล์
+    """
+    from app.models import User
+
+    thai_page = client.get("/settings?lang=th").data.decode()
+    assert "Reset language to English" in thai_page, "ลิงก์ reset หายหรือถูกแปล — ต้องเป็นอังกฤษตายตัวเสมอ"
+
+    resp = client.get("/lang/en", headers={"Referer": "http://localhost/settings"})
+    assert resp.status_code == 302
+    page = client.get("/settings").data.decode()
+    assert "การจัดการ" not in page, "หน้ายังเป็นไทยอยู่ทั้งที่กด reset แล้ว"
+    with app.app_context():
+        from app import db
+
+        person = db.session.query(User).first()
+        assert person.locale == "en", "reset ต้องเขียนลงโปรไฟล์ด้วย ไม่ใช่แค่ session"

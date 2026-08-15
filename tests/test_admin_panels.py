@@ -121,7 +121,7 @@ def test_every_panel_is_registered_in_the_nav(app):
     """หน้าใหม่ต้องลงทะเบียนเข้า registry — nav วนจาก registry ไม่ hardcode (ADR 0044)"""
     from app.admin import PANELS
 
-    endpoints = {endpoint for endpoint, _title in PANELS}
+    endpoints = {endpoint for endpoint, _title, _category in PANELS}
     assert endpoints == {
         "admin.users",
         "admin.teams",
@@ -218,3 +218,30 @@ def test_sbom_shows_python_eol_from_the_pinned_table(app):
     eol = facts["python_eol"]
     assert eol is not None, "ตารางที่ตรึงไม่ครอบ python ที่กำลังรัน"
     assert eol["cycle"] == f"{sys.version_info.major}.{sys.version_info.minor}"
+
+
+def test_site_administration_groups_every_panel(app):
+    """Change Req #1 ข้อ 3 — หน้า /admin จัดหมวดแบบ Moodle และครบทุก panel"""
+    from app.admin import PANELS
+
+    _two_people(app)
+    page = _sign_in(app, "boss").get("/admin").data.decode()
+    assert "Site administration" in page
+    for _endpoint, title, category in PANELS:
+        assert str(title) in page, f"panel {title} หายจากหน้า Site administration"
+        assert str(category) in page, f"หมวด {category} ไม่โผล่"
+
+
+def test_site_administration_is_admin_only(app):
+    _two_people(app)
+    assert _sign_in(app, "member").get("/admin").status_code == 403
+
+
+def test_the_nav_says_site_administration_not_users(app):
+    """เมนูเปลี่ยนชื่อแล้วต้องชี้หน้า hub และยังโผล่เฉพาะ admin เหมือนเดิม"""
+    _two_people(app)
+    admin_nav = _sign_in(app, "boss").get("/").data.decode()
+    assert 'href="/admin"' in admin_nav
+    assert "Site administration" in admin_nav
+    member_nav = _sign_in(app, "member").get("/").data.decode()
+    assert 'href="/admin"' not in member_nav, "เมนู admin โผล่ให้ผู้ใช้ทั่วไป (แค่ซ่อนตา แต่ก็ต้องซ่อน)"

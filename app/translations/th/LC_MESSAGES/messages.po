@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-15 03:58+0700\n"
+"POT-Creation-Date: 2026-08-15 12:22+0700\n"
 "PO-Revision-Date: 2026-08-02 16:44+0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -39,80 +39,80 @@ msgstr "ยังไม่ได้ตั้งค่าการเข้าส
 msgid "Sign-in session expired — please try again"
 msgstr "การเข้าสู่ระบบหมดอายุแล้ว กรุณาลองใหม่"
 
-#: app/auth.py:271 app/routes.py:614
+#: app/auth.py:271 app/routes.py:629
 msgid "That code is not valid"
 msgstr "รหัสไม่ถูกต้อง"
 
-#: app/api/todos.py:65 app/routes.py:75 app/routes.py:116
+#: app/api/todos.py:65 app/routes.py:81 app/routes.py:129
 msgid "Invalid date format"
 msgstr "รูปแบบวันที่ไม่ถูกต้อง"
 
-#: app/routes.py:188
+#: app/routes.py:201
 msgid "Task saved"
 msgstr "บันทึกงานแล้ว"
 
-#: app/routes.py:256
+#: app/routes.py:271
 msgid "Task shared"
 msgstr "แชร์งานแล้ว"
 
-#: app/routes.py:260 app/routes.py:273
+#: app/routes.py:275 app/routes.py:288
 msgid "Invalid team"
 msgstr "วงไม่ถูกต้อง"
 
-#: app/routes.py:269
+#: app/routes.py:284
 msgid "Task unshared"
 msgstr "เลิกแชร์งานแล้ว"
 
-#: app/routes.py:288
+#: app/routes.py:303
 msgid "Dependency requested — waiting for the owner to accept"
 msgstr "ส่งคำขอพึ่งงานแล้ว — รอเจ้าของงานยอมรับ"
 
-#: app/routes.py:292
+#: app/routes.py:307
 msgid "Invalid request"
 msgstr "คำขอไม่ถูกต้อง"
 
-#: app/routes.py:303
+#: app/routes.py:318
 msgid "Dependency accepted"
 msgstr "ยอมรับการพึ่งงานแล้ว"
 
-#: app/routes.py:317 app/routes.py:329
+#: app/routes.py:332 app/routes.py:344
 msgid "Dependency removed"
 msgstr "เอาการพึ่งงานออกแล้ว"
 
-#: app/routes.py:456
+#: app/routes.py:471
 msgid "Profile saved"
 msgstr "บันทึกโปรไฟล์แล้ว"
 
-#: app/routes.py:470
+#: app/routes.py:485
 msgid "The two new passwords do not match"
 msgstr "รหัสผ่านใหม่สองช่องไม่ตรงกัน"
 
-#: app/routes.py:486
+#: app/routes.py:501
 msgid "Password changed"
 msgstr "เปลี่ยนรหัสผ่านแล้ว"
 
-#: app/routes.py:507 app/routes.py:627 app/routes.py:654 app/routes.py:679
+#: app/routes.py:522 app/routes.py:642 app/routes.py:669 app/routes.py:694
 #: app/services/passwords.py:168
 msgid "Current password is incorrect"
 msgstr "รหัสผ่านปัจจุบันไม่ถูกต้อง"
 
-#: app/routes.py:551
+#: app/routes.py:566
 msgid "Token revoked"
 msgstr "เพิกถอน token แล้ว"
 
-#: app/routes.py:614
+#: app/routes.py:629
 msgid "Two-step verification is on"
 msgstr "เปิดการยืนยันสองขั้นแล้ว"
 
-#: app/routes.py:666
+#: app/routes.py:681
 msgid "Your account is closed. Sign-in no longer works."
 msgstr "บัญชีของคุณถูกปิดแล้ว เข้าสู่ระบบไม่ได้อีกต่อไป"
 
-#: app/routes.py:686
+#: app/routes.py:701
 msgid "Two-step verification is off"
 msgstr "ปิดการยืนยันสองขั้นแล้ว"
 
-#: app/routes.py:711
+#: app/routes.py:726
 msgid "Settings saved"
 msgstr "บันทึกการตั้งค่าแล้ว"
 
@@ -129,6 +129,10 @@ msgstr "รหัสผ่านถูกเปลี่ยน กรุณา�
 msgid "Environment"
 msgstr "สภาพแวดล้อม"
 
+#: app/admin/system.py:61 app/admin/system.py:62 app/admin/system.py:63
+msgid "Server"
+msgstr "เซิร์ฟเวอร์"
+
 #: app/admin/system.py:62 app/templates/admin_lifecycle.html:2
 #: app/templates/admin_lifecycle.html:5
 msgid "Lifecycle"
@@ -144,6 +148,10 @@ msgstr "supply chain"
 msgid "Observability"
 msgstr "การสังเกตการณ์"
 
+#: app/admin/system.py:64
+msgid "Reports"
+msgstr "รายงาน"
+
 #: app/admin/teams.py:33
 #, python-format
 msgid "Team “%(name)s” created"
@@ -158,6 +166,10 @@ msgstr "ลบวงแล้ว"
 #: app/templates/teams.html:2 app/templates/teams.html:5
 msgid "Teams"
 msgstr "วงทำงาน"
+
+#: app/admin/teams.py:83 app/admin/users.py:111
+msgid "Users & teams"
+msgstr "ผู้ใช้และวงทำงาน"
 
 #: app/admin/users.py:78
 #, python-format
@@ -175,7 +187,7 @@ msgid "%(name)s is active again"
 msgstr "%(name)s กลับมาใช้งานได้แล้ว"
 
 #: app/admin/users.py:111 app/templates/admin_users.html:2
-#: app/templates/admin_users.html:5 app/templates/base.html:63
+#: app/templates/admin_users.html:5
 msgid "Users"
 msgstr "ผู้ใช้"
 
@@ -400,6 +412,11 @@ msgstr "ไม่พบ token"
 #: app/templates/_admin_nav.html:1
 msgid "Admin sections"
 msgstr "หมวดของผู้ดูแล"
+
+#: app/templates/_admin_nav.html:2 app/templates/admin_index.html:2
+#: app/templates/admin_index.html:5 app/templates/base.html:63
+msgid "Site administration"
+msgstr "การจัดการระบบ"
 
 #: app/templates/admin_environment.html:9
 msgid "What this instance is actually running on — read live, not written by hand"
@@ -675,19 +692,19 @@ msgstr "บันทึก"
 msgid "Todolist"
 msgstr "รายการงาน"
 
-#: app/templates/base.html:22 app/templates/settings.html:196
+#: app/templates/base.html:22 app/templates/settings.html:203
 msgid "Mode"
 msgstr "โหมด"
 
-#: app/templates/base.html:24 app/templates/settings.html:200
+#: app/templates/base.html:24 app/templates/settings.html:207
 msgid "Light"
 msgstr "สว่าง"
 
-#: app/templates/base.html:24 app/templates/settings.html:200
+#: app/templates/base.html:24 app/templates/settings.html:207
 msgid "Dark"
 msgstr "มืด"
 
-#: app/templates/base.html:24 app/templates/settings.html:200
+#: app/templates/base.html:24 app/templates/settings.html:207
 msgid "Auto"
 msgstr "อัตโนมัติ"
 
@@ -714,7 +731,7 @@ msgid "Sign out"
 msgstr "ออกจากระบบ"
 
 #: app/templates/base.html:90 app/templates/privacy.html:2
-#: app/templates/privacy.html:5
+#: app/templates/privacy.html:6
 msgid "Privacy"
 msgstr "ความเป็นส่วนตัว"
 
@@ -1007,7 +1024,11 @@ msgstr "ยืนยัน"
 msgid "Start over"
 msgstr "เริ่มใหม่"
 
-#: app/templates/privacy.html:7
+#: app/templates/privacy.html:5
+msgid "Back"
+msgstr "ย้อนกลับ"
+
+#: app/templates/privacy.html:8
 msgid ""
 "This is a personal to-do application. It stores only what the service "
 "itself needs, and nothing is shared with anyone else."
@@ -1015,17 +1036,17 @@ msgstr ""
 "นี่คือแอปจดงานส่วนตัว — เก็บเฉพาะสิ่งที่ตัวบริการต้องใช้ "
 "และไม่ส่งต่อให้ใครทั้งสิ้น"
 
-#: app/templates/privacy.html:9
+#: app/templates/privacy.html:10
 msgid "What is stored, and why"
 msgstr "เก็บอะไร และทำไม"
 
-#: app/templates/privacy.html:11
+#: app/templates/privacy.html:12
 msgid ""
 "Your username and a password hash — to sign you in. No e-mail address is "
 "ever collected."
 msgstr "ชื่อผู้ใช้และ hash ของรหัสผ่าน — ไว้ให้คุณเข้าระบบ · ไม่เก็บอีเมลเลย"
 
-#: app/templates/privacy.html:12
+#: app/templates/privacy.html:13
 msgid ""
 "An optional first and last name, language, theme, and timezone — so the "
 "app can address and render things your way."
@@ -1033,7 +1054,7 @@ msgstr ""
 "ชื่อ-นามสกุล (ไม่บังคับ) ภาษา ธีม และโซนเวลา — "
 "เพื่อแสดงผลอย่างที่คุณตั้งไว้"
 
-#: app/templates/privacy.html:13
+#: app/templates/privacy.html:14
 msgid ""
 "Your tasks and categories — that is the whole point of the app. They "
 "belong to you and are not visible to other users; administrators see them"
@@ -1042,7 +1063,7 @@ msgstr ""
 "งานและหมวดของคุณ — หัวใจของแอป เป็นของคุณคนเดียว ผู้ใช้อื่นมองไม่เห็น "
 "และผู้ดูแลเห็นแบบถูก mask หรือไม่เห็นเลย"
 
-#: app/templates/privacy.html:14
+#: app/templates/privacy.html:15
 msgid ""
 "An append-only audit trail of changes — kept as evidence, storing "
 "references, never the content of secrets."
@@ -1050,27 +1071,27 @@ msgstr ""
 "บันทึกการเปลี่ยนแปลงแบบเติมได้อย่างเดียว — "
 "เก็บเป็นหลักฐานโดยอ้างอิงถึงข้อมูล ไม่เก็บเนื้อความลับ"
 
-#: app/templates/privacy.html:17
+#: app/templates/privacy.html:18
 msgid "How long it is kept"
 msgstr "เก็บนานแค่ไหน"
 
-#: app/templates/privacy.html:19
+#: app/templates/privacy.html:20
 #, python-format
 msgid "Deleted items and closed accounts are purged for real after %(days)d days."
 msgstr "ของที่ลบและบัญชีที่ปิด ถูกลบจริงหลัง %(days)d วัน"
 
-#: app/templates/privacy.html:20
+#: app/templates/privacy.html:21
 #, python-format
 msgid ""
 "Audit entries are kept for %(days)d days, then removed from the head of "
 "the chain."
 msgstr "บันทึกตรวจสอบเก็บ %(days)d วัน แล้วถูกตัดจากหัวสาย"
 
-#: app/templates/privacy.html:23
+#: app/templates/privacy.html:24
 msgid "Your rights"
 msgstr "สิทธิ์ของคุณ"
 
-#: app/templates/privacy.html:25
+#: app/templates/privacy.html:26
 msgid ""
 "Export everything about you as machine-readable JSON from the settings "
 "page, at any time, without asking anyone."
@@ -1078,7 +1099,7 @@ msgstr ""
 "ขอสำเนาข้อมูลทั้งหมดเป็น JSON ที่เครื่องอ่านได้ จากหน้า settings "
 "ได้ทุกเมื่อ โดยไม่ต้องขอใคร"
 
-#: app/templates/privacy.html:26
+#: app/templates/privacy.html:27
 msgid ""
 "Close your account yourself from the settings page — secrets are wiped "
 "immediately, the rest follows the retention period above."
@@ -1086,7 +1107,7 @@ msgstr ""
 "ปิดบัญชีเองได้จากหน้า settings — ความลับถูกล้างทันที "
 "ที่เหลือเป็นไปตามระยะข้างบน"
 
-#: app/templates/privacy.html:27
+#: app/templates/privacy.html:28
 msgid ""
 "Correct anything about yourself directly — profile, language, timezone, "
 "and every task are editable in place."
@@ -1094,7 +1115,7 @@ msgstr ""
 "แก้ข้อมูลของตัวเองได้ตรง ๆ — โปรไฟล์ ภาษา โซนเวลา "
 "และงานทุกรายการแก้ได้ในที่"
 
-#: app/templates/privacy.html:30
+#: app/templates/privacy.html:31
 msgid ""
 "Questions about how a specific deployment is operated belong to whoever "
 "runs it — this page describes what the software itself does."
@@ -1235,37 +1256,37 @@ msgstr "ตั้งค่า"
 msgid "Preferences"
 msgstr "การตั้งค่าส่วนตัว"
 
-#: app/templates/settings.html:188
+#: app/templates/settings.html:195
 msgid "Theme"
 msgstr "ธีม"
 
-#: app/templates/settings.html:204
+#: app/templates/settings.html:211
 msgid "Auto follows sunrise and sunset in your timezone."
 msgstr "อัตโนมัติจะสลับตามเวลาดวงอาทิตย์ขึ้น-ตกของเขตเวลาที่คุณตั้งไว้"
 
-#: app/templates/settings.html:207
+#: app/templates/settings.html:214
 msgid "Timezone"
 msgstr "เขตเวลา"
 
-#: app/templates/settings.html:213
+#: app/templates/settings.html:220
 msgid "Due dates are shown and entered in this timezone."
 msgstr "กำหนดส่งจะแสดงและกรอกตามเขตเวลานี้"
 
-#: app/templates/settings.html:215
+#: app/templates/settings.html:222
 msgid "Save preferences"
 msgstr "บันทึกการตั้งค่า"
 
-#: app/templates/settings.html:218
+#: app/templates/settings.html:225
 msgid "Your data"
 msgstr "ข้อมูลของคุณ"
 
-#: app/templates/settings.html:221
+#: app/templates/settings.html:228
 msgid ""
 "Download a copy of everything this system stores about you, as a JSON "
 "file."
 msgstr "ดาวน์โหลดสำเนาของทุกอย่างที่ระบบนี้เก็บเกี่ยวกับคุณ ในรูปแบบไฟล์ JSON"
 
-#: app/templates/settings.html:222
+#: app/templates/settings.html:229
 msgid ""
 "The file explains what is not included and why. Secrets such as your "
 "password are never included."
@@ -1273,31 +1294,31 @@ msgstr ""
 "ไฟล์นี้อธิบายว่าอะไรไม่ได้อยู่ในนั้นและทำไม "
 "ความลับอย่างรหัสผ่านของคุณไม่เคยอยู่ในไฟล์"
 
-#: app/templates/settings.html:224 app/templates/settings.html:237
+#: app/templates/settings.html:231 app/templates/settings.html:244
 msgid "Confirm with your current password"
 msgstr "ยืนยันด้วยรหัสผ่านปัจจุบันของคุณ"
 
-#: app/templates/settings.html:227
+#: app/templates/settings.html:234
 msgid "Download my data"
 msgstr "ดาวน์โหลดข้อมูลของฉัน"
 
-#: app/templates/settings.html:230
+#: app/templates/settings.html:237
 msgid "Close your account"
 msgstr "ปิดบัญชีของคุณ"
 
-#: app/templates/settings.html:232
+#: app/templates/settings.html:239
 msgid ""
 "Close your account? Your tasks and categories will be removed and sign-in"
 " will stop working."
 msgstr "ปิดบัญชีของคุณใช่ไหม งานและหมวดของคุณจะถูกลบ และจะเข้าสู่ระบบไม่ได้อีก"
 
-#: app/templates/settings.html:234
+#: app/templates/settings.html:241
 msgid ""
 "Your tasks, categories and API keys are removed, and sign-in stops "
 "working immediately."
 msgstr "งาน หมวด และ API key ของคุณจะถูกลบ และเข้าสู่ระบบไม่ได้ทันที"
 
-#: app/templates/settings.html:235
+#: app/templates/settings.html:242
 msgid ""
 "A record that changes happened is kept, as required for security "
 "auditing. It holds no personal details — only which rows changed and "
@@ -1306,7 +1327,7 @@ msgstr ""
 "บันทึกว่ามีการเปลี่ยนแปลงเกิดขึ้นจะยังถูกเก็บไว้ตามที่การตรวจสอบความปลอดภัยกำหนด"
 " บันทึกนั้นไม่มีรายละเอียดส่วนบุคคล มีเพียงว่าแถวไหนเปลี่ยนเมื่อไหร่"
 
-#: app/templates/settings.html:240
+#: app/templates/settings.html:247
 msgid "Close my account"
 msgstr "ปิดบัญชีของฉัน"
 

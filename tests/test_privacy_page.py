@@ -33,3 +33,37 @@ def test_the_footer_links_to_the_privacy_page(app):
     """ลิงก์ต้องหาเจอจากหน้าแรกที่คนยังไม่ login เห็น — มีหน้าแต่หาไม่เจอ = ไม่มี"""
     page = app.test_client().get("/login").data.decode()
     assert "/privacy" in page
+
+
+def _back_href(page_bytes):
+    """href ของ*ปุ่มกลับโดยเฉพาะ* — ห้ามเทียบกับทั้งหน้า เพราะโลโก้ก็ href="/"
+
+    (mutation จับได้: เวอร์ชันแรกเทียบทั้งหน้า แล้วผ่านทั้งที่ถอดการเช็ค host
+    ออก — assertion ที่กว้างกว่า element ที่ทดสอบคือ assertion ที่ไม่ทดสอบอะไร)
+    """
+    import re
+
+    match = re.search(r'class="button" href="([^"]*)">&larr;', page_bytes.decode())
+    assert match, "ไม่พบปุ่มกลับบนหน้า privacy"
+    return match.group(1)
+
+
+def test_the_back_button_returns_where_you_came_from_safely(app, client):
+    """Change Req #1 ข้อ 1 — สองทิศ: referrer ในเว็บถูกใช้ · นอกเว็บ/ชี้ตัวเอง
+    ต้องตกไป fallback ไม่ใช่กลายเป็น open redirect"""
+    page = client.get("/privacy", headers={"Referer": "http://localhost/settings"})
+    assert _back_href(page.data) == "/settings", "referrer ในเว็บต้องถูกใช้เป็นปุ่มกลับ"
+
+    evil = client.get("/privacy", headers={"Referer": "https://evil.example.com/settings"})
+    assert _back_href(evil.data) == "/", "referrer นอกเว็บต้องตก fallback เป๊ะ ๆ ไม่ใช่ค่าที่แปลงมา"
+
+    tricky = client.get("/privacy", headers={"Referer": "http://localhost/../../evil"})
+    assert _back_href(tricky.data) == "/", "referrer พิลึกต้องตก fallback"
+
+    selfref = client.get("/privacy", headers={"Referer": "http://localhost/privacy"})
+    assert _back_href(selfref.data) == "/", "referrer ชี้ตัวเองต้องตก fallback ไม่วนลูป"
+
+
+def test_the_back_button_falls_back_to_login_for_anonymous_visitors(app):
+    page = app.test_client().get("/privacy")
+    assert _back_href(page.data) == "/login", "คนยังไม่ login กดกลับควรไปหน้า login"

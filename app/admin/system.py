@@ -58,7 +58,7 @@ def sbom():
     return render_template("admin_sbom.html", facts=facts)
 
 
-register_panel("admin.environment", _l("Environment"))
-register_panel("admin.lifecycle", _l("Lifecycle"))
-register_panel("admin.sbom", _l("Supply chain"))
-register_panel("admin.observability", _l("Observability"))
+register_panel("admin.environment", _l("Environment"), _l("Server"))
+register_panel("admin.lifecycle", _l("Lifecycle"), _l("Server"))
+register_panel("admin.sbom", _l("Supply chain"), _l("Server"))
+register_panel("admin.observability", _l("Observability"), _l("Reports"))

@@ -166,8 +166,9 @@ def test_the_admin_page_needs_a_signed_in_user(app, anon_client):
 
 
 def test_the_menu_shows_the_admin_link_only_to_administrators(app, two_people):
-    assert "/admin/users" in _sign_in(app, "boss").get("/").get_data(as_text=True)
-    assert "/admin/users" not in _sign_in(app, "member").get("/").get_data(as_text=True)
+    # เมนูชี้หน้า hub `/admin` (Site administration — Change Req #1 ข้อ 3)
+    assert 'href="/admin"' in _sign_in(app, "boss").get("/").get_data(as_text=True)
+    assert 'href="/admin"' not in _sign_in(app, "member").get("/").get_data(as_text=True)
 
 
 def test_changing_a_role_from_the_web_page(app, two_people):

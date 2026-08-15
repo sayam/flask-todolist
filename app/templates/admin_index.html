@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Site administration') }}{% endblock %}
+
+{% block content %}
+<h2>{{ _('Site administration') }}</h2>
+
+{# จัดหมวดแบบ Moodle (Change Req #1 ข้อ 3) — รายการมาจาก registry ของ panel
+   (ADR 0044) หน้าใหม่แค่ register_panel() พร้อมหมวด ก็โผล่ที่นี่เอง #}
+{% for category, panels in groups %}
+<section aria-labelledby="admin-group-{{ loop.index }}">
+  <h3 id="admin-group-{{ loop.index }}">{{ category }}</h3>
+  <ul>
+    {% for endpoint, title in panels %}
+    <li><a href="{{ url_for(endpoint) }}">{{ title }}</a></li>
+    {% endfor %}
+  </ul>
+</section>
+{% endfor %}
+{% endblock %}

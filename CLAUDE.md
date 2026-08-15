@@ -51,8 +51,9 @@
 - `app/api/` — `/api/v1` (flask-smorest) adapter อีกตัวบน service ชุดเดียวกัน
 - `app/auth.py` — login/logout + ขั้นที่สองของ MFA ผูกกับ blueprint `auth`
 - `app/admin/` — **package** ของผู้ดูแลระบบ (blueprint `admin` — ADR 0044):
-  `__init__.py` (registry ของ panel — หน้าใหม่เรียก `register_panel()` ตอน import
-  แล้ว nav วนจาก registry) · `users.py` (บทบาท + **unmask ที่ลง audit** +
+  `__init__.py` (registry ของ panel — หน้าใหม่เรียก `register_panel(endpoint,
+  title, category)` ตอน import · หน้า `/admin` = Site administration จัดกลุ่ม
+  ตามหมวดแบบ Moodle และ nav วนจาก registry) · `users.py` (บทบาท + **unmask ที่ลง audit** +
   ระงับ/เลิกระงับ) · `teams.py` (วงของ org graph — ADR 0049) · `system.py`
   (environment/lifecycle/observability/SBOM) · ทำงานกับข้อมูล **ของคนอื่น**
   จึงแยกจาก `routes.py` ที่ทำงานกับข้อมูลของเจ้าของ session เท่านั้น
@@ -601,7 +602,10 @@ session มาก่อนโปรไฟล์เพื่อให้กดส
 - `/settings` รวม โปรไฟล์ + **รหัสผ่าน** + **API token** + **การยืนยันสองขั้น** +
   ภาษา + ธีม + โหมด + timezone ไว้ที่เดียว
   nav = Tasks · Categories · **Teams (เฉพาะคนที่อยู่ในวงอย่างน้อยหนึ่งวง)** ·
-  Settings (กับ Users ถ้าเป็น admin) · footer มีลิงก์ `/privacy` สาธารณะ
+  Settings (กับ **Site administration** ที่ชี้ `/admin` ถ้าเป็น admin) ·
+  footer มีลิงก์ `/privacy` สาธารณะ (มีปุ่มกลับที่ตก fallback อย่างปลอดภัย)
+  · หน้า settings มีลิงก์ **"Reset language to English" เป็นอังกฤษตายตัว
+  ห้ามผ่าน gettext** (ทางหนีของคนเลือกภาษาที่อ่านไม่ออก — Change Req #1)
   ส่วนหน้า login มีตัวสลับภาษา/โหมดของตัวเอง
   (route `/lang/<code>` และ `/mode/<value>` ใช้จากหน้า login ไม่ต้อง login)
 - `_safe_referrer()` ใน `routes.py` ใช้ร่วมกันทั้งสลับภาษาและสลับโหมด รับเฉพาะ path ในเว็บเรา
