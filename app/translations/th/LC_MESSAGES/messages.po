@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-15 12:22+0700\n"
+"POT-Creation-Date: 2026-08-15 17:17+0700\n"
 "PO-Revision-Date: 2026-08-02 16:44+0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -39,80 +39,80 @@ msgstr "ยังไม่ได้ตั้งค่าการเข้าส
 msgid "Sign-in session expired — please try again"
 msgstr "การเข้าสู่ระบบหมดอายุแล้ว กรุณาลองใหม่"
 
-#: app/auth.py:271 app/routes.py:629
+#: app/auth.py:271 app/routes.py:671
 msgid "That code is not valid"
 msgstr "รหัสไม่ถูกต้อง"
 
-#: app/api/todos.py:65 app/routes.py:81 app/routes.py:129
+#: app/api/todos.py:65 app/routes.py:84 app/routes.py:132
 msgid "Invalid date format"
 msgstr "รูปแบบวันที่ไม่ถูกต้อง"
 
-#: app/routes.py:201
+#: app/routes.py:204
 msgid "Task saved"
 msgstr "บันทึกงานแล้ว"
 
-#: app/routes.py:271
+#: app/routes.py:313
 msgid "Task shared"
 msgstr "แชร์งานแล้ว"
 
-#: app/routes.py:275 app/routes.py:288
+#: app/routes.py:317 app/routes.py:330
 msgid "Invalid team"
 msgstr "วงไม่ถูกต้อง"
 
-#: app/routes.py:284
+#: app/routes.py:326
 msgid "Task unshared"
 msgstr "เลิกแชร์งานแล้ว"
 
-#: app/routes.py:303
+#: app/routes.py:345
 msgid "Dependency requested — waiting for the owner to accept"
 msgstr "ส่งคำขอพึ่งงานแล้ว — รอเจ้าของงานยอมรับ"
 
-#: app/routes.py:307
+#: app/routes.py:349
 msgid "Invalid request"
 msgstr "คำขอไม่ถูกต้อง"
 
-#: app/routes.py:318
+#: app/routes.py:360
 msgid "Dependency accepted"
 msgstr "ยอมรับการพึ่งงานแล้ว"
 
-#: app/routes.py:332 app/routes.py:344
+#: app/routes.py:374 app/routes.py:386
 msgid "Dependency removed"
 msgstr "เอาการพึ่งงานออกแล้ว"
 
-#: app/routes.py:471
+#: app/routes.py:513
 msgid "Profile saved"
 msgstr "บันทึกโปรไฟล์แล้ว"
 
-#: app/routes.py:485
+#: app/routes.py:527
 msgid "The two new passwords do not match"
 msgstr "รหัสผ่านใหม่สองช่องไม่ตรงกัน"
 
-#: app/routes.py:501
+#: app/routes.py:543
 msgid "Password changed"
 msgstr "เปลี่ยนรหัสผ่านแล้ว"
 
-#: app/routes.py:522 app/routes.py:642 app/routes.py:669 app/routes.py:694
+#: app/routes.py:564 app/routes.py:684 app/routes.py:711 app/routes.py:736
 #: app/services/passwords.py:168
 msgid "Current password is incorrect"
 msgstr "รหัสผ่านปัจจุบันไม่ถูกต้อง"
 
-#: app/routes.py:566
+#: app/routes.py:608
 msgid "Token revoked"
 msgstr "เพิกถอน token แล้ว"
 
-#: app/routes.py:629
+#: app/routes.py:671
 msgid "Two-step verification is on"
 msgstr "เปิดการยืนยันสองขั้นแล้ว"
 
-#: app/routes.py:681
+#: app/routes.py:723
 msgid "Your account is closed. Sign-in no longer works."
 msgstr "บัญชีของคุณถูกปิดแล้ว เข้าสู่ระบบไม่ได้อีกต่อไป"
 
-#: app/routes.py:701
+#: app/routes.py:743
 msgid "Two-step verification is off"
 msgstr "ปิดการยืนยันสองขั้นแล้ว"
 
-#: app/routes.py:726
+#: app/routes.py:768
 msgid "Settings saved"
 msgstr "บันทึกการตั้งค่าแล้ว"
 
@@ -157,17 +157,22 @@ msgstr "รายงาน"
 msgid "Team “%(name)s” created"
 msgstr "สร้างวง “%(name)s” แล้ว"
 
-#: app/admin/teams.py:46
+#: app/admin/teams.py:49
+#, python-format
+msgid "Team renamed to “%(name)s”"
+msgstr "เปลี่ยนชื่อวงเป็น “%(name)s” แล้ว"
+
+#: app/admin/teams.py:64
 msgid "Team deleted"
 msgstr "ลบวงแล้ว"
 
-#: app/admin/teams.py:83 app/templates/admin_teams.html:2
+#: app/admin/teams.py:101 app/templates/admin_teams.html:2
 #: app/templates/admin_teams.html:5 app/templates/base.html:58
 #: app/templates/teams.html:2 app/templates/teams.html:5
 msgid "Teams"
 msgstr "วงทำงาน"
 
-#: app/admin/teams.py:83 app/admin/users.py:111
+#: app/admin/teams.py:101 app/admin/users.py:111
 msgid "Users & teams"
 msgstr "ผู้ใช้และวงทำงาน"
 
@@ -351,15 +356,15 @@ msgstr "งานนี้ไม่ได้แชร์เข้าวงนี
 msgid "Unknown sign-in provider"
 msgstr "ไม่รู้จักผู้ให้บริการนี้"
 
-#: app/services/teams.py:27 app/services/teams.py:35
+#: app/services/teams.py:27 app/services/teams.py:35 app/services/teams.py:197
 msgid "Team not found"
 msgstr "ไม่พบวงนี้"
 
-#: app/services/teams.py:67
+#: app/services/teams.py:67 app/services/teams.py:156
 msgid "Team name is required"
 msgstr "ต้องตั้งชื่อวง"
 
-#: app/services/teams.py:74
+#: app/services/teams.py:74 app/services/teams.py:171
 msgid "A team with that name already exists"
 msgstr "มีวงชื่อนี้อยู่แล้ว"
 
@@ -374,6 +379,14 @@ msgstr "เป็นสมาชิกวงนี้อยู่แล้ว"
 #: app/services/teams.py:132
 msgid "No such member"
 msgstr "ไม่มีสมาชิกคนนั้น"
+
+#: app/services/teams.py:159
+msgid "A reason for the rename is required"
+msgstr "ต้องบอกเหตุผลของการเปลี่ยนชื่อ"
+
+#: app/services/teams.py:163
+msgid "That is already the team's name"
+msgstr "วงชื่อนี้อยู่แล้ว"
 
 #: app/services/todos.py:81
 msgid "Invalid category"
@@ -409,14 +422,9 @@ msgstr "อายุต้องไม่เป็นค่าติดลบ"
 msgid "Token not found"
 msgstr "ไม่พบ token"
 
-#: app/templates/_admin_nav.html:1
+#: app/templates/_admin_nav.html:4
 msgid "Admin sections"
 msgstr "หมวดของผู้ดูแล"
-
-#: app/templates/_admin_nav.html:2 app/templates/admin_index.html:2
-#: app/templates/admin_index.html:5 app/templates/base.html:63
-msgid "Site administration"
-msgstr "การจัดการระบบ"
 
 #: app/templates/admin_environment.html:9
 msgid "What this instance is actually running on — read live, not written by hand"
@@ -434,6 +442,11 @@ msgstr "แพลตฟอร์ม"
 #: app/templates/admin_environment.html:14
 msgid "Database"
 msgstr "ฐานข้อมูล"
+
+#: app/templates/admin_index.html:2 app/templates/admin_index.html:5
+#: app/templates/base.html:63
+msgid "Site administration"
+msgstr "การจัดการระบบ"
 
 #: app/templates/admin_lifecycle.html:9
 msgid "Where this instance stands in its own life cycle"
@@ -499,7 +512,7 @@ msgstr "endpoint"
 msgid "Method"
 msgstr "เมธอด"
 
-#: app/templates/admin_observability.html:16 app/templates/team_detail.html:17
+#: app/templates/admin_observability.html:16 app/templates/team_detail.html:20
 msgid "Status"
 msgstr "สถานะตอบ"
 
@@ -612,22 +625,38 @@ msgstr "เอาออก"
 msgid "No members yet"
 msgstr "ยังไม่มีสมาชิก"
 
-#: app/templates/admin_teams.html:40
+#: app/templates/admin_teams.html:38 app/templates/team_detail.html:8
+msgid "Team details"
+msgstr "รายละเอียดวง"
+
+#: app/templates/admin_teams.html:41
+msgid "New display name"
+msgstr "ชื่อใหม่"
+
+#: app/templates/admin_teams.html:43
+msgid "Reason (shown to members)"
+msgstr "เหตุผล (สมาชิกวงจะเห็นข้อความนี้)"
+
+#: app/templates/admin_teams.html:45
+msgid "Rename"
+msgstr "เปลี่ยนชื่อ"
+
+#: app/templates/admin_teams.html:49
 msgid "Add member by username"
 msgstr "เพิ่มสมาชิกด้วยชื่อผู้ใช้"
 
-#: app/templates/admin_teams.html:42
+#: app/templates/admin_teams.html:51
 msgid "Add member"
 msgstr "เพิ่มสมาชิก"
 
-#: app/templates/admin_teams.html:45
+#: app/templates/admin_teams.html:54
 #, python-format
 msgid ""
 "Delete team “%(name)s”? All its shares and the dependencies that relied "
 "on them will be cut."
 msgstr "ลบวง “%(name)s”? การแชร์ทั้งหมดของวงและการพึ่งงานที่อาศัยมันอยู่จะถูกตัด"
 
-#: app/templates/admin_teams.html:47
+#: app/templates/admin_teams.html:56
 msgid "Delete team"
 msgstr "ลบวง"
 
@@ -775,7 +804,7 @@ msgid "Edit task"
 msgstr "แก้ไขงาน"
 
 #: app/templates/edit_todo.html:10 app/templates/index.html:28
-#: app/templates/team_detail.html:14
+#: app/templates/team_detail.html:17
 msgid "Task name"
 msgstr "ชื่องาน"
 
@@ -801,7 +830,7 @@ msgstr "ไม่ใส่ก็ได้"
 
 #: app/templates/edit_todo.html:30 app/templates/index.html:45
 #: app/templates/index.html:63 app/templates/index.html:144
-#: app/templates/team_detail.html:16
+#: app/templates/team_detail.html:19
 msgid "Due"
 msgstr "กำหนดส่ง"
 
@@ -920,13 +949,13 @@ msgid "%(num)d hour"
 msgid_plural "%(num)d hours"
 msgstr[0] "%(num)d ชั่วโมง"
 
-#: app/templates/index.html:98
+#: app/templates/index.html:98 app/templates/team_info.html:25
 msgid "From"
-msgstr "ตั้งแต่"
+msgstr "จาก"
 
-#: app/templates/index.html:100
+#: app/templates/index.html:100 app/templates/team_info.html:26
 msgid "To"
-msgstr "ถึง"
+msgstr "เป็น"
 
 #: app/templates/index.html:104
 msgid "Show start date"
@@ -1024,7 +1053,7 @@ msgstr "ยืนยัน"
 msgid "Start over"
 msgstr "เริ่มใหม่"
 
-#: app/templates/privacy.html:5
+#: app/templates/privacy.html:5 app/templates/team_info.html:6
 msgid "Back"
 msgstr "ย้อนกลับ"
 
@@ -1179,9 +1208,9 @@ msgstr "token ใช้ให้สคริปต์หรือเครื่
 msgid "Your active tokens"
 msgstr "token ที่ยังใช้งานได้ของคุณ"
 
-#: app/templates/settings.html:65
+#: app/templates/settings.html:65 app/templates/team_info.html:11
 msgid "Created"
-msgstr "วันที่ออก"
+msgstr "สร้างเมื่อ"
 
 #: app/templates/settings.html:66
 msgid "Expires"
@@ -1331,41 +1360,69 @@ msgstr ""
 msgid "Close my account"
 msgstr "ปิดบัญชีของฉัน"
 
-#: app/templates/team_detail.html:6
+#: app/templates/team_detail.html:7
 msgid "Back to teams"
 msgstr "กลับไปหน้าวงทำงาน"
 
-#: app/templates/team_detail.html:11
+#: app/templates/team_detail.html:14
 msgid "Tasks shared with this team"
 msgstr "งานที่แชร์เข้าวงนี้"
 
-#: app/templates/team_detail.html:15
+#: app/templates/team_detail.html:18
 msgid "Owner"
 msgstr "เจ้าของ"
 
-#: app/templates/team_detail.html:18
+#: app/templates/team_detail.html:21
 msgid "Depend on it"
 msgstr "ขอพึ่งงานนี้"
 
-#: app/templates/team_detail.html:27
+#: app/templates/team_detail.html:30
 msgid "Done"
 msgstr "เสร็จแล้ว"
 
-#: app/templates/team_detail.html:27
+#: app/templates/team_detail.html:30
 msgid "Open"
 msgstr "ยังไม่เสร็จ"
 
-#: app/templates/team_detail.html:34
+#: app/templates/team_detail.html:37
 msgid "Which of your tasks depends on it"
 msgstr "งานไหนของคุณที่พึ่งงานนี้"
 
-#: app/templates/team_detail.html:40
+#: app/templates/team_detail.html:43
 msgid "Request"
 msgstr "ขอพึ่งงาน"
 
-#: app/templates/team_detail.html:51
+#: app/templates/team_detail.html:54
 msgid "Nothing shared with this team yet"
 msgstr "ยังไม่มีงานแชร์เข้าวงนี้"
+
+#: app/templates/team_info.html:9
+msgid "Display name"
+msgstr "ชื่อที่แสดง"
+
+#: app/templates/team_info.html:16
+msgid "Name change log"
+msgstr "บันทึกการเปลี่ยนชื่อ"
+
+#: app/templates/team_info.html:20
+msgid "Every rename, newest first"
+msgstr "การเปลี่ยนชื่อทุกครั้ง ใหม่สุดก่อน"
+
+#: app/templates/team_info.html:23
+msgid "When"
+msgstr "เมื่อไหร่"
+
+#: app/templates/team_info.html:24
+msgid "Who"
+msgstr "ใคร"
+
+#: app/templates/team_info.html:27
+msgid "Reason"
+msgstr "เหตุผล"
+
+#: app/templates/team_info.html:43
+msgid "This team has never been renamed"
+msgstr "วงนี้ไม่เคยถูกเปลี่ยนชื่อ"
 
 #: app/templates/teams.html:9
 #, python-format

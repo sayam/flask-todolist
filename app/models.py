@@ -372,3 +372,26 @@ class TodoDependency(SoftDeleteMixin, db.Model):
 
     todo: Mapped["Todo"] = relationship(foreign_keys=[todo_id])
     depends_on: Mapped["Todo"] = relationship(foreign_keys=[depends_on_todo_id])
+
+
+class TeamNameChange(SoftDeleteMixin, db.Model):
+    """บันทึกการเปลี่ยนชื่อวง (CR#3) — ประวัติที่**สมาชิกอ่านได้** ไม่ใช่หลักฐานลับ
+
+    คนละบทบาทกับ audit trail: audit เป็นหลักฐาน C5 (ค่า C3 ถูก HMAC อ่านไม่ออก)
+    ส่วนตารางนี้คือคำประกาศต่อสมาชิกวงว่า "ใครเปลี่ยนชื่อจากอะไรเป็นอะไร เพราะอะไร"
+    — วงถูกบริหารโดย admin การเปลี่ยนที่ไม่บอกกล่าวทำให้สมาชิกสับสน
+    (การเปลี่ยนชื่อยังลง audit อัตโนมัติตามวงจรปกติอีกชั้นเสมอ)
+    """
+
+    __tablename__ = "tdl_team_name_change"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    team_id: Mapped[int] = mapped_column(ForeignKey("tdl_team.id", ondelete="CASCADE"), index=True)
+    changed_by_id: Mapped[int] = mapped_column(ForeignKey("tdl_user.id", ondelete="CASCADE"))
+    changed_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=_utcnow)
+    old_name: Mapped[str] = mapped_column(String(80))
+    new_name: Mapped[str] = mapped_column(String(80))
+    reason: Mapped[str] = mapped_column(String(200))
+
+    team: Mapped["Team"] = relationship()
+    changed_by: Mapped["User"] = relationship()

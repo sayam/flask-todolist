@@ -138,3 +138,75 @@ def remove_member(actor: User, team_id: int, user_id: int) -> TeamMember:
         sharing.sever_invisible_dependencies(person)
     db.session.commit()
     return member
+
+
+def rename(actor: User, team_id: int, new_name: str, reason: str) -> Team:
+    """เปลี่ยนชื่อวง (CR#3) — ต้องมีเหตุผลเสมอ และลงบันทึกที่สมาชิกอ่านได้
+
+    วงถูกบริหารโดย admin (ADR 0049 ข้อ 2) การเปลี่ยนที่ไม่บอกกล่าวทำให้สมาชิก
+    สับสน — เหตุผลจึงเป็นช่องบังคับ ไม่ใช่ของแต่ง (บันทึกที่ไม่มี "ทำไม"
+    ตอบได้แค่ว่าเกิดอะไร ซึ่งสมาชิกเห็นเองอยู่แล้วจากชื่อที่เปลี่ยนไป)
+    """
+    from app.models import TeamNameChange
+
+    team = get_team(actor, team_id)
+    cleaned = str(new_name or "").strip()
+    cleaned_reason = str(reason or "").strip()
+    if not cleaned:
+        raise ValidationError(_("Team name is required"), code="team_name_required", field="name")
+    if not cleaned_reason:
+        raise ValidationError(
+            _("A reason for the rename is required"), code="rename_reason_required", field="reason"
+        )
+    if cleaned == team.name:
+        raise ValidationError(
+            _("That is already the team's name"), code="team_name_unchanged", field="name"
+        )
+    collision = db.session.scalars(
+        select(Team)
+        .where(Team.name == cleaned, Team.id != team.id)
+        .execution_options(**INCLUDE_DELETED)
+    ).first()
+    if collision is not None:
+        raise ConflictError(_("A team with that name already exists"), code="team_name_taken")
+
+    db.session.add(
+        TeamNameChange(
+            team_id=team.id,
+            changed_by_id=actor.id,
+            old_name=team.name,
+            new_name=cleaned,
+            reason=cleaned_reason,
+        )
+    )
+    team.name = cleaned
+    db.session.commit()
+    return team
+
+
+def overview_team(viewer: User, team_id: int) -> Team:
+    """วงในสายตาคนที่มีสิทธิ์ดูหน้า detail — สมาชิก **หรือ admin** (CR#3)
+
+    admin ไม่จำเป็นต้องเป็นสมาชิกวงที่ตัวเองบริหาร จึงเปิดทางนี้ให้ ·
+    คนนอกที่ไม่ใช่ทั้งสองอย่าง = ไม่มีวงนี้อยู่ (ADR 0004)
+    """
+    from app.services.roles import is_admin
+
+    team = by_id(Team, team_id)
+    if team is None or not (is_member(viewer, team.id) or is_admin(viewer)):
+        raise NotFoundError(_("Team not found"), code="team_not_found")
+    return team
+
+
+def name_history(viewer: User, team_id: int) -> list:
+    """บันทึกการเปลี่ยนชื่อของวง ใหม่สุดก่อน — สิทธิ์เดียวกับหน้า detail"""
+    from app.models import TeamNameChange
+
+    team = overview_team(viewer, team_id)
+    return list(
+        db.session.scalars(
+            select(TeamNameChange)
+            .where(TeamNameChange.team_id == team.id)
+            .order_by(TeamNameChange.changed_at.desc(), TeamNameChange.id.desc())
+        )
+    )

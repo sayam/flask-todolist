@@ -265,6 +265,45 @@ def team_detail(team_id):
     )
 
 
+@bp.route("/teams/<int:team_id>/info")
+@login_required
+def team_info(team_id):
+    """หน้า detail ของวง (CR#3): ชื่อ · วันสร้าง · บันทึกการเปลี่ยนชื่อ
+
+    ดูได้ทั้งสมาชิกและ admin (วงถูกบริหารโดย admin — การเปลี่ยนแปลงต้องมีที่
+    ให้สมาชิกอ่านย้อนหลัง ไม่งั้นชื่อที่เปลี่ยนไปเฉย ๆ คือความสับสน)
+    """
+    try:
+        team = teams_service.overview_team(current_user, team_id)
+        history = teams_service.name_history(current_user, team_id)
+    except NotFoundError:
+        abort(404)
+    zone = current_user.timezone_name
+    changes = [
+        {
+            "at": tz.to_local(row.changed_at, zone).strftime("%Y-%m-%d %H:%M")
+            if row.changed_at
+            else "—",
+            "who": row.changed_by.username,
+            "old": row.old_name,
+            "new": row.new_name,
+            "reason": row.reason,
+        }
+        for row in history
+    ]
+    back_url = (
+        url_for("main.team_detail", team_id=team.id)
+        if teams_service.is_member(current_user, team.id)
+        else url_for("admin.teams")
+    )
+    created = (
+        tz.to_local(team.created_at, zone).strftime("%Y-%m-%d %H:%M") if team.created_at else "—"
+    )
+    return render_template(
+        "team_info.html", team=team, changes=changes, back_url=back_url, created_local=created
+    )
+
+
 @bp.route("/share/<int:todo_id>", methods=["POST"])
 @login_required
 def share_todo(todo_id):

@@ -111,6 +111,10 @@ PLAIN_COLUMNS = frozenset(
         "depends_on_todo_id",
         "status",
         "accepted_at",
+        # change log ของชื่อวง (CR#3) — เวลา/ตัวชี้เปิดได้ ส่วนชื่อ/เหตุผล
+        # เป็นข้อความที่คนพิมพ์ (C3) จึงอยู่ใน HASHED_COLUMNS ตามชั้น
+        "changed_at",
+        "changed_by_id",
     }
 )
 
@@ -128,6 +132,9 @@ HASHED_COLUMNS = frozenset(
         "name",
         "start_date",
         "due_date",
+        "old_name",
+        "new_name",
+        "reason",
     }
 )
 

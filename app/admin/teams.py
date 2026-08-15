@@ -38,6 +38,24 @@ def add_team():
     return redirect(url_for("admin.teams"))
 
 
+@bp.route("/teams/<int:team_id>/rename", methods=["POST"])
+@login_required
+def rename_team(team_id):
+    """เปลี่ยน display name ของวง (CR#3) — ต้องกรอกเหตุผล และลงบันทึกให้สมาชิกอ่าน"""
+    try:
+        team = teams_service.rename(
+            current_user, team_id, request.form.get("name", ""), request.form.get("reason", "")
+        )
+        flash(_("Team renamed to “%(name)s”", name=team.name))
+    except ForbiddenError:
+        abort(403)
+    except NotFoundError:
+        abort(404)
+    except ServiceError as error:
+        flash(error.message)
+    return redirect(url_for("admin.teams"))
+
+
 @bp.route("/teams/<int:team_id>/delete", methods=["POST"])
 @login_required
 def delete_team(team_id):
