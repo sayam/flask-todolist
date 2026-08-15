@@ -80,4 +80,4 @@ def remove_member(team_id, user_id):
     return redirect(url_for("admin.teams"))
 
 
-register_panel("admin.teams", _l("Teams"))
+register_panel("admin.teams", _l("Teams"), _l("Users & teams"))

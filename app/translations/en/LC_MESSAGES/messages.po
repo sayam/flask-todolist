@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-15 03:58+0700\n"
+"POT-Creation-Date: 2026-08-15 12:22+0700\n"
 "PO-Revision-Date: 2026-08-02 16:44+0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -39,80 +39,80 @@ msgstr ""
 msgid "Sign-in session expired — please try again"
 msgstr ""
 
-#: app/auth.py:271 app/routes.py:614
+#: app/auth.py:271 app/routes.py:629
 msgid "That code is not valid"
 msgstr ""
 
-#: app/api/todos.py:65 app/routes.py:75 app/routes.py:116
+#: app/api/todos.py:65 app/routes.py:81 app/routes.py:129
 msgid "Invalid date format"
 msgstr ""
 
-#: app/routes.py:188
+#: app/routes.py:201
 msgid "Task saved"
 msgstr ""
 
-#: app/routes.py:256
+#: app/routes.py:271
 msgid "Task shared"
 msgstr ""
 
-#: app/routes.py:260 app/routes.py:273
+#: app/routes.py:275 app/routes.py:288
 msgid "Invalid team"
 msgstr ""
 
-#: app/routes.py:269
+#: app/routes.py:284
 msgid "Task unshared"
 msgstr ""
 
-#: app/routes.py:288
+#: app/routes.py:303
 msgid "Dependency requested — waiting for the owner to accept"
 msgstr ""
 
-#: app/routes.py:292
+#: app/routes.py:307
 msgid "Invalid request"
 msgstr ""
 
-#: app/routes.py:303
+#: app/routes.py:318
 msgid "Dependency accepted"
 msgstr ""
 
-#: app/routes.py:317 app/routes.py:329
+#: app/routes.py:332 app/routes.py:344
 msgid "Dependency removed"
 msgstr ""
 
-#: app/routes.py:456
+#: app/routes.py:471
 msgid "Profile saved"
 msgstr ""
 
-#: app/routes.py:470
+#: app/routes.py:485
 msgid "The two new passwords do not match"
 msgstr ""
 
-#: app/routes.py:486
+#: app/routes.py:501
 msgid "Password changed"
 msgstr ""
 
-#: app/routes.py:507 app/routes.py:627 app/routes.py:654 app/routes.py:679
+#: app/routes.py:522 app/routes.py:642 app/routes.py:669 app/routes.py:694
 #: app/services/passwords.py:168
 msgid "Current password is incorrect"
 msgstr ""
 
-#: app/routes.py:551
+#: app/routes.py:566
 msgid "Token revoked"
 msgstr ""
 
-#: app/routes.py:614
+#: app/routes.py:629
 msgid "Two-step verification is on"
 msgstr ""
 
-#: app/routes.py:666
+#: app/routes.py:681
 msgid "Your account is closed. Sign-in no longer works."
 msgstr ""
 
-#: app/routes.py:686
+#: app/routes.py:701
 msgid "Two-step verification is off"
 msgstr ""
 
-#: app/routes.py:711
+#: app/routes.py:726
 msgid "Settings saved"
 msgstr ""
 
@@ -127,6 +127,10 @@ msgstr ""
 #: app/admin/system.py:61 app/templates/admin_environment.html:2
 #: app/templates/admin_environment.html:5
 msgid "Environment"
+msgstr ""
+
+#: app/admin/system.py:61 app/admin/system.py:62 app/admin/system.py:63
+msgid "Server"
 msgstr ""
 
 #: app/admin/system.py:62 app/templates/admin_lifecycle.html:2
@@ -144,6 +148,10 @@ msgstr ""
 msgid "Observability"
 msgstr ""
 
+#: app/admin/system.py:64
+msgid "Reports"
+msgstr ""
+
 #: app/admin/teams.py:33
 #, python-format
 msgid "Team “%(name)s” created"
@@ -157,6 +165,10 @@ msgstr ""
 #: app/templates/admin_teams.html:5 app/templates/base.html:58
 #: app/templates/teams.html:2 app/templates/teams.html:5
 msgid "Teams"
+msgstr ""
+
+#: app/admin/teams.py:83 app/admin/users.py:111
+msgid "Users & teams"
 msgstr ""
 
 #: app/admin/users.py:78
@@ -175,7 +187,7 @@ msgid "%(name)s is active again"
 msgstr ""
 
 #: app/admin/users.py:111 app/templates/admin_users.html:2
-#: app/templates/admin_users.html:5 app/templates/base.html:63
+#: app/templates/admin_users.html:5
 msgid "Users"
 msgstr ""
 
@@ -396,6 +408,12 @@ msgstr ""
 
 #: app/templates/_admin_nav.html:1
 msgid "Admin sections"
+msgstr "Admin sections"
+
+#: app/templates/_admin_nav.html:2 app/templates/admin_index.html:2
+#: app/templates/admin_index.html:5 app/templates/base.html:63
+#, fuzzy
+msgid "Site administration"
 msgstr "Admin sections"
 
 #: app/templates/admin_environment.html:9
@@ -666,19 +684,19 @@ msgstr ""
 msgid "Todolist"
 msgstr ""
 
-#: app/templates/base.html:22 app/templates/settings.html:196
+#: app/templates/base.html:22 app/templates/settings.html:203
 msgid "Mode"
 msgstr ""
 
-#: app/templates/base.html:24 app/templates/settings.html:200
+#: app/templates/base.html:24 app/templates/settings.html:207
 msgid "Light"
 msgstr ""
 
-#: app/templates/base.html:24 app/templates/settings.html:200
+#: app/templates/base.html:24 app/templates/settings.html:207
 msgid "Dark"
 msgstr ""
 
-#: app/templates/base.html:24 app/templates/settings.html:200
+#: app/templates/base.html:24 app/templates/settings.html:207
 msgid "Auto"
 msgstr ""
 
@@ -705,7 +723,7 @@ msgid "Sign out"
 msgstr ""
 
 #: app/templates/base.html:90 app/templates/privacy.html:2
-#: app/templates/privacy.html:5
+#: app/templates/privacy.html:6
 msgid "Privacy"
 msgstr ""
 
@@ -1001,80 +1019,84 @@ msgstr ""
 msgid "Start over"
 msgstr ""
 
-#: app/templates/privacy.html:7
+#: app/templates/privacy.html:5
+msgid "Back"
+msgstr ""
+
+#: app/templates/privacy.html:8
 msgid ""
 "This is a personal to-do application. It stores only what the service "
 "itself needs, and nothing is shared with anyone else."
 msgstr ""
 
-#: app/templates/privacy.html:9
+#: app/templates/privacy.html:10
 msgid "What is stored, and why"
 msgstr ""
 
-#: app/templates/privacy.html:11
+#: app/templates/privacy.html:12
 msgid ""
 "Your username and a password hash — to sign you in. No e-mail address is "
 "ever collected."
 msgstr ""
 
-#: app/templates/privacy.html:12
+#: app/templates/privacy.html:13
 msgid ""
 "An optional first and last name, language, theme, and timezone — so the "
 "app can address and render things your way."
 msgstr ""
 
-#: app/templates/privacy.html:13
+#: app/templates/privacy.html:14
 msgid ""
 "Your tasks and categories — that is the whole point of the app. They "
 "belong to you and are not visible to other users; administrators see them"
 " masked or not at all."
 msgstr ""
 
-#: app/templates/privacy.html:14
+#: app/templates/privacy.html:15
 msgid ""
 "An append-only audit trail of changes — kept as evidence, storing "
 "references, never the content of secrets."
 msgstr ""
 
-#: app/templates/privacy.html:17
+#: app/templates/privacy.html:18
 msgid "How long it is kept"
 msgstr ""
 
-#: app/templates/privacy.html:19
+#: app/templates/privacy.html:20
 #, python-format
 msgid "Deleted items and closed accounts are purged for real after %(days)d days."
 msgstr ""
 
-#: app/templates/privacy.html:20
+#: app/templates/privacy.html:21
 #, python-format
 msgid ""
 "Audit entries are kept for %(days)d days, then removed from the head of "
 "the chain."
 msgstr ""
 
-#: app/templates/privacy.html:23
+#: app/templates/privacy.html:24
 msgid "Your rights"
 msgstr ""
 
-#: app/templates/privacy.html:25
+#: app/templates/privacy.html:26
 msgid ""
 "Export everything about you as machine-readable JSON from the settings "
 "page, at any time, without asking anyone."
 msgstr ""
 
-#: app/templates/privacy.html:26
+#: app/templates/privacy.html:27
 msgid ""
 "Close your account yourself from the settings page — secrets are wiped "
 "immediately, the rest follows the retention period above."
 msgstr ""
 
-#: app/templates/privacy.html:27
+#: app/templates/privacy.html:28
 msgid ""
 "Correct anything about yourself directly — profile, language, timezone, "
 "and every task are editable in place."
 msgstr ""
 
-#: app/templates/privacy.html:30
+#: app/templates/privacy.html:31
 msgid ""
 "Questions about how a specific deployment is operated belong to whoever "
 "runs it — this page describes what the software itself does."
@@ -1213,74 +1235,74 @@ msgstr ""
 msgid "Preferences"
 msgstr ""
 
-#: app/templates/settings.html:188
+#: app/templates/settings.html:195
 msgid "Theme"
 msgstr ""
 
-#: app/templates/settings.html:204
+#: app/templates/settings.html:211
 msgid "Auto follows sunrise and sunset in your timezone."
 msgstr ""
 
-#: app/templates/settings.html:207
+#: app/templates/settings.html:214
 msgid "Timezone"
 msgstr ""
 
-#: app/templates/settings.html:213
+#: app/templates/settings.html:220
 msgid "Due dates are shown and entered in this timezone."
 msgstr ""
 
-#: app/templates/settings.html:215
+#: app/templates/settings.html:222
 msgid "Save preferences"
 msgstr ""
 
-#: app/templates/settings.html:218
+#: app/templates/settings.html:225
 msgid "Your data"
 msgstr ""
 
-#: app/templates/settings.html:221
+#: app/templates/settings.html:228
 msgid ""
 "Download a copy of everything this system stores about you, as a JSON "
 "file."
 msgstr ""
 
-#: app/templates/settings.html:222
+#: app/templates/settings.html:229
 msgid ""
 "The file explains what is not included and why. Secrets such as your "
 "password are never included."
 msgstr ""
 
-#: app/templates/settings.html:224 app/templates/settings.html:237
+#: app/templates/settings.html:231 app/templates/settings.html:244
 msgid "Confirm with your current password"
 msgstr ""
 
-#: app/templates/settings.html:227
+#: app/templates/settings.html:234
 msgid "Download my data"
 msgstr ""
 
-#: app/templates/settings.html:230
+#: app/templates/settings.html:237
 msgid "Close your account"
 msgstr ""
 
-#: app/templates/settings.html:232
+#: app/templates/settings.html:239
 msgid ""
 "Close your account? Your tasks and categories will be removed and sign-in"
 " will stop working."
 msgstr ""
 
-#: app/templates/settings.html:234
+#: app/templates/settings.html:241
 msgid ""
 "Your tasks, categories and API keys are removed, and sign-in stops "
 "working immediately."
 msgstr ""
 
-#: app/templates/settings.html:235
+#: app/templates/settings.html:242
 msgid ""
 "A record that changes happened is kept, as required for security "
 "auditing. It holds no personal details — only which rows changed and "
 "when."
 msgstr ""
 
-#: app/templates/settings.html:240
+#: app/templates/settings.html:247
 msgid "Close my account"
 msgstr ""
 

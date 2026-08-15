@@ -177,7 +177,14 @@
 <form action="{{ url_for('main.save_preferences') }}" method="post">
   {{ csrf_field() }}
   <p>
-    <label for="locale">{{ _('Language') }}</label><br>
+    <label for="locale">{{ _('Language') }}</label>
+    {% if languages|length > 1 %}
+    {# ทางหนีของคนที่เผลอเลือกภาษาที่ตัวเองอ่านไม่ออก (Change Req #1 ข้อ 2) —
+       **ข้อความเป็นอังกฤษตายตัว ห้ามผ่าน gettext** ไม่งั้นมันถูกแปลเป็นภาษา
+       ที่ผู้ใช้อ่านไม่ออกไปด้วย แล้วทางหนีก็หายไปพร้อมกัน #}
+    · <a href="{{ url_for('main.set_language', code='en') }}" lang="en">Reset language to English</a>
+    {% endif %}
+    <br>
     <select id="locale" name="locale">
       {% for code, name in languages.items() %}
       <option value="{{ code }}" {{ 'selected' if code == current_locale else '' }}>{{ name }}</option>

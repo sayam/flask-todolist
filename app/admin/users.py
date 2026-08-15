@@ -108,4 +108,4 @@ def _toggle_suspension(action, user_id, message):
     return redirect(url_for("admin.users"))
 
 
-register_panel("admin.users", _l("Users"))
+register_panel("admin.users", _l("Users"), _l("Users & teams"))

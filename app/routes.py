@@ -51,14 +51,23 @@ bp = Blueprint("main", __name__)
 SHOW_START_KEY = "show_start"
 
 
-def _safe_referrer():
-    """path ของหน้าก่อนหน้า รับเฉพาะที่อยู่ในเว็บเรา ไม่งั้นเป็น open redirect"""
+def _safe_referrer(fallback=None):
+    """path ของหน้าก่อนหน้า รับเฉพาะที่อยู่ในเว็บเรา ไม่งั้นเป็น open redirect
+
+    `fallback` มีไว้ให้หน้า public เลือกปลายทางที่เหมาะกับคนยังไม่ login ได้
+    (ค่าเริ่มต้นคือหน้าแรก — พฤติกรรมเดิมของทุกผู้เรียกไม่เปลี่ยน)
+    """
+    if fallback is None:
+        fallback = url_for("main.index")
     target = request.referrer or ""
     if not target.startswith(request.host_url):
-        return url_for("main.index")
+        return fallback
     path = target[len(request.host_url) :]
-    if not path or path.startswith("/"):
-        return url_for("main.index")
+    # `//` นำหน้า = protocol-relative ออกนอกเว็บได้ (กันด้วย startswith("/"))
+    # ส่วน `..` เดินย้อน path — browser จะ normalize ให้อยู่ในเว็บก็จริง แต่
+    # ปลายทางที่ไม่ตรงกับที่ตาเห็นไม่ควรหลุดจากฟังก์ชันชื่อ "safe" ตั้งแต่ต้น
+    if not path or path.startswith("/") or ".." in path:
+        return fallback
     return "/" + path
 
 
@@ -95,8 +104,15 @@ def privacy():
     """
     from app.purge import AUDIT_RETAIN_DAYS, PURGE_AFTER_DAYS
 
+    # ปุ่มกลับ (Change Req #1): กลับหน้าที่มาอย่างปลอดภัย — referrer นอกเว็บ/
+    # ชี้ตัวเอง ตกไปหน้าแรก (คน login แล้ว) หรือหน้า login (คนยังไม่ login)
+    fallback = url_for("main.index") if current_user.is_authenticated else url_for("auth.login")
+    back_url = _safe_referrer(fallback=fallback)
+    if back_url == url_for("main.privacy"):
+        back_url = fallback
     return render_template(
         "privacy.html",
+        back_url=back_url,
         purge_after_days=PURGE_AFTER_DAYS,
         audit_retain_days=AUDIT_RETAIN_DAYS,
     )
