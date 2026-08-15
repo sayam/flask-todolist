@@ -30,6 +30,17 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Added
 
+- **Opt-in multi-worker with correct metrics**
+  ([ADR 0052](docs/adr/0052-performance-layer-g5.md) — G5 of the governance
+  plan): set `WEB_CONCURRENCY` above 1 together with
+  `METRICS_MULTIPROC_DIR` and `/metrics` now aggregates every worker of the
+  container correctly — each worker snapshots its counters to the declared
+  directory (atomic rename, stdlib only, no new dependency) and the scraped
+  worker merges them; half a configuration refuses to start instead of
+  serving numbers that flip per scrape. The default stays one worker, and
+  replicas remain the primary scaling path. Guarded by
+  `tests/test_metrics_multiproc.py` (gate `metrics-correct-across-workers`
+  — the performance pillar's third gate).
 - **The ISO 27001 backlog, closed to one item** (owner-ordered): a written
   **risk-assessment method and first register** (`docs/RISK-ASSESSMENT.md`
   — likelihood × impact with a fixed product formula so the machine can
@@ -247,7 +258,7 @@ graph. Nothing in the `/api/v1` contract changed; it only gained fields.
 ## [1.0.0] — 2026-08-12
 
 First public release. Everything below arrived across seven planned phases of
-work; the reasoning for each decision lives in the 51 records in
+work; the reasoning for each decision lives in the 52 records in
 [`docs/adr/`](docs/adr/), and the phase-by-phase plan in
 [`docs/ROADMAP.md`](docs/ROADMAP.md).
 

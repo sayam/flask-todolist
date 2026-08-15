@@ -25,6 +25,10 @@ class TestConfig(Config):
 
     # ต้องยาวพอผ่าน check_secret_key() ค่าคงที่ได้ เพราะไม่ใช่คีย์จริง
     SECRET_KEY = "test-secret-key-for-pytest-only-not-a-real-key"
+    # ตรึงโหมด worker เดียว — `.env`/เครื่องที่ตั้ง WEB_CONCURRENCY ไว้ต้องไม่ทำ
+    # เทสต์แดง (หลักเดียวกับ RATELIMIT_ENABLED) · เทสต์ multiproc ตั้งค่าเองรายตัว
+    WEB_CONCURRENCY = 1
+    METRICS_MULTIPROC_DIR = None
     # **อ่านจาก `TEST_DATABASE_URL` เท่านั้น ไม่ใช่ `DATABASE_URL`** — `.env` ของ
     # เครื่องที่รันต้องไม่มีผลกับเทสต์ (หลักเดียวกับ RATELIMIT_ENABLED/DISABLED_PLUGINS
     # ข้างล่าง) ตัวแปรนี้ไม่ถูกตั้งไว้ที่ไหนโดยปริยาย มีไว้ให้ CI matrix กับคนที่
