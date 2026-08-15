@@ -5,8 +5,9 @@
 > จุดยืนของโปรเจกต์: **ความเป็นไปได้ที่เพิ่มความน่าเชื่อถือมาก่อนความพอดี** —
 > รายการนี้จึงจัดเต็มแล้วค่อยคัดออกทีหลัง verdict อยู่ท้ายเอกสาร (ข้อ 4)
 >
-> วันที่สำรวจ: 2026-08 ณ commit `cf15794` · **ทบทวนล่าสุด 2026-08-14 หลังปิด
-> เฟส 8–12** — คำตัดสินเดิมไม่มีข้อไหนถูกกลับ มีแต่ของเพิ่ม (ดูท้ายข้อ 4)
+> วันที่สำรวจ: 2026-08 ณ commit `cf15794` · **ทบทวนล่าสุด 2026-08-15 หลังปิด
+> เฟส 13–18** — คำตัดสินเดิมไม่มีข้อไหนถูกกลับ มีแต่ของเพิ่มและของที่ตัดออก
+> อย่างเปิดเผย (ดูท้ายข้อ 4)
 
 ---
 
@@ -190,6 +191,22 @@ prefix `tdl_*` ทุกตาราง + `tdl_alembic_version` / SQLAlchemy `na
 Flask-Talisman + djlint → Phase 1 / hypothesis → เริ่ม Phase 2 (ใช้กับ tz/filters
 ก่อน) / mutmut nightly → หลัง Phase 0 เสถียร / schemathesis → Phase 3 /
 sqlfluff → เมื่อ migration ซับซ้อนขึ้น (Phase 2)
+
+> **ทบทวน 2026-08-15 (หลังเฟส 13–18):** สี่ตัวในแผนข้างบนไม่เคยถูกนำเข้า
+> และตอนนี้**ตัดออกอย่างเปิดเผย**แทนที่จะค้างเป็นนัดที่เลยมานาน —
+> **djlint/sqlfluff**: template กับ migration มีด่านพฤติกรรมจริงคุมอยู่แล้ว
+> (test_security_headers อ่าน template ตรง ๆ · job `schema` เดิน migration จริง)
+> lint เชิงรูปแบบไม่เพิ่มการจับบั๊กชั้นที่เหลือ · **hypothesis**: ชุด mutation
+> discipline + fuzz ของ schemathesis ครอบเส้นที่ property-based จะครอบ ในสเกล
+> แอปนี้ · **mutmut nightly**: กติกา mutation ทำมือทุกเทสต์ใหม่ (บังคับใน
+> CLAUDE.md) ให้ผลเดียวกันแบบ targeted โดยไม่มี nightly ให้เฝ้า — ทั้งสี่ข้อ
+> กลับเข้าแผนได้ถ้าเงื่อนไขเปลี่ยน (แอปโตจนทำมือไม่ไหว)
+> · **gitlint ในรายการ Phase 0 คือชื่อแนวคิด ไม่ใช่เครื่องมือที่ลง** — ของจริง
+> ที่รันคือ `scripts/lint_commits.py` + job `commit-lint` (เขียนเองเพราะต้องมี
+> กติกา `--no-merges` และเทียบ head ของ PR)
+> · **ของเพิ่มจากเฟส 15**: `cryptography ~=45.0` เป็น crypto dependency ตัวแรก
+> ของ runtime — อยู่ใน category `plugin-auth-totp` ตาม ADR 0025 (ถอด plugin =
+> supply chain หายตาม) ไม่ใช่ `[packages]` ของ core
 
 **schemathesis เข้าแล้วใน Phase 3** (`tests/test_api_fuzz.py`) — สร้างคำขอจาก
 `docs/openapi.json` เองแล้วตรวจว่าคำตอบตรงกับสัญญา รอบแรกที่เปิดใช้จับได้สามอย่าง

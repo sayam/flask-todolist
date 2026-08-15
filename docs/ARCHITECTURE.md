@@ -20,7 +20,8 @@ ADR — ไฟล์นี้จึงเป็น**ดัชนีที่จ�
 |---|---|---|
 | เจ้าของ/ผู้พัฒนา | แก้แล้วไม่พังของเดิม · บทเรียนไม่สูญ | Development · ทุก ADR |
 | ผู้ deploy | รันจริงได้ · ข้อมูลไม่หาย · กู้ระบบได้ | Deployment · Data |
-| ผู้ใช้ | ข้อมูลของตัวเองปลอดภัยและขอคืน/ลบได้ | Security · Data |
+| ผู้ใช้ | ข้อมูลของตัวเองปลอดภัยและขอคืน/ลบได้ · งาน private ไม่รั่วแม้แชร์บางใบ | Security · Data |
+| ผู้ดูแลระบบ (admin) | จัดการบัญชี/วงได้โดยเห็นข้อมูลส่วนบุคคลน้อยที่สุด (mask + unmask ที่ลง audit) | Security (ADR 0044/0045) |
 | ผู้รับ scaffolding (โปรเจกต์อื่น) | เอากฎไปใช้ได้โดยไม่แบกของที่ไม่ใช่ของตัว | Development (ชั้นของกฎ) |
 | ผู้ตรวจ (auditor/เครื่องมือ) | เคลมทุกข้อชี้หลักฐานได้ | ทุกมุมมอง — หลักฐานคือเทสต์ |
 
@@ -35,7 +36,11 @@ core + plugin แบบ Moodle: core รู้แค่*วิธีค้นห
 · จุด plug ทุกชนิดเลือกด้วย config ตัวเดียว: ฐานข้อมูลเลือกด้วย scheme ของ
 DATABASE_URL (`ADR 0026`) · แหล่งความลับด้วย SECRETS_URL (`ADR 0030`) ·
 ปัจจัยยืนยันตัวตนผ่านสัญญาแคบ ๆ ของ `app/services/mfa.py` และ
-`app/services/sso.py` (`ADR 0024` · `ADR 0028`)
+`app/services/sso.py` (`ADR 0024` · `ADR 0028`) — และ auth plugin ภายนอก
+หนึ่งตัวรับได้หลายชุด config เป็น *profile* ที่ประกาศลำดับใน AUTH_PROFILES
+(`ADR 0047` — คำปฏิเสธเป็นที่สิ้นสุด fallback เฉพาะติดต่อไม่ได้) · หน้า admin
+เป็น core package ที่เสียบ panel ได้ ไม่ใช่ plugin — ความสามารถถอดได้ =
+วินัยถอดได้ (`ADR 0044`)
 
 ### 3.2 ข้อมูล (Data)
 
@@ -46,6 +51,10 @@ model ต้องตรงกับ migration เป๊ะ (`tests/test_migrati
 แบบเติมได้อย่างเดียว + hash chain ที่ต่อคิวบนแถวล็อกเดียว (`ADR 0015` ·
 `ADR 0035`) · ทุกคอลัมน์ถูกจัดชั้นและถูกตัดสินเรื่อง export
 (`tests/test_data_classification.py` · `tests/test_personal_data.py`)
+· ความลับปัจจัยที่สอง encrypt at rest ใต้คีย์ที่แยกจาก SECRET_KEY
+(`ADR 0046` · `tests/test_totp_encryption.py`) · org graph เพิ่มสี่ตาราง
+ที่เดินครบวงจรเดิมทุกข้อ และการแบ่งปันข้ามผู้ใช้เผยสี่ฟิลด์ผ่าน view เดียว
+(`ADR 0049` · `tests/test_org_graph.py`)
 
 ### 3.3 ความปลอดภัย (Security)
 
@@ -54,8 +63,10 @@ model ต้องตรงกับ migration เป๊ะ (`tests/test_migrati
 แถวไหนมีด่านรันทุก push หนุน · การตัดสินใจแกน: ของคนอื่นตอบ 404 ไม่ใช่ 403
 (`ADR 0004`) · session ผูกกับ credential ปัจจุบัน (`ADR 0020`) · RBAC ตรวจ
 ใน service (`ADR 0022`) · CSP ไม่มี inline (`ADR 0010`) · MFA เสนอแต่ไม่
-บังคับ พร้อมมาตรการชดเชยที่มีเทสต์คุม (`ADR 0033`) · ชั้น legal เป็น
-worksheet แยก: `docs/PDPA.md`
+บังคับ พร้อมมาตรการชดเชยที่มีเทสต์คุม (`ADR 0033`) · ข้อมูลผู้ใช้บนหน้า
+admin ผ่านชั้น mask ตามชั้นข้อมูล และการเปิดดูเต็มลง audit (`ADR 0045` ·
+`tests/test_masking.py`) · ระงับบัญชีแบบย้อนกลับได้ครอบทุกช่องทางเข้า
+(`tests/test_suspension.py`) · ชั้น legal เป็น worksheet แยก: `docs/PDPA.md`
 
 ### 3.4 การ deploy (Deployment)
 
@@ -65,7 +76,11 @@ stack จริงอยู่ใน `compose.yaml` + overlay ต่อยี่
 proxy เชื่อ header ตามจำนวนชั้นที่ประกาศ (`ADR 0027`) · งานลบข้อมูลตามระยะ
 เป็น systemd timer จริง (`deploy/systemd/`) · migration class ของ plugin
 (live/warm/cold) ประกาศต่อ plugin พร้อมตัวเลขวัดหนุน (`ADR 0041` ·
-`docs/PERFORMANCE.md`)
+`docs/PERFORMANCE.md`) · liveness/readiness แยกกันและไม่มี token
+(healthz/readyz ใน `app/health.py`) · สัญญา N-1 + วินัย expand–contract
+มีด่านรันทุก push (`scripts/n1_smoke.py`) · graceful shutdown เป็นส่วนหนึ่ง
+ของสัญญา rolling (`ADR 0048`) · Prometheus ดูด metrics ผ่านด่าน token จริง
+(`compose.metrics.yaml` · `deploy/prometheus.yml`)
 
 ### 3.5 การพัฒนา (Development)
 
@@ -89,6 +104,10 @@ proxy เชื่อ header ตามจำนวนชั้นที่ปร
 | ASVS ↔ หลักฐาน ↔ crosswalk | `tests/test_asvs.py` · `tests/test_gates.py` |
 | ROPA/runbook ↔ ตาราง/ค่าจริงในโค้ด | `tests/test_ropa.py` |
 | ชั้นข้อมูล ↔ คอลัมน์จริง | `tests/test_data_classification.py` |
+| คำตัดสิน masking ↔ ชั้นข้อมูล | `tests/test_masking.py` |
+| PDPA worksheet ↔ หลักฐานจริง | `tests/test_pdpa.py` |
+| คำประกาศ privacy ของ org graph ↔ พฤติกรรมจริงทุกช่องทาง | `tests/test_org_graph.py` |
+| เอกสารฉบับนี้ ↔ ไฟล์/เทสต์ที่มันอ้าง | `tests/test_architecture.py` |
 | เลขที่โฆษณาในเอกสาร ↔ ดิสก์ | `tests/test_contributor_docs.py` · `tests/test_changelog.py` · `tests/test_skill.py` |
 
 ## 5. เหตุผลของการตัดสินใจ (rationale)

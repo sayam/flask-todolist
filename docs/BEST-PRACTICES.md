@@ -19,7 +19,7 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 |---|---|---|
 | `description_good` MUST | ผ่าน | `README.md` ย่อหน้าแรกบอกว่าเป็นอะไรและแก้ปัญหาอะไร · **ต้องเติมช่อง About ของ repo ด้วย — ตอนนี้ว่าง** |
 | `interact` MUST | ผ่าน | `README.md` มีวิธีติดตั้ง/รัน · `CONTRIBUTING.md` มีวิธีเสนอการเปลี่ยนแปลง · Issues เปิดอยู่ |
-| `contribution` MUST | ผ่าน | `CONTRIBUTING.md` — อธิบายว่าใช้ PR, ต้องผ่าน 26 required check, merge ด้วย rebase, และกติกาลงทะเบียนไฟล์เทสต์ใน `gates.yaml` |
+| `contribution` MUST | ผ่าน | `CONTRIBUTING.md` — อธิบายว่าใช้ PR, ต้องผ่าน 26 required check (จาก 27 check — scorecard ไม่บังคับ), merge ด้วย rebase, และกติกาลงทะเบียนไฟล์เทสต์ใน `gates.yaml` |
 | `contribution_requirements` SHOULD | ผ่าน | `CONTRIBUTING.md` — Conventional Commits (หัว ≤72), ruff/mypy, **กติกา mutation test ของเทสต์ใหม่** |
 | `floss_license` MUST | ผ่าน | `LICENSE` (MIT) · GitHub ตรวจพบเป็น `MIT` แล้ว |
 | `floss_license_osi` SUGGESTED | ผ่าน | MIT เป็นสัญญาอนุญาตที่ OSI รับรอง — [ADR 0038](adr/0038-mit-license.md) |
@@ -29,7 +29,7 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 | `sites_https` MUST | ผ่าน | โฮสต์บน GitHub ทั้งหมด |
 | `discussion` MUST | ผ่าน | GitHub Issues (ค้นได้ · เธรดได้ · เห็นได้โดยไม่ต้องล็อกอิน) |
 | `english` SHOULD | ผ่าน | `README.md` สองภาษา **อังกฤษขึ้นก่อน** · ข้อความในโค้ดเป็นอังกฤษเสมอ (ภาษาไทยอยู่ในไฟล์คำแปล) |
-| `maintained` MUST | ผ่าน | commit ล่าสุด 2026-08-13 · เจ้าของตอบ issue เอง |
+| `maintained` MUST | ผ่าน | commit ล่าสุด 2026-08-15 · เจ้าของตอบ issue เอง |
 
 ## Change Control
 
@@ -68,7 +68,7 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 | `test` MUST | ผ่าน | pytest — **1,002 เทสต์** |
 | `test_invocation` SHOULD | ผ่าน | `pipenv run pytest` |
 | `test_most` SUGGESTED | ผ่าน | coverage gate `fail_under = 96` (**ratchet: ขยับขึ้นได้อย่างเดียว**) + `diff-cover` บังคับบรรทัดที่แก้ 100% |
-| `test_continuous_integration` SUGGESTED | ผ่าน | 24 check ทุก push — รวมสามยี่ห้อฐานข้อมูล, stack จริง, SSO, LDAP, DAST |
+| `test_continuous_integration` SUGGESTED | ผ่าน | 27 check ทุก push — รวมสามยี่ห้อฐานข้อมูล, stack จริง, SSO, LDAP, DAST |
 | `test_policy` MUST | ผ่าน | `CONTRIBUTING.md` + `CLAUDE.md`: **เทสต์ใหม่ทุกตัวต้องถูกพิสูจน์ด้วย mutation test ว่าจับของจริงได้ก่อนถือว่าเสร็จ** และ `diff-cover` บังคับที่ CI · ตั้งแต่เฟส 8 มี `gates.yaml` บังคับอีกชั้นว่า **ไฟล์เทสต์ทุกไฟล์ต้องถูกตัดสินว่าเป็นของ gate ไหน** (`tests/test_gates.py`) |
 | `tests_are_added` MUST | ผ่าน | PR ล่าสุดมีเทสต์มาด้วยทุกใบ — และ `gates.yaml` ทำให้ "ลืมเพิ่มเทสต์" กลายเป็น CI แดง ไม่ใช่เรื่องที่ต้องมีคนสังเกต (`tests/test_gates.py`, `test_overlay.py`, `test_harness.py`, `test_asvs_probe.py`) |
 | `tests_documented_added` SUGGESTED | ผ่าน | `CONTRIBUTING.md` |
@@ -82,10 +82,10 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 |---|---|---|
 | `know_secure_design` MUST | ผ่าน | ประเมินตนเองต่อ **ASVS 5.0 L2 ครบ 253/253 ข้อ** (`docs/ASVS.md`) · การตัดสินใจด้านความปลอดภัยทุกเรื่องมี ADR |
 | `know_common_errors` MUST | ผ่าน | `docs/ASVS.md` ครอบ injection/XSS/CSRF/session/access control · CSP ไม่มี `unsafe-inline` ([ADR 0010](adr/0010-csp-without-unsafe-inline.md)) · ความเป็นเจ้าของข้อมูลตอบ 404 ไม่ใช่ 403 ([ADR 0004](adr/0004-ownership-404-not-403.md)) |
-| `crypto_published` MUST | ผ่าน | scrypt (รหัสผ่าน) · HMAC-SHA256 (สายของ audit, การผูกคุกกี้) · SHA-256 (API token) · TOTP ตาม RFC 6238 |
+| `crypto_published` MUST | ผ่าน | scrypt (รหัสผ่าน) · HMAC-SHA256 (สายของ audit, การผูกคุกกี้) · SHA-256 (API token) · TOTP ตาม RFC 6238 · AES-256-GCM (encryption at rest ของความลับ TOTP — ADR 0046) |
 | `crypto_call` SHOULD | ผ่าน | ใช้ `hashlib`/`hmac`/`secrets` ของ Python และ werkzeug — **ไม่มีการเขียนอัลกอริทึมเอง** |
 | `crypto_floss` MUST | ผ่าน | ทุกตัวเป็น FLOSS |
-| `crypto_keylength` MUST | ผ่าน | ความลับของ token 256 บิต · `SECRET_KEY` บังคับ ≥32 ตัวอักษร · TOTP secret 160 บิต |
+| `crypto_keylength` MUST | ผ่าน | ความลับของ token 256 บิต · `SECRET_KEY` บังคับ ≥32 ตัวอักษร · TOTP secret 160 บิต · `DATA_ENCRYPTION_KEY` 256 บิต (ADR 0046) |
 | `crypto_working` MUST | ผ่าน | ไม่มี MD5/SHA-1 ที่ไหนเลย **ยกเว้น HMAC-SHA1 ของ TOTP ซึ่ง RFC 6238 กำหนด** และ NIST ยังยอมรับสำหรับการใช้แบบ HMAC — บันทึกเปิดเผยไว้ที่ `docs/ASVS.md` V11.4.1 |
 | `crypto_weaknesses` SHOULD | ผ่าน | เช่นเดียวกับข้อบน |
 | `crypto_pfs` SHOULD | ผ่าน | `deploy/nginx-tls.conf` จำกัดไว้ที่ ECDHE เท่านั้น · **วัดจริงทั้งก่อนและหลังแก้** — ก่อนแก้ nginx ยอมรับ `AES128-GCM-SHA256` ซึ่งไม่มี PFS · `scripts/check_tls_pfs.sh` ยืนยัน และ job `stack` รันทุก push |
@@ -159,7 +159,7 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 - `test_policy` / `tests_are_added` — กติกาเดิมเป็น "คนต้องจำ" ตอนนี้มี
   `gates.yaml` ที่บังคับให้ไฟล์เทสต์ทุกไฟล์ถูกตัดสินว่าเป็นของ gate ไหน
   ลืมแล้ว CI แดงทันที
-- `contribution` — required check ขยับจาก 23 เป็น 24 (job `scaffold` เข้าเป็น
+- `contribution` — required check ขยับมาเรื่อย ๆ ตาม job ใหม่ (ปัจจุบัน 26) (job `scaffold` เข้าเป็น
   ด่านบังคับตอนเฟส 9) และ `CONTRIBUTING.md` มีกติกา `gates.yaml` แล้ว
 - `build_reproducible` / `installation_common` — ไม่เปลี่ยน แต่ `overlays/flask/`
   ทำให้มีของที่ *คนอื่น* ติดตั้งได้จริงเป็นครั้งแรก และ job `scaffold` พิสูจน์

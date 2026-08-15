@@ -31,8 +31,18 @@ is emphatically not it.
   network call, no JavaScript
 - Accounts with roles, optional TOTP two-factor, and optional single sign-on
   against an OIDC provider or an LDAP directory
+- Teams: share a task into a team (it reveals exactly four fields), declare
+  "my task depends on yours" by invitation, and get an *at risk* badge when
+  something you rely on is overdue — private tasks never leak even their
+  existence ([ADR 0049](docs/adr/0049-org-todo-graph-privacy-model.md))
+- An admin console — users, teams, runtime environment, live SBOM, lifecycle,
+  latency — where personal data appears **masked by its data class** and
+  revealing it is an audited action; accounts can be suspended reversibly
+- TOTP secrets are **encrypted at rest** (AES-256-GCM under a key separate from
+  `SECRET_KEY` — [ADR 0046](docs/adr/0046-field-encryption-at-rest.md))
 - A REST API at `/api/v1` with an OpenAPI 3.1 contract generated from the code
-- Export your own data or close your own account, without asking anyone
+- Export your own data or close your own account, without asking anyone — and a
+  public `/privacy` page that states what is kept and for how long
 
 There is **no signup page and no password reset by email**, both on purpose — the
 project stores no email addresses. Accounts are created from the command line.
@@ -102,6 +112,7 @@ Not "we have tests" — this is what runs on every push:
 | Accessibility | pa11y-ci driving real Chromium over dark mode, an alternate theme, and Thai — because contrast differs in each |
 | Integration | the whole stack behind nginx with two replicas, TLS, a real OIDC provider, a real LDAP directory, a real Vault, a real systemd timer |
 | Contracts | the OpenAPI file, the database schema, and the ASVS worksheet are regenerated and compared against what is committed |
+| Upgrades & observability | the previous release's code is run against the new schema on every push (**N-1 contract**, job `n-1`), and Prometheus is proven to reach `/metrics` through the token gate (job `scrape`) |
 
 **Every new test must be proven to catch something** before it counts as
 finished: break the code it claims to cover, watch it go red, restore. That rule
@@ -150,7 +161,8 @@ Written in Thai, because that is the language the thinking happened in.
 
 Python 3.13 · Flask · Flask-SQLAlchemy with 2.0 typed models · Flask-Migrate ·
 Flask-Login · Flask-WTF · Flask-Limiter · Flask-Babel · flask-smorest +
-marshmallow · Talisman · SQLite / MySQL / MariaDB · pipenv
+marshmallow · Talisman · cryptography (field encryption, in the TOTP plugin's
+own dependency category) · SQLite / MySQL / MariaDB · gunicorn · pipenv
 
 ---
 
@@ -177,8 +189,17 @@ reverse proxy จริง IdP จริง และ directory จริง โ
 - โหมดสว่าง มืด และอัตโนมัติ — อัตโนมัติสลับตามเวลาดวงอาทิตย์ขึ้น-ตกจริงของ
   เขตเวลานั้น จากตารางครบทั้ง 598 เขตที่ฝังมากับแอป ไม่ต่อเน็ตและไม่ใช้ JS
 - บัญชีผู้ใช้ที่มีบทบาท · ปัจจัยที่สองแบบ TOTP · และ SSO ผ่าน OIDC หรือ LDAP
+- วงทำงาน: แชร์งานเข้าวง (เผยสี่ฟิลด์เท่านั้น) · ประกาศ "งานของฉันพึ่งงานของคุณ"
+  แบบเชิญ–ยอมรับ · ป้าย *เสี่ยง* เมื่อของที่พึ่งเลยกำหนด — งาน private
+  ไม่เผยแม้การมีอยู่ ([ADR 0049](docs/adr/0049-org-todo-graph-privacy-model.md))
+- หน้าผู้ดูแล — ผู้ใช้ วง สภาพแวดล้อม SBOM สด lifecycle latency — ข้อมูล
+  ส่วนบุคคลถูก **mask ตามชั้นข้อมูล** เปิดดูเต็มต้องลง audit · ระงับบัญชี
+  แบบย้อนกลับได้
+- ความลับ TOTP **encrypt at rest** (AES-256-GCM ใต้คีย์ที่แยกจาก
+  `SECRET_KEY` — [ADR 0046](docs/adr/0046-field-encryption-at-rest.md))
 - REST API ที่ `/api/v1` พร้อมสัญญา OpenAPI 3.1 ที่ generate จากโค้ด
-- ขอสำเนาข้อมูลของตัวเอง และปิดบัญชีตัวเองได้ โดยไม่ต้องขอใคร
+- ขอสำเนาข้อมูลของตัวเอง และปิดบัญชีตัวเองได้ โดยไม่ต้องขอใคร · มีหน้า
+  `/privacy` สาธารณะบอกว่าเก็บอะไรนานแค่ไหน
 
 **ไม่มีหน้าสมัครสมาชิกและไม่มีการรีเซ็ตรหัสผ่านทางอีเมล** ทั้งคู่ตั้งใจ —
 ระบบไม่เก็บอีเมล · บัญชีสร้างจากบรรทัดคำสั่ง
@@ -230,7 +251,9 @@ core ห้ามรู้จักชื่อ plugin ตัวใดตัว�
 ruff ที่เปิดทุกกฎ · mypy strict ที่ขยายได้อย่างเดียว · `pip-audit` · SBOM ·
 secret scan ทั้งประวัติ · **ZAP ที่ login แล้วยิงใส่แอปที่รันอยู่จริง** ·
 pa11y-ci บน Chromium จริงทั้งโหมดมืด ธีมอื่น และภาษาไทย · stack เต็มหลัง nginx
-ที่มีสอง replica, TLS, IdP จริง, LDAP จริง, Vault จริง, systemd timer จริง
+ที่มีสอง replica, TLS, IdP จริง, LDAP จริง, Vault จริง, systemd timer จริง ·
+**โค้ดของ release ก่อนหน้ารันทับ schema ใหม่ทุก push** (สัญญา N-1 — job `n-1`)
+· Prometheus ดูด `/metrics` ผ่านด่าน token จริง (job `scrape`)
 
 **เทสต์ใหม่ทุกตัวต้องถูกพิสูจน์ว่าจับของจริงได้** ก่อนถือว่าเสร็จ — พังโค้ดที่มัน
 อ้างว่าคุ้ม ดูให้แดง แล้วคืน · กติกาข้อนี้จับเทสต์ลำดับการเรียงที่ผ่านทั้งที่ถอด
@@ -245,7 +268,8 @@ export และวัดผลแล้ว:
 
 - [`gates.yaml`](gates.yaml) — ดัชนี gate ทั้ง repo **ตรวจสองทิศ**: ทุก job
   ต้องมี gate และไฟล์เทสต์ทุกไฟล์ต้องเป็นของ gate เดียว · gate จะอ้างข้อ ASVS
-  ได้ก็ต่อเมื่อหลักฐานของข้อนั้นชี้กลับมาหามันจริง
+  ได้ก็ต่อเมื่อหลักฐานของข้อนั้นชี้กลับมาหามันจริง · ทุก gate ประกาศ `layer`
+  (`baseline`/`business`/`internal`) ซึ่งเป็นตัวแบ่งใบ SKILL สองใบ
 - [`SKILL.md`](SKILL.md) — กฎ baseline 60 ข้อ **generate จาก gate ที่ portable**
   แต่ละข้อพก "กับดักที่ให้กำเนิดมัน" มาด้วย · เขียนกฎลงไฟล์นี้ตรง ๆ ไม่ได้
   ต้องเพิ่ม gate แล้ว regenerate · ข้อตกลงระดับตัวแอป (ที่แอปอื่นเลือกต่างได้
@@ -262,6 +286,10 @@ export และวัดผลแล้ว:
 [`docs/adr/`](docs/adr/) 49 ใบ (ทุกการตัดสินใจ ทางที่ไม่ได้เลือก และเงื่อนไข
 ที่จะทำให้มันหมดอายุ) · [`docs/ROADMAP.md`](docs/ROADMAP.md) (เฟส 0–7 ของตัวแอป)
 · [`docs/ROADMAP-INFRA.md`](docs/ROADMAP-INFRA.md) (เฟส 8–12 ของ scaffolding) ·
+[`docs/ROADMAP-FEATURES.md`](docs/ROADMAP-FEATURES.md) (เฟส 13–18 — ชั้นฟีเจอร์
+ของ v1.1.0: ชั้นของกฎ · admin · encryption · operations · auth profiles ·
+org graph) · [`docs/PDPA.md`](docs/PDPA.md) (worksheet แบบเดียวกับ ASVS) ·
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) (42010) ·
 [`docs/ASVS.md`](docs/ASVS.md) · [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) ·
 [`docs/DATA-CLASSIFICATION.md`](docs/DATA-CLASSIFICATION.md) ·
 [`docs/OPERATIONS.md`](docs/OPERATIONS.md) ·

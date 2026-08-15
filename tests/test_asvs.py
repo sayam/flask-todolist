@@ -218,6 +218,23 @@ def test_gaps_are_listed_in_the_backlog(rows):
     assert not missing, f"ข้อที่ยังไม่ผ่านแต่ไม่อยู่ใน backlog: {missing}\nงานที่ไม่มีใครเห็นคืองานที่ไม่มีใครทำ"
 
 
+def test_backlog_entries_still_fail(rows):
+    """ทิศที่สองของ backlog: ข้อที่อยู่ใน backlog ต้องยัง `ยังไม่ผ่าน` จริง
+
+    ทิศแรก (ยังไม่ผ่าน → ต้องอยู่ใน backlog) มีมานานแล้ว แต่ข้อที่ถูกแก้จนผ่าน
+    แล้วค้างอยู่ใน backlog ไม่มีอะไรฟ้อง — เจอจริงตอนตรวจหลังเฟส 18:
+    V13.1.1 ผ่านตั้งแต่ P7-08 แต่ชื่อยังแขวนอยู่ในกลุ่ม "เอกสารที่ยังไม่ได้เขียน"
+    """
+    text = WORKSHEET.read_text(encoding="utf-8")
+    backlog = text.split(BACKLOG_HEADING, 1)[1].split("<!--", 1)[0]
+    failing = {row[0] for row in rows if row[3] == GAP}
+    listed = set(re.findall(r"V\d+\.\d+\.\d+", backlog))
+    stale = sorted(listed - failing)
+    assert not stale, (
+        f"อยู่ใน backlog แต่สถานะจริงไม่ใช่ 'ยังไม่ผ่าน' แล้ว: {stale}\nถอดชื่อออกจากกลุ่มใน backlog ให้ตรงกับตาราง"
+    )
+
+
 def test_unassessed_count_only_goes_down(rows):
     """ratchet: จำนวนข้อที่ยังไม่ได้ประเมินลดลงได้อย่างเดียว"""
     unassessed = [row[0] for row in rows if row[3] == UNASSESSED]

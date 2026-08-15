@@ -74,7 +74,12 @@ with a request an ordinary user could send.
   it multiplies the effective limit. The app warns about this at startup rather
   than refusing to run, because it is correct for a single worker.
 - Findings that require an attacker who already has the server's `SECRET_KEY`,
-  filesystem, or database.
+  filesystem, or database — **except** anything that reads a field-encrypted
+  secret out of a database dump alone: since
+  [ADR 0046](docs/adr/0046-field-encryption-at-rest.md) TOTP secrets are
+  encrypted under a separate `DATA_ENCRYPTION_KEY`, so a database-only
+  compromise that yields them **is** in scope. `DATA_ENCRYPTION_KEY` is a
+  second must-protect secret, deliberately not derived from `SECRET_KEY`.
 - Volumetric denial of service, and automated scanner output pasted without a
   reproduction.
 
@@ -146,7 +151,12 @@ PoC มีก็ดีแต่ไม่จำเป็น — คำอธิ�
   ระบบไม่เก็บอีเมลจึงไม่มีที่ให้ส่งลิงก์รีเซ็ตไป
 - **`memory://` นับโควตาแยกต่อ process** รันหลาย worker แล้วเพดานจริงจะเป็น N เท่า
   แอปเตือนตอน start แทนที่จะปฏิเสธไม่ start เพราะมันถูกต้องสำหรับ worker เดียว
-- สิ่งที่ต้องให้ผู้โจมตีมี `SECRET_KEY` ไฟล์บนเครื่อง หรือฐานข้อมูลอยู่แล้ว
+- สิ่งที่ต้องให้ผู้โจมตีมี `SECRET_KEY` ไฟล์บนเครื่อง หรือฐานข้อมูลอยู่แล้ว —
+  **ยกเว้น** การอ่านความลับที่ encrypt ระดับ field ออกจาก dump ของฐานข้อมูล
+  อย่างเดียว: ตั้งแต่ [ADR 0046](docs/adr/0046-field-encryption-at-rest.md)
+  ความลับ TOTP ถูก encrypt ใต้ `DATA_ENCRYPTION_KEY` ที่แยกจาก `SECRET_KEY`
+  การเจาะได้แค่ฐานข้อมูลแล้วอ่านมันออก **อยู่ในขอบเขต** · `DATA_ENCRYPTION_KEY`
+  เป็นความลับตัวที่สองที่ต้องปกป้องเท่ากัน
 - DoS แบบยิงปริมาณ และผลจาก scanner ที่วางมาดิบ ๆ โดยไม่มีวิธีทำซ้ำ
 
 ไม่แน่ใจว่าเข้าข่ายไหม — **แจ้งมาเถอะ** รายงานซ้ำเสียเวลาไม่กี่นาที

@@ -19,6 +19,9 @@
 - เพิ่ม dependency: `pipenv install <pkg>` (ห้ามใช้ `pip install` ตรง ๆ — Pipfile/Pipfile.lock จะไม่ sync)
 - สร้าง user: `pipenv run flask create-user <ชื่อ>` (ไม่มีหน้าสมัครสมาชิก โดยตั้งใจ)
 - ดู user: `pipenv run flask list-users`
+- ปิดบัญชี (ทางเดียวที่ถูก): `pipenv run flask delete-user <ชื่อ>` (ADR 0034)
+- ระงับ/เลิกระงับบัญชี (PDPA ม.34): `pipenv run flask suspend-user <ชื่อ>` /
+  `unsuspend-user <ชื่อ>` — ระงับ ≠ ลบ ย้อนกลับได้เสมอ ข้อมูลไม่ถูกแตะ
 - ตั้งรหัสผ่านให้คนอื่น (ทางกู้บัญชีทางเดียว): `pipenv run flask set-password <ชื่อ>`
 - ส่งออกข้อมูลของผู้ใช้: `pipenv run flask export-user <ชื่อ> [--output ไฟล์]`
 - ตั้งบทบาท: `pipenv run flask set-role <ชื่อ> admin|user` (ทางเดียวที่ตั้ง admin คนแรกได้)
@@ -38,7 +41,8 @@
 ## Structure
 - `app/__init__.py` — app factory (`create_app`), init db/migrate/csrf/limiter/login_manager
   และ errorhandler ของ 429
-- `app/models.py` — SQLAlchemy models ของ core (`User`, `ApiToken`, `Category`, `Todo`)
+- `app/models.py` — SQLAlchemy models ของ core (`User`, `ApiToken`, `Category`,
+  `Todo` และของ org graph: `Team`, `TeamMember`, `TodoShare`, `TodoDependency`)
   แบบ 2.0 typed (`Mapped[]`) — ของ plugin อยู่ใน `models.py` ของ plugin เอง
 - `app/services/` — **ตรรกะทั้งหมดอยู่ที่นี่ และไม่รู้จัก HTTP เลย** (ดูหัวข้อ service layer)
   `lookup.by_id()` เป็นทางเดียวที่หาแถวตาม id ที่มาจากภายนอก (กัน id เกิน 64 บิต → 500)
@@ -46,16 +50,42 @@
   เป็น **adapter บาง ๆ** เหนือ service ไม่ใช่ที่อยู่ของตรรกะ
 - `app/api/` — `/api/v1` (flask-smorest) adapter อีกตัวบน service ชุดเดียวกัน
 - `app/auth.py` — login/logout + ขั้นที่สองของ MFA ผูกกับ blueprint `auth`
-- `app/admin.py` — หน้าของผู้ดูแลระบบ (blueprint `admin`) ทำงานกับข้อมูล **ของคนอื่น**
+- `app/admin/` — **package** ของผู้ดูแลระบบ (blueprint `admin` — ADR 0044):
+  `__init__.py` (registry ของ panel — หน้าใหม่เรียก `register_panel()` ตอน import
+  แล้ว nav วนจาก registry) · `users.py` (บทบาท + **unmask ที่ลง audit** +
+  ระงับ/เลิกระงับ) · `teams.py` (วงของ org graph — ADR 0049) · `system.py`
+  (environment/lifecycle/observability/SBOM) · ทำงานกับข้อมูล **ของคนอื่น**
   จึงแยกจาก `routes.py` ที่ทำงานกับข้อมูลของเจ้าของ session เท่านั้น
+  · **ข้อมูลผู้ใช้บนหน้า admin ผ่านชั้น mask ตามชั้นข้อมูลเสมอ** (ADR 0045 —
+  `app/services/masking.py`: C1/C3 ไม่ออกจอ · C2 mask · unmask เป็น POST ที่ลง
+  audit) เพิ่มคอลัมน์ใหม่ต้องมาตัดสินที่นั่นด้วย (`tests/test_masking.py` บังคับ)
 - `app/session_security.py` — อายุ/การผูก/การล้าง session ทั้งหมด (ดูหัวข้อ session)
 - `app/password_blocklist.txt` — **ไฟล์ที่ generate มา ห้ามแก้ด้วยมือ**
   (`scripts/build_password_blocklist.py`)
 - `app/cli.py` — custom flask CLI commands
+- `app/health.py` — `/healthz` (liveness — **ไม่แตะ DB โดยตั้งใจ**) + `/readyz`
+  (SELECT 1 จริง → 200/503) ไม่มี token ไม่มีข้อมูลภายใน (ADR 0048) ·
+  `logging_setup` ข้าม log รายคำขอของสอง path นี้ (ล้มยัง log) · HEALTHCHECK
+  ของ image ยิง `/readyz` พร้อม header `X-Forwarded-Proto` — **อย่าประกาศ
+  healthcheck ทับใน compose** (เคยทำแล้ว stack TLS พังทั้งแถบเพราะ header หาย)
+- `app/services/teams.py` + `sharing.py` + `dependencies.py` — org graph
+  (ADR 0049): วง admin-only · แชร์เผยสี่ฟิลด์ผ่าน `SharedTodoView` เท่านั้น ·
+  dependency เชิญ→ยอมรับ · จุดตัดสินการมองเห็นเดียว `sharing.can_see_todo()`
+  และจุดตัดเดียว `sever_invisible_dependencies()` · impact deterministic กันวงวน
+- `app/services/suspension.py` — ระงับบัญชี (ม.34) · `app/services/masking.py` —
+  mask ตามชั้นข้อมูล (ADR 0045) · `app/services/system_info.py` — ข้อมูลหน้า
+  environment/SBOM/lifecycle ของ admin
+- `app/plugins/auth/totp/crypto.py` — AES-256-GCM ของความลับ TOTP (ADR 0046)
+  รูปเก็บ `enc:v1:<nonce>:<ct>` · คีย์คือ `DATA_ENCRYPTION_KEY` · แถว legacy
+  ถูก encrypt ตอน verify สำเร็จครั้งถัดไป (ตาราง plugin อยู่นอกสาย alembic)
+- `compose.metrics.yaml` + `deploy/prometheus.yml` — Prometheus+Grafana ดูด
+  `/metrics` จริง (token อยู่ในไฟล์ `METRICS_TOKEN_FILE` อ่านใหม่ทุก scrape)
+  job `scrape` พิสูจน์ทุก push · `scripts/n1_smoke.py` + job `n-1` — โค้ดของ
+  tag ล่าสุดต้องให้บริการบน schema ของ HEAD (ADR 0048 · expand–contract)
 - `app/tz.py` — แปลงเวลา UTC ↔ เวลาท้องถิ่นของผู้ใช้
 - `app/theme.py` — เลือกชุดสีและโหมด, `app/sun_data.py` — ตารางดวงอาทิตย์ (generate)
-- `app/plugins/` — registry ของ plugin + ตัว plugin เอง (ชนิด `themes`, `auth`
-  และ `db` — ดูหัวข้อ "สถาปัตยกรรม plugin")
+- `app/plugins/` — registry ของ plugin + ตัว plugin เอง (5 ชนิด: `themes`,
+  `auth`, `db`, `cache`, `secrets` — ดูหัวข้อ "สถาปัตยกรรม plugin")
 - `app/metrics.py` — latency histogram ต่อ endpoint + `/metrics` (Prometheus)
   **ต้องมี token เสมอ** (ด่านเดียวกับ `/api/v1`) · **label เป็นชื่อ endpoint
   ไม่ใช่ `request.path`** ไม่งั้นคนนอกยิง path มั่ว ๆ ให้ time series ระเบิดได้
@@ -114,6 +144,10 @@
   · `portable: true` ต้องมี `born_from` · `standard` อ้างได้เฉพาะข้อ ASVS
   ที่ประเมินว่า "ผ่าน" **และหลักฐานของแถวนั้นต้องชี้กลับมาหา gate นี้จริง**
   (อ้างแถวที่มีอยู่แต่หลักฐานไม่หนุน = แดง)
+- **ทุก gate ประกาศ `layer:`** — `baseline` (สากล ต้อง portable → `SKILL.md`) ·
+  `business` (ข้อตกลงระดับชนิดแอป → `SKILL-TODOLIST.md` ที่ generate จากตัว
+  render เดียวกัน) · `internal` (ของ repo นี้) — ADR 0042 · `tests/test_gates.py`
+  บังคับความสอดคล้องของชั้น
 - `SKILL.md` — กฎสากลของ scaffolding **generate มา ห้ามแก้ด้วยมือ**
   (`scripts/build_skill.py` จาก portable gate ใน `gates.yaml`) · กฎใหม่ที่เป็น
   สากล = เพิ่ม gate `portable: true` + `born_from` แล้ว regenerate — ห้ามเขียน
@@ -175,6 +209,9 @@
 - Route คืน `render_template`/`redirect` เท่านั้น ไม่คืน raw string
 - Query model นอก request ต้องอยู่ใน `with app.app_context():`
 - **ทุก route ต้องมี `@login_required`** และ query ต้อง filter ด้วย `user_id=current_user.id` เสมอ
+  — ข้อยกเว้นที่ตั้งใจมีเท่านี้: `/login*` · `/lang/<code>`+`/mode/<value>` (ใช้จาก
+  หน้า login) · `/privacy` (PDPA ม.23) · `/healthz`+`/readyz` (ของ orchestrator —
+  ADR 0048) · `/api/v1`+`/metrics` (ด่าน token คนละชั้น)
 - **แถวในลิสต์งานอ่านอย่างเดียว** การแก้อยู่ที่หน้า `/edit/<id>` แยกต่างหาก
   เพราะมีทั้งชื่อ หมวด วันเริ่ม และกำหนดส่ง ใส่ในแถวเดียวแล้วอ่านไม่ออก
 - checkbox "แสดงวันเริ่ม" จำไว้ใน session ต้องมี hidden `filters_submitted`
@@ -261,6 +298,8 @@ POST ที่ทั้งไม่มี token และไม่ได้ logi
 | POST `/login` ถูก แต่เปิดการยืนยันสองขั้นไว้ | 302 → `/login/verify` (ยังไม่ถือว่า login) |
 | GET หน้าอื่นระหว่างรอขั้นที่สอง | 302 → `/login` (ยังไม่มีสิทธิ์อะไรเลย) |
 | session หมดอายุ / รหัสผ่านถูกเปลี่ยนจากที่อื่น | 302 → `/login` พร้อม flash |
+| บัญชีถูกระงับ (ม.34) ระหว่างมี session | 302 → `/login` พร้อม flash (ตัดที่คำขอถัดไปทันที) |
+| POST `/login` ของบัญชีที่ถูกระงับ (รหัสถูกก็ตาม) | 403 + audit `auth.login_suspended` |
 | เข้าหน้าผู้ดูแลโดยไม่ใช่ admin | 403 (ไม่ใช่ 404 — ดู ADR 0022) |
 
 ทั้งสองด่านยังอยู่ครบ แค่ CSRF มาก่อน — คนนอกขอ token จากหน้า `/login` ได้ก็จริง
@@ -277,6 +316,14 @@ POST ที่ทั้งไม่มี token และไม่ได้ logi
   ห้ามใส่ default กลับเข้าไปเพื่อความสะดวก มีเทสต์ใน `tests/test_config.py` ดักไว้
 - เปลี่ยน `SECRET_KEY` แล้ว session และ CSRF token เดิมใช้ไม่ได้ ทุกคนต้อง login ใหม่
 - `.env` ถูก gitignore — `.env.example` เป็นตัวที่ commit
+- `DATA_ENCRYPTION_KEY` (base64 ของ 32 ไบต์ — ADR 0046) คีย์ encrypt ความลับ
+  TOTP · แยกจาก `SECRET_KEY` โดยตั้งใจ (หมุนคนละจังหวะ) · อยู่ใน `CORE_SECRETS`
+  จึงมาจาก secrets source ได้ · **ทำหาย = ความลับ TOTP อ่านไม่ได้ถาวร**
+  ไม่มีคีย์ plugin ปิดตัวเอง (enroll ไม่ได้ แต่แอปไม่พัง)
+- `AUTH_PROFILES` (ADR 0047) — auth plugin เดียวหลายชุด config:
+  `"oidc:corp,ldap:hq"` ลำดับประกาศ = ลำดับลอง · คีย์ต่อ profile
+  (`OIDC_CORP_ISSUER`) **ไม่ตกกลับคีย์เปล่า** · ปฏิเสธ = สิ้นสุด fallback
+  เฉพาะ "ติดต่อไม่ได้" · config ผิด/ซ้ำ/ชี้ของที่ไม่มี = แอปไม่ start
 - `LOGIN_RATE_LIMIT` (default `5 per minute; 20 per hour`) และ `RATELIMIT_STORAGE_URI`
   (default `memory://`) ปรับผ่าน env ได้
 - **`RATELIMIT_STORAGE_URI` ตามหลัง `CACHE_URL` โดยค่าเริ่มต้น** (P5-07) — ตั้ง store
@@ -367,8 +414,8 @@ session มาก่อนโปรไฟล์เพื่อให้กดส
 
 ## สถาปัตยกรรม plugin
 
-เป้าหมายระยะยาวคือให้ todolist เป็น core + plugin แบบ Moodle ตอนนี้ทำแล้ว
-เฉพาะชนิด `theme` แต่ registry ออกแบบให้เพิ่มชนิดอื่นได้โดยไม่ต้องรื้อ
+เป้าหมายระยะยาวคือให้ todolist เป็น core + plugin แบบ Moodle — ตอนนี้มี **5 ชนิด**
+บนดิสก์แล้ว (`themes` · `auth` · `db` · `cache` · `secrets`) registry เดียวกันหมด
 
 **สัญญาที่ห้ามผิด**
 - core **ห้าม hardcode ชื่อ plugin ตัวใดตัวหนึ่ง** — รู้แค่วิธีค้นหา
@@ -407,7 +454,12 @@ session มาก่อนโปรไฟล์เพื่อให้กดส
   **plugin แม่ประกาศแทนส่วนเสริมไม่ได้** — แต่ละจุด plug ถูกตัดสินด้วย manifest
   ของตัวเองเท่านั้น ไม่งั้นคำว่า "ถอดไดเรกทอรีแล้ว supply chain หายไปด้วย" ไม่จริง
   (ของที่ core มีอยู่แล้วเช่น `sqlalchemy` ไม่ต้องประกาศ เพราะถอด plugin ก็ถอดมันไม่ได้)
-- **ไม่มีไลบรารี = ปิดตัวเอง ไม่ใช่พัง** — `import` ที่ล้มเป็นสถานะปกติที่ออกแบบไว้
+- **ไม่มีไลบรารี = ปิดตัวเอง ไม่ใช่พัง** — ใช้กับ **plugin เต็มตัวด้วย** ไม่ใช่แค่
+  ส่วนเสริม: `plugins.requirements_met()` เช็ค `requires.pip` ของ manifest
+  ตัวที่ขาดหายจากรายการที่ใช้งานได้ (เช่น totp หายจาก `mfa.available()`)
+  พร้อม warn ครั้งเดียวต่อ process — ADR 0046 ทำให้ auth/totp มีไลบรารีจริง
+  เป็นครั้งแรก (`cryptography`) job `bare` จึงเดินเส้นนี้ทุก push
+  · `import` ที่ล้มเป็นสถานะปกติที่ออกแบบไว้
   (หลักเดียวกับตารางที่ยังไม่ถูกสร้าง) เส้นทาง "ไม่มีของเสริม" ต้องเป็นโค้ด
   เส้นเดียวกับตอนที่ยังไม่เคยมี ไม่ใช่เส้นทางสำรองที่เขียนเพิ่ม
 - **ชั้นข้อมูลของคอลัมน์ plugin ประกาศใน `models.py` ของ plugin เอง**
@@ -466,7 +518,8 @@ session มาก่อนโปรไฟล์เพื่อให้กดส
 
 ### สวิตช์ปิดตอน runtime (`DISABLED_PLUGINS`)
 - ปิดจุด plug ได้ทุกชั้นด้วยคีย์เดียวกับที่ `flask plugin-list` แสดง
-  (`themes/ocean`, `auth/totp`, `auth/totp#qr-segno`) คั่นด้วยจุลภาค ไม่ต้องแก้โค้ด
+  (`themes/ocean`, `auth/totp`, `auth/totp#qr-segno` และ **auth profile ทีละตัว**
+  ด้วย `auth/oidc:corp` — ADR 0047) คั่นด้วยจุลภาค ไม่ต้องแก้โค้ด
   ไม่ต้องรอ deploy — มีไว้สำหรับวันที่ CVE ของไลบรารีใน plugin ออกตอนบ่ายสาม
 - **ปิดแล้วต้องเหมือนไม่เคยวางไดเรกทอรีลงไป** การกรองอยู่ที่ `discover()` กับ
   `enhancements()` ที่เดียว ห้ามเพิ่มเงื่อนไข "ถ้าปิดอยู่ให้..." กระจายตามที่ใช้งาน
@@ -547,7 +600,9 @@ session มาก่อนโปรไฟล์เพื่อให้กดส
 ## หน้า Settings
 - `/settings` รวม โปรไฟล์ + **รหัสผ่าน** + **API token** + **การยืนยันสองขั้น** +
   ภาษา + ธีม + โหมด + timezone ไว้ที่เดียว
-  nav มีแค่ลิงก์ Settings (กับ Users ถ้าเป็น admin) ส่วนหน้า login มีตัวสลับภาษา/โหมดของตัวเอง
+  nav = Tasks · Categories · **Teams (เฉพาะคนที่อยู่ในวงอย่างน้อยหนึ่งวง)** ·
+  Settings (กับ Users ถ้าเป็น admin) · footer มีลิงก์ `/privacy` สาธารณะ
+  ส่วนหน้า login มีตัวสลับภาษา/โหมดของตัวเอง
   (route `/lang/<code>` และ `/mode/<value>` ใช้จากหน้า login ไม่ต้อง login)
 - `_safe_referrer()` ใน `routes.py` ใช้ร่วมกันทั้งสลับภาษาและสลับโหมด รับเฉพาะ path ในเว็บเรา
 - **username แก้ที่หน้านี้ไม่ได้** เพราะเป็นตัวระบุตอน login (ช่องเป็น `disabled`)
@@ -586,6 +641,9 @@ session มาก่อนโปรไฟล์เพื่อให้กดส
 - เมนู "Users" บน nav โผล่เฉพาะ admin — **การซ่อนเมนูไม่ใช่การกันสิทธิ์**
 
 ### MFA (ADR 0024)
+- **ความลับ TOTP ถูก encrypt at rest แล้ว** (ADR 0046 — `EncryptedSecret` ใน
+  models ของ plugin · dual-read แถว legacy + encrypt-on-verify) และ plugin
+  ปิดตัวเองเมื่อไม่มี `cryptography` หรือไม่มีคีย์
 - core รู้จักปัจจัยที่สองผ่าน `app/services/mfa.py` เท่านั้น และรู้แค่
   `is_enrolled(user)` / `verify(user, code)` — **ห้ามมีชื่อ plugin ในโค้ด core
   แม้แต่ในคอมเมนต์** (`tests/test_plugins.py` grep บังคับ)
@@ -688,7 +746,7 @@ session มาก่อนโปรไฟล์เพื่อให้กดส
   · **`UNASSESSED_CEILING` เป็น 0 แล้ว** (P7-02 ประเมินครบ 253 ข้อ) สถานะ
   `ยังไม่ประเมิน` จึงเป็นข้อห้ามถาวร — ข้อกำหนดใหม่ที่มากับเวอร์ชันถัดไป
   ต้องถูกประเมินใน commit เดียวกับที่ขยับเวอร์ชัน ไม่ใช่ค้างไว้
-- ผลปัจจุบัน: **ผ่าน 138 · ไม่เกี่ยวข้อง 67 · ยังไม่ผ่าน 48**
+- ผลปัจจุบัน: **ผ่าน 141 · ไม่เกี่ยวข้อง 64 · ยังไม่ผ่าน 48**
   ครึ่งหนึ่งของช่องที่ไม่ผ่านคือ **เอกสารที่ยังไม่ได้เขียน** ไม่ใช่โค้ดที่ยังไม่มี
 - เพิ่มแถวเมื่อขยับเวอร์ชัน: `scripts/build_asvs_worksheet.py --fetch` แล้วรันเปล่า
   **สคริปต์ไม่เคยทับคำตัดสินที่เขียนไว้แล้ว** และอ่านเฉพาะใต้เครื่องหมายในไฟล์
@@ -922,7 +980,7 @@ log ขึ้น "Running upgrade" ครบทุกตัว exit code เป�
   เป็นภาพถ่ายที่มีเทสต์กับ job `openapi` ใน CI เทียบว่าตรงกับโค้ดเป๊ะ
 - **เวอร์ชันอยู่ที่ path และ v1 แก้ไม่ได้** เพิ่ม field/endpoint/query ที่มีค่าเริ่มต้นได้
   แต่ลบ/เปลี่ยนชื่อ/เปลี่ยนชนิด/เปลี่ยน status code/เปลี่ยนความหมายของ `code` ต้องขึ้น v2
-- ยังไม่มี: pagination, ETag, rate limit ของ API, หน้าเว็บสำหรับออก token
+- ยังไม่มี: pagination, ETag, rate limit ของ API
 
 ## Personal access token (Phase 3 — ดู ADR 0017)
 
@@ -1041,7 +1099,7 @@ image, timer ของงานลบข้อมูล
 ของ Phase 5 เจอ** (สาย audit ต่อขนานข้าม process ไม่ได้ → ADR 0032)
 
 **อะไรเปลี่ยนไปหลัง Phase 7**: มีการประเมินต่อเกณฑ์ภายนอกที่ **หลักฐานทุกชิ้น
-ชี้ไปได้จริง** (ASVS 253/253 · ผ่าน 138) · ZAP ยิง stack จริงทุก push แบบที่ login
+ชี้ไปได้จริง** (ASVS 253/253 · ผ่าน 141) · ZAP ยิง stack จริงทุก push แบบที่ login
 แล้ว · ผู้ใช้ขอสำเนาและปิดบัญชีตัวเองได้ · log ไปอยู่ที่ที่ค้นได้พร้อมกฎที่**พิสูจน์
 แล้วว่าดังจริง** · และเอกสารทุกฉบับที่เพิ่มมามีเทสต์คุมไม่ให้เน่า
 
