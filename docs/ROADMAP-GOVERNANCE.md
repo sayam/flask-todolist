@@ -18,7 +18,7 @@
 | G2 | ISO/IEC 27001:2022 self-assessment ครบทุกข้อ | ✅ เสร็จ (`ISO27001.md`) |
 | G3 | ดัชนีแกน supply chain (`docs/SUPPLY-CHAIN.md`) | ✅ เสร็จ |
 | G4 | โครง compliance รายประเทศ (`docs/COMPLIANCE.md`) | ✅ เสร็จ |
-| G5 | ชั้น 2: multi-worker แบบไม่ลดด่าน + คำตัดสิน caching | 🔶 ADR 0052 อนุมัติแล้ว · multiproc เสร็จ · เหลือวัดบน VM + คำตัดสิน caching |
+| G5 | ชั้น 2: multi-worker แบบไม่ลดด่าน + คำตัดสิน caching | ✅ เสร็จ — **แผน G ปิดครบทั้งใบ 2026-08-16** |
 
 ## G1 — ธรรมนูญเข้าระบบ
 
@@ -72,7 +72,25 @@ gate: `iso27001-worksheet-honest` · **backlog ปิดแล้ว 2026-08-16 
 worksheet มีจริง + legal ทุกตัวอยู่ pillar security · gate:
 `country-compliance-indexed`
 
-## G5 — ชั้น 2 (ทำหลังชั้น 1 ครบ)
+## G5 — ชั้น 2 ✅ (เสร็จ 2026-08-16 — ปิดแผน G)
+
+ผลจริง (ADR 0052 — เจ้าของอนุมัติทั้งสามข้อ):
+
+- **multi-worker opt-in เสร็จ**: `WEB_CONCURRENCY>1` + `METRICS_MULTIPROC_DIR`
+  → `/metrics` รวมทุก worker ถูกต้อง (กลไก stdlib ตาม idiom ของ
+  `app/metrics.py` — ไม่เพิ่ม dependency · หมายเหตุกลไกใน ADR) · ครึ่ง ๆ =
+  ไม่ start · gate `metrics-correct-across-workers` (ด่านที่สามของ pillar
+  performance)
+- **วัดสี่ config บน VM** (2026-08-16 · ผลเต็มใน `PERFORMANCE.md` หัวข้อ G5):
+  ที่เป้า exit 0 ทั้ง 16 รอบ · workers=2 ชนะชัดที่โหลดสูง (p95@25 ลดครึ่ง ·
+  rps@50 +129%) · **ผลไม่คาด: บน host เดียว 2 replica แย่กว่า 1** (แชร์
+  vCPU + hop proxy + audit serialize ข้าม process) — replica = availability
+  ไม่ใช่ throughput บนเครื่องเดียว
+- **คำตัดสิน caching: ไม่ทำ cache ของข้อมูลแอป** — หลักฐานชี้ว่าคอขวดคือ
+  จำนวน process ไม่ใช่ query · เงื่อนไขทบทวนจดใน `PERFORMANCE.md`
+  (การจดว่าไม่ทำคือ deliverable ตามหลัก measure-first ของ ADR 0052)
+
+แผนเดิมของ story นี้:
 
 - **multi-worker แบบไม่ลดด่าน**: ทางที่บันทึกไว้จากเฟส 16 — metrics
   aggregate ข้าม process (multiprocess mode) หรือคง scale ด้วย replica ·
