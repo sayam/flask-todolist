@@ -20,6 +20,15 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Added
 
+- **ISO/IEC 27001:2022 self-assessment** (`docs/ISO27001.md` — G2 of the
+  governance plan): all 116 items answered — clauses 4–10 at the second
+  level plus every Annex A control — with resolvable evidence, honest
+  not-applicable verdicts for a one-person project, and the 5 real gaps in
+  a backlog (a written risk-assessment method, a rehearsed backup/restore
+  procedure, an independent review). The standard is pinned as a
+  self-typed outline of item codes (`docs/iso27001-2022-outline.json`,
+  checksummed) — no copyrighted text embedded. Guarded by
+  `tests/test_iso27001.py` (gate `iso27001-worksheet-honest`).
 - **The project constitution**
   ([ADR 0051](docs/adr/0051-project-constitution-and-intake.md)): concerns
   are ranked — security (country law · worldwide standards · supply chain)

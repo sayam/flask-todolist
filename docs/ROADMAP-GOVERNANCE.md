@@ -15,8 +15,8 @@
 | story | เรื่อง | สถานะ |
 |---|---|---|
 | G1 | ธรรมนูญ + intake เข้าเอกสาร + `pillar:` ครบทุก gate + เทสต์คุม | ✅ เสร็จ (PR แรกของแผน) |
-| G2 | ISO/IEC 27001:2022 self-assessment ครบทุกข้อ | ⬜ ถัดไป |
-| G3 | ดัชนีแกน supply chain (`docs/SUPPLY-CHAIN.md`) | ⬜ |
+| G2 | ISO/IEC 27001:2022 self-assessment ครบทุกข้อ | ✅ เสร็จ (`ISO27001.md`) |
+| G3 | ดัชนีแกน supply chain (`docs/SUPPLY-CHAIN.md`) | ⬜ ถัดไป |
 | G4 | โครง compliance รายประเทศ (`docs/COMPLIANCE.md`) | ⬜ |
 | G5 | ชั้น 2: multi-worker แบบไม่ลดด่าน + คำตัดสิน caching | ⬜ หลัง G1–G4 |
 
@@ -30,7 +30,14 @@
 - ภาพที่ pillar เผยทันที: ชั้น performance มีด่านอัตโนมัติน้อยสุด (2)
   เพราะ load test ยังเป็นงานรันมือ — เป็นข้อมูลตั้งต้นของ G5
 
-## G2 — ISO/IEC 27001:2022 (ถัดไป — เจ้าของสั่งทำก่อน G3)
+## G2 — ISO/IEC 27001:2022 ✅ (เสร็จ 2026-08-16)
+
+ผลจริง: `docs/ISO27001.md` — **ผ่าน 74 · ไม่เกี่ยวข้อง 37 · ยังไม่ผ่าน 5**
+(116 ข้อ = clause ระดับสอง 23 + Annex A 93) · ช่องว่างจริงสามเรื่องเข้า
+backlog ของไฟล์: วิธีประเมินความเสี่ยงเป็นเอกสาร (6.1/8.2) ·
+**backup/restore ที่ซ้อมจริง** (A.5.30/A.8.13) · การทบทวนโดยอิสระ (A.5.35)
+— สองเรื่องแรกเป็นผู้สมัคร G-story ถัดไปหลัง G3/G4 · gate:
+`iso27001-worksheet-honest` · แผนเดิมของ story นี้:
 
 - `docs/ISO27001.md` worksheet แบบเดียวกับ `ASVS.md`/`PDPA.md`:
   **clause 4–10 + Annex A ทั้ง 93 controls ประเมินครบทุกข้อ** —
