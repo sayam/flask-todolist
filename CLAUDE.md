@@ -153,6 +153,11 @@
   `business` (ข้อตกลงระดับชนิดแอป → `SKILL-TODOLIST.md` ที่ generate จากตัว
   render เดียวกัน) · `internal` (ของ repo นี้) — ADR 0042 · `tests/test_gates.py`
   บังคับความสอดคล้องของชั้น
+- **ทุก gate ประกาศ `pillar:` ด้วย** (ADR 0051 — ธรรมนูญ): `security` >
+  `performance` > `manageability` > `devx` คือลำดับความสำคัญของโปรเจกต์
+  ชนกันเมื่อไหร่ชั้นบนชนะ · ของใหม่จากภายนอกเข้าผ่าน intake (CONTRIBUTING
+  กฎข้อ 10) — baseline ห้าม break · แผนงาน governance อยู่ใน
+  `docs/ROADMAP-GOVERNANCE.md` (G2 ถัดไป = ISO 27001 worksheet)
 - `SKILL.md` — กฎสากลของ scaffolding **generate มา ห้ามแก้ด้วยมือ**
   (`scripts/build_skill.py` จาก portable gate ใน `gates.yaml`) · กฎใหม่ที่เป็น
   สากล = เพิ่ม gate `portable: true` + `born_from` แล้ว regenerate — ห้ามเขียน

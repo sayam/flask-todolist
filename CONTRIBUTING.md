@@ -7,7 +7,7 @@
 
 The code, commit messages, and this file are in English. **Almost everything that
 explains *why* the code looks the way it does is in Thai** — [`CLAUDE.md`](CLAUDE.md)
-(the working notes), the 50 records in [`docs/adr/`](docs/adr/), and the rest of
+(the working notes), the 51 records in [`docs/adr/`](docs/adr/), and the rest of
 `docs/`. Machine translation handles them acceptably, but you should know that
 before you invest an afternoon.
 
@@ -119,7 +119,10 @@ file without an entry turns CI red on purpose. You have two options:
 - it belongs to an existing gate → add it to that gate's `tests:` list
 - it enforces a new rule → add a gate, and declare its `layer:` —
   `baseline` (universal — must also be `portable: true`), `business`
-  (an app-type agreement), or `internal` (this repo only). If the rule would
+  (an app-type agreement), or `internal` (this repo only) — **and its
+  `pillar:`** — which layer of the project's priority stack it serves
+  (`security` / `performance` / `manageability` / `devx`, ADR 0051;
+  see rule 10). If the rule would
   hold in any project, mark it `portable: true` and write `born_from`: the trap
   that produced the rule. Portable gates are what [`SKILL.md`](SKILL.md),
   [`SKILL-TODOLIST.md`](SKILL-TODOLIST.md), and
@@ -135,6 +138,24 @@ describes) or **redesign** (change the identity — then the document must be
 amended in the same PR). A new full page must also claim a mode
 (Operate / Read / Enter) in the document's table — `tests/test_design_doc.py`
 enforces the table against the templates on disk in both directions.
+
+### 10. New ideas enter through the constitution's intake rules
+
+The project's concerns are ranked ([ADR
+0051](docs/adr/0051-project-constitution-and-intake.md)): **security**
+(country law, worldwide standards, supply chain) over **scalability &
+performance** over **manageability** over **DevSecOps friendliness**. When
+two concerns collide, the higher layer wins without a new debate; a
+temporary exception needs an ADR with an expiry condition.
+
+Bringing in anything new — a skill, an idea, a standard, a tool — follows
+three rules, in order: (1) the existing baseline must not break — no gate
+turns red, gets weakened, or is removed without an owner-approved ADR;
+(2) classify before adopting: better than the baseline → replace it, absent
+from the baseline → adapt it in, good only in specific situations → adopt
+it scoped (a plugin, a config, a documented section), conflicts with a
+higher layer → reject it and record why; (3) significant adoptions and
+rejections are recorded as ADRs — the ADR log *is* the intake log.
 
 ## Before you open a pull request
 
@@ -209,7 +230,9 @@ pipenv run flask create-user <ชื่อ>
    สองทิศ: ทุก job ต้องมี gate และ**ไฟล์ใต้ `tests/` ทุกไฟล์ต้องเป็นของ gate
    เดียว** (partition เต็ม) · ไม่ลงทะเบียน = CI แดงโดยตั้งใจ · gate ใหม่ต้อง
    ประกาศ `layer:` ด้วย (`baseline`/`business`/`internal` — baseline ต้อง
-   portable) · ถ้ากฎนั้นใช้ได้กับโปรเจกต์อื่นด้วย ให้ตั้ง `portable: true` +
+   portable) **และ `pillar:`** — รับใช้ชั้นไหนของธรรมนูญ (`security`/
+   `performance`/`manageability`/`devx` — ADR 0051 ดูกฎข้อ 10) ·
+   ถ้ากฎนั้นใช้ได้กับโปรเจกต์อื่นด้วย ให้ตั้ง `portable: true` +
    `born_from` (กับดักที่ให้กำเนิดกฎข้อนั้น) เพราะ `SKILL.md`,
    `SKILL-TODOLIST.md` กับ `overlays/flask/` generate มาจากตรงนั้น
 9. **งาน UI เริ่มจาก [`docs/DESIGN.md`](docs/DESIGN.md)** — อ่านก่อนแตะ
@@ -217,6 +240,16 @@ pipenv run flask create-user <ชื่อ>
    (ค่าเริ่มต้น — รักษาตัวตนตามเอกสาร) หรือ **redesign** (เปลี่ยนตัวตน —
    ต้องแก้เอกสารใน PR เดียวกัน) · หน้าเต็มใหม่ต้องเพิ่มแถวในตารางโหมดด้วย
    (`tests/test_design_doc.py` บังคับสองทิศ)
+10. **ของใหม่เข้าผ่านกติกา intake ของธรรมนูญ**
+    ([ADR 0051](docs/adr/0051-project-constitution-and-intake.md)) —
+    ความกังวลเรียงสี่ชั้น: **security** (กฎหมายรายประเทศ · มาตรฐานสากล ·
+    supply chain) > **scalability & performance** > **manageability** >
+    **DevSecOps friendliness** · ชนกันเมื่อไหร่ชั้นบนชนะ ยกเว้นชั่วคราว
+    ต้องมี ADR พร้อมเงื่อนไขหมดอายุ · รับของใหม่สามขั้นตามลำดับ:
+    (1) baseline ห้าม break — gate แดง/ถูกลด/ถูกถอดโดยไม่มี ADR ที่เจ้าของ
+    อนุมัติ = break · (2) จำแนกก่อนรับ: ดีกว่า=แทน · ไม่เคยมี=ปรับเข้า ·
+    ดีเฉพาะบางสถานการณ์=รับแบบจำกัดขอบเขต · ขัดชั้นบน=ปัดตกพร้อมจดเหตุผล ·
+    (3) การรับ/ปัดตกที่มีนัยจดเป็น ADR — ADR คือ intake log
 
 ## ก่อนเปิด pull request
 

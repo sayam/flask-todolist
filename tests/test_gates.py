@@ -34,6 +34,7 @@ ASVS_ROW = re.compile(
 
 KINDS = {"test", "step", "job"}
 LAYERS = {"baseline", "business", "internal"}
+PILLARS = {"security", "performance", "manageability", "devx"}
 SEVERITIES = {"blocking", "warning"}
 
 
@@ -177,6 +178,20 @@ def test_every_gate_declares_a_coherent_layer(gates):
             assert gate.get("portable") is False, (
                 f"{gid}: internal ห้าม portable — ของ repo นี้เองไม่มีความหมายข้างนอก"
             )
+
+
+def test_every_gate_declares_a_pillar(gates):
+    """ทุก gate ประกาศชั้นของปรัชญา (ADR 0051) — partition แบบเดียวกับ layer
+
+    ปรัชญาที่ไม่ถูกเครื่องตรวจคือคำขวัญ: การบังคับให้ทุกด่านบอกว่าตัวเอง
+    รับใช้ชั้นไหน (security/performance/manageability/devx) ทำให้ตอบได้
+    ทันทีว่าชั้นไหนพูดมากกว่าทำ — และ gate ใหม่ต้องตัดสินใจตั้งแต่เกิด
+    """
+    for gate in gates:
+        pillar = gate.get("pillar")
+        assert pillar in PILLARS, (
+            f"{gate['id']}: pillar {pillar!r} ไม่รู้จัก (ต้องเป็น {sorted(PILLARS)})"
+        )
 
 
 def test_portable_gates_carry_their_origin(gates):
