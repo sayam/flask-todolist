@@ -30,6 +30,20 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Added
 
+- **The ISO 27001 backlog, closed to one item** (owner-ordered): a written
+  **risk-assessment method and first register** (`docs/RISK-ASSESSMENT.md`
+  — likelihood × impact with a fixed product formula so the machine can
+  check every level, an acceptance rule per level, nine assessed risks
+  with real mechanisms and honest residuals, and an annual cadence row) —
+  and a **backup/restore runbook whose rehearsal is a test**
+  (`docs/RUNBOOK-BACKUP.md` + `scripts/backup_drill.py`: backup → damage
+  → restore → verify runs on a real schema **on every push**, proven to
+  detect a restore that lost data; the runbook's key rule — keep
+  `DATA_ENCRYPTION_KEY` away from the database backup — is itself
+  test-guarded). Items 6.1, 8.2, A.5.30 and A.8.13 flip to pass: the
+  worksheet now reads **78 pass · 37 n/a · 1 fail** (independent review,
+  owner-side). Gates: `risk-method-and-register-current`,
+  `backup-restore-drilled-every-push`.
 - **The per-country compliance index** (`docs/COMPLIANCE.md` — G4 of the
   governance plan): Thailand (PDPA) today, plus the contract for adding a
   country — additive only, a four-point minimum bar set by the PDPA

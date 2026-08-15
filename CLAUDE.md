@@ -213,6 +213,11 @@
 - `docs/SUPPLY-CHAIN.md` — ดัชนีแกน supply chain (G3 — ADR 0051): สมาชิก
   ประกาศที่ gate ด้วย `axis: supply-chain` (14 ตัว) · เพิ่มด่าน supply chain
   ใหม่ต้องติดธง+ลงดัชนี ไม่งั้น `tests/test_supply_chain.py` แดงสองทิศ
+- `docs/RISK-ASSESSMENT.md` — วิธีประเมินความเสี่ยง (โอกาส×ผลกระทบ สูตรผลคูณ)
+  + ทะเบียน · ระดับต้องตรงสูตร (`tests/test_risk_assessment.py`) · รอบเต็ม
+  12 เดือนมีแถวใน SECURITY-CADENCE · `docs/RUNBOOK-BACKUP.md` — backup/restore
+  ที่**ซ้อมเป็นเทสต์ทุก push** (`scripts/backup_drill.py` — รันมือกับฐานจริง
+  ได้ อ่านต้นฉบับอย่างเดียว) · คีย์ encrypt ต้องแยกจาก backup ของฐานเสมอ
 - `docs/ISO27001.md` — self-assessment ต่อ ISO/IEC 27001:2022 ครบ 116 ข้อ
   (G2 — ADR 0051) · outline ตรึงใน `docs/iso27001-2022-outline.json` +
   checksum ในเทสต์ · หลักฐานใน backtick ถูกตรวจเหมือน ASVS และรับสองรูปเพิ่ม:

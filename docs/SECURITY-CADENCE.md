@@ -43,6 +43,8 @@ Phase 7 · P7-04 — **นโยบายนี้มีเทสต์คุม
 | ทบทวนช่องโหว่ที่ค้างอยู่และของที่ pin ไว้ | 3 เดือน | 2026-08-11 | 2026-11-11 | ผลของ job `security` และ `plugin-audit` |
 | ขยับเวอร์ชันมาตรฐาน ASVS ถ้ามีรุ่นใหม่ | 12 เดือน | 2026-08-11 | 2027-08-11 | `scripts/build_asvs_worksheet.py --fetch` |
 | WCAG 2.2 AA ตรวจด้วยมือเต็มรอบ | 12 เดือน | 2026-08-12 | 2027-08-12 | [ACCESSIBILITY-AUDIT.md](ACCESSIBILITY-AUDIT.md) |
+| ประเมินความเสี่ยงเต็มรอบตามวิธีที่ประกาศ | 12 เดือน | 2026-08-16 | 2027-08-16 | [RISK-ASSESSMENT.md](RISK-ASSESSMENT.md) |
+| ซ้อม restore บนสภาพ deploy จริง (อัตโนมัติซ้อมทุก push อยู่แล้ว) | 12 เดือน | 2026-08-16 | 2027-08-16 | [RUNBOOK-BACKUP.md](RUNBOOK-BACKUP.md) |
 | pentest ด้วยมือ (คนนอกทีม) | ทุก major release และอย่างน้อยปีละครั้ง | ยังไม่เคยทำ | เมื่อจะเปิดให้คนนอกเข้าถึงระบบเป็นครั้งแรก | ยังไม่มี |
 | กวาดหาความลับใน**ประวัติทั้งหมด** | 12 เดือน และหลังเขียนประวัติใหม่ทุกครั้ง | 2026-08-12 | 2027-08-12 | `scripts/secret_scan_history.sh` · ข้อยกเว้นใน `.gitleaksignore` |
 | ทบทวน alert ของ CodeQL ที่ถูก dismiss ไว้ | 6 เดือน | 2026-08-12 | 2027-02-12 | `gh api repos/sayam/flask-todolist/code-scanning/alerts?state=dismissed` |
