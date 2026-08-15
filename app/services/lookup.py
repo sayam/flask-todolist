@@ -7,7 +7,7 @@
 กระทบทั้งหน้าเว็บและ API เพราะทั้งคู่เดินผ่าน service ตัวเดียวกัน)
 """
 
-from typing import cast
+from typing import TypeVar, cast
 
 from app import db
 
@@ -16,7 +16,14 @@ INT64_MAX = 2**63 - 1
 INT64_MIN = -(2**63)
 
 
-def by_id[T](model: type[T], row_id: int) -> T | None:
+# **จงใจใช้สำนวนก่อน PEP 695** (TypeVar/การ assign ธรรมดา ไม่ใช่ `type X = ...`
+# หรือ `def f[T](...)`) — parser ของ CodeQL (2.26.3) ยังย่อย PEP 695 ไม่ได้
+# แล้วไฟล์*ทั้งไฟล์*จะหลุดจากการสแกนความปลอดภัยเงียบ ๆ (เจอจริง: audit.py
+# ไม่ถูกวิเคราะห์เลยทั้งไฟล์) · `tests/test_codeql_compat.py` กันการเผลอใช้ซ้ำ
+T = TypeVar("T")
+
+
+def by_id(model: type[T], row_id: int) -> T | None:  # noqa: UP047 — CodeQL ยังอ่าน PEP 695 ไม่ได้
     """แถวตาม primary key — id ที่อยู่นอกช่วงของคอลัมน์แปลว่าไม่มีวันมีอยู่จริง"""
     if not INT64_MIN <= row_id <= INT64_MAX:
         return None

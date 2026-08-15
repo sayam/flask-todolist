@@ -13,6 +13,7 @@
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from typing import TypeVar
 
 from sqlalchemy import func
 
@@ -54,7 +55,14 @@ def _cutoff(days: int) -> datetime:
     return tz.now_utc() - timedelta(days=days)
 
 
-def _expired[T: SoftDeleteMixin](model: type[T], cutoff: datetime) -> list[T]:
+# **จงใจใช้สำนวนก่อน PEP 695** (TypeVar/การ assign ธรรมดา ไม่ใช่ `type X = ...`
+# หรือ `def f[T](...)`) — parser ของ CodeQL (2.26.3) ยังย่อย PEP 695 ไม่ได้
+# แล้วไฟล์*ทั้งไฟล์*จะหลุดจากการสแกนความปลอดภัยเงียบ ๆ (เจอจริง: audit.py
+# ไม่ถูกวิเคราะห์เลยทั้งไฟล์) · `tests/test_codeql_compat.py` กันการเผลอใช้ซ้ำ
+T = TypeVar("T", bound=SoftDeleteMixin)
+
+
+def _expired(model: type[T], cutoff: datetime) -> list[T]:  # noqa: UP047 — CodeQL ยังอ่าน PEP 695 ไม่ได้
     """แถวที่ถูก soft delete ไว้นานเกินกำหนด — ต้องขอเห็นของที่ถูกลบเป็นพิเศษ
 
     `is_not(None)` **ซ้ำซ้อนโดยตั้งใจ** — ใน SQL `NULL < cutoff` ให้ UNKNOWN
