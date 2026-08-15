@@ -142,6 +142,16 @@
         "click element button[type=submit]",
         "wait for path to be /"
       ]
+    },
+    {
+      "url": "http://127.0.0.1:5099/teams/1/info",
+      "actions": [
+        "navigate to http://127.0.0.1:5099/login",
+        "set field #username to a11y",
+        "set field #password to A11yProbe!2026",
+        "click element button[type=submit]",
+        "wait for path to be /"
+      ]
     }
   ]
 }

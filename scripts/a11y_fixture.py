@@ -70,7 +70,7 @@ def main() -> None:
             )
         # org graph (ADR 0049) — วงหนึ่งวง เพื่อนร่วมวงหนึ่งคน งานแชร์ +
         # คำเชิญ dependency ค้าง ให้หน้า /teams กับหน้าวงมีของครบทุก state
-        from app.models import Team, TeamMember, TodoDependency, TodoShare
+        from app.models import Team, TeamMember, TeamNameChange, TodoDependency, TodoShare
 
         colleague = User(username="a11ymate")
         colleague.set_password(PASSWORD)
@@ -94,6 +94,16 @@ def main() -> None:
         db.session.flush()
         db.session.add(TodoShare(todo_id=mine_shared.id, team_id=team.id))
         db.session.add(TodoDependency(todo_id=theirs.id, depends_on_todo_id=mine_shared.id))
+        # หนึ่งแถวใน change log — ให้หน้า /teams/1/info มีตารางจริงให้ pa11y สแกน
+        db.session.add(
+            TeamNameChange(
+                team_id=team.id,
+                changed_by_id=user.id,
+                old_name="A11y krew",
+                new_name="A11y crew",
+                reason="Fixed the spelling",
+            )
+        )
 
         db.session.commit()
         print(f"เตรียมข้อมูลแล้ว: user={USERNAME} todos={len(rows)}")

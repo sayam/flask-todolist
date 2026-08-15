@@ -18,7 +18,30 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ## [Unreleased]
 
-Nothing yet.
+Post-release change requests from real use, plus one scanner fix.
+
+### Added
+
+- A safe **Back** button on the public `/privacy` page — the referrer is used
+  only when it points inside the app; anything else falls back to the home page
+  (or the login page for anonymous visitors), and `..` paths are rejected.
+- A fixed-English **"Reset language to English"** escape hatch on the settings
+  page, deliberately never translated — so a user who picked a language they
+  cannot read can always find the way back.
+- A **Site administration** hub at `/admin`, Moodle-style: panels grouped into
+  *Users & teams*, *Server*, and *Reports*; the old "Users" nav item now points
+  here, and the hub link lives only in the top nav.
+- Admins can **rename a team**, with a mandatory reason; every rename lands in
+  a member-visible change log (when / who / from / to / reason) on the new
+  `/teams/<id>/info` page — separate from the audit trail on purpose, because
+  the audit trail keeps C3 values as HMACs while this log exists to be read.
+
+### Fixed
+
+- CodeQL could not parse three files that used PEP 695 syntax — the audit
+  module was silently excluded from security scanning entirely. Rewritten in
+  TypeVar style, with a test that keeps PEP 695 out of `app/` until the
+  extractor supports it.
 
 ## [1.1.0] — 2026-08-15
 

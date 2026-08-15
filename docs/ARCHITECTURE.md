@@ -52,9 +52,10 @@ model ต้องตรงกับ migration เป๊ะ (`tests/test_migrati
 `ADR 0035`) · ทุกคอลัมน์ถูกจัดชั้นและถูกตัดสินเรื่อง export
 (`tests/test_data_classification.py` · `tests/test_personal_data.py`)
 · ความลับปัจจัยที่สอง encrypt at rest ใต้คีย์ที่แยกจาก SECRET_KEY
-(`ADR 0046` · `tests/test_totp_encryption.py`) · org graph เพิ่มสี่ตาราง
-ที่เดินครบวงจรเดิมทุกข้อ และการแบ่งปันข้ามผู้ใช้เผยสี่ฟิลด์ผ่าน view เดียว
-(`ADR 0049` · `tests/test_org_graph.py`)
+(`ADR 0046` · `tests/test_totp_encryption.py`) · org graph เพิ่มห้าตาราง
+ที่เดินครบวงจรเดิมทุกข้อ (รวมบันทึกเปลี่ยนชื่อวงที่สมาชิกอ่านได้ — CR#3
+ตั้งใจแยกจาก audit trail ซึ่งเก็บค่า C3 เป็น HMAC) และการแบ่งปันข้ามผู้ใช้
+เผยสี่ฟิลด์ผ่าน view เดียว (`ADR 0049` · `tests/test_org_graph.py`)
 
 ### 3.3 ความปลอดภัย (Security)
 
