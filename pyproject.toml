@@ -20,7 +20,9 @@ line-length = 100
 target-version = "py313"
 # migrations ไม่ lint: โค้ดกึ่ง generate + raw SQL เก่าที่จะถูกล้างตอน Phase 5 squash
 # (กติกา dialect ของ migration คุมด้วย tests/test_migration_lint.py แทน)
-extend-exclude = ["migrations", "app/sun_data.py"]
+# skill/ ไม่ lint: แพ็กเกจ generate ล้วน (ADR 0050) — สำเนา checker ถูก lint
+# ที่ต้นทาง overlays/flask/ แล้ว และ tests/test_agent_skill.py เทียบไบต์ต่อไบต์
+extend-exclude = ["migrations", "app/sun_data.py", "skill"]
 
 [tool.ruff.lint]
 select = ["ALL"]

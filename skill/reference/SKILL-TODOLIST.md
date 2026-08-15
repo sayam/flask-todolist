@@ -1,0 +1,36 @@
+# SKILL-TODOLIST — ข้อตกลงของตัวแอป (ชั้น business)
+
+**ไฟล์นี้ generate มา ห้ามแก้ด้วยมือ** — สร้างใหม่ด้วย
+`python scripts/build_skill.py` · แหล่งจริงคือ gate ที่ `layer: business`
+และ `portable: true` ใน `gates.yaml`
+
+**ใบนี้ต่อยอด `SKILL.md` (baseline) — ต้องรับ baseline ก่อนจึงรับใบนี้ได้**
+เพราะข้อตกลงข้างล่างถูกเขียนบนสมมติฐานว่าวินัยพื้นฐาน (mutation test ·
+ด่านสองทิศ · ratchet · ADR) มีอยู่แล้ว (ADR 0042)
+
+ต่างจาก baseline ตรงไหน: กฎในใบนี้เป็น**ทางเลือกของแอปชนิด todolist** —
+แอปอื่นเลือกต่างได้โดยไม่ถือว่าบกพร่อง (เช่น แอปที่กฎหมายบังคับ erasure จริง
+ย่อมไม่ใช้ soft delete) · การทดลองใน `docs/comparison/` ชี้ว่ากฎชั้นนี้แหละ
+คือสิ่งที่ scaffolding ให้แล้วการทบทวนเองให้ไม่ได้ — เพราะมันเดาไม่ได้
+ถ้าไม่มีใครเขียนไว้
+
+## กฎ
+
+แต่ละข้อ: **กฎ** (ของ app-type นี้ ไม่ผูก framework) · **เกิดจาก** (กับดักจริง)
+· **ตัวบังคับใน reference** (ของ repo นี้)
+
+### `delete-means-soft-delete`
+
+**กฎ:** ลบ = ซ่อน (soft delete) — ลบจริงได้ที่ purge เท่านั้น
+
+**เกิดจาก:** ADR 0014 — `--dry-run` ที่ implement เป็น rollback เคยลบข้อมูลจริง เพราะตัว purge commit ก่อน savepoint ปิด · ที่ลบได้จึงต้องมีที่เดียว
+
+**ตัวบังคับใน reference:** `tests/test_write_discipline.py` · `tests/test_soft_delete.py`
+
+### `every-write-audited`
+
+**กฎ:** ทุกการเขียนลง audit trail แบบเติมได้อย่างเดียว + hash chain
+
+**เกิดจาก:** ADR 0015/0035 — event หลัง flush ดักให้เองทุก insert/update/delete โค้ดฟีเจอร์ไม่ต้องเรียกอะไร เพราะ "ลืมเรียก" คือบั๊กที่เงียบที่สุด
+
+**ตัวบังคับใน reference:** `tests/test_audit.py`

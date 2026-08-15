@@ -7,7 +7,7 @@
 
 The code, commit messages, and this file are in English. **Almost everything that
 explains *why* the code looks the way it does is in Thai** — [`CLAUDE.md`](CLAUDE.md)
-(the working notes), the 49 records in [`docs/adr/`](docs/adr/), and the rest of
+(the working notes), the 50 records in [`docs/adr/`](docs/adr/), and the rest of
 `docs/`. Machine translation handles them acceptably, but you should know that
 before you invest an afternoon.
 
@@ -82,8 +82,9 @@ transactions. See [ADR 0016](docs/adr/0016-service-layer-boundary.md).
 
 `docs/openapi.json`, `app/password_blocklist.txt`, `app/sun_data.py`, the compiled
 `.mo` catalogues, and — since the scaffolding phases — [`SKILL.md`](SKILL.md),
-[`SKILL-TODOLIST.md`](SKILL-TODOLIST.md), and
-[`docs/GATES-ASVS.md`](docs/GATES-ASVS.md). Each has a script in `scripts/` that
+[`SKILL-TODOLIST.md`](SKILL-TODOLIST.md),
+[`docs/GATES-ASVS.md`](docs/GATES-ASVS.md), and the whole
+[`skill/`](skill/) package (ADR 0050). Each has a script in `scripts/` that
 produces it, and CI compares the committed copy against a fresh run. Changing
 `app/api/` without running
 `PYTHONPATH=. pipenv run python scripts/generate_openapi.py` turns CI red, and a
@@ -200,7 +201,8 @@ pipenv run flask create-user <ชื่อ>
 4. **ตรรกะอยู่ใน `app/services/`** route เป็น adapter บาง ๆ (มี AST scan บังคับ)
 5. **ไฟล์ที่ generate มาห้ามแก้ด้วยมือ** — `docs/openapi.json`,
    `app/password_blocklist.txt`, `app/sun_data.py`, ไฟล์ `.mo`, `SKILL.md`,
-   `SKILL-TODOLIST.md` และ `docs/GATES-ASVS.md`
+   `SKILL-TODOLIST.md`, `docs/GATES-ASVS.md` และทั้งโฟลเดอร์ `skill/`
+   (แพ็กเกจ agent skill — ADR 0050)
 6. **ข้อความในโค้ดเป็นภาษาอังกฤษ** เพราะ msgid คือภาษาอังกฤษ · ไทยอยู่ใน `.po`
 7. **commit เป็น Conventional Commits หัวไม่เกิน 72 ตัว**
 8. **เพิ่มไฟล์เทสต์ใหม่ต้องมาลงทะเบียนใน `gates.yaml`** — ดัชนีนั้นถูกบังคับ
