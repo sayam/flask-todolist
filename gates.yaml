@@ -27,6 +27,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: devx
     born_from: >-
       semgrep เคยตรวจแค่ 71/136 ไฟล์เพราะขอบเขตประกาศสองที่ —
       ดัชนีที่ไม่ถูกบังคับให้ตรงกับความจริงคือดัชนีที่โกหกเงียบ ๆ
@@ -40,6 +41,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: devx
     born_from: >-
       เอกสาร skill ที่เขียนมือจะกลายเป็นทะเบียนที่สามที่ drift จากดัชนี —
       และชั้นที่ประกาศว่าสากลต้องมีเครื่องกันชื่อ framework รั่วเข้ามา
@@ -53,6 +55,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: devx
     born_from: >-
       กฎสากลที่ไม่มี enforcement ใน overlay คือคำขวัญ — และ checker ที่ไม่เคย
       ถูกพิสูจน์ว่าแดงเมื่อควรแดง ก็เขียวได้ตลอดกาลโดยไม่ตรวจอะไร
@@ -67,6 +70,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: manageability
     born_from: >-
       Phase 3 — ตรรกะที่ฝังใน route ทำให้ HTML กับ API เพี้ยนจากกันทันทีที่มี
       adapter ที่สอง · AST scan ห้าม service import ของฝั่ง request
@@ -80,6 +84,7 @@ gates:
     requires: []
     portable: true
     layer: business
+    pillar: security
     born_from: >-
       ADR 0014 — `--dry-run` ที่ implement เป็น rollback เคยลบข้อมูลจริง
       เพราะตัว purge commit ก่อน savepoint ปิด · ที่ลบได้จึงต้องมีที่เดียว
@@ -93,6 +98,7 @@ gates:
     requires: []
     portable: true
     layer: business
+    pillar: security
     born_from: >-
       ADR 0015/0035 — event หลัง flush ดักให้เองทุก insert/update/delete
       โค้ดฟีเจอร์ไม่ต้องเรียกอะไร เพราะ "ลืมเรียก" คือบั๊กที่เงียบที่สุด
@@ -106,6 +112,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: manageability
     born_from: >-
       ADR 0023/0025 — วันที่ core เอ่ยชื่อ plugin คือวันที่ถอดไดเรกทอรีแล้วพัง
       และ supply chain ของ plugin ไม่แยกจาก core อีกต่อไป
@@ -119,6 +126,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       ชั้นข้อมูลที่ไม่ถูกตัดสินตอนเพิ่มคอลัมน์ จะถูกตัดสินเอาตอนข้อมูลรั่ว —
       audit เก็บอะไรได้ก็ตัดสินจากชั้นนี้
@@ -132,6 +140,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       ADR 0034 — ตอนที่ต่างคนต่างไล่ลบ CLI ลืมล้างความลับของปัจจัยที่สองทั้งดุ้น
       · ทางเดียว + ทุกคอลัมน์ถูกตัดสิน = ไม่มีของหลงเหลือ
@@ -145,6 +154,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: manageability
     born_from: >-
       index ที่อยู่ใน migration แต่ไม่อยู่ใน model เคยเกือบถูก `db migrate`
       รุ่นถัดไป drop ทิ้งเงียบ ๆ ทั้งที่ทุก SELECT พึ่งมัน
@@ -158,6 +168,7 @@ gates:
     requires: []
     portable: false
     layer: internal
+    pillar: manageability
     born_from: ""
 
   - id: dialect-discipline
@@ -169,6 +180,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: manageability
     born_from: >-
       DATETIME ของ MySQL ตัดเศษวินาทีเงียบ ๆ — งานที่สร้างห่างกันไม่กี่
       มิลลิวินาทีได้เวลาเท่ากันแล้วเรียงสลับ · เจอได้ก็ต่อเมื่อยิงยี่ห้อจริง
@@ -182,6 +194,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: manageability
     born_from: >-
       "สลับได้" ที่ไม่เคยประกาศว่าสลับแบบไหน คือคำสัญญาที่คนหน้างานต้องเดา
       ตอนตีสาม — class ที่ประกาศต้องถูกบังคับตอนโหลด และต้องมีตัวเลขวัดรองรับ
@@ -195,6 +208,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: devx
     born_from: >-
       harness ที่รายงานผ่านตอนเทสต์แดง ป้อนความมั่นใจผิด ๆ ให้ loop ที่เชื่อมัน
       สนิท — และการพิสูจน์ 11-03 รอบแรกก็ย้ำบทเรียนเดิม: plant ที่ตกใน docstring
@@ -209,6 +223,7 @@ gates:
     requires: []
     portable: false
     layer: internal
+    pillar: devx
     born_from: >-
       ตัวเลขที่ใช้ตัดสินว่า "วิธีทำงานแบบหนึ่งดีกว่าอีกแบบ" มีค่าเท่ากับความสามารถ
       ในการแยกแยะของเครื่องมือที่วัดมัน — probe ที่ตอบผ่านให้ทุกแอปจะรายงานว่า
@@ -225,6 +240,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       เทสต์ทั่วไปปิด CSRF เพื่อความสะดวก — ถ้าไม่มีเทสต์แยกที่เปิดจริง
       วันที่ `csrf.init_app()` หลุดจะไม่มีอะไรจับได้เลย
@@ -238,6 +254,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       ADR 0020 — วันหมดอายุบนคุกกี้เป็นของที่ client แก้ได้ ·
       เปลี่ยนรหัสผ่านแล้วคุกกี้ใบเก่าทุกใบต้องตายทันที ไม่ใช่รอหมดอายุ
@@ -251,6 +268,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       ADR 0021 — มิติต่อ IP อย่างเดียวแพ้คนเปลี่ยน IP ไปเรื่อย ๆ ·
       และถ้ารหัสถูกทะลุด่านได้ คนไล่เดาจะรู้ทันทีว่าเจอรหัสที่ใช่
@@ -264,6 +282,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       ADR 0004/0022 — มี adapter สามทาง (HTML/API/CLI) — ด่านที่ route
       คือด่านที่ adapter ใหม่ลืมได้ · การซ่อนเมนูไม่ใช่การกันสิทธิ์
@@ -277,6 +296,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       ADR 0019 — normalize NFKC ต้องอยู่ใน set/check คู่กัน เกิดข้างเดียว
       เมื่อไหร่ คนตั้งรหัสภาษาไทย (สระอำ) จะ login ไม่ได้ทั้งที่พิมพ์เหมือนเดิม
@@ -290,6 +310,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       ADR 0011 — path อยู่ใน log ทุกบรรทัดชั้น C6 (90 วัน) —
       อะไรที่ห้ามอยู่ใน log จึงต้องมีเทสต์ดัก ไม่ใช่ความระวังตัว
@@ -303,6 +324,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       ADR 0010 — browser บล็อก inline เงียบ ๆ ไม่มี error ฝั่ง server —
       ด่านจึงต้องตรวจไฟล์ template ตรง ๆ ไม่ใช่รอดูอาการ
@@ -316,6 +338,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       ADR 0026/0030 — prod ที่ config ผิดแล้ว "ทำงานได้" บน SQLite จะพังในวันที่
       มีคนถามหาข้อมูลที่หายไป · พังดังตอน start ถูกกว่าเสมอ
@@ -329,6 +352,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       SAST รอบแรกชี้ entrypoint ที่เปิด debug ได้และถูกก๊อปเข้า image —
       รันผิดตัวเมื่อไหร่ก็ได้ debug console ที่รันโค้ดจากหน้าเว็บ
@@ -343,6 +367,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: manageability
     born_from: >-
       ADR 0018 — สัญญาที่ไม่มีใครเทียบกับโค้ดคือสัญญาที่เปลี่ยนได้เงียบ ๆ ·
       v1 แก้ไม่ได้ จึงต้องมีของที่ฟ้องตอนใครแก้
@@ -356,6 +381,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       รอบแรกจับได้สามอย่างที่เทสต์ซึ่งคนเขียนเองมองข้าม (id เกิน 64 บิต → 500,
       วันที่ย่อยไม่ได้ → 500, คำขอตกชั้น routing ได้ HTML)
@@ -369,6 +395,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       SQLite ปิด FK เป็นค่าเริ่มต้นต่อ connection — ถอดบรรทัด load backend
       ออกแล้วไม่มี error ใดเลย แค่ข้อมูลเสียเงียบ ๆ · ด่านที่อ่าน pragma
@@ -384,6 +411,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       ADR 0012 — ฟอร์มที่พึ่ง data-auto-submit อย่างเดียวใช้ไม่ได้เลยเมื่อ JS
       ไม่ทำงาน และไม่มีใครเห็นจนกว่าจะเป็นคนที่ปิด JS
@@ -397,6 +425,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: manageability
     born_from: >-
       ข้อความ SSO/LDAP ทั้งชุดไม่เคยถูก extract เข้า catalog — ผู้ใช้ภาษาไทย
       เห็นอังกฤษมาตลอดโดยไม่มีอะไรฟ้อง (P7-03b) · และ pybabel เคยเดา
@@ -411,6 +440,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       มาตรฐานที่เปลี่ยนใต้เท้าทำให้ "ผ่าน" ของเมื่อวานไม่ใช่ของวันนี้โดยไม่มี
       commit ไหนบอก · หลักฐานที่ไม่ถูกตรวจว่ามีจริงจะเน่าเป็นรายการแรก
@@ -424,6 +454,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: devx
     born_from: >-
       ดัชนีเคยหยุดที่ 0026 ขณะที่ไฟล์มีถึง 0033 — เจ็ดใบจากเฟสที่ตัดสินใจ
       เรื่องใหญ่ที่สุดหายจากสายตา
@@ -437,6 +468,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       งานตามรอบที่ไม่มีเครื่องทวงคืองานที่เงียบหายไปเฉย ๆ — กำหนดต้องเป็นวันที่
       หรือเงื่อนไขที่ตัดสินได้ ไม่ใช่ "เมื่อพร้อม"
@@ -450,6 +482,7 @@ gates:
     requires: []
     portable: false
     layer: internal
+    pillar: security
     born_from: ""
 
   - id: architecture-description-current
@@ -461,6 +494,7 @@ gates:
     requires: []
     portable: false
     layer: internal
+    pillar: security
     born_from: >-
       เฟส 13-05 — รับ 42010 ตัวเดียวจากกลุ่มกรอบมาตรฐานองค์กร (ADR 0043)
       เพราะเป็นตัวเดียวที่ derive จากของจริง (ADR 43 ใบ) และตรวจได้ด้วยเครื่อง
@@ -474,6 +508,7 @@ gates:
     requires: []
     portable: false
     layer: internal
+    pillar: devx
     born_from: >-
       ADR 0050 — ช่องทางแจกจ่ายที่สามตามข้อเสนอจากการวิเคราะห์ impeccable/
       skillsmp · สำเนาที่แก้เองได้คือทะเบียนที่สามที่ drift เงียบ ๆ จึงเทียบ
@@ -488,6 +523,7 @@ gates:
     requires: []
     portable: false
     layer: internal
+    pillar: devx
     born_from: >-
       CR#4 — caption ลอยกึ่งกลางหลายหน้าเพราะแนวอ่านของทั้งหน้าไม่เคยถูกเขียน
       หน้าใหม่จึงเกิดตามค่าเริ่มต้นของ browser · เอกสาร design ที่ไม่มีด่าน
@@ -502,6 +538,7 @@ gates:
     requires: []
     portable: false
     layer: internal
+    pillar: security
     born_from: >-
       ADR 0045 (เฟส 14-02) — ชั้นข้อมูลที่ไม่มีผลกับสิ่งที่ admin เห็นบนจอ
       คือชั้นข้อมูลบนกระดาษ · ยกเป็น portable ได้ต่อเมื่อมี checker ของ
@@ -516,6 +553,7 @@ gates:
     requires: []
     portable: false
     layer: internal
+    pillar: security
     born_from: >-
       เฟส 14-04/14-06 — บทเรียนรอบตรวจเอกสาร: เลขที่ไม่ได้อ่านจากของจริงคือ
       เลขที่ผิดอยู่แล้ว หน้า admin ที่แสดงสถานะระบบจึงต้องถูกเทียบกับแหล่งจริง
@@ -530,6 +568,7 @@ gates:
     requires: []
     portable: false
     layer: internal
+    pillar: security
     born_from: >-
       ADR 0046 (เฟส 15) — dump ฐานข้อมูลใบเดียวเคยได้ความลับ TOTP ทั้งหมด
       เพราะมันเป็น C1 ตัวเดียวที่ต้องเก็บค่าจริง · การถอดต้องล้มดังเมื่อคีย์
@@ -544,6 +583,7 @@ gates:
     requires: []
     portable: false
     layer: internal
+    pillar: security
     born_from: >-
       pilot ของชั้น legal (ADR 0042 · เฟส 13-04) — เอกสาร map กฎหมายที่ไม่มี
       ใครตรวจหลักฐาน จะถูกใช้ตัดสินใจในวันที่มีเรื่องจริง ซึ่งสายเกินแก้
@@ -557,6 +597,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       ldap3 เป็น LGPLv3 และอยู่ใน category ของ plugin พอดี — การแยก supply
       chain แยกภาระทางกฎหมายไปด้วยโดยไม่มีใครออกแบบ · "ไม่พบ" ≠ "อ่านไม่ได้จึงไม่พบ"
@@ -570,6 +611,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       นโยบายที่เลขไม่ตรงกันสามที่ คือนโยบายที่ผู้รายงานเลือกอ่านฉบับที่ตัวเอง
       ได้ประโยชน์ได้เสมอ
@@ -583,6 +625,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: devx
     born_from: >-
       เอกสารสามที่บอก "CI 21 job" ขณะที่ workflow นิยาม 20 — ไม่มีใครโกหก
       แต่ไม่มีใครตรวจ
@@ -596,6 +639,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: devx
     born_from: >-
       เวอร์ชันที่ประกาศกับเวอร์ชันที่โค้ดรายงานแยกกันได้เงียบ ๆ ตั้งแต่
       release แรก
@@ -610,6 +654,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       tag ย้ายได้ commit ย้ายไม่ได้ — upload-artifact เคยค้าง @v4 จุดเดียว
       สิบวันโดย CI เขียวตลอด
@@ -623,6 +668,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       pin โดยไม่มีใครขยับคือการแช่ช่องโหว่ไว้ — สองอย่างนี้ต้องมาคู่กันเสมอ
       และเทสต์บังคับว่าคู่นั้นไม่แยกจากกัน
@@ -636,6 +682,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       คำสั่งติดตั้งเครื่องมือแบบไม่ตรึง หยิบรุ่นล่าสุด ณ วินาทีที่ job รัน
       และมันรันด้วยสิทธิ์ของ workflow เรา · การตรึงทีละ package ตรึงได้แค่
@@ -650,6 +697,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       `--ignore-vuln` เงียบเสมอเมื่อ ID หายไป — รายการยกเว้นที่ไม่มีใครถอด
       จะกลายเป็นตัวปิดของจริงในวันที่ package นั้นมี advisory ใหม่
@@ -663,6 +711,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       ค่าเริ่มต้นของ semgrep ตัด tests/ ทิ้ง — 61/136 ไฟล์ไม่เคยถูกสแกน
       โดยไม่มีบรรทัดไหนใน repo บอก · "ไม่เจอ" หน้าตาเหมือน "ไม่ได้ตรวจ" เป๊ะ
@@ -676,6 +725,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       PR ของเครื่องที่แดงตั้งแต่ใบแรก สอนคนดูแลให้เมิน PR ของเครื่องทั้งหมด —
       ซึ่งแย่กว่าไม่เปิดมันเลย
@@ -715,6 +765,7 @@ gates:
     requires: []
     portable: false
     layer: business
+    pillar: manageability
     born_from: ""
 
   # ----------------------------------------------------------- job ทั้งหลาย
@@ -727,6 +778,7 @@ gates:
     requires: [mysql, mariadb]
     portable: true
     layer: baseline
+    pillar: manageability
     born_from: >-
       "รองรับหลายยี่ห้อ" ที่ไม่เคยยิงยี่ห้อจริงคือคำโฆษณา — deadlock ของสาย
       audit เจอได้เฉพาะบน InnoDB จริงเท่านั้น (ADR 0032/0035)
@@ -740,6 +792,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: manageability
     born_from: >-
       ADR 0025 — ห้ามใช้ importorskip เพราะมันทำให้ job หลักข้ามเทสต์เงียบ ๆ
       ตอนไลบรารีหาย ซึ่งคือกรณีที่ต้องการให้แดงที่สุด
@@ -753,6 +806,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: devx
     born_from: >-
       ทุก step มี if !cancelled() เพราะ xenon เคยแดงก่อนแล้วบัง mypy ที่แดงอยู่
       — ด่านที่แดงตัวแรกห้ามบังตัวหลัง
@@ -766,6 +820,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: manageability
     born_from: >-
       rolling deploy มีจังหวะที่สองรุ่นรันพร้อมกันบน schema เดียวเสมอ —
       migration ที่ถูกต้องสำหรับโค้ดใหม่แต่ฆ่าโค้ดเก่าคือ downtime ที่ไม่มีใคร
@@ -783,6 +838,7 @@ gates:
     requires: []
     portable: false
     layer: internal
+    pillar: security
     born_from: >-
       2026-08-15 — `type X = ...` ใน audit.py ทำให้ CodeQL ข้ามไฟล์ทั้งไฟล์
       โดยมีแค่ warning บนหน้า status ที่ไม่มีใครเปิดดู · ไฟล์ที่หลุดจาก SAST
@@ -797,6 +853,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: manageability
     born_from: >-
       เทสต์ใช้ create_all จาก model จึงมองไม่เห็น migration ที่เพี้ยน —
       ต้องมีด่านที่เดิน migration จริงบนฐานเปล่า
@@ -810,6 +867,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: manageability
     born_from: >-
       ภาพถ่ายที่ไม่ถูกเทียบกับโค้ดทุก push คือภาพถ่ายของอดีต
 
@@ -822,6 +880,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: devx
     born_from: >-
       required check ที่ถูก skip บน PR ทำให้ PR ค้าง BLOCKED ตลอดกาลโดยไม่มี
       อะไรแดงให้เห็น — และ merge commit ของปุ่ม Update branch เคยตกด่านเอง
@@ -835,6 +894,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       supply chain ของ core ถอดไม่ได้ — CVE ที่นี่ไม่มีทางออกอื่นนอกจากแก้
       จึงแดงได้เต็มปาก ต่างจากของ plugin ที่คำตอบคือถอด
@@ -848,6 +908,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       หมวด deploy มองไม่เห็นจากทุกเครื่องมือที่ติดตั้งชุด dev — เจอสองครั้ง
       ในวันเดียวจากคนละทาง · ตัวที่รับคำขอจริงทุกใบกลับไม่มีใครเฝ้า
@@ -861,6 +922,7 @@ gates:
     requires: [node]
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       ด่านที่ครอบภาษาเดียวในไดเรกทอรีที่มีสองภาษา คือด่านที่ชื่อของมันชวนให้
       เข้าใจว่าครอบแล้ว — อันตรายกว่าไม่มีด่านเลย
@@ -874,6 +936,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       การสแกนที่ผ่านแบบเงียบ ๆ หน้าตาเหมือนการสแกนที่ไม่ได้ตรวจอะไร —
       ตัวตัดสินคือ check_semgrep.py ที่เทียบเซตไฟล์ที่สแกนจริง
@@ -887,6 +950,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       ADR 0025 — CVE ของของที่ถอดได้ มีทางออกที่เร็วกว่ารอ patch เสมอ
       คือ DISABLED_PLUGINS · จึงเตือน ไม่บล็อก — แต่ต้องเตือนจริง
@@ -900,6 +964,7 @@ gates:
     requires: [node, chromium]
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       contrast หลัง CSS ทำงานกับชื่อที่ AT คำนวณได้จริง ตรวจจากไฟล์ template
       ไม่ได้ — ต้อง browser จริง และธีมมืด/ภาษาอื่น contrast ต่างกัน
@@ -913,6 +978,7 @@ gates:
     requires: [docker]
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       Dockerfile ที่ไม่มีใครเคย build คือไฟล์ข้อความธรรมดา — และ shebang ของ
       venv เคยพังแบบที่ข้อความ error โกหกว่าไฟล์ไม่มีอยู่
@@ -926,6 +992,7 @@ gates:
     requires: [docker-compose]
     portable: false
     layer: internal
+    pillar: performance
     born_from: ""
 
   - id: tls-modern-protocols-only
@@ -937,6 +1004,7 @@ gates:
     requires: [docker-compose]
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       openssl 3 ปิด TLS 1.0/1.1 ฝั่ง client อยู่แล้ว — ด่านที่ไม่เปิด SECLEVEL=0
       พิสูจน์แค่ว่า openssl ปฏิเสธตัวเอง ผ่านทุกครั้งแม้ลบ ssl_protocols ทิ้ง
@@ -950,6 +1018,7 @@ gates:
     requires: [docker-compose]
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       การต่อรองปกติได้ ECDHE ดูปลอดภัยดี แต่ไคลเอนต์ที่ขอชุด RSA-kx ตรง ๆ
       ก็ได้รับ — ด่านที่ดูแค่ "ต่อรองได้อะไร" รายงานว่าผ่านทั้งที่ทางไม่มี PFS
@@ -964,6 +1033,7 @@ gates:
     requires: [docker-compose]
     portable: false
     layer: internal
+    pillar: security
     born_from: ""
 
   - id: ldap-end-to-end
@@ -975,6 +1045,7 @@ gates:
     requires: [docker-compose]
     portable: false
     layer: internal
+    pillar: security
     born_from: ""
 
   - id: vault-end-to-end
@@ -986,6 +1057,7 @@ gates:
     requires: [docker-compose]
     portable: false
     layer: internal
+    pillar: security
     born_from: ""
 
   - id: alerts-fire-for-real
@@ -997,6 +1069,7 @@ gates:
     requires: [docker-compose]
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       ADR 0037 — กฎที่นับแต่ 401 เงียบพอดีตอนที่การโจมตีหนักที่สุด เพราะโควตา
       ตัดที่ 5 ที่เหลือกลายเป็น 429 · ต้องพิสูจน์ว่า alert ดัง ไม่ใช่ว่ามีกฎ
@@ -1010,6 +1083,7 @@ gates:
     requires: [docker-compose]
     portable: false
     layer: internal
+    pillar: performance
     born_from: >-
       ADR 0031 ทิ้งของค้างไว้ว่า "มีของให้ดูดแล้วแต่ยังไม่มีใคร scrape" —
       endpoint ที่ไม่มีตัวดูดจริงคือ endpoint ที่วันหนึ่งพังเงียบ ๆ ได้โดยไม่มี
@@ -1025,6 +1099,7 @@ gates:
     requires: [docker-compose]
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       สแกนโดยไม่ login เห็นแค่หน้า login — ด่านแบบนั้นเขียวตลอดโดยไม่ได้ตรวจ
       อะไร · และวันที่แก้จนไม่เหลือ alert การเช็คจากรายงานจะกลายเป็น
@@ -1039,6 +1114,7 @@ gates:
     requires: [systemd]
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       ระยะเก็บรักษาจะเป็นจริงก็ต่อเมื่อมีอะไรรัน purge ตามรอบ — และงานตามรอบ
       ที่เงียบตอนพังแย่กว่าไม่มีเลย · `$?` ในกิ่ง if! เป็น 0 เสมอ
@@ -1052,6 +1128,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       ความลับที่หลุดเข้า history ลบไม่ได้จริงบน GitHub — object เก่ายังถูก
       เสิร์ฟตาม SHA · กันตั้งแต่ขาเข้าถูกกว่าเสมอ
@@ -1065,6 +1142,7 @@ gates:
     requires: []
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       SBOM ก้อนเดียวตอบคำถามแรกของวันที่ CVE ออกไม่ได้ —
       "ถอดตัวนี้แล้วอะไรหายไปบ้าง"
@@ -1078,6 +1156,7 @@ gates:
     requires: [github-actions]
     portable: true
     layer: baseline
+    pillar: security
     born_from: >-
       ของที่คลิกไว้ใน UI ไม่มีใคร review ได้และหายเงียบ ๆ ได้ (หลัก ADR 0037)
       · รอบแรกเจอของจริงสองอย่างรวม debugger ที่ติดไปกับ image
@@ -1091,6 +1170,7 @@ gates:
     requires: []
     portable: false
     layer: internal
+    pillar: devx
     born_from: ""
 
   - id: openssf-scorecard
@@ -1102,4 +1182,5 @@ gates:
     requires: [github-actions]
     portable: false
     layer: internal
+    pillar: security
     born_from: ""

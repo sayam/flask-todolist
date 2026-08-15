@@ -20,6 +20,18 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Added
 
+- **The project constitution**
+  ([ADR 0051](docs/adr/0051-project-constitution-and-intake.md)): concerns
+  are ranked — security (country law · worldwide standards · supply chain)
+  over scalability & performance over manageability over DevSecOps
+  friendliness — and every gate in `gates.yaml` now declares which pillar it
+  serves (`pillar:`, enforced by `tests/test_gates.py`; first tally:
+  security 52 · manageability 14 · devx 13 · performance 2). New external
+  ideas enter through documented intake rules (CONTRIBUTING rule 10): the
+  baseline must not break, classify before adopting, record adoptions and
+  rejections as ADRs. The governance plan (G1–G5, next: an ISO/IEC
+  27001:2022 self-assessment) lives in
+  [`docs/ROADMAP-GOVERNANCE.md`](docs/ROADMAP-GOVERNANCE.md).
 - `skill/` — the exported rules repackaged as an installable **agent skill**
   ([ADR 0050](docs/adr/0050-agent-skill-package-export.md)): frontmatter and
   a usage preface wrapped around the same generated baseline sheet, the
@@ -187,7 +199,7 @@ graph. Nothing in the `/api/v1` contract changed; it only gained fields.
 ## [1.0.0] — 2026-08-12
 
 First public release. Everything below arrived across seven planned phases of
-work; the reasoning for each decision lives in the 50 records in
+work; the reasoning for each decision lives in the 51 records in
 [`docs/adr/`](docs/adr/), and the phase-by-phase plan in
 [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
