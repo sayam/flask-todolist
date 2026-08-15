@@ -30,6 +30,19 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Added
 
+- **The governance plan, closed** — G5's measurements shipped: four
+  configurations ({1,2 workers} × {1,2 replicas}) on the reference VM, 16/16
+  target-load rounds passing thresholds. Two workers in one container halve
+  p95 at 25 VUs and add 129% throughput at 50 VUs — now legal because
+  `/metrics` aggregates correctly; the surprise finding is recorded too: on
+  a single host, two replicas are *worse* than one at every load level
+  (shared vCPUs, proxy hop, cross-process audit serialization) — replicas
+  are for availability and rolling upgrades, not single-host throughput.
+  The multiproc mode was proven on real gunicorn (two workers' snapshot
+  files, aggregated counts, monotonic scrapes). Caching verdict per the
+  measure-first rule: **no app-data cache** — the bottleneck is process
+  count, not queries; revisit conditions recorded in
+  `docs/PERFORMANCE.md`.
 - **Opt-in multi-worker with correct metrics**
   ([ADR 0052](docs/adr/0052-performance-layer-g5.md) — G5 of the governance
   plan): set `WEB_CONCURRENCY` above 1 together with
