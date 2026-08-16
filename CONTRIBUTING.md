@@ -186,6 +186,22 @@ deliberate.
 Describe **what you changed and what would have gone wrong without it**. A diff
 explains itself; the failure it prevents usually does not.
 
+## Continuity: if the maintainer disappears
+
+Nothing about this project's continuity depends on any private asset the
+maintainer holds. The repository is public and MIT-licensed, so a fork
+carries every right needed to continue. Everything the project produces
+is reproduced from the repository itself: CI builds and signs release
+artifacts **keyless** (sigstore OIDC — there is no private signing key
+to lose), dependency updates arrive through Dependabot configuration
+committed in-repo, and every gate, document, and generated file rebuilds
+from committed sources. The one secret that exists,
+`DATA_ENCRYPTION_KEY`, guards each operator's *own instance data* — it
+is not a project asset and its loss affects no one else's deployment.
+So the continuity plan is the repository: fork it, and the project
+continues whole ([ADR 0053](docs/adr/0053-solo-maintainer-sod-compensating-controls.md)
+records what changes when a second regular contributor arrives).
+
 ## Licensing of contributions
 
 By opening a pull request you agree that your contribution is published under the
@@ -281,6 +297,17 @@ CI มี 27 job (29 check) ที่ยิงของจริงทั้ง�
 IdP, LDAP, Vault, ZAP แบบ login แล้ว และ Chromium สำหรับ accessibility ·
 ไม่มี mock สักตัว โดยตั้งใจ (`dialects` เป็น matrix สองยี่ห้อ จึงนับเป็นสอง check) · เขียนอธิบายว่า**แก้อะไร และถ้าไม่แก้จะพังอย่างไร**
 เพราะ diff อธิบายตัวเองได้ แต่ความพังที่มันกันไว้อธิบายตัวเองไม่ได้
+
+## ความต่อเนื่อง: ถ้าผู้ดูแลหายไป
+
+ความต่อเนื่องของโปรเจกต์ไม่พึ่งของส่วนตัวชิ้นไหนของผู้ดูแลเลย — repo
+สาธารณะ + MIT แปลว่า fork เดียวได้สิทธิ์ครบ · ทุกอย่างที่โปรเจกต์ผลิต
+สร้างซ้ำได้จากตัว repo: CI เซ็น release แบบ **keyless** (ไม่มีคีย์ส่วนตัว
+ให้หาย) · Dependabot ตั้งค่าในไฟล์ที่ commit ไว้ · gate/เอกสาร/ไฟล์
+generate ทั้งหมดสร้างใหม่จาก source ที่ commit · ความลับตัวเดียวที่มีคือ
+`DATA_ENCRYPTION_KEY` ซึ่งเป็นของ*ข้อมูลใน instance ของผู้ deploy แต่ละคน*
+ไม่ใช่ของโปรเจกต์ — แผนความต่อเนื่องจึงคือตัว repo เอง: fork แล้วเดินต่อ
+ได้ครบ (ADR 0053 บันทึกว่าอะไรเปลี่ยนเมื่อมี contributor ประจำคนที่สอง)
 
 ## license ของสิ่งที่คุณส่งมา
 

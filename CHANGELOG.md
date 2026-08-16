@@ -18,7 +18,13 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- **A continuity statement in CONTRIBUTING (both languages)**: nothing
+  about the project's continuity depends on a private asset — keyless
+  signing, in-repo automation, MIT — so a fork continues the project
+  whole. Written for the humans it reassures, and it happens to answer
+  the Best Practices `access_continuity` criterion.
 
 ## [1.5.0] — 2026-08-16
 
