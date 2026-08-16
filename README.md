@@ -157,6 +157,7 @@ Written in Thai, because that is the language the thinking happened in.
 | [`docs/DATA-CLASSIFICATION.md`](docs/DATA-CLASSIFICATION.md) | what is stored, how sensitive it is, how long it is kept |
 | [`docs/DESIGN.md`](docs/DESIGN.md) | the UI's identity and a per-page mode table, both enforced by a test |
 | [`docs/OPERATIONS.md`](docs/OPERATIONS.md) | running it for real |
+| [`docs/RELEASE.md`](docs/RELEASE.md) | how a release is cut — and the work bound to the next one |
 | [`CLAUDE.md`](CLAUDE.md) | the working notes — every trap this project has already fallen into |
 
 ## Contributing, security, licence
@@ -321,6 +322,7 @@ org graph) · [`docs/PDPA.md`](docs/PDPA.md) (worksheet แบบเดียว
 [`docs/DATA-CLASSIFICATION.md`](docs/DATA-CLASSIFICATION.md) ·
 [`docs/DESIGN.md`](docs/DESIGN.md) (ตัวตนของ UI + ตารางโหมดต่อหน้า มีเทสต์คุม) ·
 [`docs/OPERATIONS.md`](docs/OPERATIONS.md) ·
+[`docs/RELEASE.md`](docs/RELEASE.md) (ขั้นตอนออกรุ่น + งานที่ผูกกับรุ่นถัดไป) ·
 [`CLAUDE.md`](CLAUDE.md) (บันทึกการทำงาน — กับดักทุกอันที่โปรเจกต์นี้เคยตกไปแล้ว)
 
 ## License

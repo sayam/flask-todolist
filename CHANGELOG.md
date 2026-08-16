@@ -60,6 +60,12 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
   `dialect-discipline`. Registry now 90 gates (65 baseline · 7 business
   · 18 internal · 71 portable); `SKILL.md` and `SKILL-TODOLIST.md`
   regenerated accordingly.
+- **The release procedure is now a document, not folklore**
+  ([`docs/RELEASE.md`](docs/RELEASE.md)): the standard cut steps as
+  practised since v1.1.0, plus the four tasks bound to the next release
+  (first-ever CVE-fixing release notes, cosign/SLSA signing, the Best
+  Practices fields tied to versions, the README version badge) — with a
+  cadence-table row so the test-read schedule carries the reminder.
 - **A full documentation currency sweep** (three parallel reviewers over
   every hand-written doc): stale counts and claims from the ADR
   0053–0056 window fixed across twelve files — required-check numbers,
