@@ -33,7 +33,7 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
     two-way audit gate requires.
 - **`main` accepts pull requests only — enforced for admins too**
   ([ADR 0053](docs/adr/0053-solo-maintainer-sod-compensating-controls.md)):
-  `enforce_admins` is now on, so the 26 required checks sit on the
+  `enforce_admins` is now on, so the 27 required checks sit on the
   mandatory path for everyone. The ADR records the solo-maintainer
   compensating controls and the expiry condition (a second regular
   contributor turns required reviews on). CONTRIBUTING rule 11 announces
@@ -50,6 +50,13 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 - The branch-protection notes in `SECURITY-CADENCE.md` and `ROADMAP.md`
   caught up with ADR 0053/0056 reality: `enforce_admins` is on, required
   checks are 27 of 28.
+- **A full documentation currency sweep** (three parallel reviewers over
+  every hand-written doc): stale counts and claims from the ADR
+  0053–0056 window fixed across twelve files — required-check numbers,
+  supply-chain axis 17, portable gates 66, plan G closed, cryptography
+  `~=50.0`, one remaining accepted advisory, the Best Practices submit
+  checklist collapsed to a done record, and the per-push job table now
+  lists `perf-smoke`, `commit-lint`, and the hadolint step.
 
 ### Added
 

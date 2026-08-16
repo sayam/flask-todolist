@@ -109,9 +109,20 @@
 - `app/static/base.css` — เลย์เอาต์ของ core **ห้ามมีสีดิบ** สีมาจากธีมทั้งหมด
 - `app/static/app.js` — พฤติกรรมฝั่ง client **ทั้งหมด** (ห้ามมี inline handler ที่อื่น)
 - `.pa11yci.json` — รายการหน้าที่ job `a11y` ใน CI สแกน (รวมโหมดมืด/ธีม ocean/ภาษาไทย)
-- `Dockerfile` + `.dockerignore` — image ที่รันจริง (multi-stage, ไม่ใช่ root)
+- `Dockerfile` + `.dockerignore` — image ที่รันจริง (multi-stage, ไม่ใช่ root —
+  `USER` เป็น uid ตัวเลข · HEALTHCHECK CMD เป็น JSON form ทั้งคู่ตาม hadolint)
   **ไม่ migrate ให้เอง** โดยตั้งใจ · ไลบรารีของ plugin ไม่อยู่ใน image (ADR 0025)
   job `image` ใน CI build จริงแล้วยิงใส่มันทุก push — ดู docs/OPERATIONS.md
+  · **OS layer ของ image ถูก trivy สแกนทุก push** (ADR 0054 — HIGH/CRITICAL
+  เฉพาะมี fix · ตัวตัดสินคือ `scripts/audit_image.py` สองทิศเทียบ
+  `deploy/accepted-image-advisories.txt` ซึ่งควรว่างเป็นปกติ)
+- `.hadolint.yaml` — ขอบเขต lint ของ `Dockerfile` (ADR 0055 — job `lint` รัน
+  hadolint ทุกระดับรวม info ต้องเขียว) **ข้อยกเว้นต้องมีเหตุผลกำกับที่นี่
+  ที่เดียว** · รุ่นที่ตัดสินคือรุ่นใน action — รุ่นบนเครื่องเป็นแค่ preview
+- job `perf-smoke` — **tripwire ของ pillar performance** (ADR 0056): เดิน
+  `loadtest/journey.js` ใส่ stack จาก image จริง 5 VUs/60s เกณฑ์หลวม 2× เป้า
+  (`P95_MS`/`P99_MS` — default ของ journey ยังเป็นเป้าจริง) · **เป็น tripwire
+  ไม่ใช่การวัด** ตัวเลขห้ามอ้างใน docs/PERFORMANCE.md
 - `app/secrets.py` — **ความลับมาจากแหล่งที่ประกาศด้วย scheme ของ `SECRETS_URL`**
   (ADR 0030) `env://` เป็นค่าเริ่มต้นและไม่เปลี่ยนอะไรเลย · `file://` อ่านจาก
   ไฟล์แบบ docker/kubernetes · เรียก **ก่อน `check_secret_key()`** ใน `create_app`
@@ -159,7 +170,7 @@
   `performance` > `manageability` > `devx` คือลำดับความสำคัญของโปรเจกต์
   ชนกันเมื่อไหร่ชั้นบนชนะ · ของใหม่จากภายนอกเข้าผ่าน intake (CONTRIBUTING
   กฎข้อ 10) — baseline ห้าม break · แผนงาน governance อยู่ใน
-  `docs/ROADMAP-GOVERNANCE.md` (G1–G4 เสร็จแล้ว · เหลือ G5 ชั้น performance รอเจ้าของตัดสิน ADR 0052)
+  `docs/ROADMAP-GOVERNANCE.md` (G1–G5 ปิดครบทั้งใบแล้ว 2026-08-16 — ADR 0052 accepted)
 - `SKILL.md` — กฎสากลของ scaffolding **generate มา ห้ามแก้ด้วยมือ**
   (`scripts/build_skill.py` จาก portable gate ใน `gates.yaml`) · กฎใหม่ที่เป็น
   สากล = เพิ่ม gate `portable: true` + `born_from` แล้ว regenerate — ห้ามเขียน
@@ -860,7 +871,7 @@ session มาก่อนโปรไฟล์เพื่อให้กดส
   ADR 0019) ไม่งั้น `create-user` ปฏิเสธเงียบ ๆ แล้ว k6 รายงานว่า login ไม่ผ่านทั้งชุด
 - **คอขวดตอนนี้คือจำนวน process ที่รับงานได้พร้อมกัน ไม่ใช่ query** — throughput
   ตันที่ ~57–70 req/s แล้วตกลง ซึ่งเป็นรูปของคิวที่ล้น การไปเพิ่ม index ตอนนี้
-  คือการแก้สิ่งที่การวัดไม่ได้บอกว่าเสีย (gunicorn ยังเป็น worker เดียวต่อ container)
+  คือการแก้สิ่งที่การวัดไม่ได้บอกว่าเสีย (ค่าเริ่มต้นยัง 1 worker ต่อ container — multi-worker เป็น opt-in ตาม ADR 0052)
 
 ## Schema identity (Phase 2 ด่านแรก — ดู ADR 0013)
 - **ทุกตารางขึ้นต้น `tdl_`** ตาราง core คือ `tdl_user` / `tdl_category` / `tdl_todo`
@@ -1076,7 +1087,7 @@ log ขึ้น "Running upgrade" ครบทุกตัว exit code เป�
   เป้าที่ 5 concurrent ผ่าน ยืนยันด้วยการรันซ้ำ 4 รอบ ไม่มีรอบไหนตกเกณฑ์ ·
   ระหว่างทางเจอว่า **การรัน ≥2 replica ทำให้การเขียนล้มเพราะสาย audit ต่อขนาน
   ข้าม process ไม่ได้** (ข้อจำกัดที่ ADR 0015 บันทึกไว้เองว่าต้องแก้เมื่อถึงวันที่
-  เขียนขนานจริง — วันนั้นมาถึงพร้อม Phase 5) **แก้แล้วด้วย ADR 0032**
+  เขียนขนานจริง — วันนั้นมาถึงพร้อม Phase 5) **แก้แล้วด้วย ADR 0032 ซึ่งต่อมาถูกแทนด้วยกลไกแถวล็อกของ ADR 0035**
 - แผนแม่บท (ISO/IEC 25010:2023 + audit/data governance) อยู่ใน `docs/ROADMAP.md`
   เรียงเป็นเฟสตามหลักลด rework — **ก่อนเริ่มฟีเจอร์ใหม่ให้เช็คว่าอยู่เฟสไหนของแผน**
 

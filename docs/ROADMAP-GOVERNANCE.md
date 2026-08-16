@@ -27,8 +27,9 @@
   ใน `CONTRIBUTING.md` (สองภาษา) · กฎข้อ 8 บังคับ gate ใหม่ประกาศ `pillar:`
 - `pillar:` ครบทุก gate ใน `gates.yaml` (`tests/test_gates.py` บังคับ —
   ค่าแรกประกาศ: security 52 · manageability 14 · devx 13 · performance 2)
-- ภาพที่ pillar เผยทันที: ชั้น performance มีด่านอัตโนมัติน้อยสุด (2)
-  เพราะ load test ยังเป็นงานรันมือ — เป็นข้อมูลตั้งต้นของ G5
+- ภาพที่ pillar เผยทันที (ณ ตอนเปิดแผน): ชั้น performance มีด่านอัตโนมัติ
+  น้อยสุด (2) เพราะ load test ตอนนั้นยังเป็นงานรันมือ — เป็นข้อมูลตั้งต้นของ
+  G5 · ปัจจุบัน 4 รวมด่านต่อ push ตัวแรกของ pillar (ADR 0056)
 
 ## G2 — ISO/IEC 27001:2022 ✅ (เสร็จ 2026-08-16)
 
@@ -57,7 +58,7 @@ passing (2026-08-16) · **ผลรวมสุดท้าย: ผ่าน 79 
 
 ผลจริง: `docs/SUPPLY-CHAIN.md` — ห้าชั้นของห่วงโซ่ (ของในแอป · เครื่องมือ
 ของ CI · ของที่รันจริง · ใครขยับ pin · หลักฐาน posture) · สมาชิกแกนประกาศ
-ที่ gate ด้วย field `axis: supply-chain` (14 ตัว — ข้าม pillar ได้:
+ที่ gate ด้วย field `axis: supply-chain` (14 ตัวตอนปิด G3 · ปัจจุบัน 17 — ข้าม pillar ได้:
 `bare-clone-still-green` เป็น manageability แต่รับใช้แกนนี้) ·
 `tests/test_supply_chain.py` บังคับดัชนี↔ธงสองทิศ · gate:
 `supply-chain-axis-indexed`

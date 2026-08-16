@@ -306,6 +306,9 @@ dir ต้องเป็นที่ที่**ตายพร้อม contain
 - ไม่มี `tests/`, `docs/`, `.env`, `instance/` อยู่ข้างใน
 - start แล้ว healthcheck ขึ้น healthy และ `GET /login` ตอบ 200
 - log ของแอปออก stderr ส่วน access log ออก stdout (ADR 0011 หมายเหตุท้ายไฟล์)
+- OS layer ไม่มี CVE ระดับ HIGH/CRITICAL ที่มี fix แล้วค้างอยู่ — trivy สแกน
+  ทุก push และตัดสินสองทิศเทียบ `deploy/accepted-image-advisories.txt`
+  (ADR 0054 — รายการยกเว้นควรว่างเป็นปกติ)
 
 ## รัน stack ทั้งชุดด้วย compose (Phase 5 · P5-10)
 

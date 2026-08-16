@@ -28,7 +28,7 @@
 
 | ความเสี่ยง | โอกาส | ผลกระทบ | ระดับ | การจัดการ (กลไกจริง) | คงเหลือที่ตั้งใจรับ |
 |---|---|---|---|---|---|
-| supply chain ถูกฝัง (dependency/action/image) | กลาง | สูง | สูง | แกนอิสระ 14 gate — pin ทุกชั้นด้วย hash · CVE audit สองทิศ · SBOM · Scorecard (`docs/SUPPLY-CHAIN.md`) | zero-day ใน upstream ก่อน advisory ออก — ตรวจจับไม่ได้จนกว่าโลกจะรู้ |
+| supply chain ถูกฝัง (dependency/action/image) | กลาง | สูง | สูง | แกนอิสระ 17 gate — pin ทุกชั้นด้วย hash · CVE audit สองทิศ · SBOM · Scorecard (`docs/SUPPLY-CHAIN.md`) | zero-day ใน upstream ก่อน advisory ออก — ตรวจจับไม่ได้จนกว่าโลกจะรู้ |
 | ข้อมูลสูญหาย (ดิสก์พัง/ลบผิด/migration พัง) | กลาง | สูง | สูง | soft delete ทั้งระบบ (`ADR 0014`) · backup/restore ที่ซ้อมทุก push (`docs/RUNBOOK-BACKUP.md` · `tests/test_backup_drill.py`) | ช่วงเวลาระหว่างรอบ backup ของผู้ deploy |
 | ผู้ดูแลคนเดียว (bus factor) | สูง | กลาง | สูง | ความรู้ถูกบังคับให้อยู่ในเครื่อง ไม่ใช่ในหัว: gate "ลืมแล้วแดง" ทุกกฎ (`gates.yaml`) · เอกสาร/ADR ครบ · repo สาธารณะ (`CLAUDE.md`) | โปรเจกต์ส่วนตัวโดยนิยาม — ไม่มีคนที่สองมารับช่วงทันที |
 | เดารหัสผ่าน / credential stuffing | กลาง | กลาง | กลาง | โควตาสองมิติ (IP+ชื่อ — `ADR 0021`) · นโยบาย NIST + blocklist (`ADR 0019`) · MFA แบบสมัครใจ (`ADR 0024`) | MFA ไม่บังคับ — เหตุผลและเงื่อนไขหมดอายุใน `ADR 0033` |
