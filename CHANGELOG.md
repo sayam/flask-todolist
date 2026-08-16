@@ -39,6 +39,18 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
   contributor turns required reviews on). CONTRIBUTING rule 11 announces
   it; the ISO 27001 A.5.3 row now cites it.
 
+### Changed
+
+- **The at-rest encryption boundary is now stated, not implied**
+  (`docs/DATA-CLASSIFICATION.md` rule 5): whole-database encryption at
+  rest is deliberately delegated to the infrastructure layer, while the
+  app encrypts only usable C1 secrets itself (ADR 0046) — the two layers
+  defend against different attackers, and "not mentioned" should never
+  read as "already handled".
+- The branch-protection notes in `SECURITY-CADENCE.md` and `ROADMAP.md`
+  caught up with ADR 0053/0056 reality: `enforce_admins` is on, required
+  checks are 27 of 28.
+
 ### Added
 
 - **A per-push performance tripwire — the pillar's first**
