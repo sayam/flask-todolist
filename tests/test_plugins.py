@@ -565,7 +565,7 @@ def test_a_plugin_declares_the_libraries_it_needs(app):
     with app.app_context():
         # ตั้งแต่ ADR 0046 ตัว plugin พึ่ง cryptography เอง (encrypt ความลับ at rest)
         # — ก่อนหน้านั้นของที่พึ่งมีแต่ในส่วนเสริม
-        assert plugins.requirements(plugins.find(TOTP_KEY)) == ["cryptography~=45.0"]
+        assert plugins.requirements(plugins.find(TOTP_KEY)) == ["cryptography~=50.0"]
         assert plugins.requirements(plugins.find(QR_KEY)) == ["segno~=1.6"]
         assert plugins.requirements(plugins.find("themes/system")) == []
 

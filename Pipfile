@@ -53,4 +53,4 @@ redis = "~=5.0"
 gunicorn = "~=23.0"
 
 [plugin-auth-totp]
-cryptography = "~=45.0"
+cryptography = "~=50.0"

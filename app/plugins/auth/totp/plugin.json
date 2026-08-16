@@ -6,7 +6,7 @@
   "migration": "live",
   "requires": {
     "pip": [
-      "cryptography~=45.0"
+      "cryptography~=50.0"
     ]
   }
 }
