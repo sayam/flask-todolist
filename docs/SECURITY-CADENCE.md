@@ -56,7 +56,7 @@ Phase 7 · P7-04 — **นโยบายนี้มีเทสต์คุม
 | กวาดหาความลับใน**ประวัติทั้งหมด** | 12 เดือน และหลังเขียนประวัติใหม่ทุกครั้ง | 2026-08-12 | 2027-08-12 | `scripts/secret_scan_history.sh` · ข้อยกเว้นใน `.gitleaksignore` |
 | ทบทวน alert ของ CodeQL ที่ถูก dismiss ไว้ | 6 เดือน | 2026-08-12 | 2027-02-12 | `gh api repos/sayam/flask-todolist/code-scanning/alerts?state=dismissed` |
 | ซ้อมใช้ runbook ตอนข้อมูลรั่ว | 12 เดือน | ยังไม่เคยทำ | เมื่อมีข้อมูลจริงในระบบพอที่การซ้อมจะบอกอะไรได้ — ดู [RUNBOOK-BREACH.md](RUNBOOK-BREACH.md) ข้อ 7 | [RUNBOOK-BREACH.md](RUNBOOK-BREACH.md) |
-| งานชุด release: ระบุ CVE ใน notes · ปรับ bestpractices · ขยับ badge เวอร์ชัน (cosign สร้างแล้ว — เหลือดูว่า workflow เขียว) | ทุก release | 2026-08-16 (v1.5.0) | เมื่อจะออก release ถัดไป (รายการเต็มใน [RELEASE.md](RELEASE.md)) | [RELEASE.md](RELEASE.md) |
+| งานชุด release: ระบุ CVE ใน notes · ปรับ bestpractices · ขยับ badge เวอร์ชัน (cosign สร้างแล้ว — เหลือดูว่า workflow เขียว) | ทุก release | 2026-08-17 (v1.6.0) | เมื่อจะออก release ถัดไป (รายการเต็มใน [RELEASE.md](RELEASE.md)) | [RELEASE.md](RELEASE.md) |
 
 **เลยกำหนดแล้วทำอย่างไร**: ทำการตรวจนั้นแล้วขยับวันที่ **หรือ** เลื่อนออกไป
 อย่างเปิดเผยโดยแก้ตารางนี้พร้อมเหตุผล — ทั้งสองทางเป็น commit ที่มีคนเห็น

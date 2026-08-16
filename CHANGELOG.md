@@ -18,6 +18,21 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [1.6.0] — 2026-08-17
+
+The silver release: the OpenSSF Best Practices badge reached **Silver
+(100%)**, unlocked by the signed v1.5.0 release and a continuity
+statement; a second governance audit then closed its own findings —
+every open ADR review condition now has a machine-read reminder, the
+owner's account (the root of trust behind signed releases) is hardened
+with a passkey as the preferred second factor and reviewed on a yearly
+cadence row, four more gates moved to the layer their rules belong to,
+and repo-level auto-merge replaced hand-rolled merge scripts across the
+board. A release of reminders and promotions rather than features — the
+kind a governance constitution is supposed to produce.
+
 ### Changed
 
 - **Repo-level auto-merge is now the merge norm**
@@ -559,7 +574,8 @@ work; the reasoning for each decision lives in the 58 records in
 - WCAG 2.2 AA, checked both by a structural test suite and by pa11y-ci driving a
   real Chromium over dark mode, an alternate theme, and Thai.
 
-[Unreleased]: https://github.com/sayam/flask-todolist/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/sayam/flask-todolist/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/sayam/flask-todolist/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/sayam/flask-todolist/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/sayam/flask-todolist/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/sayam/flask-todolist/compare/v1.2.0...v1.3.0
