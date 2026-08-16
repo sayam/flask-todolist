@@ -67,7 +67,11 @@ jobs:
       # workflow นี้ ไม่ใช่แค่ "ลายเซ็น valid" (ใครก็เซ็น keyless ได้)
       - name: verify สองทิศก่อนอัปโหลด
         run: |
+          # glob `sbom-*.json` จับไฟล์ bundle ด้วย (`.sigstore.json` ก็ลงท้าย
+          # .json) — ข้ามมันในทุก loop ที่รันหลังขั้นเซ็น (เจอจริงตอน run แรก
+          # ของ v1.5.0: verify หา bundle-ของ-bundle แล้วล้ม)
           for f in sbom-*.json; do
+            case "$f" in *.sigstore.json) continue;; esac
             cosign verify-blob \
               --bundle "$f.sigstore.json" \
               --certificate-identity-regexp "^https://github.com/${{ github.repository }}/\.github/workflows/release\.yml@" \
@@ -84,6 +88,11 @@ jobs:
       - name: SLSA provenance ผ่าน attestation ของ GitHub
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
-          subject-path: "sbom-*.json"
+          # ไม่รวมไฟล์ bundle — provenance เป็นของ artifact ไม่ใช่ของลายเซ็น
+          subject-path: |
+            sbom-*.json
+            !sbom-*.sigstore.json
       - name: อัปโหลด SBOM + ลายเซ็นเข้า release
+        # glob แรกจับ bundle ด้วย ซึ่งซ้ำกับ glob ที่สอง — `--clobber` ทำให้
+        # การอัปโหลดซ้ำเป็นการทับ ไม่ใช่ error จึงปล่อยรูปนี้ได้ (ของครบแน่)
         run: gh release upload "$TAG" sbom-*.json sbom-*.json.sigstore.json --clobber
