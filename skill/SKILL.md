@@ -464,6 +464,14 @@ description: Universal production-discipline rules for web applications, distill
 
 **ตัวบังคับใน reference:** job `image`
 
+### `dockerfile-linted`
+
+**กฎ:** Dockerfile ผ่าน hadolint ทุกระดับรวม info — ข้อยกเว้นมีเหตุผลที่ config เดียว
+
+**เกิดจาก:** audit governance 2026-08-16 (ADR 0055) — โค้ดผ่าน SAST สองเครื่องยนต์ แต่ไฟล์ที่นิยามสภาพแวดล้อมที่โค้ดรันไม่ถูกตรวจอะไรเลยนอกจากการที่มัน ใช้งานได้ · misconfig ชั้น CIS Docker คือของที่เครื่องตรวจได้ฟรี
+
+**ตัวบังคับใน reference:** job `lint` step "lint Dockerfile (hadolint — ADR 0055)"
+
 ### `image-os-cve-audit`
 
 **กฎ:** OS layer ของ image ถูกสแกน CVE และตัดสินเทียบรายการยกเว้นสองทิศ
