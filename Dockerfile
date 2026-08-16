@@ -105,7 +105,10 @@ VOLUME /data
 # โค้ดเป็นของ root และ process รันเป็น todolist — **เขียนทับตัวเองไม่ได้**
 RUN chown -R root:root /app && chmod -R a-w /app
 
-USER todolist
+# uid ตัวเลข ไม่ใช่ชื่อ — host/orchestrator ที่ mount volume หรือบังคับ
+# runAsNonRoot ต้อง resolve ผู้ใช้ได้โดยไม่เปิด /etc/passwd ของ image
+# (DL3066 · ชื่อ todolist ยัง resolve ได้จากใน container — uid เดียวกัน)
+USER 10001
 EXPOSE 8000
 
 # healthcheck ยิงหน้า login เพราะเป็นหน้าเดียวที่ตอบได้โดยไม่ต้อง login
@@ -121,7 +124,7 @@ EXPOSE 8000
 # ตอน `HTTPS_ENABLED=0` header นี้ไม่มีผลอะไร เพราะ `TRUSTED_PROXY_HOPS=0`
 # ทำให้ ProxyFix ไม่ถูกผูกเลย (ADR 0027) จึงใส่ไว้ตายตัวได้ ไม่ต้องมีสองสูตร
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD python -c "import urllib.request as u; u.urlopen(u.Request('http://127.0.0.1:8000/readyz', headers={'X-Forwarded-Proto': 'https'})).read()"
+    CMD ["python", "-c", "import urllib.request as u; u.urlopen(u.Request('http://127.0.0.1:8000/readyz', headers={'X-Forwarded-Proto': 'https'})).read()"]
 
 # `--access-logfile -` ส่ง access log ออก stdout ส่วน log ของแอปออก stderr
 # (ADR 0011 หมายเหตุท้ายไฟล์) runtime เก็บทั้งสองช่อง
