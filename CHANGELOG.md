@@ -18,7 +18,18 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ## [Unreleased]
 
-Nothing yet.
+### Changed
+
+- **The ISO/IEC 27001:2022 worksheet reads 79 pass · 37 n/a · 0 fail** —
+  the last open item, A.5.35 (independent review), closed when the OpenSSF
+  Best Practices badge reached **passing** (project 14085, 100%, verified
+  against the badge API): a full review against an external framework's 67
+  criteria, with every answer published and the badge under the provider's
+  ongoing surveillance. A full human third-party review remains a recorded
+  option (the pentest cadence row). The README no longer mentions failing
+  ISO items, and `docs/BEST-PRACTICES.md` records the form-filling lesson:
+  criteria marked *(URL required)* stay unanswered until the justification
+  contains an actual URL.
 
 ## [1.3.0] — 2026-08-16
 
