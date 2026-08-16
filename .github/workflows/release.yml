@@ -1,0 +1,89 @@
+# เซ็นและออก provenance ให้ artifact ของ release (ADR 0058)
+#
+# ทำงานตอน release ถูก publish — ไม่ใช่ทุก push — เพราะของที่มันคุ้มครองคือ
+# ของที่แจกออกไป: SBOM ทั้ง 8 category ถูก generate **ในนี้** (ไม่รับของที่
+# build จากเครื่องใคร — provenance ที่ attest ของซึ่งตัวเองไม่ได้สร้างคือ
+# กระดาษเปล่า) แล้วเซ็นแบบ keyless + แนบ provenance ก่อนอัปโหลดเข้า release
+#
+# **ทำไมไม่ใช้ slsa-github-generator**: ตัว generator บังคับอ้างด้วย tag
+# (`@vX.Y.Z`) ซึ่งขัดกับด่าน SHA-pinning ของ repo (tests/test_workflow_pinning)
+# โดยตรง — attestation แบบ native ของ GitHub ให้ SLSA provenance ที่ verify
+# ด้วย `gh attestation verify` ได้และ pin ด้วย SHA ได้ (เหตุผลเต็มใน ADR)
+#
+# รันซ้ำได้ด้วย workflow_dispatch (ใส่ tag) — สำหรับวันที่รอบแรกล้มกลางทาง
+name: release
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "tag ของ release ที่จะเซ็น (เช่น v1.5.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  release-sign:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write      # อัปโหลด asset เข้า release
+      id-token: write      # keyless signing (sigstore OIDC)
+      attestations: write  # เก็บ provenance ใน attestation store ของ GitHub
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+          cache: pipenv
+      - run: pip install --require-hashes -r pins/pipenv/requirements.txt
+      - run: pipenv sync --dev
+      # คำสั่งชุดเดียวกับ job `sbom` ของ ci.yml — แยกไฟล์ละ category ด้วย
+      # เหตุผลเดิม (ADR 0025): ตอบได้ว่าถอด plugin ไหนแล้ว component ไหนหาย
+      - name: generate SBOM ทุก category จากโค้ดของ tag นี้
+        run: |
+          pipenv run cyclonedx-py environment -o sbom-core.json
+          for category in $(pipenv run flask plugin-deps --categories); do
+            pipenv requirements --categories="$category" > "req-$category.txt"
+            pipenv run cyclonedx-py requirements "req-$category.txt" -o "sbom-$category.json"
+          done
+          ls -1 sbom-*.json
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - name: เซ็นทุกไฟล์แบบ keyless (bundle ต่อไฟล์)
+        run: |
+          for f in sbom-*.json; do
+            cosign sign-blob --yes --bundle "$f.sigstore.json" "$f"
+          done
+      # **เซ็นแล้วต้อง verify ในที่เดียวกันด้วย identity ที่คาด** — ลายเซ็นที่
+      # ไม่เคยถูก verify คือไฟล์แนบ และการ verify ต้องผูกกับ identity ของ
+      # workflow นี้ ไม่ใช่แค่ "ลายเซ็น valid" (ใครก็เซ็น keyless ได้)
+      - name: verify สองทิศก่อนอัปโหลด
+        run: |
+          for f in sbom-*.json; do
+            cosign verify-blob \
+              --bundle "$f.sigstore.json" \
+              --certificate-identity-regexp "^https://github.com/${{ github.repository }}/\.github/workflows/release\.yml@" \
+              --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+              "$f"
+          done
+          # ทิศที่สอง: identity คนละตัวต้องไม่ผ่าน
+          if cosign verify-blob --bundle sbom-core.json.sigstore.json \
+              --certificate-identity-regexp "^https://github.com/someone-else/" \
+              --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+              sbom-core.json 2>/dev/null; then
+            echo "verify ผ่านกับ identity ที่ผิด — ด่านนี้ไม่ได้ตรวจอะไรเลย"; exit 1
+          fi
+      - name: SLSA provenance ผ่าน attestation ของ GitHub
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: "sbom-*.json"
+      - name: อัปโหลด SBOM + ลายเซ็นเข้า release
+        run: gh release upload "$TAG" sbom-*.json sbom-*.json.sigstore.json --clobber

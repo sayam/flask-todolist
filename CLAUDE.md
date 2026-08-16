@@ -224,7 +224,7 @@
   บังคับสองทิศ + pillar security) · ประเทศใหม่ = worksheet + gate + แถว
   แบบ additive ตามนิยามขั้นต่ำสี่ข้อในไฟล์
 - `docs/SUPPLY-CHAIN.md` — ดัชนีแกน supply chain (G3 — ADR 0051): สมาชิก
-  ประกาศที่ gate ด้วย `axis: supply-chain` (17 ตัว) · เพิ่มด่าน supply chain
+  ประกาศที่ gate ด้วย `axis: supply-chain` (18 ตัว) · เพิ่มด่าน supply chain
   ใหม่ต้องติดธง+ลงดัชนี ไม่งั้น `tests/test_supply_chain.py` แดงสองทิศ
 - `docs/RISK-ASSESSMENT.md` — วิธีประเมินความเสี่ยง (โอกาส×ผลกระทบ สูตรผลคูณ)
   + ทะเบียน · ระดับต้องตรงสูตร (`tests/test_risk_assessment.py`) · รอบเต็ม
@@ -1142,7 +1142,7 @@ generate จาก portable gate · `overlays/flask/` เอากฎไปบ�
 
 **อะไรเปลี่ยนไปหลัง Phase 5**: ฐานข้อมูล/cache/แหล่งความลับ/ปัจจัยยืนยันตัวตน
 เป็น plugin ที่เลือกด้วย config ตัวเดียวทั้งหมด · มี stack ที่รันจริงพร้อม
-reverse proxy, TLS, ≥2 replica, IdP และ directory · CI มี **26 job (28 check)** ที่ยิง
+reverse proxy, TLS, ≥2 replica, IdP และ directory · CI มี **27 job (29 check)** ที่ยิง
 ของจริงทุก push (ไม่ใช่ mock): สามยี่ห้อฐานข้อมูล, stack, SSO, LDAP, Vault,
 image, timer ของงานลบข้อมูล
 

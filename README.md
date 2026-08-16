@@ -10,7 +10,7 @@ The app itself is modest and finished: tasks with categories, deadlines,
 filters, two languages, three colour modes, accounts. What makes it worth reading
 is everything around it — a plugin architecture where the core never names a
 single plugin, an append-only audit trail that no feature has to remember to
-call, and 26 CI jobs (28 checks) that run against real databases, a real reverse
+call, and 27 CI jobs (29 checks) that run against real databases, a real reverse
 proxy, a real identity provider, and a real directory server, with nothing
 mocked.
 
@@ -146,12 +146,12 @@ Written in Thai, because that is the language the thinking happened in.
 
 | | |
 |---|---|
-| [`docs/adr/`](docs/adr/) | 57 architecture decision records — every choice, the options rejected, and what would reverse it |
+| [`docs/adr/`](docs/adr/) | 58 architecture decision records — every choice, the options rejected, and what would reverse it |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | the first seven phases — the application itself — what each closed, and what was deliberately deferred |
 | [`docs/ROADMAP-INFRA.md`](docs/ROADMAP-INFRA.md) | phases 8–12 — the index, the exported skill, the overlay, the fail-fix harness, and the comparison experiment |
 | [`docs/ASVS.md`](docs/ASVS.md) | OWASP ASVS 5.0 Level 2 self-assessment — all 253 in-scope requirements answered, including the 48 that do not pass |
 | [`docs/ISO27001.md`](docs/ISO27001.md) | ISO/IEC 27001:2022 self-assessment — all 116 items answered (clauses 4–10 and every Annex A control) — and since 2026-08-16, all of them pass or are justified n/a |
-| [`docs/SUPPLY-CHAIN.md`](docs/SUPPLY-CHAIN.md) | the supply-chain axis — five layers of the chain and the 17 gates that guard them, kept honest against `gates.yaml` both ways |
+| [`docs/SUPPLY-CHAIN.md`](docs/SUPPLY-CHAIN.md) | the supply-chain axis — five layers of the chain and the 18 gates that guard them, kept honest against `gates.yaml` both ways |
 | [`docs/COMPLIANCE.md`](docs/COMPLIANCE.md) | the per-country legal index — Thailand (PDPA) today, and the contract for adding a country additively |
 | [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) | measured numbers, including the ones that hurt |
 | [`docs/DATA-CLASSIFICATION.md`](docs/DATA-CLASSIFICATION.md) | what is stored, how sensitive it is, how long it is kept |
@@ -186,7 +186,7 @@ own dependency category) · SQLite / MySQL / MariaDB · gunicorn · pipenv
 ตัวแอปเองเรียบและเสร็จแล้ว — งาน หมวด กำหนดส่ง ตัวกรอง สองภาษา สามโหมดสี
 บัญชีผู้ใช้ · สิ่งที่ทำให้มันน่าอ่านคือของรอบ ๆ: สถาปัตยกรรม plugin ที่ core
 ไม่รู้จักชื่อ plugin ตัวไหนเลย · audit trail แบบเติมได้อย่างเดียวที่ฟีเจอร์ใหม่
-ไม่ต้องจำว่าต้องเรียก · และ CI 26 job (28 check) ที่ยิงใส่ฐานข้อมูลจริง
+ไม่ต้องจำว่าต้องเรียก · และ CI 27 job (29 check) ที่ยิงใส่ฐานข้อมูลจริง
 reverse proxy จริง IdP จริง และ directory จริง โดยไม่มี mock สักตัว
 
 **นี่เป็นโปรเจกต์ส่วนตัว ไม่ใช่ผลิตภัณฑ์** และตั้งใจทำเกินขนาดของมันเพื่อใช้ฝึก
@@ -299,7 +299,7 @@ export และวัดผลแล้ว:
 
 ## เอกสาร
 
-[`docs/adr/`](docs/adr/) 57 ใบ (ทุกการตัดสินใจ ทางที่ไม่ได้เลือก และเงื่อนไข
+[`docs/adr/`](docs/adr/) 58 ใบ (ทุกการตัดสินใจ ทางที่ไม่ได้เลือก และเงื่อนไข
 ที่จะทำให้มันหมดอายุ) · [`docs/ROADMAP.md`](docs/ROADMAP.md) (เฟส 0–7 ของตัวแอป)
 · [`docs/ROADMAP-INFRA.md`](docs/ROADMAP-INFRA.md) (เฟส 8–12 ของ scaffolding) ·
 [`docs/ROADMAP-GOVERNANCE.md`](docs/ROADMAP-GOVERNANCE.md) (แผน G — ธรรมนูญ
@@ -311,7 +311,7 @@ org graph) · [`docs/PDPA.md`](docs/PDPA.md) (worksheet แบบเดียว
 [`docs/ASVS.md`](docs/ASVS.md) ·
 [`docs/ISO27001.md`](docs/ISO27001.md) (27001:2022 ครบ 116 ข้อ) ·
 [`docs/SUPPLY-CHAIN.md`](docs/SUPPLY-CHAIN.md) (แกน supply chain — ห้าชั้น
-17 gate ตรวจกับ gates.yaml สองทิศ) ·
+18 gate ตรวจกับ gates.yaml สองทิศ) ·
 [`docs/COMPLIANCE.md`](docs/COMPLIANCE.md) (ดัชนี legal รายประเทศ +
 สัญญาการเพิ่มประเทศแบบ additive) ·
 [`docs/RISK-ASSESSMENT.md`](docs/RISK-ASSESSMENT.md) (วิธีประเมินความเสี่ยง

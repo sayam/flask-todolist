@@ -13,9 +13,9 @@
 3. ขยับ `__version__` ใน `app/__init__.py` (เทสต์ผูกกับ CHANGELOG สองที่)
 4. PR → check เขียวครบ → rebase merge (**ทางเดียว — ADR 0053 ไม่มี bypass**)
 5. tag แบบ annotated บน merge commit → push tag → job `n-1` ขยับ anchor เอง
-6. `gh release create` พร้อม **SBOM ทุก category** (generate แบบเดียวกับ
-   job `sbom`: core + ทุกตัวจาก `flask plugin-deps --categories`)
-   · ยืนยันจำนวน asset และหน้า release ตอบ 200
+6. `gh release create` พร้อม notes — **ไม่ต้องแนบ SBOM เอง**: `release.yml`
+   (ADR 0058) generate + เซ็น + แนบให้ตอน publish · รอ workflow จบแล้ว
+   ยืนยันจำนวน asset (SBOM 8 + bundle ลายเซ็น 8) และหน้า release ตอบ 200
 7. อัปเดตช่อง About ของ repo เป็นรุ่นใหม่
 
 ## งานที่ผูกกับรุ่นถัดไป (ตั้งแต่ v1.5.0)
@@ -31,18 +31,13 @@ PYSEC-2026-3552/3553/3554 — **ต้องมีหัวข้อ Security �
 (ฝั่งเครื่องมือ CI — semgrep→mcp CVE-2026-52870/52869/59950 — เล่าได้เป็น
 หมายเหตุ แต่ไม่ใช่ "ซอฟต์แวร์ที่โครงการผลิต")
 
-### 2. เซ็น release + provenance (cosign/SLSA) — ช่องว่างข้อ 4 ของ audit
+### 2. เซ็น release + provenance — **สร้างแล้ว (ADR 0058)**
 
-ตอนนี้ release artifact (SBOM 8 ไฟล์) ไม่ถูกเซ็น ใครโหลดไปก็ verify
-ไม่ได้ว่ามาจาก CI จริง (SLSA ระดับ 0) · ทำตอน release เพราะมันแตะ
-workflow ของการ release ไม่ใช่ CI ทุก push:
-
-- cosign แบบ keyless (OIDC ของ GitHub Actions) เซ็น SBOM ทุกไฟล์
-- provenance ด้วย `slsa-github-generator` (action pin SHA ตามกติกา)
-- ต้องมากับ: ADR ของตัวเอง · gate ใหม่ติดธง `axis: supply-chain` +
-  ลงดัชนี `SUPPLY-CHAIN.md` (กติกา G3) · วิธี verify เขียนใน release notes
-  และ `SECURITY.md`
-- ทบทวน "signed commits" ที่ ADR 0053 เลื่อนไว้ พร้อมงานนี้
+`release.yml` ทำงานเองตอน release ถูก publish: generate SBOM จากโค้ดของ
+tag → เซ็น keyless → verify สองทิศ → แนบ provenance → อัปโหลด · ขั้นตอน
+manual จึงเปลี่ยนเป็น **สร้าง release พร้อม notes เปล่า ๆ ไม่ต้องแนบ SBOM
+เอง** (workflow แนบให้) · ล้มกลางทางรันซ้ำด้วย workflow_dispatch ใส่ tag
+· signed commits เลื่อนต่อพร้อมเงื่อนไขใน ADR 0058
 
 ### 3. ปรับ bestpractices.dev (#14085) — ช่องที่ผูกกับรุ่น
 
@@ -64,6 +59,6 @@ badge ท้ายไฟล์เป็น static — แก้เลขใน�
 ## หลังออกรุ่น
 
 - แถว cadence ของงานชุดนี้: ขยับ "ครั้งล่าสุด" แล้วเปลี่ยนเงื่อนไขครบ
-  กำหนดเป็นของรุ่นถัดไป (ข้อ 1/3/4 เป็นงานประจำทุกรุ่นแล้ว · ข้อ 2 ทำ
-  ครั้งเดียวจบ — ถอดจากไฟล์นี้เมื่อเสร็จ)
+  กำหนดเป็นของรุ่นถัดไป (ข้อ 1/3/4 เป็นงานประจำทุกรุ่น · ข้อ 2 สร้างเสร็จ
+  แล้ว — เหลือแค่ยืนยันว่า workflow เขียวทุกรุ่น)
 - อัปเดต `docs/BEST-PRACTICES.md` ให้ตรงกับที่กรอกจริง
