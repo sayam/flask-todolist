@@ -334,5 +334,5 @@ org graph) · [`docs/PDPA.md`](docs/PDPA.md) (worksheet แบบเดียว
 ทั้งหมด** ตัวที่มีภาระ copyleft ตัวเดียวคือ `ldap3` (LGPLv3) ซึ่งอยู่ใน category
 ของ plugin ที่ถอดทิ้งได้ (`tests/test_licensing.py` ตรึงไว้)
 
-[![version](https://img.shields.io/badge/version-v1.5.0-blue)](https://github.com/sayam/flask-todolist/releases)
+[![version](https://img.shields.io/badge/version-v1.6.0-blue)](https://github.com/sayam/flask-todolist/releases)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
