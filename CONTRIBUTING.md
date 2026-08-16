@@ -103,7 +103,9 @@ Never write Thai directly in a template or a `.py` file, and remember to
 Enforced by a commit-msg hook and again in CI. `feat:`, `fix:`, `docs:`, `test:`,
 `refactor:`, `chore:`, `ci:`, `perf:`, optionally scoped: `fix(audit): ...`.
 
-**Merge with rebase, not squash.** Squashing appends ` (#N)` to the subject,
+**Merge with rebase, not squash — via auto-merge.** Use
+`gh pr merge N --rebase --delete-branch --auto` and let GitHub land the
+PR when all required checks pass. Squashing appends ` (#N)` to the subject,
 which pushes anything near the limit over it — and the check that would have
 caught it only runs after the merge has already landed on `main`. Merge commits
 themselves are not linted, since GitHub writes those, not you.
@@ -161,7 +163,7 @@ rejections are recorded as ADRs — the ADR log *is* the intake log.
 
 Branch protection enforces this for admins too
 ([ADR 0053](docs/adr/0053-solo-maintainer-sod-compensating-controls.md)):
-every change, however small, travels branch → PR → 27 green checks →
+every change, however small, travels branch → PR → 27 required checks green →
 merge. The project has a single maintainer, so a second reviewer cannot
 exist; the compensating controls (the real-service check wall, the
 append-only audit chain, the public history) only work if they sit on the
@@ -252,7 +254,9 @@ pipenv run flask create-user <ชื่อ>
    `SKILL-TODOLIST.md`, `docs/GATES-ASVS.md` และทั้งโฟลเดอร์ `skill/`
    (แพ็กเกจ agent skill — ADR 0050)
 6. **ข้อความในโค้ดเป็นภาษาอังกฤษ** เพราะ msgid คือภาษาอังกฤษ · ไทยอยู่ใน `.po`
-7. **commit เป็น Conventional Commits หัวไม่เกิน 72 ตัว**
+7. **commit เป็น Conventional Commits หัวไม่เกิน 72 ตัว** · merge ด้วย
+   rebase ไม่ใช่ squash — ผ่าน auto-merge:
+   `gh pr merge N --rebase --delete-branch --auto`
 8. **เพิ่มไฟล์เทสต์ใหม่ต้องมาลงทะเบียนใน `gates.yaml`** — ดัชนีนั้นถูกบังคับ
    สองทิศ: ทุก job ต้องมี gate และ**ไฟล์ใต้ `tests/` ทุกไฟล์ต้องเป็นของ gate
    เดียว** (partition เต็ม) · ไม่ลงทะเบียน = CI แดงโดยตั้งใจ · gate ใหม่ต้อง
@@ -280,7 +284,7 @@ pipenv run flask create-user <ชื่อ>
 11. **`main` รับของทาง PR เท่านั้น — ไม่มีข้อยกเว้นแม้แต่เจ้าของ**
     ([ADR 0053](docs/adr/0053-solo-maintainer-sod-compensating-controls.md))
     — branch protection บังคับถึง admin (`enforce_admins`) ทุกงานเดิน
-    branch → PR → check เขียว 27 ตัว → merge · review count เป็น 0
+    branch → PR → required check เขียวครบ 27 → merge · review count เป็น 0
     โดยตั้งใจ (คนเดียว review ตัวเองไม่ได้ — มาตรการชดเชยอยู่ใน ADR) ·
     มี contributor ประจำคนที่สองเมื่อไหร่ เปิด required review ทันที
 

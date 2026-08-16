@@ -75,8 +75,8 @@ Phase 7 · P7-09 · ตรวจเมื่อ **2026-08-12** · รอบท�
 ## สิ่งที่ยังไม่ได้ทำ และรู้ตัว
 
 - **หน้าใหม่ของเฟส 13–18 ยังไม่ผ่านการตรวจด้วยมือรอบไหนเลย** — `/privacy`,
-  `/teams` + หน้าวง, และหน้า admin ทั้งห้า (users/teams/environment/lifecycle/
-  observability/sbom) เกิดหลังรอบนี้ (2026-08-12) ทั้งหมด · `/teams`, หน้าวง,
+  `/teams` + หน้าวง, และหน้า admin ทั้งเจ็ด (hub/users/teams/environment/lifecycle/
+  observability/sbom — ตารางโหมดใน `docs/DESIGN.md` คือทะเบียนเต็ม) เกิดหลังรอบนี้ (2026-08-12) ทั้งหมด · `/teams`, หน้าวง,
   `/privacy` และหน้า `/admin` (Site administration) เข้า `.pa11yci.json` แล้ว
   — ที่เหลือของหน้า admin รายหน้า และการตรวจด้วยมือทั้งชุด เป็นงานของรอบ
   ตรวจถัดไป (กำหนดใน SECURITY-CADENCE)

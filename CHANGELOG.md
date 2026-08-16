@@ -20,6 +20,12 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Changed
 
+- **Repo-level auto-merge is now the merge norm**
+  (`gh pr merge N --rebase --delete-branch --auto`): hand-rolled
+  wait-then-merge scripts accumulated five distinct timing traps in a
+  single day; GitHub's auto-merge sits inside the required-check gate
+  and has none of them by construction. Recorded in SECURITY-CADENCE,
+  CONTRIBUTING rule 7 (both languages), DEVELOPMENT, and RELEASE.
 - The owner-account hardening review (round-2 audit's one owner-side
   item) is now a yearly cadence row, recorded as verified: a passkey is
   configured and set as the preferred 2FA method (phishing-resistant),
@@ -56,7 +62,7 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 ### Added
 
 - **The OpenSSF Best Practices badge reached Silver (100%)** on
-  2026-08-16 — all 55 silver criteria answered (45 met, 7 N/A, 3
+  2026-08-16 — all 55 silver criteria answered (46 met, 6 N/A, 3
   deliberately unmet SHOULD/SUGGESTED with reasons), unlocked by the
   signed v1.5.0 release and the new continuity statement.
   `docs/BEST-PRACTICES.md` now carries the silver worksheet beside the

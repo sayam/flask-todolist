@@ -5,13 +5,14 @@
 คำสัญญาในไฟล์นั้นกลายเป็นเท็จทันที · แถวทวงอยู่ในตาราง cadence ของ
 `SECURITY-CADENCE.md` (เงื่อนไข "เมื่อจะออก release ถัดไป")
 
-## ขั้นตอนมาตรฐาน (ใช้จริงมาแล้ว v1.1.0–v1.4.0)
+## ขั้นตอนมาตรฐาน (ใช้จริงมาแล้ว v1.1.0–v1.5.0 — รุ่นหลังคือรอบแรกของเส้นทางเซ็น)
 
 1. รอบตรวจเอกสารก่อนออก — ทุก claim ปัจจุบันต้องตรงความจริง
 2. `CHANGELOG.md`: ยก `[Unreleased]` เป็น `[X.Y.Z] — วันที่` + เติม
    `[Unreleased]` ว่างใหม่ + ลิงก์เทียบรุ่นท้ายไฟล์
 3. ขยับ `__version__` ใน `app/__init__.py` (เทสต์ผูกกับ CHANGELOG สองที่)
-4. PR → check เขียวครบ → rebase merge (**ทางเดียว — ADR 0053 ไม่มี bypass**)
+4. PR → `gh pr merge N --rebase --delete-branch --auto` (**ทางเดียว — ADR
+   0053 ไม่มี bypass** · auto-merge ให้ GitHub ตัดสินตอน 27 check ครบ)
 5. tag แบบ annotated บน merge commit → push tag → job `n-1` ขยับ anchor เอง
 6. `gh release create` พร้อม notes — **ไม่ต้องแนบ SBOM เอง**: `release.yml`
    (ADR 0058) generate + เซ็น + แนบให้ตอน publish · รอ workflow จบแล้ว
@@ -26,16 +27,14 @@
 
 ## งานที่ผูกกับรุ่นถัดไป (ตั้งแต่ v1.5.0)
 
-### 1. ระบุ CVE ที่แก้ลง release notes — รุ่นแรกที่แก้ CVE จริง
+### 1. ระบุ CVE ที่แก้ลง release notes — **ทำแล้วใน v1.5.0 · เป็นกฎประจำทุกรุ่น**
 
-`docs/SECURITY-CADENCE.md` และช่อง `release_notes_vulns` ของ
-bestpractices.dev สัญญาว่า "เมื่อมี release ที่แก้ CVE จะระบุใน notes" —
-รุ่นถัดไปคือรุ่นแรกที่เข้าเงื่อนไข: มันรวม **cryptography 45.0.7 → 50.0.0**
-ใน category `plugin-auth-totp` (ของที่ ship จริงเมื่อติดตั้ง plugin) ซึ่งปิด
-CVE-2026-2141 · PYSEC-2026-35/36 · GHSA-537c-gmf6-5ccf ·
-PYSEC-2026-3552/3553/3554 — **ต้องมีหัวข้อ Security ใน notes ระบุรายการนี้**
-(ฝั่งเครื่องมือ CI — semgrep→mcp CVE-2026-52870/52869/59950 — เล่าได้เป็น
-หมายเหตุ แต่ไม่ใช่ "ซอฟต์แวร์ที่โครงการผลิต")
+v1.5.0 เป็นรุ่นแรกที่เข้าเงื่อนไขและ notes ระบุครบทั้งเจ็ด CVE ของ
+cryptography · **กฎประจำจากนี้**: ทุกรุ่นที่ CHANGELOG มีหัวข้อ Security
+ที่แก้ CVE ของ*ของที่ ship จริง* → notes ต้องมีหัวข้อ Security ระบุ ID ครบ
+(ฝั่งเครื่องมือ CI เล่าเป็นหมายเหตุได้ แต่ไม่นับเป็น "ซอฟต์แวร์ที่โครงการ
+ผลิต") · รุ่นที่ไม่มี CVE ใหม่ = ช่อง `release_notes_vulns` ของ
+bestpractices คงชี้ v1.5.0 ต่อได้ ไม่ต้องแก้
 
 ### 2. เซ็น release + provenance — **สร้างแล้ว (ADR 0058)**
 

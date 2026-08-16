@@ -156,7 +156,7 @@ gates:
 
 ## Phase 9 — แยก skill + overlay ✅ (2026-08-14 · PR #13/#14/#15)
 
-**สถานะ: เฟส 9 เสร็จทั้งเฟส (2026-08-14)** — required checks 24 ตัวรวม `scaffold` — `SKILL.md` **generate ทั้งใบ** จาก
+**สถานะ: เฟส 9 เสร็จทั้งเฟส (2026-08-14)** — required checks ณ วันนั้น 24 ตัวรวม `scaffold` (เลขสด: ดู SECURITY-CADENCE) — `SKILL.md` **generate ทั้งใบ** จาก
 portable gate (ตอนนั้น 58 กฎ · ปัจจุบัน 75) ไม่ใช่เขียนมือ: กฎ = `title` บทเรียน = `born_from`
 ของคนมีที่เดียวคือหลักปฏิบัติกลาง 5 ข้อใน PREAMBLE ของ generator ·
 ban list ตรวจที่ *render สด* จึงจับชื่อไลบรารี framework ได้ตั้งแต่ตอนถูกพิมพ์

@@ -406,7 +406,7 @@ DoD ของ SSO คือ **"login ผ่าน OIDC ได้จริงก�
 (ต้องกลับมาทบทวนถ้าวันหนึ่งรับ plugin จากคนนอกจริง ๆ) · ยังไม่มี recovery code
 ของ MFA — ค้างจาก Phase 4 ทำโทรศัพท์หายต้องให้ผู้ดูแลปิดให้
 
-## Phase 5 — Deployment parity & flexibility
+## Phase 5 — Deployment parity & flexibility ✅ (เสร็จ 2026-08-10)
 
 **เป้าหมาย:** dev/staging/prod เหมือนกันจริง, รองรับ DB หลายยี่ห้อตามกลยุทธ์ข้อ 4
 และไม่มี lock-in ที่ไม่มีทางออก
@@ -473,7 +473,7 @@ app รัน ≥2 replica พฤติกรรมถูกต้อง (rate l
 การหมุนความลับโดยไม่ restart · KMS ของผู้ให้บริการคลาวด์ (รูปสัญญาเดียวกับ
 `secrets` ที่มีแล้ว แต่ยังไม่มีใครต้องใช้) · IaC ตาม infra เป้าหมายจริง
 
-## Phase 6 — Performance validation
+## Phase 6 — Performance validation ✅ (เสร็จ 2026-08-11)
 
 **เป้าหมาย:** ตัวเลขจริง ไม่ใช่คำว่า "เร็วพอ"
 
@@ -519,7 +519,7 @@ process ไม่ได้ — ที่ 2 replica คำขอเขียน�
 ~~ยังไม่มี Prometheus/Grafana ที่ scrape จริง~~ (ปิดแล้วในเฟส 16 —
 `compose.metrics.yaml` + job `scrape` พิสูจน์ทุก push)
 
-## Phase 7 — Verification & compliance closure
+## Phase 7 — Verification & compliance closure ✅ (เสร็จ 2026-08-12)
 
 **เป้าหมาย:** พิสูจน์ทั้งหมดข้างบนด้วยเกณฑ์ภายนอก แล้วปิดวงจรเป็น cadence
 
@@ -670,18 +670,20 @@ coverage **96.31%** (เพดาน 96) · interrogate **84.9%** (เพดา�
 
 - **SemVer** เริ่มที่ **v1.0.0** — นิยาม 1.0.0 = สัญญา OpenAPI v1 (Phase 3) นิ่ง
   และครบทุกเฟส / ก่อนหน้านั้นถ้าต้อง tag ใช้ 0.x
-- ทุก release: git tag + CHANGELOG + แนบ SBOM (มี artifact อยู่แล้วจาก CI)
+- ทุก release: git tag + CHANGELOG + SBOM ที่ **generate ใน CI เซ็น keyless
+  พร้อม SLSA provenance และ verify สองทิศก่อนแนบ** (gate baseline
+  `release-signed-and-attested` — ADR 0058 · พิสูจน์ครั้งแรกกับ v1.5.0)
 
 ### Badge program — ของที่ปลดล็อคเมื่อ public
 
 | Badge | เงื่อนไข | หมายเหตุ |
 |---|---|---|
-| CI status | ได้ทันที | workflow มีแล้ว |
-| Coverage | ต่อ Codecov/Coveralls หรือแสดงจาก gate | ตัวเลขจริงมีอยู่แล้ว (ratchet ≥93) |
-| **CodeQL** | **ฟรีทันทีเมื่อ public** | ตัด ไว้ใน ADR 0009 เพราะ private ต้องจ่าย — เปิดกลับเป็นอันดับแรก |
-| OpenSSF Best Practices (bestpractices.dev) | สมัคร + ตอบ checklist | งานส่วนใหญ่ (เทสต์, SAST, SCA, disclosure policy) ทำครบตามแผนอยู่แล้ว |
-| OpenSSF Scorecard | เปิด action เมื่อ public | วัด branch protection, pinned deps, token permission ฯลฯ |
-| Accessibility (WCAG 2.2 AA) | ได้ทันที | job `a11y` รัน pa11y-ci จริงทุก push แล้วตั้งแต่ Phase 1 |
+| CI status ✅ | ได้ทันที | ติดแล้ว |
+| Coverage ✅ | ต่อ Codecov/Coveralls หรือแสดงจาก gate | แสดงจาก gate (ratchet 96) |
+| **CodeQL** ✅ 2026-08-12 | **ฟรีทันทีเมื่อ public** | เปิดกลับแล้วเป็นอันดับแรกตามแผน |
+| OpenSSF Best Practices ✅ **Silver 100%** (2026-08-16) | สมัคร + ตอบ checklist | โครงการ 14085 — passing 100% (08-15) แล้วขึ้น Silver (08-16) · Gold ติดเงื่อนไข contributor ≥2 |
+| OpenSSF Scorecard ✅ 2026-08-13 | เปิด action เมื่อ public | วัด branch protection, pinned deps, token permission ฯลฯ |
+| Accessibility (WCAG 2.2 AA) ✅ | ได้ทันที | job `a11y` รัน pa11y-ci จริงทุก push แล้วตั้งแต่ Phase 1 |
 
 > จุดยืนเดิมของโปรเจกต์: badge ต้องสะท้อนของจริงที่ตรวจได้ ไม่ใช่ติดเพื่อประดับ —
 > ทุก badge ข้างบนผูกกับ gate ที่รันจริงใน CI ทั้งหมด
@@ -695,7 +697,7 @@ coverage **96.31%** (เพดาน 96) · interrogate **84.9%** (เพดา�
 | เรื่อง | สถานะ | เก็บเมื่อไหร่ |
 |---|---|---|
 | recovery code ของ MFA (ทำโทรศัพท์หายแล้วกู้เอง) | ยังไม่มี — ตอนนี้ต้องให้ผู้ดูแลปิดให้ ซึ่งยังไม่มีคำสั่ง CLI ของ plugin ด้วยซ้ำ | ตอนแตะ `app/plugins/auth/totp/` ครั้งหน้า |
-| `password` เป็น plugin ที่มีแต่ manifest (core ยังเรียก `check_password()` ตรง ๆ) | ตั้งใจ — ยกเป็นปัจจัยหลักแบบ plugin ตอนมีตัวที่สอง | Phase 5 พร้อม SSO |
+| `password` เป็น plugin ที่มีแต่ manifest (core ยังเรียก `check_password()` ตรง ๆ) | **ตัดสินแล้วว่าไม่ยก** — ปัจจัยหลักตัวที่สองมีแล้ว (OIDC/LDAP) แต่ seam ที่ต้องมีคือ "ปัจจัยหลัก*เพิ่มเติม*" ซึ่งทำแล้ว · รหัสผ่านต้องอยู่เสมอตาม ADR 0028 ข้อ 7 การย้ายออกไม่ทำให้อะไรถอดได้เพิ่ม | — (คำตัดสินถาวร) |
 | ~~CI actions ยัง target Node.js 20 ที่ deprecated~~ | ✅ เก็บแล้ว 2026-08-03 — ขยับครบ 5 ตัวเป็น `checkout@v7`, `setup-python@v7`, `setup-node@v7`, `upload-artifact@v7`, `gitleaks-action@v3` ทุกตัวรันบน Node 24 แล้ว (เส้นตาย: GitHub ถอด Node 20 ออกจาก runner 2026-09-16) | — |
-| raw SQL 3 จุดใน migration เก่าอ้างตาราง `user` แบบไม่ quote | ยอมค้างไว้ ไม่เพิ่มจุดใหม่ (มี `tests/test_migration_lint.py` ดัก) | baseline squash ตอน Phase 5 |
-| WCAG audit ด้วยคน (focus order, ลำดับ heading, ข้อความ error) | automated ครอบได้ ~30–40% ของเกณฑ์เท่านั้น | Phase 7 |
+| ~~raw SQL 3 จุดใน migration เก่าอ้างตาราง `user` แบบไม่ quote~~ | ✅ ปิดแล้ว — baseline squash P5-02 ล้างครบ (ตัวดักย้ายไปอยู่ใต้ gate `dialect-discipline` ตั้งแต่ ADR 0057) | — |
+| ~~WCAG audit ด้วยคน (focus order, ลำดับ heading, ข้อความ error)~~ | ✅ ทำแล้ว 2026-08-12 (P7-09) — เจอสามข้อ แก้ครบพร้อมเทสต์คุม (`docs/ACCESSIBILITY-AUDIT.md`) | — |

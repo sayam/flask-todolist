@@ -117,6 +117,7 @@ Not "we have tests" — this is what runs on every push:
 | Integration | the whole stack behind nginx with two replicas, TLS, a real OIDC provider, a real LDAP directory, a real Vault, a real systemd timer |
 | Contracts | the OpenAPI file, the database schema, and the ASVS worksheet are regenerated and compared against what is committed |
 | Upgrades & observability | the previous release's code is run against the new schema on every push (**N-1 contract**, job `n-1`), and Prometheus is proven to reach `/metrics` through the token gate (job `scrape`) |
+| Releases | every SBOM is generated inside CI from the tag's own code, **signed keyless with SLSA provenance**, and verified both ways before it is attached — verification commands in [`SECURITY.md`](SECURITY.md) |
 
 **Every new test must be proven to catch something** before it counts as
 finished: break the code it claims to cover, watch it go red, restore. That rule
