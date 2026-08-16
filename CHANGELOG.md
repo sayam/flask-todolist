@@ -23,9 +23,9 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 - The owner-account hardening review (round-2 audit's one owner-side
   item) is now a yearly cadence row, recorded as verified: a passkey is
   configured and set as the preferred 2FA method (phishing-resistant),
-  backed by TOTP + GitHub Mobile, no SMS, recovery codes viewed - with
-  one residual stated honestly: the PAT/OAuth-app inventory has not
-  been fully walked.
+  backed by TOTP + GitHub Mobile, no SMS, recovery codes viewed, and
+  the PAT/OAuth-app inventory walked clean - the first review closes
+  with no residual at all.
 
 - **Re-layering round three** (under ADR 0057's principle, from the
   round-2 audit): `release-signed-and-attested` rises to baseline now
