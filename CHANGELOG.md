@@ -18,6 +18,16 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [1.4.0] — 2026-08-16
+
+The clean-scoreboard release: the OpenSSF Best Practices badge reached
+**passing (100%)**, which closed the last open ISO/IEC 27001:2022 item —
+every assessment worksheet in the repository now reads zero unresolved
+(ISO 79 pass · 37 n/a · 0 fail; PDPA backlog empty; ASVS fully answered
+within scope). A small release by diff, a large one by what it certifies.
+
 ### Changed
 
 - **The ISO/IEC 27001:2022 worksheet reads 79 pass · 37 n/a · 0 fail** —
@@ -391,7 +401,8 @@ work; the reasoning for each decision lives in the 52 records in
 - WCAG 2.2 AA, checked both by a structural test suite and by pa11y-ci driving a
   real Chromium over dark mode, an alternate theme, and Thai.
 
-[Unreleased]: https://github.com/sayam/flask-todolist/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/sayam/flask-todolist/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/sayam/flask-todolist/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/sayam/flask-todolist/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/sayam/flask-todolist/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/sayam/flask-todolist/compare/v1.0.0...v1.1.0
