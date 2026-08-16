@@ -18,6 +18,13 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ## [Unreleased]
 
+### Fixed
+
+- The repo About's Website field had pointed at the v1.1.0 tag for three
+  releases; it now points at `releases/latest`, which follows every
+  future release by itself — and `docs/RELEASE.md` step 7 now names both
+  About fields so the class of miss cannot recur.
+
 ### Added
 
 - **The OpenSSF Best Practices badge reached Silver (100%)** on
