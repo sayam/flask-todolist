@@ -161,7 +161,7 @@ rejections are recorded as ADRs — the ADR log *is* the intake log.
 
 Branch protection enforces this for admins too
 ([ADR 0053](docs/adr/0053-solo-maintainer-sod-compensating-controls.md)):
-every change, however small, travels branch → PR → 26 green checks →
+every change, however small, travels branch → PR → 27 green checks →
 merge. The project has a single maintainer, so a second reviewer cannot
 exist; the compensating controls (the real-service check wall, the
 append-only audit chain, the public history) only work if they sit on the
@@ -264,7 +264,7 @@ pipenv run flask create-user <ชื่อ>
 11. **`main` รับของทาง PR เท่านั้น — ไม่มีข้อยกเว้นแม้แต่เจ้าของ**
     ([ADR 0053](docs/adr/0053-solo-maintainer-sod-compensating-controls.md))
     — branch protection บังคับถึง admin (`enforce_admins`) ทุกงานเดิน
-    branch → PR → check เขียว 26 ตัว → merge · review count เป็น 0
+    branch → PR → check เขียว 27 ตัว → merge · review count เป็น 0
     โดยตั้งใจ (คนเดียว review ตัวเองไม่ได้ — มาตรการชดเชยอยู่ใน ADR) ·
     มี contributor ประจำคนที่สองเมื่อไหร่ เปิด required review ทันที
 

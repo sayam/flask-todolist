@@ -9,7 +9,7 @@ Phase 7 · P7-04 — **นโยบายนี้มีเทสต์คุม
 | job | ตอบคำถามอะไร | แดงได้ไหม |
 |---|---|---|
 | `test` · `dialects` · `bare` | โค้ดยังทำงานถูกบนทุกยี่ห้อฐานข้อมูล และในสภาพที่ไม่มีไลบรารีของ plugin | แดง |
-| `lint` | ruff · ruff format · xenon · interrogate · mypy · ตาราง ASVS ตรงกับมาตรฐานที่ตรึงไว้ | แดง |
+| `lint` | ruff · ruff format · xenon · interrogate · mypy · ตาราง ASVS ตรงกับมาตรฐานที่ตรึงไว้ · hadolint กับ `Dockerfile` (ADR 0055) | แดง |
 | `security` | pip-audit ของ **core และ `[deploy]`** — ช่องโหว่ของสิ่งที่ถอดไม่ได้ · semgrep | แดง |
 | `codeql` | SAST ของโค้ดที่เราเขียนเอง (python + javascript, ชุด `security-extended`) — ต่างจาก `security` ที่ดูไลบรารีของคนอื่น | แดง |
 | (กติกาคู่ `codeql`) | **ห้าม PEP 695 ใต้ `app/`** จนกว่า extractor จะอ่านได้ (`tests/test_codeql_compat.py`) — ตอน bump รุ่น CodeQL ให้ลองถอดด่านนี้แล้วดูหน้า status ว่า warning "Could not process" หายจริงก่อนถอดถาวร | แดง |
@@ -25,6 +25,8 @@ Phase 7 · P7-04 — **นโยบายนี้มีเทสต์คุม
 | `n-1` | โค้ดของ tag ล่าสุดให้บริการบน schema ของ HEAD ได้จริง — สัญญา rolling (ADR 0048) | แดง |
 | `scrape` | Prometheus ดูด `/metrics` ผ่านด่าน token จริงและตัวเลขถึง TSDB · ไม่มี token ต้อง 401 | แดง |
 | `scaffold` | overlay ติดตั้งลง repo เปล่าได้จริง และ repo นี้ผ่าน scan ของ overlay ตัวเอง (dogfood) | แดง |
+| `perf-smoke` | journey จริงบน image จริง 5 VUs — tripwire จับ regression ก้าวกระโดด ไม่ใช่การวัด (ADR 0056) | แดง |
+| `commit-lint` | หัว commit เป็น Conventional Commits ไม่เกิน 72 ตัว | แดง |
 
 **สิ่งที่ส่วนนี้ตอบไม่ได้**: ทุก job ข้างบนตรวจสิ่งที่มีคนคิดไว้แล้วว่าต้องตรวจ
 มันจับ*การถอยหลัง*ได้ดีมากและจับ*ของที่ไม่มีใครเคยคิดถึง*ไม่ได้เลย —

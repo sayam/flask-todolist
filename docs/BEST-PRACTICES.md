@@ -19,7 +19,7 @@ bestpractices.dev ยืนยันแล้ว: passing 100%** (ทบทว�
 
 | เกณฑ์ | ตอบ | หลักฐาน |
 |---|---|---|
-| `description_good` MUST | ผ่าน | `README.md` ย่อหน้าแรกบอกว่าเป็นอะไรและแก้ปัญหาอะไร · **ต้องเติมช่อง About ของ repo ด้วย — ตอนนี้ว่าง** |
+| `description_good` MUST | ผ่าน | `README.md` ย่อหน้าแรกบอกว่าเป็นอะไรและแก้ปัญหาอะไร · ช่อง About ของ repo เติมแล้ว (v1.4.0 · 2026-08-16) |
 | `interact` MUST | ผ่าน | `README.md` มีวิธีติดตั้ง/รัน · `CONTRIBUTING.md` มีวิธีเสนอการเปลี่ยนแปลง · Issues เปิดอยู่ |
 | `contribution` MUST | ผ่าน | `CONTRIBUTING.md` — อธิบายว่าใช้ PR, ต้องผ่าน 27 required check (จาก 28 check — scorecard ไม่บังคับ), merge ด้วย rebase, และกติกาลงทะเบียนไฟล์เทสต์ใน `gates.yaml` |
 | `contribution_requirements` SHOULD | ผ่าน | `CONTRIBUTING.md` — Conventional Commits (หัว ≤72), ruff/mypy, **กติกา mutation test ของเทสต์ใหม่** |
@@ -67,7 +67,7 @@ bestpractices.dev ยืนยันแล้ว: passing 100%** (ทบทว�
 | `build` MUST | ผ่าน | `Dockerfile` (multi-stage) · job `image` ใน CI **build จริงแล้วยิงใส่มันทุก push** ไม่ใช่แค่ตรวจ syntax |
 | `build_common_tools` SUGGESTED | ผ่าน | Docker + pipenv |
 | `build_floss_tools` SHOULD | ผ่าน | ทุกตัวเป็น FLOSS |
-| `test` MUST | ผ่าน | pytest — **1,276 เทสต์** (นับรอบปิดแผน G · v1.3.0) |
+| `test` MUST | ผ่าน | pytest — **1,280 เทสต์** (นับ 2026-08-16 หลังปิดช่องว่างจาก audit governance) |
 | `test_invocation` SHOULD | ผ่าน | `pipenv run pytest` |
 | `test_most` SUGGESTED | ผ่าน | coverage gate `fail_under = 96` (**ratchet: ขยับขึ้นได้อย่างเดียว**) + `diff-cover` บังคับบรรทัดที่แก้ 100% |
 | `test_continuous_integration` SUGGESTED | ผ่าน | 28 check ทุก push — รวมสามยี่ห้อฐานข้อมูล, stack จริง, SSO, LDAP, DAST |
@@ -95,7 +95,7 @@ bestpractices.dev ยืนยันแล้ว: passing 100%** (ทบทว�
 | `crypto_random` MUST | ผ่าน | `secrets` ของ Python ทุกจุดที่สุ่ม |
 | `delivery_mitm` MUST | ผ่าน | ส่งมอบผ่าน GitHub (HTTPS/SSH) เท่านั้น |
 | `delivery_unsigned` MUST | ผ่าน | ไม่มีการดึง hash ผ่าน http ที่ไหน · **dependency ทุกชั้นถูกตรึงด้วย hash**: `Pipfile.lock`, `pins/*/requirements.txt` (`--require-hashes`), `pins/pa11y/package-lock.json` (`npm ci`), action เป็น commit SHA, base image เป็น digest |
-| `vulnerabilities_fixed_60_days` MUST | ผ่าน | ไม่มีช่องโหว่ค้างใน**ซอฟต์แวร์ที่โครงการผลิต** · 4 advisory ที่ค้างอยู่เป็นของ**เครื่องมือ CI** (`pins/`) ซึ่งไม่อยู่ใน image ที่ deploy — ประเมินและบันทึกไว้ใน `docs/SECURITY-CADENCE.md` พร้อมเงื่อนไขที่ทำให้คำตัดสินหมดอายุ |
+| `vulnerabilities_fixed_60_days` MUST | ผ่าน | ไม่มีช่องโหว่ค้างใน**ซอฟต์แวร์ที่โครงการผลิต** · advisory ที่รับไว้เหลือ 1 ข้อ (`extract-zip` — ยังไม่มีรุ่น fix) เป็นของ**เครื่องมือ CI** (`pins/`) ซึ่งไม่อยู่ใน image ที่ deploy — สาม advisory ของ `mcp` ปิดแล้วด้วย semgrep 1.173.0 (2026-08-16) — ประเมินและบันทึกไว้ใน `docs/SECURITY-CADENCE.md` พร้อมเงื่อนไขที่ทำให้คำตัดสินหมดอายุ |
 | `vulnerabilities_critical_fixed` SHOULD | ผ่าน | กรอบเวลา **critical 7 วัน · high 30 · medium 90** นับจากวันที่รู้ (`docs/SECURITY-CADENCE.md` · `tests/test_cadence.py` บังคับ) |
 | `no_leaked_credentials` MUST | ผ่าน | gitleaks สแกน**ทั้งประวัติ** (`scripts/secret_scan_history.sh`) + job `secret-scan` ทุก push + push protection ของ GitHub · `.gitleaksignore` มีข้อยกเว้นเดียวคือค่าทดสอบของ RFC 6238 ซึ่ง decode แล้วเป็น `12345678901234567890` |
 
@@ -138,18 +138,12 @@ bestpractices.dev ยืนยันแล้ว: passing 100%** (ทบทว�
 · **ด่านที่วัดผิดตัวสร้างสัญญาณเตือนลวงได้ ไม่ใช่แค่เงียบตอนควรดัง**
 ตัวจริงคือ exit code ของ openssl กับบรรทัดสรุป `New, TLSvX, Cipher is Y`
 
-## ที่ต้องทำก่อนกด submit
+## ขั้นตอน submit (ทำครบแล้ว 2026-08-15/16 — เก็บไว้เป็นบันทึก)
 
-1. **เติมช่อง About ของ repo** — ตอนนี้ว่าง (`description: null`) ขณะที่เกณฑ์
-   `description_good` และ `interact` พูดถึง "project website" ซึ่งสำหรับที่นี่
-   คือหน้า repo · ข้อเสนอ:
-   > Flask todolist with a plugin architecture, an audited append-only trail, and CI that proves its own gates.
-2. ล็อกอินที่ <https://www.bestpractices.dev> ด้วย GitHub แล้วกด **Add project**
-   ใส่ URL ของ repo — ระบบจะเติมข้อที่ตรวจอัตโนมัติได้ให้เอง (license, repo, HTTPS)
-3. กรอกที่เหลือจากตารางข้างบน · 8 ข้อที่ต้องแนบ URL คือ `contribution`,
-   `contribution_requirements`, `license_location`, `vulnerability_report_process`
-   และข้ออื่นที่ระบบขอ — ใช้ลิงก์ตรงไปยังไฟล์บน `main`
-4. ได้เลขโครงการมาแล้วเติม badge ลง `README.md`
+ทุกข้อในลิสต์เดิมเสร็จแล้ว: ช่อง About เติมแล้ว (อัปเดตเป็น v1.4.0) ·
+โครงการคือ **#14085** ได้ **passing (100%)** · badge อยู่ใน `README.md`
+ทั้งสองภาษา · คำตอบ 67 ข้อบนฟอร์มตรงกับตารางข้างบน (verify จาก API
+2026-08-16 — ทุกช่อง version อ้าง v1.4.0)
 
 ---
 
@@ -161,7 +155,7 @@ bestpractices.dev ยืนยันแล้ว: passing 100%** (ทบทว�
 - `test_policy` / `tests_are_added` — กติกาเดิมเป็น "คนต้องจำ" ตอนนี้มี
   `gates.yaml` ที่บังคับให้ไฟล์เทสต์ทุกไฟล์ถูกตัดสินว่าเป็นของ gate ไหน
   ลืมแล้ว CI แดงทันที
-- `contribution` — required check ขยับมาเรื่อย ๆ ตาม job ใหม่ (ปัจจุบัน 26) (job `scaffold` เข้าเป็น
+- `contribution` — required check ขยับมาเรื่อย ๆ ตาม job ใหม่ (ปัจจุบัน 27 จาก 28 — `perf-smoke` เข้าเมื่อ ADR 0056) (job `scaffold` เข้าเป็น
   ด่านบังคับตอนเฟส 9) และ `CONTRIBUTING.md` มีกติกา `gates.yaml` แล้ว
 - `build_reproducible` / `installation_common` — ไม่เปลี่ยน แต่ `overlays/flask/`
   ทำให้มีของที่ *คนอื่น* ติดตั้งได้จริงเป็นครั้งแรก และ job `scaffold` พิสูจน์
