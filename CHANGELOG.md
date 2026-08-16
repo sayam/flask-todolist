@@ -50,6 +50,16 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 - The branch-protection notes in `SECURITY-CADENCE.md` and `ROADMAP.md`
   caught up with ADR 0053/0056 reality: `enforce_admins` is on, required
   checks are 27 of 28.
+- **Seven gates re-layered to match what their rules actually are**
+  ([ADR 0057](docs/adr/0057-gate-relayering-batch.md), from the
+  governance audit's D2 recheck): backup drill and the risk register
+  rise to `baseline` (universal); ROPA, admin masking, encrypted
+  secrets, and the three-brand suite become `business` (agreements of
+  this kind of app — the business sheet now tells the personal-data
+  story end to end); the migration time-type lint folds into
+  `dialect-discipline`. Registry now 90 gates (65 baseline · 7 business
+  · 18 internal · 71 portable); `SKILL.md` and `SKILL-TODOLIST.md`
+  regenerated accordingly.
 - **A full documentation currency sweep** (three parallel reviewers over
   every hand-written doc): stale counts and claims from the ADR
   0053–0056 window fixed across twelve files — required-check numbers,
@@ -366,7 +376,7 @@ graph. Nothing in the `/api/v1` contract changed; it only gained fields.
 ## [1.0.0] — 2026-08-12
 
 First public release. Everything below arrived across seven planned phases of
-work; the reasoning for each decision lives in the 56 records in
+work; the reasoning for each decision lives in the 57 records in
 [`docs/adr/`](docs/adr/), and the phase-by-phase plan in
 [`docs/ROADMAP.md`](docs/ROADMAP.md).
 

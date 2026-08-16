@@ -343,6 +343,31 @@
       "kind": "suite",
       "title": "โค้ดของ tag ล่าสุดต้องให้บริการบน schema ของ HEAD ได้จริง (expand–contract)",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "backup-restore-drilled-every-push": {
+      "kind": "suite",
+      "title": "การซ้อม backup → เสียหาย → restore รันจริงทุก push และตัวซ้อมจับความเสียหายได้จริง",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "risk-method-and-register-current": {
+      "kind": "suite",
+      "title": "วิธีประเมินความเสี่ยงมีจริง ระดับตรงสูตร กลไกของแถวสูงชี้ของจริง และรอบเต็มถูกทวง",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "ropa-current": {
+      "kind": "suite",
+      "title": "ROPA + บัญชี log + runbook ตรงกับระบบจริง",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "admin-masking-by-classification": {
+      "kind": "suite",
+      "title": "หน้า admin เห็นข้อมูลผู้ใช้แบบ mask ตามชั้นข้อมูล และ unmask ต้องลง audit",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "secrets-encrypted-at-rest": {
+      "kind": "suite",
+      "title": "ความลับที่ต้องอ่านคืนได้ ถูก encrypt บนดิสก์ และคีย์หาย/ผิดต้องดังพร้อมเหตุผล",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     }
   }
 }

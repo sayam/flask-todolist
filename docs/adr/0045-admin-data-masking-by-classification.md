@@ -58,3 +58,10 @@
   จะยกเป็น portable ได้ต่อเมื่อเขียน checker ของ overlay ที่ตรวจเรื่องนี้ใน
   โปรเจกต์อื่นได้จริง (invariant ของ ADR 0042: portable ทุกตัวต้องถูก overlay
   ครอบ — ประกาศ portable โดยไม่มีตัวบังคับคือคำขวัญ)
+
+---
+
+**โน้ต (2026-08-16)**: เงื่อนไข "ยกเป็น portable ต่อเมื่อมี scan checker"
+ข้างบนถูกทับโดย ADR 0057 — gate นี้เป็น `business` + portable ด้วย coverage
+แบบ suite-kind (แบบแผนเดียวกับ `every-write-audited` ที่ใช้มาตลอด) เพราะ
+enforcement ของ masking ผูกกับโครงข้อมูลของแต่ละแอปโดยธรรมชาติ
