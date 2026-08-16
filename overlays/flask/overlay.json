@@ -189,6 +189,11 @@
       "title": "รายการยกเว้น advisory ตรวจสองทิศ และทุก ID มีเหตุผลในเอกสาร",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     },
+    "perf-regression-tripwire": {
+      "kind": "suite",
+      "title": "journey จริงบน image จริงทุก push — เกณฑ์หลวมจับ regression ก้าวกระโดด",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
     "dockerfile-linted": {
       "kind": "suite",
       "title": "Dockerfile ผ่าน hadolint ทุกระดับรวม info — ข้อยกเว้นมีเหตุผลที่ config เดียว",

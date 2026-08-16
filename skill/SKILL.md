@@ -488,6 +488,14 @@ description: Universal production-discipline rules for web applications, distill
 
 **ตัวบังคับใน reference:** `tests/test_image_audit.py`
 
+### `perf-regression-tripwire`
+
+**กฎ:** journey จริงบน image จริงทุก push — เกณฑ์หลวม (2×เป้า) จับ regression ก้าวกระโดด
+
+**เกิดจาก:** audit governance 2026-08-16 (ADR 0056) — pillar อันดับสองของธรรมนูญ ไม่มีด่าน latency ต่อ push เลย regression ก้าวกระโดด (N+1 ใหม่ · index หาย) เข้า main ได้เงียบ ๆ จนกว่าจะมีคนรัน load test มือครั้งถัดไป
+
+**ตัวบังคับใน reference:** job `perf-smoke`
+
 ### `tls-modern-protocols-only`
 
 **กฎ:** รับเฉพาะ TLS 1.2/1.3 — พิสูจน์ว่า server ปฏิเสธ ไม่ใช่ client ปฏิเสธเอง

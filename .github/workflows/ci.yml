@@ -1391,6 +1391,46 @@ jobs:
           export METRICS_TOKEN_FILE=$PWD/metrics-token
           $COMPOSE down -v --remove-orphans
 
+  perf-smoke:
+    # **ด่านสะดุด (tripwire) ของ pillar performance — ADR 0056** ด่าน latency
+    # ต่อ push ตัวแรกของ pillar อันดับสอง: เดิน journey จริง (k6 ชุดเดียวกับ
+    # ที่วัดใน docs/PERFORMANCE.md) ใส่ stack SQLite จาก image จริง
+    #
+    # **เกณฑ์หลวมกว่าเป้าจริงโดยตั้งใจ** (P95_MS=400 · P99_MS=1000 เทียบเป้า
+    # 200/500 ของ ADR 0031) — runner แชร์ CPU ตัวเลขแกว่งเกินกว่าจะตัดสินที่
+    # เป้าจริงได้โดยไม่ flaky · หน้าที่ของด่านนี้คือจับ regression ก้าวกระโดด
+    # (query N+1 ใหม่ · migration ที่ทำ index หาย) ไม่ใช่แทนการวัด — หลักฐาน
+    # performance จริงยังเป็น curve หลายรอบใน docs/PERFORMANCE.md เหมือนเดิม
+    # (บทเรียน "วัดรอบเดียวไม่ใช่หลักฐาน" ยังจริงทุกประการ ด่านนี้ไม่ได้เถียง)
+    runs-on: ubuntu-latest
+    env:
+      SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: ขึ้นแอปจาก image จริง (SQLite) แล้ว migrate + สร้างผู้ใช้
+        run: |
+          docker compose up -d --build --quiet-pull
+          for _ in $(seq 1 40); do
+            unhealthy=$(docker compose ps --format '{{.Service}}:{{.Health}}' | grep -v ':healthy' || true)
+            [ -z "$unhealthy" ] && break
+            sleep 3
+          done
+          docker compose ps --format '{{.Service}}:{{.Health}}' | grep -v ':healthy' \
+            && { echo "stack ไม่ healthy"; docker compose logs; exit 1; }
+          docker compose run --rm app flask db upgrade
+          # รหัสผ่านต้องผ่านนโยบายของแอปเอง — ห้ามมีชื่อผู้ใช้อยู่ข้างใน (ADR 0019)
+          printf 'k6-journey-passphrase-not-a-secret\nk6-journey-passphrase-not-a-secret\n' \
+            | docker compose run --rm -T app flask create-user loadtest
+      - uses: grafana/setup-k6-action@db07bd9765aac508ef18982e52ab937fe633a065 # v1.2.1
+      - name: เดิน journey 5 VUs 60 วินาที — k6 ตัดสินเองจาก exit code
+        run: |
+          BASE_URL=http://127.0.0.1:8000 VUS=5 DURATION=60s \
+            P95_MS=400 P99_MS=1000 \
+            k6 run --quiet loadtest/journey.js
+      - name: เก็บกวาด
+        if: always()
+        run: docker compose down -v --remove-orphans
+
   secret-scan:
     runs-on: ubuntu-latest
     steps:
