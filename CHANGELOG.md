@@ -20,6 +20,10 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Fixed
 
+- Documentation reviews now have a standing rule (CLAUDE.md): check
+  symbols, marks, and badges for consistency alongside the text — a
+  missing mark is a bug equal to a wrong sentence. Born from the
+  ROADMAP overview table miss below.
 - The ROADMAP phase-overview table now shows phases 5-7 as done - they
   closed on 2026-08-12, but only their detail sections were marked, and
   the overview's missing ticks read as three phases still open.
