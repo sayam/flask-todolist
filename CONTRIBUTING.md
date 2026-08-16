@@ -7,7 +7,7 @@
 
 The code, commit messages, and this file are in English. **Almost everything that
 explains *why* the code looks the way it does is in Thai** — [`CLAUDE.md`](CLAUDE.md)
-(the working notes), the 52 records in [`docs/adr/`](docs/adr/), and the rest of
+(the working notes), the 53 records in [`docs/adr/`](docs/adr/), and the rest of
 `docs/`. Machine translation handles them acceptably, but you should know that
 before you invest an afternoon.
 
@@ -157,6 +157,17 @@ it scoped (a plugin, a config, a documented section), conflicts with a
 higher layer → reject it and record why; (3) significant adoptions and
 rejections are recorded as ADRs — the ADR log *is* the intake log.
 
+### 11. `main` only accepts pull requests — no exceptions, not even the owner
+
+Branch protection enforces this for admins too
+([ADR 0053](docs/adr/0053-solo-maintainer-sod-compensating-controls.md)):
+every change, however small, travels branch → PR → 26 green checks →
+merge. The project has a single maintainer, so a second reviewer cannot
+exist; the compensating controls (the real-service check wall, the
+append-only audit chain, the public history) only work if they sit on the
+mandatory path. Review count is intentionally 0 — the day a second regular
+contributor arrives, required reviews turn on and ADR 0053 gets revisited.
+
 ## Before you open a pull request
 
 ```bash
@@ -250,6 +261,12 @@ pipenv run flask create-user <ชื่อ>
     อนุมัติ = break · (2) จำแนกก่อนรับ: ดีกว่า=แทน · ไม่เคยมี=ปรับเข้า ·
     ดีเฉพาะบางสถานการณ์=รับแบบจำกัดขอบเขต · ขัดชั้นบน=ปัดตกพร้อมจดเหตุผล ·
     (3) การรับ/ปัดตกที่มีนัยจดเป็น ADR — ADR คือ intake log
+11. **`main` รับของทาง PR เท่านั้น — ไม่มีข้อยกเว้นแม้แต่เจ้าของ**
+    ([ADR 0053](docs/adr/0053-solo-maintainer-sod-compensating-controls.md))
+    — branch protection บังคับถึง admin (`enforce_admins`) ทุกงานเดิน
+    branch → PR → check เขียว 26 ตัว → merge · review count เป็น 0
+    โดยตั้งใจ (คนเดียว review ตัวเองไม่ได้ — มาตรการชดเชยอยู่ใน ADR) ·
+    มี contributor ประจำคนที่สองเมื่อไหร่ เปิด required review ทันที
 
 ## ก่อนเปิด pull request
 

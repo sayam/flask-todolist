@@ -18,7 +18,30 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ## [Unreleased]
 
-Nothing yet.
+### Security
+
+- **The first releases-line CVE fixes in this project's history** — both
+  found by the repo's own gates, both verified clean after the bump:
+  - `cryptography` 45.0.7 → 50.0.0 in the `plugin-auth-totp` category
+    (flagged by the `plugin-audit` job: seven advisories including
+    CVE-2026-2141 and the PYSEC-2026-355x series; the `~=45.0` spec could
+    never receive the fixes). Spec moved in both the Pipfile category and
+    the plugin manifest, per ADR 0023.
+  - semgrep 1.172.0 → 1.173.0 in `pins/semgrep/`, whose loosened `mcp` pin
+    (1.23.3 → 1.29.0) clears CVE-2026-52870/52869/59950; the three PYSEC
+    ids left `pins/accepted-advisories.txt` in the same commit, as the
+    two-way audit gate requires.
+- **`main` accepts pull requests only — enforced for admins too**
+  ([ADR 0053](docs/adr/0053-solo-maintainer-sod-compensating-controls.md)):
+  `enforce_admins` is now on, so the 26 required checks sit on the
+  mandatory path for everyone. The ADR records the solo-maintainer
+  compensating controls and the expiry condition (a second regular
+  contributor turns required reviews on). CONTRIBUTING rule 11 announces
+  it; the ISO 27001 A.5.3 row now cites it.
+
+### Added
+
+- Version and license badges at the bottom of the README.
 
 ## [1.4.0] — 2026-08-16
 
