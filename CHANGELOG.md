@@ -20,6 +20,13 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Added
 
+- **The OpenSSF Best Practices badge reached Silver (100%)** on
+  2026-08-16 — all 55 silver criteria answered (45 met, 7 N/A, 3
+  deliberately unmet SHOULD/SUGGESTED with reasons), unlocked by the
+  signed v1.5.0 release and the new continuity statement.
+  `docs/BEST-PRACTICES.md` now carries the silver worksheet beside the
+  passing one; Gold sits at 26% and is structurally gated on a second
+  contributor.
 - **A continuity statement in CONTRIBUTING (both languages)**: nothing
   about the project's continuity depends on a private asset — keyless
   signing, in-repo automation, MIT — so a fork continues the project
