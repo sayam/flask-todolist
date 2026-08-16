@@ -53,3 +53,9 @@
   `workflow_dispatch` โดยไม่ต้องออก release ใหม่
 - ด่าน bestpractices กลุ่ม `signed_releases` เปลี่ยนคำตอบได้หลังรุ่นแรก
   ที่เซ็นออกจริง
+
+---
+
+**โน้ต (2026-08-16 ค่ำ)**: gate `release-signed-and-attested` ยกขึ้น
+`baseline` แล้ว (แบตช์รอบสามใต้หลักของ ADR 0057) — เงื่อนไข "พิสูจน์ด้วย
+run จริงก่อน" ที่ทำให้จดเป็น internal ตอนเกิด สำเร็จครบใน v1.5.0

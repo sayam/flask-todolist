@@ -368,6 +368,26 @@
       "kind": "suite",
       "title": "ความลับที่ต้องอ่านคืนได้ ถูก encrypt บนดิสก์ และคีย์หาย/ผิดต้องดังพร้อมเหตุผล",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "release-signed-and-attested": {
+      "kind": "suite",
+      "title": "SBOM ของ release ถูก generate ใน CI เซ็น keyless + provenance และ verify สองทิศก่อนแนบ",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "design-doc-matches-the-ui": {
+      "kind": "suite",
+      "title": "docs/DESIGN.md ตรงกับ UI จริง — ทุกหน้าเต็มถูกตัดสินโหมด และตัวแปรสีตรงกับ base.css สองทิศ",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "admin-panels-read-real-state": {
+      "kind": "suite",
+      "title": "panel ระบบของ admin อ่านจาก runtime/ดิสก์จริง ตอบตามจริง และ admin เท่านั้น",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "legal-pdpa-worksheet-honest": {
+      "kind": "suite",
+      "title": "worksheet PDPA อ้างหลักฐานที่มีจริงทุกชิ้น และช่องว่างทุกข้ออยู่ใน backlog",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     }
   }
 }

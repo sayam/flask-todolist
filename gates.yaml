@@ -601,8 +601,8 @@ gates:
     enforced_by: {job: test, tests: [tests/test_design_doc.py]}
     standard: []
     requires: []
-    portable: false
-    layer: internal
+    portable: true
+    layer: business
     pillar: devx
     born_from: >-
       CR#4 — caption ลอยกึ่งกลางหลายหน้าเพราะแนวอ่านของทั้งหน้าไม่เคยถูกเขียน
@@ -631,8 +631,8 @@ gates:
     enforced_by: {job: test, tests: [tests/test_admin_panels.py]}
     standard: []
     requires: []
-    portable: false
-    layer: internal
+    portable: true
+    layer: business
     pillar: security
     born_from: >-
       เฟส 14-04/14-06 — บทเรียนรอบตรวจเอกสาร: เลขที่ไม่ได้อ่านจากของจริงคือ
@@ -661,8 +661,8 @@ gates:
     enforced_by: {job: test, tests: [tests/test_pdpa.py]}
     standard: []
     requires: []
-    portable: false
-    layer: internal
+    portable: true
+    layer: business
     pillar: security
     born_from: >-
       pilot ของชั้น legal (ADR 0042 · เฟส 13-04) — เอกสาร map กฎหมายที่ไม่มี
@@ -1295,8 +1295,8 @@ gates:
     enforced_by: {job: release-sign}
     standard: []
     requires: []
-    portable: false
-    layer: internal
+    portable: true
+    layer: baseline
     pillar: security
     axis: supply-chain
     born_from: >-

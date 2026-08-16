@@ -536,6 +536,14 @@
 
 **ตัวบังคับใน reference:** job `secret-scan`
 
+### `release-signed-and-attested`
+
+**กฎ:** SBOM ของ release ถูก generate ใน CI เซ็น keyless + provenance และ verify สองทิศก่อนแนบ
+
+**เกิดจาก:** audit governance 2026-08-16 (ADR 0058) — release แนบ SBOM มาตั้งแต่ v1.0.0 โดยไม่มีไฟล์ไหนถูกเซ็น: คนโหลดไป verify ไม่ได้ว่ามาจาก CI จริง และของที่ build นอก CI ต่อให้เซ็นก็ตอบไม่ได้ว่าสร้างจากอะไร
+
+**ตัวบังคับใน reference:** job `release-sign`
+
 ### `sbom-per-category`
 
 **กฎ:** SBOM แยกต่อ category — ตอบได้ว่าถอด plugin แล้ว component ไหนหาย
