@@ -12,7 +12,4 @@
 #
 # ID ที่ใช้ต้องเป็นตัวที่ pip-audit พิมพ์ออกมา (PYSEC/GHSA) ไม่ใช่ CVE
 
-PYSEC-2026-3481
-PYSEC-2026-3482
-PYSEC-2026-3483
 GHSA-jmr9-qjv8-65gv
