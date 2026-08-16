@@ -41,6 +41,12 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Added
 
+- **The Dockerfile is linted by hadolint on every push**
+  ([ADR 0055](docs/adr/0055-dockerfile-lint-hadolint.md)): every level
+  including info must be green; exceptions live in `.hadolint.yaml` alone,
+  each with a written reason (one exception at adoption: DL3059, the
+  final stage's deliberately separate `RUN` blocks). Gate
+  `dockerfile-linted` joins the supply-chain axis, bringing it to 17.
 - **The image's OS layer is now scanned for CVEs on every push**
   ([ADR 0054](docs/adr/0054-image-os-layer-cve-scanning.md)): trivy runs in
   the `image` job against the image just built (HIGH/CRITICAL, fixable
@@ -334,7 +340,7 @@ graph. Nothing in the `/api/v1` contract changed; it only gained fields.
 ## [1.0.0] — 2026-08-12
 
 First public release. Everything below arrived across seven planned phases of
-work; the reasoning for each decision lives in the 54 records in
+work; the reasoning for each decision lives in the 55 records in
 [`docs/adr/`](docs/adr/), and the phase-by-phase plan in
 [`docs/ROADMAP.md`](docs/ROADMAP.md).
 

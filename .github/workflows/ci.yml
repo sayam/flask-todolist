@@ -224,6 +224,16 @@ jobs:
       # (ตัวเนื้อหาของหลักฐานถูกตรวจโดย tests/test_asvs.py ใน job `test`)
       - run: PYTHONPATH=. pipenv run python scripts/build_asvs_worksheet.py --check
         if: ${{ !cancelled() }}
+      # Dockerfile คือ IaC ชิ้นเดียวที่นิยามของที่ ship จริง (ADR 0055) —
+      # เกณฑ์คือทุกระดับรวม info ต้องเขียว ข้อยกเว้นอยู่ที่ `.hadolint.yaml`
+      # ที่เดียวพร้อมเหตุผลกำกับ (compose/nginx มีด่านพฤติกรรมจริงจาก
+      # `stack`/`dast` อยู่แล้ว — เงื่อนไขทบทวนใน ADR)
+      - name: lint Dockerfile (hadolint — ADR 0055)
+        uses: hadolint/hadolint-action@2a66e89f53d0771bb131a7fa31f3136336094aa6 # v3.4.0
+        if: ${{ !cancelled() }}
+        with:
+          dockerfile: Dockerfile
+          config: .hadolint.yaml
 
   n-1:
     # สัญญา N-1 (ADR 0048): โค้ดของ tag ล่าสุดต้องให้บริการบน schema ของ HEAD
