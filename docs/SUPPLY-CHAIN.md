@@ -44,6 +44,8 @@ supply chain เป็น**แกนอิสระ**ของชั้น secur
 |---|---|
 | `gate image-digest-pinned` | base image ตรึงด้วย digest ของ manifest index |
 | `gate actions-sha-pinned` | GitHub Action ทุกตัวตรึงด้วย commit SHA |
+| `gate image-os-cve-audit` | OS layer ของ image ถูกสแกน CVE (trivy ใน job `image` — ADR 0054) และตัดสินเทียบรายการยกเว้นสองทิศ |
+| `gate image-exceptions-honest` | ข้อยกเว้น CVE ของ image ตรวจ**สองทิศ** + ขอบเขตการสแกน (HIGH/CRITICAL · เฉพาะที่มี fix) ต้องยังประกาศอยู่ใน workflow |
 
 ### 4. ใครขยับ pin — pin ที่ไม่มีใครขยับคือการแช่ช่องโหว่
 

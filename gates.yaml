@@ -1084,6 +1084,38 @@ gates:
       Dockerfile ที่ไม่มีใครเคย build คือไฟล์ข้อความธรรมดา — และ shebang ของ
       venv เคยพังแบบที่ข้อความ error โกหกว่าไฟล์ไม่มีอยู่
 
+  - id: image-os-cve-audit
+    title: OS layer ของ image ถูกสแกน CVE และตัดสินเทียบรายการยกเว้นสองทิศ
+    kind: step
+    severity: blocking
+    enforced_by: {job: image, step: "ตัดสินผลสแกนเทียบรายการยกเว้น — สองทิศ"}
+    standard: []
+    requires: [docker]
+    portable: true
+    layer: baseline
+    pillar: security
+    axis: supply-chain
+    born_from: >-
+      audit governance 2026-08-16 (ADR 0054) — SBOM ของ image มี 8 ไฟล์แต่
+      ไม่มีใครสแกน OS layer เลย: มี SBOM ไม่เท่ากับมีคนอ่าน CVE ของ
+      glibc/openssl ใน image คือของที่เราจะรู้ก็ต่อเมื่อคนอื่นบอก
+
+  - id: image-exceptions-honest
+    title: รายการยกเว้น CVE ของ image ตรวจสองทิศ และทุก ID มีเหตุผลในเอกสาร
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_image_audit.py]}
+    standard: []
+    requires: []
+    portable: true
+    layer: baseline
+    pillar: security
+    axis: supply-chain
+    born_from: >-
+      หลักเดียวกับ pins-exceptions-honest — รายการยกเว้นที่ไม่มีใครถอดจะ
+      กลายเป็นตัวปิดของจริงในวันหนึ่ง และขอบเขตการสแกน (severity/unfixed)
+      ที่หายไปเงียบ ๆ คือด่านที่เปลี่ยนความหมายโดยไม่มี commit ไหนบอก
+
   - id: stack-deploys-and-serves
     title: compose stack จริง — migrate แยกขั้น, 2 replica, โควตาแชร์, client IP ถูก
     kind: job

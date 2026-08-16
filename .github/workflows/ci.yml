@@ -601,6 +601,27 @@ jobs:
           docker logs probe 2>&1 1>/dev/null | grep -q '"logger"' || {
             echo "ไม่เจอ log ของแอปใน stderr"; exit 1; }
           echo "log อยู่ถูกช่อง"
+      # OS layer ของ image เป็นครึ่งของ supply chain ที่ SBOM บันทึกไว้แต่ไม่มี
+      # ใครอ่าน (ADR 0054) — สแกนที่ job นี้เพราะ image อยู่ที่นี่ (P5-09:
+      # เครื่อง dev ไม่มี container runtime) · **ขอบเขตประกาศที่ step นี้ที่เดียว**:
+      # HIGH/CRITICAL และเฉพาะที่มี fix แล้ว — MEDIUM/LOW ของ Debian มามาก-ไปเร็ว
+      # และของที่ไม่มี patch ตัวพาทางแก้มาคือ Dependabot (ecosystem docker)
+      # ไม่ใช่ความแดงของด่าน · ตัวตัดสินคือ audit_image.py ไม่ใช่ exit code
+      # ของ trivy (`exit-code` คงค่าเริ่มต้น 0 โดยตั้งใจ) — เจอของที่ไม่ได้
+      # ยกเว้น = แดง และยกเว้นของที่ไม่โผล่แล้ว = แดงเหมือนกัน (สองทิศ)
+      - name: สแกน CVE ของ OS layer (trivy — ADR 0054)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: todolist:ci
+          scanners: vuln
+          vuln-type: os
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: json
+          output: /tmp/trivy-image.json
+      - name: ตัดสินผลสแกนเทียบรายการยกเว้น — สองทิศ
+        run: python3 scripts/audit_image.py /tmp/trivy-image.json
 
   stack:
     # **ยิง `docker compose up` จริงแล้วใช้งานแอปผ่าน stack นั้น** (P5-10)
