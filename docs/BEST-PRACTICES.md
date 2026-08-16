@@ -1,14 +1,15 @@
-# OpenSSF Best Practices Badge — คำตอบของทั้ง 67 เกณฑ์ (ระดับ passing)
+# OpenSSF Best Practices Badge — passing 67 ข้อ + silver 55 ข้อ
 
 ใบกรอกสำหรับ <https://www.bestpractices.dev> · **เว็บนั้นเป็นแหล่งจริงหลังส่งแล้ว**
 ไฟล์นี้คือใบตอบที่เตรียมไว้ พร้อมหลักฐานว่าแต่ละข้อผ่านด้วยอะไร — เก็บไว้เพราะ
 badge ถูกทบทวนเป็นรอบ และคำตอบที่ไม่มีที่มาคือคำตอบที่เขียนใหม่ทุกครั้ง
 (หลักเดียวกับ [ASVS.md](ASVS.md))
 
-**สถานะ: 66 ผ่าน · 1 ไม่เกี่ยวข้อง · 0 ยังไม่ผ่าน — และฟอร์มจริงบน
-bestpractices.dev ยืนยันแล้ว: passing 100%** (ทบทวน 2026-08-16 หลังกรอก
-ฟอร์มครบ — คำตอบในไฟล์นี้กับบนเว็บตรงกันทั้ง 67 ข้อ · รอบก่อนหน้า
-2026-08-14/15 ดูหมายเหตุท้ายไฟล์)
+**สถานะ: badge อยู่ระดับ SILVER (100% · `achieved_silver_at`
+2026-08-16T14:45Z — verify จาก API) · passing คง 100% · gold เริ่มนับ 26%**
+— ระดับ passing: 66 ผ่าน · 1 ไม่เกี่ยวข้อง · ระดับ silver: 45 Met · 7 N/A ·
+3 Unmet โดยตั้งใจ (ตาราง silver อยู่ท้ายไฟล์) · คำตอบในไฟล์นี้กับบนเว็บ
+ตรงกันทั้งสองระดับ (รอบก่อนหน้า 2026-08-14/15 ดูหมายเหตุท้ายไฟล์)
 
 เกณฑ์ทั้งหมด 67 ข้อ: MUST 43 · SHOULD 10 · SUGGESTED 14
 **MUST ผ่านครบทั้ง 43 ข้อ** ซึ่งเป็นเงื่อนไขของ badge ระดับ passing
@@ -19,7 +20,7 @@ bestpractices.dev ยืนยันแล้ว: passing 100%** (ทบทว�
 
 | เกณฑ์ | ตอบ | หลักฐาน |
 |---|---|---|
-| `description_good` MUST | ผ่าน | `README.md` ย่อหน้าแรกบอกว่าเป็นอะไรและแก้ปัญหาอะไร · ช่อง About ของ repo เติมแล้ว (v1.4.0 · 2026-08-16) |
+| `description_good` MUST | ผ่าน | `README.md` ย่อหน้าแรกบอกว่าเป็นอะไรและแก้ปัญหาอะไร · ช่อง About ของ repo เติมแล้ว (อัปเดตตามรุ่น — ล่าสุด v1.5.0) |
 | `interact` MUST | ผ่าน | `README.md` มีวิธีติดตั้ง/รัน · `CONTRIBUTING.md` มีวิธีเสนอการเปลี่ยนแปลง · Issues เปิดอยู่ |
 | `contribution` MUST | ผ่าน | `CONTRIBUTING.md` — อธิบายว่าใช้ PR, ต้องผ่าน 27 required check (จาก 28 check — scorecard ไม่บังคับ), merge ด้วย rebase, และกติกาลงทะเบียนไฟล์เทสต์ใน `gates.yaml` |
 | `contribution_requirements` SHOULD | ผ่าน | `CONTRIBUTING.md` — Conventional Commits (หัว ≤72), ruff/mypy, **กติกา mutation test ของเทสต์ใหม่** |
@@ -146,6 +147,80 @@ bestpractices.dev ยืนยันแล้ว: passing 100%** (ทบทว�
 2026-08-16 — ทุกช่อง version อ้าง v1.4.0)
 
 ---
+
+---
+
+## ระดับ Silver — 55 เกณฑ์ (100% · achieved 2026-08-16)
+
+ไล่กรอกหลัง v1.5.0 ออก (release แรกที่เซ็น — `signed_releases` คือใบเบิกทาง)
+· **MUST ครบทุกข้อ** · Unmet 3 ตัวเป็น SHOULD/SUGGESTED ที่ตอบตรงพร้อม
+เหตุผล ซึ่งกติกาของ BadgeApp ไม่ฉุดเปอร์เซ็นต์ · เกณฑ์เงื่อนไข ("ถ้าไม่มี X
+ให้ตอบ N/A") ตอบ N/A เสมอแม้ Met จะได้คะแนนเท่ากัน — Met ที่เงื่อนไขไม่เกิด
+คือคำตอบที่สื่อความผิด
+
+| เกณฑ์ | ตอบ | หลักฐาน |
+|---|---|---|
+| `achieve_passing` MUST | Met | passing 100% ตั้งแต่ 2026-08-15 |
+| `contribution_requirements` MUST | Met | `CONTRIBUTING.md` — PR-only + 27 required checks + mutation rule + ลงทะเบียน gates.yaml |
+| `dco` SHOULD | **Unmet ตั้งใจ** | ไม่มี DCO/CLA — inbound = outbound ([ADR 0038](adr/0038-mit-license.md)) |
+| `governance` MUST | Met | ธรรมนูญสี่ชั้น + intake ([ADR 0051](adr/0051-project-constitution-and-intake.md)) · ADR เป็น intake log · PR-only ([ADR 0053](adr/0053-solo-maintainer-sod-compensating-controls.md)) |
+| `code_of_conduct` MUST | Met | `CODE_OF_CONDUCT.md` |
+| `roles_responsibilities` MUST | Met | บทบาทเดียวถือครบ เขียนเปิดเผยพร้อม compensating controls (ADR 0053 · CONTRIBUTING ข้อ 11) |
+| `access_continuity` MUST | Met | หัวข้อ continuity ใน `CONTRIBUTING.md` — ไม่มีของส่วนตัวจำเป็น (keyless · automation ใน repo) fork เดินต่อได้ครบ |
+| `bus_factor` SHOULD | **Unmet ตั้งใจ** | bus factor 1 โดยธรรมชาติของโปรเจกต์ส่วนตัว — mitigation อยู่ใน ADR 0053 + หัวข้อ continuity |
+| `documentation_roadmap` MUST | Met | `docs/ROADMAP.md` + roadmap ราย axis |
+| `documentation_architecture` MUST | Met | `docs/ARCHITECTURE.md` (42010 · เทสต์คุม) |
+| `documentation_security` MUST | Met | `docs/ASVS.md` (253/253 · หลักฐานถูกเทสต์ตรวจ) + `SECURITY.md` |
+| `documentation_quick_start` MUST | Met | README "Try it" |
+| `documentation_current` MUST | Met | รอบตรวจเอกสาร 2026-08-16 + เลขโฆษณามีเทสต์อ่านคู่ |
+| `documentation_achievements` MUST | Met | badge บน README (บน + ล่าง) |
+| `accessibility_best_practices` SHOULD | Met | WCAG 2.2 AA สองชั้นทุก push + `docs/ACCESSIBILITY-AUDIT.md` |
+| `internationalization` SHOULD | Met | gettext en/th + เทสต์ความครบของ catalog |
+| `sites_password_security` MUST | N/A | ไม่ได้รัน site ที่เก็บรหัสผ่านเอง (GitHub ดูแล) |
+| `maintenance_or_update` MUST | Met | สัญญา N-1 + expand–contract ([ADR 0048](adr/0048-operations-ha-n1.md)) |
+| `report_tracker` MUST | Met | GitHub Issues |
+| `vulnerability_report_credit` MUST | N/A | ยังไม่มีรายงานจากคนนอกที่ถูกแก้ — นโยบายให้เครดิตอยู่ใน `SECURITY.md` แล้ว |
+| `vulnerability_response_process` MUST | Met | `SECURITY.md` — ตอบรับ 7 วัน · ประเมิน 14 · แก้ตามกรอบความรุนแรง (เทสต์คุม cadence) |
+| `coding_standards` MUST | Met | `docs/STANDARDS.md` + CONTRIBUTING |
+| `coding_standards_enforced` MUST | Met | ruff ทุกกฎ · mypy strict · xenon · interrogate — ratchet ทางเดียว |
+| `build_standard_variables` MUST | N/A | Python ไม่มี compiled build |
+| `build_preserve_debug` SHOULD | N/A | เดียวกัน |
+| `build_non_recursive` MUST | N/A | เดียวกัน |
+| `build_repeatable` MUST | Met | lock ทุกชั้นด้วย hash · image จาก digest · SBOM สร้างซ้ำได้ใน CI (ADR 0058) |
+| `installation_common` MUST | Met | pipenv / docker compose ตามมาตรฐาน ecosystem |
+| `installation_standard_variables` MUST | Met | ไม่มี installer เอง — ใช้ convention ของ pip/docker ตรง ๆ |
+| `installation_development_quick` MUST | Met | clone → รันได้ในห้าคำสั่ง |
+| `external_dependencies` MUST | Met | Pipfile ราย category + SBOM ทุก release + `docs/SUPPLY-CHAIN.md` (18 gate) |
+| `dependency_monitoring` MUST | Met | Dependabot + pip-audit/npm-audit ทุกชั้นสองทิศ |
+| `updateable_reused_components` MUST | Met | ทุกอย่างเป็น package มาตรฐานจาก lockfile ไม่มี vendored |
+| `interfaces_current` SHOULD | Met | Python 3.13 · SQLAlchemy 2.0 typed · deprecation โผล่ผ่านด่าน lint/type |
+| `automated_integration_testing` MUST | Met | dialects จริงสองยี่ห้อ · stack TLS 2 replica · SSO/LDAP จริง · DAST แบบ login ทุก push |
+| `regression_tests_added50` MUST | Met | ทุก bugfix มาพร้อมเทสต์ที่พิสูจน์ด้วย mutation |
+| `test_statement_coverage80` MUST | Met | 96% (เปิด branch) ratchet + diff-cover 100% |
+| `test_policy_mandated` MUST | Met | CONTRIBUTING ข้อ 1 + ข้อ 8 |
+| `tests_documented_added` MUST | Met | เดียวกัน — บังคับด้วย gates registry |
+| `warnings_strict` MUST | Met | warning = error ใน CI ทุกตัว |
+| `implement_secure_design` MUST | Met | least privilege · complete mediation ใน service layer · fail-safe defaults (config ผิด = ไม่ start) |
+| `crypto_weaknesses` MUST | Met | ข้อยกเว้นเดียว HMAC-SHA1 ใน TOTP ตาม RFC 6238 (บันทึกใน ASVS V11.4.1) |
+| `crypto_algorithm_agility` SHOULD | Met | รูปเก็บมีเวอร์ชัน `enc:v1:` (ADR 0046) · hash รหัสผ่าน self-describing |
+| `crypto_credential_agility` MUST | Met | คีย์อยู่นอกโค้ด หมุนแยกกัน (ADR 0030/0046 · OPERATIONS) |
+| `crypto_used_network` SHOULD | Met | stack TLS จริงทุก push |
+| `crypto_tls12` SHOULD | Met | gate `tls-modern-protocols-only` |
+| `crypto_certificate_verification` MUST | Met | client TLS ทุกตัวใช้ verification ค่าเริ่มต้น ไม่มีที่ไหนปิด |
+| `crypto_verification_private` MUST | Met | verify ก่อนส่งของลับเสมอ (พฤติกรรมเดียวกัน) |
+| `signed_releases` MUST | Met | cosign keyless + SLSA provenance (ADR 0058) · วิธี verify ใน `SECURITY.md` |
+| `version_tags_signed` SUGGESTED | **Unmet ตั้งใจ** | ยังไม่เซ็น tag — เงื่อนไขทบทวนใน ADR 0058 |
+| `input_validation` MUST | Met | allowlist ทุกชั้น (marshmallow RAISE · service · lookup) + fuzz จาก spec |
+| `hardening` SHOULD | Met | CSP ไม่มี inline · Talisman · container read-only ไม่ใช่ root · hadolint/trivy |
+| `assurance_case` MUST | Met | `docs/ASVS.md` + crosswalk `docs/GATES-ASVS.md` + `docs/ARCHITECTURE.md` |
+| `static_analysis_common_vulnerabilities` MUST | Met | CodeQL security-extended + semgrep p/flask (พิสูจน์ขอบเขตสแกน) |
+| `dynamic_analysis_unsafe` MUST | N/A | Python — ไม่มีโค้ดภาษา memory-unsafe |
+
+**กับดักของฟอร์มที่เจอระดับนี้**: `signed_releases` อยู่ silver ไม่ใช่ passing
+(ต้องสลับ `criteria_level=1`) · Save ต่อแท็บ — `updated_at` ใน JSON ของ
+โปรเจกต์คือตัวจับว่าบันทึกจริง · **Gold (ตอนนี้ 26%) ติดเงื่อนไขโครงสร้าง**:
+ต้องมี contributor ที่ไม่เกี่ยวข้องกัน ≥2 — เป็นไปได้เมื่อมีคนที่สองจริง
+(เงื่อนไขเดียวกับ required review ของ ADR 0053)
 
 ## ทบทวน 2026-08-14 (หลังปิดเฟส 8–12)
 
