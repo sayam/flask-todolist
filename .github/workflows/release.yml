@@ -93,6 +93,7 @@ jobs:
             sbom-*.json
             !sbom-*.sigstore.json
       - name: อัปโหลด SBOM + ลายเซ็นเข้า release
-        # glob แรกจับ bundle ด้วย ซึ่งซ้ำกับ glob ที่สอง — `--clobber` ทำให้
-        # การอัปโหลดซ้ำเป็นการทับ ไม่ใช่ error จึงปล่อยรูปนี้ได้ (ของครบแน่)
-        run: gh release upload "$TAG" sbom-*.json sbom-*.json.sigstore.json --clobber
+        # glob เดียวจับทุกไฟล์ครั้งเดียว — สอง glob ที่ทับกันทำให้ bundle ถูก
+        # ส่งซ้ำในคำสั่งเดียวแล้วชน 422 (`--clobber` ทับของ*เก่า*ได้ แต่กัน
+        # ชื่อซ้ำใน*คำสั่งเดียวกัน*ไม่ได้ — run ที่สองของ v1.5.0 พิสูจน์)
+        run: gh release upload "$TAG" sbom-* --clobber
