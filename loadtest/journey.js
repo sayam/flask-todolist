@@ -41,10 +41,17 @@ export const options = {
   // ผ่านหรือไม่ ไม่ต้องมีคนมานั่งอ่านตัวเลขแล้วเถียงกันทีหลัง
   // ปิดได้ด้วย NO_THRESHOLDS=1 ตอนไล่หาจุดที่ระบบเริ่มพัง (ซึ่งต้อง "ไม่ผ่าน"
   // เป็นเรื่องปกติ — ดู scripts/loadtest_curve.sh)
+  // **ค่าเริ่มต้นคือเป้าจริงของ ADR 0031** — P95_MS/P99_MS มีไว้ให้ด่าน
+  // tripwire ใน CI ผ่อนเกณฑ์ (ADR 0056: runner แชร์ CPU ตัวเลขจึงหลวมกว่า
+  // เครื่องวัดจริง — เกณฑ์หลวมบนเครื่องที่แชร์ จับ regression ก้าวกระโดดได้
+  // แต่ไม่ใช่หลักฐานแทนการวัดใน docs/PERFORMANCE.md)
   thresholds: __ENV.NO_THRESHOLDS
     ? {}
     : {
-        "http_req_duration{expected_response:true}": ["p(95)<200", "p(99)<500"],
+        "http_req_duration{expected_response:true}": [
+          `p(95)<${__ENV.P95_MS || 200}`,
+          `p(99)<${__ENV.P99_MS || 500}`,
+        ],
         http_req_failed: ["rate<0.01"],
       },
 };

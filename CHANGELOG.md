@@ -41,6 +41,13 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Added
 
+- **A per-push performance tripwire — the pillar's first**
+  ([ADR 0056](docs/adr/0056-perf-smoke-tripwire.md)): the `perf-smoke`
+  job walks the real k6 journey against the shipped image (SQLite stack,
+  5 VUs, 60s) with thresholds at twice the ADR 0031 targets — loose on
+  purpose, because a shared runner cannot judge the real targets without
+  flaking. It catches step-change regressions; the evidence for the real
+  targets remains the multi-round curves in `docs/PERFORMANCE.md`.
 - **The Dockerfile is linted by hadolint on every push**
   ([ADR 0055](docs/adr/0055-dockerfile-lint-hadolint.md)): every level
   including info must be green; exceptions live in `.hadolint.yaml` alone,
@@ -340,7 +347,7 @@ graph. Nothing in the `/api/v1` contract changed; it only gained fields.
 ## [1.0.0] — 2026-08-12
 
 First public release. Everything below arrived across seven planned phases of
-work; the reasoning for each decision lives in the 55 records in
+work; the reasoning for each decision lives in the 56 records in
 [`docs/adr/`](docs/adr/), and the phase-by-phase plan in
 [`docs/ROADMAP.md`](docs/ROADMAP.md).
 

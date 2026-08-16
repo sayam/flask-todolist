@@ -1132,6 +1132,21 @@ gates:
       กลายเป็นตัวปิดของจริงในวันหนึ่ง และขอบเขตการสแกน (severity/unfixed)
       ที่หายไปเงียบ ๆ คือด่านที่เปลี่ยนความหมายโดยไม่มี commit ไหนบอก
 
+  - id: perf-regression-tripwire
+    title: journey จริงบน image จริงทุก push — เกณฑ์หลวม (2×เป้า) จับ regression ก้าวกระโดด
+    kind: job
+    severity: blocking
+    enforced_by: {job: perf-smoke}
+    standard: []
+    requires: [docker-compose]
+    portable: true
+    layer: baseline
+    pillar: performance
+    born_from: >-
+      audit governance 2026-08-16 (ADR 0056) — pillar อันดับสองของธรรมนูญ
+      ไม่มีด่าน latency ต่อ push เลย regression ก้าวกระโดด (N+1 ใหม่ ·
+      index หาย) เข้า main ได้เงียบ ๆ จนกว่าจะมีคนรัน load test มือครั้งถัดไป
+
   - id: stack-deploys-and-serves
     title: compose stack จริง — migrate แยกขั้น, 2 replica, โควตาแชร์, client IP ถูก
     kind: job

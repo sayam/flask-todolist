@@ -61,3 +61,4 @@ ADR 0002–0008 เป็นการ backfill การตัดสินใจ
 | [0053](0053-solo-maintainer-sod-compensating-controls.md) | main รับของทาง PR เท่านั้น (บังคับถึง admin) · มาตรการชดเชย SoD ของ solo maintainer + เงื่อนไขหมดอายุ | accepted |
 | [0054](0054-image-os-layer-cve-scanning.md) | สแกน CVE ของ OS layer ใน image (trivy · HIGH/CRITICAL · เฉพาะมี fix) ตัดสินสองทิศเทียบรายการยกเว้น | accepted |
 | [0055](0055-dockerfile-lint-hadolint.md) | lint Dockerfile ด้วย hadolint (ทุกระดับรวม info · ข้อยกเว้นมีเหตุผลที่ config เดียว) — IaC ชิ้นแรกที่ถูกสแกน | accepted |
+| [0056](0056-perf-smoke-tripwire.md) | ด่านสะดุด performance ต่อ push — k6 journey เกณฑ์หลวม 2×เป้า บน runner (tripwire ไม่ใช่การวัด) | accepted |
