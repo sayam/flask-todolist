@@ -464,6 +464,22 @@ description: Universal production-discipline rules for web applications, distill
 
 **ตัวบังคับใน reference:** job `image`
 
+### `image-os-cve-audit`
+
+**กฎ:** OS layer ของ image ถูกสแกน CVE และตัดสินเทียบรายการยกเว้นสองทิศ
+
+**เกิดจาก:** audit governance 2026-08-16 (ADR 0054) — SBOM ของ image มี 8 ไฟล์แต่ ไม่มีใครสแกน OS layer เลย: มี SBOM ไม่เท่ากับมีคนอ่าน CVE ของ glibc/openssl ใน image คือของที่เราจะรู้ก็ต่อเมื่อคนอื่นบอก
+
+**ตัวบังคับใน reference:** job `image` step "ตัดสินผลสแกนเทียบรายการยกเว้น — สองทิศ"
+
+### `image-exceptions-honest`
+
+**กฎ:** รายการยกเว้น CVE ของ image ตรวจสองทิศ และทุก ID มีเหตุผลในเอกสาร
+
+**เกิดจาก:** หลักเดียวกับ pins-exceptions-honest — รายการยกเว้นที่ไม่มีใครถอดจะ กลายเป็นตัวปิดของจริงในวันหนึ่ง และขอบเขตการสแกน (severity/unfixed) ที่หายไปเงียบ ๆ คือด่านที่เปลี่ยนความหมายโดยไม่มี commit ไหนบอก
+
+**ตัวบังคับใน reference:** `tests/test_image_audit.py`
+
 ### `tls-modern-protocols-only`
 
 **กฎ:** รับเฉพาะ TLS 1.2/1.3 — พิสูจน์ว่า server ปฏิเสธ ไม่ใช่ client ปฏิเสธเอง

@@ -189,6 +189,16 @@
       "title": "รายการยกเว้น advisory ตรวจสองทิศ และทุก ID มีเหตุผลในเอกสาร",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     },
+    "image-os-cve-audit": {
+      "kind": "suite",
+      "title": "OS layer ของ image ถูกสแกน CVE และตัดสินเทียบรายการยกเว้นสองทิศ",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "image-exceptions-honest": {
+      "kind": "suite",
+      "title": "รายการยกเว้น CVE ของ image ตรวจสองทิศ และทุก ID มีเหตุผลในเอกสาร",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
     "semgrep-scope-proven": {
       "kind": "suite",
       "title": "semgrep ต้องพิสูจน์ว่าสแกนอะไร — เทียบเซตไฟล์จริงกับ git ls-files",

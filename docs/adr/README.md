@@ -59,3 +59,4 @@ ADR 0002–0008 เป็นการ backfill การตัดสินใจ
 | [0051](0051-project-constitution-and-intake.md) | ธรรมนูญ: ลำดับสี่ชั้น (security > perf > manageability > devx) · intake ของใหม่ · `pillar:` ทุก gate | accepted |
 | [0052](0052-performance-layer-g5.md) | ชั้น performance (G5): multiproc `/metrics` แบบ opt-in ไม่ลดด่าน · caching วัดก่อน ไม่ชนะ=จดว่าไม่ทำ | accepted |
 | [0053](0053-solo-maintainer-sod-compensating-controls.md) | main รับของทาง PR เท่านั้น (บังคับถึง admin) · มาตรการชดเชย SoD ของ solo maintainer + เงื่อนไขหมดอายุ | accepted |
+| [0054](0054-image-os-layer-cve-scanning.md) | สแกน CVE ของ OS layer ใน image (trivy · HIGH/CRITICAL · เฉพาะมี fix) ตัดสินสองทิศเทียบรายการยกเว้น | accepted |

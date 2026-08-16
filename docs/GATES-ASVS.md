@@ -32,6 +32,7 @@ derive จากหลักฐานในตาราง `docs/ASVS.md`: แ�
 | `every-write-audited` | V2.3.4 · V11.4.3 · V14.2.4 · V16.3.1 |
 | `i18n-catalog-integrity` | V1.3.10 |
 | `image-built-and-probed` | V13.4.1 · V15.2.3 |
+| `image-os-cve-audit` | V13.4.1 · V15.2.3 |
 | `logic-knows-no-http` | V2.2.2 · V2.2.3 · V2.3.3 · V8.2.3 · V8.3.1 · V16.5.3 |
 | `login-rate-limited-two-ways` | V6.1.1 · V6.3.1 |
 | `logs-carry-no-pii` | V1.2.9 · V14.2.4 · V16.2.1 · V16.2.2 · V16.2.4 · V16.2.5 · V16.3.4 · V16.4.1 |

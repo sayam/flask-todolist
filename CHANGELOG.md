@@ -41,6 +41,14 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Added
 
+- **The image's OS layer is now scanned for CVEs on every push**
+  ([ADR 0054](docs/adr/0054-image-os-layer-cve-scanning.md)): trivy runs in
+  the `image` job against the image just built (HIGH/CRITICAL, fixable
+  only — the scope is declared once, on the trivy step), and
+  `scripts/audit_image.py` judges the report against
+  `deploy/accepted-image-advisories.txt` **in both directions**, the same
+  contract as the `pins/` audit. Two new supply-chain gates
+  (`image-os-cve-audit`, `image-exceptions-honest`) bring the axis to 16.
 - Version and license badges at the bottom of the README.
 
 ## [1.4.0] — 2026-08-16
@@ -326,7 +334,7 @@ graph. Nothing in the `/api/v1` contract changed; it only gained fields.
 ## [1.0.0] — 2026-08-12
 
 First public release. Everything below arrived across seven planned phases of
-work; the reasoning for each decision lives in the 53 records in
+work; the reasoning for each decision lives in the 54 records in
 [`docs/adr/`](docs/adr/), and the phase-by-phase plan in
 [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
