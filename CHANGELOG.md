@@ -20,6 +20,12 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Fixed
 
+- **Every ADR review condition now has a machine-read reminder** (round-2
+  audit's top finding): a cadence row sweeps all open ADR conditions
+  yearly - five recent ADRs carried conditions with no reminder at all.
+  The manual-pentest row gains a second trigger (external adopters of
+  the exported overlay/skill), and the risk register gains the
+  single-account root-of-trust row with its residual stated.
 - Documentation reviews now have a standing rule (CLAUDE.md): check
   symbols, marks, and badges for consistency alongside the text — a
   missing mark is a bug equal to a wrong sentence. Born from the
