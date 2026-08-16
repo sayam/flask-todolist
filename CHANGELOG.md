@@ -18,6 +18,14 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ## [Unreleased]
 
+### Changed
+
+- **Re-layering round three** (under ADR 0057's principle, from the
+  round-2 audit): `release-signed-and-attested` rises to baseline now
+  that a real signed release proved it; the design-doc, admin-honesty,
+  and PDPA-worksheet gates become business-layer agreements. Registry:
+  66 baseline / 10 business / 15 internal, 75 portable.
+
 ### Fixed
 
 - **Every ADR review condition now has a machine-read reminder** (round-2

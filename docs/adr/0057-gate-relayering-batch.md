@@ -63,3 +63,13 @@ ADR 0045 เขียนไว้ว่า masking จะยกเป็น port
   (สามตัวของข้อ 2 + สามยี่ห้อ) · axis supply-chain คง 17
 - overlay ได้ suite entry ใหม่ 5 ตัว (สองตัวของข้อ 1 + สามตัวของข้อ 2)
 - ADR 0042 (ตัวอย่างชั้น) และ ADR 0045 (เงื่อนไข masking) ติดโน้ตชี้มาที่นี่
+
+---
+
+**โน้ต (2026-08-16 ค่ำ — แบตช์รอบสามตามหลักเดิม · audit r2)**: ยกอีก 4 ตัว —
+`release-signed-and-attested` → baseline (ตอนเกิดใน ADR 0058 จดเป็น internal
+เพราะยังไม่เคยรันจริง — ตอนนี้ผ่าน run จริงและ verify ฝั่งผู้ใช้แล้ว) ·
+`design-doc-matches-the-ui` / `admin-panels-read-real-state` /
+`legal-pdpa-worksheet-honest` → business (ข้อตกลงระดับชนิดแอป — สองตัวหลัง
+เข้าเซ็ตเดียวกับ masking/ropa ที่ยกไปรอบแรก) · ตัวเลขใหม่: baseline 66 ·
+business 10 · internal 15 · portable 75
