@@ -141,7 +141,7 @@ generate สดตรงกับดัชนี · PDPA worksheet หลัก�
 
 | ขั้น | งาน |
 |---|---|
-| 16-01 | ADR 0047: นิยาม compatible range (N-1) + วินัย expand-contract migration |
+| 16-01 | ADR 0048: นิยาม compatible range (N-1) + วินัย expand-contract migration |
 | 16-02 | readiness/liveness endpoint (แยกจาก `/metrics` — ไม่ต้องมี token แต่ไม่มีข้อมูลภายใน) + graceful shutdown · วัด rolling ซ้ำด้วย bench เดิมของเฟส 10 |
 | 16-03 | CI job `n-1`: checkout รุ่นก่อน รันชุดเทสต์ของมันกับ schema ที่ migrate เป็นรุ่นใหม่แล้ว |
 | 16-04 | Prometheus + Grafana scrape `/metrics` จริง (ปิดของค้าง "ยังไม่มีใคร scrape") — compose overlay + ci พิสูจน์ว่า scrape ได้จริง |
@@ -158,7 +158,7 @@ generate สดตรงกับดัชนี · PDPA worksheet หลัก�
 
 | ขั้น | งาน |
 |---|---|
-| 17-01 | ADR 0048: named profiles — plugin เดียว หลาย config instance (`ldap:corp`, `ldap:partner`) · ลำดับลองต้อง**ประกาศ** · ไม่มี fallback เงียบ · ปิด profile เดียวได้โดยไม่กระทบตัวอื่น |
+| 17-01 | ADR 0047: named profiles — plugin เดียว หลาย config instance (`ldap:corp`, `ldap:partner`) · ลำดับลองต้อง**ประกาศ** · ไม่มี fallback เงียบ · ปิด profile เดียวได้โดยไม่กระทบตัวอื่น |
 | 17-02 | registry รองรับ instance + เทสต์ (รวมเคส: profile แรกตาย → พฤติกรรมตามที่ประกาศเท่านั้น) |
 | 17-03 | ผูกหลาย identity เข้าผู้ใช้เดียว (ปิดของค้าง "ผูกหลาย IdP") |
 
@@ -192,8 +192,8 @@ generate สดตรงกับดัชนี · PDPA worksheet หลัก�
 | 0044 | โครง admin: core package + pluggable panels | 14-01 |
 | 0045 | data masking ตามชั้นข้อมูล | 14-01 |
 | 0046 | field-level encryption at rest | 15-01 |
-| 0047 | สัญญา N-1 + expand-contract | 16-01 |
-| 0048 | named auth profiles + ลำดับที่ประกาศ | 17-01 |
+| 0048 | สัญญา N-1 + expand-contract | 16-01 |
+| 0047 | named auth profiles + ลำดับที่ประกาศ | 17-01 |
 | 0049 | privacy model ของ org todo graph | 18-01 |
 
 ## 4. Release

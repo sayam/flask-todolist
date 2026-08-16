@@ -7,7 +7,7 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 
 **สถานะ: badge อยู่ระดับ SILVER (100% · `achieved_silver_at`
 2026-08-16T14:45Z — verify จาก API) · passing คง 100% · gold เริ่มนับ 26%**
-— ระดับ passing: 66 ผ่าน · 1 ไม่เกี่ยวข้อง · ระดับ silver: 45 Met · 7 N/A ·
+— ระดับ passing: 66 ผ่าน · 1 ไม่เกี่ยวข้อง · ระดับ silver: 46 Met · 6 N/A ·
 3 Unmet โดยตั้งใจ (ตาราง silver อยู่ท้ายไฟล์) · คำตอบในไฟล์นี้กับบนเว็บ
 ตรงกันทั้งสองระดับ (รอบก่อนหน้า 2026-08-14/15 ดูหมายเหตุท้ายไฟล์)
 
@@ -22,7 +22,7 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 |---|---|---|
 | `description_good` MUST | ผ่าน | `README.md` ย่อหน้าแรกบอกว่าเป็นอะไรและแก้ปัญหาอะไร · ช่อง About ของ repo เติมแล้ว (อัปเดตตามรุ่น — ล่าสุด v1.5.0) |
 | `interact` MUST | ผ่าน | `README.md` มีวิธีติดตั้ง/รัน · `CONTRIBUTING.md` มีวิธีเสนอการเปลี่ยนแปลง · Issues เปิดอยู่ |
-| `contribution` MUST | ผ่าน | `CONTRIBUTING.md` — อธิบายว่าใช้ PR, ต้องผ่าน 27 required check (จาก 28 check — scorecard ไม่บังคับ), merge ด้วย rebase, และกติกาลงทะเบียนไฟล์เทสต์ใน `gates.yaml` |
+| `contribution` MUST | ผ่าน | `CONTRIBUTING.md` — อธิบายว่าใช้ PR, ต้องผ่าน 27 required check (จาก 29 check — scorecard กับ job ของ workflow release ไม่บังคับ), merge ด้วย rebase, และกติกาลงทะเบียนไฟล์เทสต์ใน `gates.yaml` |
 | `contribution_requirements` SHOULD | ผ่าน | `CONTRIBUTING.md` — Conventional Commits (หัว ≤72), ruff/mypy, **กติกา mutation test ของเทสต์ใหม่** |
 | `floss_license` MUST | ผ่าน | `LICENSE` (MIT) · GitHub ตรวจพบเป็น `MIT` แล้ว |
 | `floss_license_osi` SUGGESTED | ผ่าน | MIT เป็นสัญญาอนุญาตที่ OSI รับรอง — [ADR 0038](adr/0038-mit-license.md) |
@@ -42,11 +42,11 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 | `repo_track` MUST | ผ่าน | git |
 | `repo_interim` MUST | ผ่าน | commit ระหว่างทางอยู่ครบบน `main` ไม่ใช่แค่ของที่ release |
 | `repo_distributed` SUGGESTED | ผ่าน | git |
-| `version_unique` MUST | ผ่าน | ทุกรุ่นมี tag ไม่ซ้ำ — `v1.0.0`, `v1.1.0`, `v1.2.0` |
+| `version_unique` MUST | ผ่าน | ทุกรุ่นมี tag ไม่ซ้ำ — v1.0.0 ถึง v1.5.0 |
 | `version_semver` SUGGESTED | ผ่าน | SemVer · นิยามของ 1.0.0 บันทึกไว้ใน `docs/ROADMAP.md` |
-| `version_tags` SUGGESTED | ผ่าน | git tag ทุกรุ่น (`v1.0.0`, `v1.1.0`, `v1.2.0`) |
+| `version_tags` SUGGESTED | ผ่าน | git tag ทุกรุ่น (v1.0.0 ถึง v1.5.0) |
 | `release_notes` MUST | ผ่าน | `CHANGELOG.md` (Keep a Changelog) ผูกกับ `app.__version__` และมีเทสต์คุม |
-| `release_notes_vulns` MUST | ผ่าน | ยังไม่มี release ไหนที่แก้ช่องโหว่ซึ่งมี CVE — เมื่อมีจะระบุใน `CHANGELOG.md` ตามกรอบเวลาใน `docs/SECURITY-CADENCE.md` |
+| `release_notes_vulns` MUST | ผ่าน | **v1.5.0 คือรุ่นแรกที่แก้ CVE และ notes ระบุครบทั้งเจ็ด** (cryptography 45.0.7→50.0.0) — ตามที่นโยบายใน `docs/SECURITY-CADENCE.md` สัญญาไว้ |
 
 ## Reporting
 
@@ -68,10 +68,10 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 | `build` MUST | ผ่าน | `Dockerfile` (multi-stage) · job `image` ใน CI **build จริงแล้วยิงใส่มันทุก push** ไม่ใช่แค่ตรวจ syntax |
 | `build_common_tools` SUGGESTED | ผ่าน | Docker + pipenv |
 | `build_floss_tools` SHOULD | ผ่าน | ทุกตัวเป็น FLOSS |
-| `test` MUST | ผ่าน | pytest — **1,280 เทสต์** (นับ 2026-08-16 หลังปิดช่องว่างจาก audit governance) |
+| `test` MUST | ผ่าน | pytest — **1,282 เทสต์** (นับ 2026-08-17) |
 | `test_invocation` SHOULD | ผ่าน | `pipenv run pytest` |
 | `test_most` SUGGESTED | ผ่าน | coverage gate `fail_under = 96` (**ratchet: ขยับขึ้นได้อย่างเดียว**) + `diff-cover` บังคับบรรทัดที่แก้ 100% |
-| `test_continuous_integration` SUGGESTED | ผ่าน | 28 check ทุก push — รวมสามยี่ห้อฐานข้อมูล, stack จริง, SSO, LDAP, DAST |
+| `test_continuous_integration` SUGGESTED | ผ่าน | 29 check (27 บังคับ) — รวมสามยี่ห้อฐานข้อมูล, stack จริง, SSO, LDAP, DAST |
 | `test_policy` MUST | ผ่าน | `CONTRIBUTING.md` + `CLAUDE.md`: **เทสต์ใหม่ทุกตัวต้องถูกพิสูจน์ด้วย mutation test ว่าจับของจริงได้ก่อนถือว่าเสร็จ** และ `diff-cover` บังคับที่ CI · ตั้งแต่เฟส 8 มี `gates.yaml` บังคับอีกชั้นว่า **ไฟล์เทสต์ทุกไฟล์ต้องถูกตัดสินว่าเป็นของ gate ไหน** (`tests/test_gates.py`) |
 | `tests_are_added` MUST | ผ่าน | PR ล่าสุดมีเทสต์มาด้วยทุกใบ — และ `gates.yaml` ทำให้ "ลืมเพิ่มเทสต์" กลายเป็น CI แดง ไม่ใช่เรื่องที่ต้องมีคนสังเกต (`tests/test_gates.py`, `test_overlay.py`, `test_harness.py`, `test_asvs_probe.py`) |
 | `tests_documented_added` SUGGESTED | ผ่าน | `CONTRIBUTING.md` |
@@ -230,7 +230,7 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 - `test_policy` / `tests_are_added` — กติกาเดิมเป็น "คนต้องจำ" ตอนนี้มี
   `gates.yaml` ที่บังคับให้ไฟล์เทสต์ทุกไฟล์ถูกตัดสินว่าเป็นของ gate ไหน
   ลืมแล้ว CI แดงทันที
-- `contribution` — required check ขยับมาเรื่อย ๆ ตาม job ใหม่ (ปัจจุบัน 27 จาก 28 — `perf-smoke` เข้าเมื่อ ADR 0056) (job `scaffold` เข้าเป็น
+- `contribution` — required check ขยับมาเรื่อย ๆ ตาม job ใหม่ (ปัจจุบัน 27 จาก 29 — `perf-smoke` เข้าเมื่อ ADR 0056) (job `scaffold` เข้าเป็น
   ด่านบังคับตอนเฟส 9) และ `CONTRIBUTING.md` มีกติกา `gates.yaml` แล้ว
 - `build_reproducible` / `installation_common` — ไม่เปลี่ยน แต่ `overlays/flask/`
   ทำให้มีของที่ *คนอื่น* ติดตั้งได้จริงเป็นครั้งแรก และ job `scaffold` พิสูจน์

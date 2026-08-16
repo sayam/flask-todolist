@@ -29,7 +29,9 @@ convention — `tests/test_compliance_index.py` บังคับสองท�
    ช่องว่างเข้า backlog ไม่ใช่ไปหักด่านเดิม (หลักเดียวกับ intake ของ
    ADR 0051: baseline ห้าม break)
 4. **gate ลงทะเบียนใน `gates.yaml`** ด้วย id `legal-<ชื่อ>` ·
-   `layer: internal` · `pillar: security` แล้วมาลงแถวในดัชนีนี้
+   `layer: business` (ข้อตกลงของแอปที่ให้บริการผู้ใช้ในประเทศนั้น —
+   ADR 0057 ยก pilot ของ PDPA ขึ้นชั้นนี้แล้ว) · `pillar: security`
+   แล้วมาลงแถวในดัชนีนี้
 
 ## สิ่งที่ตั้งใจไม่ทำ
 
