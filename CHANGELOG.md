@@ -18,6 +18,20 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [1.5.0] — 2026-08-16
+
+The enforced-path release: a five-dimension governance audit
+(OWASP/SSDF · PDPA · ISO 25010 · DevSecOps · COBIT/ITIL) ran against the
+whole repository, and every gap it found is closed in this release — main
+only accepts pull requests now, for the owner too; the image's OS layer
+and the Dockerfile are scanned every push; the performance pillar has its
+first per-push gate; release artifacts are signed with provenance; and
+this is the project's first release that fixes published CVEs, listed
+below. Seven gates also moved to the layer their rules actually belong
+to, and every hand-written document was swept back to current truth.
+
 ### Security
 
 - **The first releases-line CVE fixes in this project's history** — both
@@ -491,7 +505,8 @@ work; the reasoning for each decision lives in the 58 records in
 - WCAG 2.2 AA, checked both by a structural test suite and by pa11y-ci driving a
   real Chromium over dark mode, an alternate theme, and Thai.
 
-[Unreleased]: https://github.com/sayam/flask-todolist/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/sayam/flask-todolist/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/sayam/flask-todolist/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/sayam/flask-todolist/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/sayam/flask-todolist/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/sayam/flask-todolist/compare/v1.1.0...v1.2.0
