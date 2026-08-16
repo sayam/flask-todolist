@@ -62,3 +62,4 @@ ADR 0002–0008 เป็นการ backfill การตัดสินใจ
 | [0054](0054-image-os-layer-cve-scanning.md) | สแกน CVE ของ OS layer ใน image (trivy · HIGH/CRITICAL · เฉพาะมี fix) ตัดสินสองทิศเทียบรายการยกเว้น | accepted |
 | [0055](0055-dockerfile-lint-hadolint.md) | lint Dockerfile ด้วย hadolint (ทุกระดับรวม info · ข้อยกเว้นมีเหตุผลที่ config เดียว) — IaC ชิ้นแรกที่ถูกสแกน | accepted |
 | [0056](0056-perf-smoke-tripwire.md) | ด่านสะดุด performance ต่อ push — k6 journey เกณฑ์หลวม 2×เป้า บน runner (tripwire ไม่ใช่การวัด) | accepted |
+| [0057](0057-gate-relayering-batch.md) | จัดชั้น gate ใหม่ 7 ตัว: ยกขึ้น baseline 2 · business 4 · ยุบ migration-lint เข้า dialect-discipline · ชั้นตัดสินจากเนื้อกฎไม่ใช่เหตุที่เกิด | accepted |
