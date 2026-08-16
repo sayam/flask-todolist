@@ -20,6 +20,9 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Fixed
 
+- The ROADMAP phase-overview table now shows phases 5-7 as done - they
+  closed on 2026-08-12, but only their detail sections were marked, and
+  the overview's missing ticks read as three phases still open.
 - The repo About's Website field had pointed at the v1.1.0 tag for three
   releases; it now points at `releases/latest`, which follows every
   future release by itself — and `docs/RELEASE.md` step 7 now names both
