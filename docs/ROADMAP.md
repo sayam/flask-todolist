@@ -130,9 +130,9 @@ migration และโค้ดใหม่ทุกตัวจากนี้�
 | 3 ✅ | Service layer + API v1 | M–L | Compatibility, Maintainability |
 | 4 ✅ | Identity & AuthN/AuthZ | L | Security(authn), Compatibility(SSO) |
 | 4.5 ✅ | Supply-chain isolation ของจุด plug | M | Security(supply chain), Modularity |
-| 5 | Deployment parity + DB/cache plugins **+ SSO** | M–L | Flexibility, Security(TLS/secrets), Compatibility |
-| 6 | Performance validation | M | Performance Efficiency |
-| 7 | Verification & compliance closure | M–L | Security(ASVS/pentest/PDPA), Interaction(WCAG), Audit(SIEM) |
+| 5 ✅ | Deployment parity + DB/cache plugins **+ SSO** | M–L | Flexibility, Security(TLS/secrets), Compatibility |
+| 6 ✅ | Performance validation | M | Performance Efficiency |
+| 7 ✅ | Verification & compliance closure | M–L | Security(ASVS/pentest/PDPA), Interaction(WCAG), Audit(SIEM) |
 
 งานต่อเนื่องทุกเฟส: ADR ทุกการตัดสินใจสำคัญ, SCA รายสัปดาห์, SBOM ทุก release,
 coverage gate ใน CI
