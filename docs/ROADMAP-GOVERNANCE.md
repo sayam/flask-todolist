@@ -37,9 +37,9 @@ gate: `iso27001-worksheet-honest` · **backlog ปิดแล้ว 2026-08-16 
 เจ้าของ**: วิธีประเมินความเสี่ยง (6.1/8.2) → `docs/RISK-ASSESSMENT.md`
 (gate `risk-method-and-register-current`) · backup/restore (A.5.30/A.8.13)
 → `docs/RUNBOOK-BACKUP.md` + การซ้อมเป็นเทสต์ทุก push (gate
-`backup-restore-drilled-every-push`) · **ผลรวมปัจจุบัน: ผ่าน 78 ·
-ไม่เกี่ยวข้อง 37 · ยังไม่ผ่าน 1** — เหลือ A.5.35 (การทบทวนโดยอิสระ)
-ค้างฝั่งเจ้าของ · แผนเดิมของ story นี้:
+`backup-restore-drilled-every-push`) · A.5.35 ปิดเมื่อ badge OpenSSF ถึง
+passing (2026-08-16) · **ผลรวมสุดท้าย: ผ่าน 79 · ไม่เกี่ยวข้อง 37 ·
+ยังไม่ผ่าน 0** · แผนเดิมของ story นี้:
 
 - `docs/ISO27001.md` worksheet แบบเดียวกับ `ASVS.md`/`PDPA.md`:
   **clause 4–10 + Annex A ทั้ง 93 controls ประเมินครบทุกข้อ** —

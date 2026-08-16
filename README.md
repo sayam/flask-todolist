@@ -150,7 +150,7 @@ Written in Thai, because that is the language the thinking happened in.
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | the first seven phases — the application itself — what each closed, and what was deliberately deferred |
 | [`docs/ROADMAP-INFRA.md`](docs/ROADMAP-INFRA.md) | phases 8–12 — the index, the exported skill, the overlay, the fail-fix harness, and the comparison experiment |
 | [`docs/ASVS.md`](docs/ASVS.md) | OWASP ASVS 5.0 Level 2 self-assessment — all 253 in-scope requirements answered, including the 48 that do not pass |
-| [`docs/ISO27001.md`](docs/ISO27001.md) | ISO/IEC 27001:2022 self-assessment — all 116 items answered (clauses 4–10 and every Annex A control), including the 5 that do not pass |
+| [`docs/ISO27001.md`](docs/ISO27001.md) | ISO/IEC 27001:2022 self-assessment — all 116 items answered (clauses 4–10 and every Annex A control) — and since 2026-08-16, all of them pass or are justified n/a |
 | [`docs/SUPPLY-CHAIN.md`](docs/SUPPLY-CHAIN.md) | the supply-chain axis — five layers of the chain and the 14 gates that guard them, kept honest against `gates.yaml` both ways |
 | [`docs/COMPLIANCE.md`](docs/COMPLIANCE.md) | the per-country legal index — Thailand (PDPA) today, and the contract for adding a country additively |
 | [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) | measured numbers, including the ones that hurt |
