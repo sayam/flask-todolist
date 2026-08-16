@@ -60,6 +60,17 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
   `dialect-discipline`. Registry now 90 gates (65 baseline · 7 business
   · 18 internal · 71 portable); `SKILL.md` and `SKILL-TODOLIST.md`
   regenerated accordingly.
+- **Release artifacts are now signed with provenance**
+  ([ADR 0058](docs/adr/0058-signed-releases-and-provenance.md)): a
+  release-published workflow generates every SBOM from the tag's own
+  code, signs each keyless (cosign bundle), verifies both ways in place
+  (the workflow's identity passes, a foreign identity must fail), emits
+  SLSA provenance via GitHub's native attestation (`gh attestation
+  verify`), and attaches everything to the release.
+  slsa-github-generator was rejected on record: it demands tag-pinned
+  workflow references, which the SHA-pinning gate forbids. Verification
+  commands live in `SECURITY.md`; gate `release-signed-and-attested`
+  brings the supply-chain axis to 18.
 - **The release procedure is now a document, not folklore**
   ([`docs/RELEASE.md`](docs/RELEASE.md)): the standard cut steps as
   practised since v1.1.0, plus the four tasks bound to the next release
@@ -382,7 +393,7 @@ graph. Nothing in the `/api/v1` contract changed; it only gained fields.
 ## [1.0.0] — 2026-08-12
 
 First public release. Everything below arrived across seven planned phases of
-work; the reasoning for each decision lives in the 57 records in
+work; the reasoning for each decision lives in the 58 records in
 [`docs/adr/`](docs/adr/), and the phase-by-phase plan in
 [`docs/ROADMAP.md`](docs/ROADMAP.md).
 

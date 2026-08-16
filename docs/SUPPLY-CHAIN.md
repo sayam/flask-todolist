@@ -46,6 +46,7 @@ supply chain เป็น**แกนอิสระ**ของชั้น secur
 | `gate actions-sha-pinned` | GitHub Action ทุกตัวตรึงด้วย commit SHA |
 | `gate dockerfile-linted` | Dockerfile ผ่าน hadolint ทุกระดับรวม info (ADR 0055) — ข้อยกเว้นอยู่ที่ `.hadolint.yaml` ที่เดียวพร้อมเหตุผล |
 | `gate image-os-cve-audit` | OS layer ของ image ถูกสแกน CVE (trivy ใน job `image` — ADR 0054) และตัดสินเทียบรายการยกเว้นสองทิศ |
+| `gate release-signed-and-attested` | SBOM ของ release: generate ใน CI · เซ็น keyless (cosign bundle) · SLSA provenance (`gh attestation verify`) · verify สองทิศก่อนแนบ (ADR 0058) |
 | `gate image-exceptions-honest` | ข้อยกเว้น CVE ของ image ตรวจ**สองทิศ** + ขอบเขตการสแกน (HIGH/CRITICAL · เฉพาะที่มี fix) ต้องยังประกาศอยู่ใน workflow |
 
 ### 4. ใครขยับ pin — pin ที่ไม่มีใครขยับคือการแช่ช่องโหว่

@@ -93,6 +93,24 @@ an attack. Do not test against installations you do not own. Stay within the sco
 above, do not access, modify, or keep data that is not yours, and give the
 maintainer a reasonable chance to fix the issue before telling the world.
 
+## Release artifacts are signed
+
+Since v1.5.0, every SBOM attached to a release is generated inside CI,
+signed keyless (sigstore), and carries SLSA provenance (ADR 0058).
+Verify before trusting a downloaded file:
+
+```bash
+# signature + workflow identity
+cosign verify-blob --bundle sbom-core.json.sigstore.json \
+  --certificate-identity-regexp \
+  '^https://github.com/sayam/flask-todolist/.github/workflows/release.yml@' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  sbom-core.json
+
+# build provenance (SLSA)
+gh attestation verify sbom-core.json --repo sayam/flask-todolist
+```
+
 ## Supported versions
 
 | Version | Supported |
@@ -133,6 +151,12 @@ PoC มีก็ดีแต่ไม่จำเป็น — คำอธิ�
 **ไม่มีเงินรางวัล** — เป็นโปรเจกต์ส่วนตัวที่ไม่มีทุน บอกไว้ตั้งแต่ต้นตรงกว่า
 ปล่อยให้รู้ทีหลังตอนทำงานไปแล้ว · การเปิดเผยเป็นแบบประสานงาน: แก้เสร็จก่อน
 แล้วค่อยประกาศ และจะให้เครดิตตามชื่อที่คุณอยากให้ใช้ หรือไม่ให้เลยถ้าคุณต้องการ
+
+## artifact ของ release ถูกเซ็น
+
+ตั้งแต่ v1.5.0 SBOM ทุกไฟล์ที่แนบ release ถูก generate ใน CI, เซ็นแบบ
+keyless และมี SLSA provenance (ADR 0058) — คำสั่ง verify อยู่ในหัวข้อ
+ภาษาอังกฤษข้างบน
 
 ## ขอบเขต
 

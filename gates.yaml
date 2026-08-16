@@ -1288,6 +1288,22 @@ gates:
       ความลับที่หลุดเข้า history ลบไม่ได้จริงบน GitHub — object เก่ายังถูก
       เสิร์ฟตาม SHA · กันตั้งแต่ขาเข้าถูกกว่าเสมอ
 
+  - id: release-signed-and-attested
+    title: SBOM ของ release ถูก generate ใน CI เซ็น keyless + provenance และ verify สองทิศก่อนแนบ
+    kind: job
+    severity: blocking
+    enforced_by: {job: release-sign}
+    standard: []
+    requires: []
+    portable: false
+    layer: internal
+    pillar: security
+    axis: supply-chain
+    born_from: >-
+      audit governance 2026-08-16 (ADR 0058) — release แนบ SBOM มาตั้งแต่
+      v1.0.0 โดยไม่มีไฟล์ไหนถูกเซ็น: คนโหลดไป verify ไม่ได้ว่ามาจาก CI จริง
+      และของที่ build นอก CI ต่อให้เซ็นก็ตอบไม่ได้ว่าสร้างจากอะไร
+
   - id: sbom-per-category
     title: SBOM แยกต่อ category — ตอบได้ว่าถอด plugin แล้ว component ไหนหาย
     kind: job

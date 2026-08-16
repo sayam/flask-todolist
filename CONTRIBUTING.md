@@ -7,7 +7,7 @@
 
 The code, commit messages, and this file are in English. **Almost everything that
 explains *why* the code looks the way it does is in Thai** — [`CLAUDE.md`](CLAUDE.md)
-(the working notes), the 57 records in [`docs/adr/`](docs/adr/), and the rest of
+(the working notes), the 58 records in [`docs/adr/`](docs/adr/), and the rest of
 `docs/`. Machine translation handles them acceptably, but you should know that
 before you invest an afternoon.
 
@@ -177,7 +177,7 @@ pipenv run pytest -v
 pipenv run pytest --cov          # must not drop below the floor in pyproject.toml
 ```
 
-CI runs 26 jobs (28 checks) against real services — three database brands, a real
+CI runs 27 jobs (29 checks) against real services — three database brands, a real
 reverse proxy, a real IdP, a real LDAP directory, a real Vault, an authenticated
 ZAP scan, and a Chromium accessibility pass. Expect the pull request to take
 longer to go green than it took to write. Nothing there is mocked, which is
@@ -277,7 +277,7 @@ pipenv run pytest -v
 pipenv run pytest --cov
 ```
 
-CI มี 26 job (28 check) ที่ยิงของจริงทั้งหมด — สามยี่ห้อฐานข้อมูล, reverse proxy,
+CI มี 27 job (29 check) ที่ยิงของจริงทั้งหมด — สามยี่ห้อฐานข้อมูล, reverse proxy,
 IdP, LDAP, Vault, ZAP แบบ login แล้ว และ Chromium สำหรับ accessibility ·
 ไม่มี mock สักตัว โดยตั้งใจ (`dialects` เป็น matrix สองยี่ห้อ จึงนับเป็นสอง check) · เขียนอธิบายว่า**แก้อะไร และถ้าไม่แก้จะพังอย่างไร**
 เพราะ diff อธิบายตัวเองได้ แต่ความพังที่มันกันไว้อธิบายตัวเองไม่ได้
