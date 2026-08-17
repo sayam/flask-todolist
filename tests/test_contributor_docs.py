@@ -39,6 +39,11 @@ JOB_CLAIM = re.compile(r"(\d+)\s+jobs?\s*\((\d+)\s+checks?\)")
 
 DOCS_CLAIMING_JOB_COUNTS = ("CONTRIBUTING.md", "CLAUDE.md", "docs/DEVELOPMENT.md")
 
+# ใบตอบ badge เป็นเอกสารที่คนนอกอ่าน (ลิงก์จาก README) และเต็มไปด้วยตัวเลข
+# ที่ไม่มีใครรัน — เน่าไปแล้วสามจุดก่อนจะมีเทสต์ชุดนี้
+BADGE_WORKSHEET = "docs/BEST-PRACTICES.md"
+VERSION_SOURCE = (ROOT / "app" / "__init__.py").read_text(encoding="utf-8")
+
 
 @pytest.fixture(scope="module")
 def ci_jobs():
@@ -147,6 +152,56 @@ def test_the_readme_advertises_the_real_coverage_floor():
 
     wrong = sorted({claimed for claimed in claims if int(claimed) != int(floor.group(1))})
     assert not wrong, f"README บอกพื้น coverage {wrong}% แต่ pyproject บังคับ {floor.group(1)}%"
+
+
+def test_the_badge_worksheet_tracks_the_current_version():
+    """ใบตอบ badge อ้างเลขรุ่นสามที่ — ต้องเป็นรุ่นปัจจุบัน ไม่ใช่รุ่นที่กรอกครั้งล่าสุด
+
+    เจอจริง 2026-08-17: ไฟล์ยังเขียน v1.5.0 อยู่สามจุดหลังออก v1.6.0 ไปแล้ว
+    ทั้งที่ `docs/RELEASE.md` มีขั้นตอน "อัปเดต BEST-PRACTICES ให้ตรงกับที่กรอก
+    จริง" อยู่แล้ว — ขั้นตอนที่ไม่มีเทสต์อ่านคู่ก็เน่าเหมือนเลขที่ไม่มีเทสต์อ่านคู่
+    (ช่อง `release_notes_vulns` อ้างรุ่นเก่าได้โดยชอบ เพราะมันเล่าว่า *รุ่นไหน*
+    แก้ CVE — เทสต์นี้จึงจับเฉพาะสองสำนวนที่แปลว่า "รุ่นล่าสุด")
+    """
+    version = re.search(r'^__version__\s*=\s*"([\d.]+)"', VERSION_SOURCE, re.MULTILINE)
+    assert version, "อ่าน __version__ จาก app/__init__.py ไม่ได้"
+
+    text = (ROOT / BADGE_WORKSHEET).read_text(encoding="utf-8")
+    claims = re.findall(r"ล่าสุด v([\d.]+)", text) + re.findall(r"v1\.0\.0 ถึง v([\d.]+)", text)
+    assert claims, f"{BADGE_WORKSHEET} ไม่ได้อ้างรุ่นล่าสุดในรูปแบบที่เทสต์อ่านได้"
+
+    wrong = sorted({claimed for claimed in claims if claimed != version.group(1)})
+    assert not wrong, (
+        f"{BADGE_WORKSHEET} อ้างว่ารุ่นล่าสุดคือ {wrong} แต่ __version__ คือ {version.group(1)} — "
+        "ตอนออกรุ่นต้องอัปเดตไฟล์นี้พร้อมฟอร์มบน bestpractices.dev (docs/RELEASE.md ขั้น 7)"
+    )
+
+
+def test_the_badge_worksheet_counts_the_real_supply_chain_gates():
+    """จำนวน gate ของแกน supply chain ในใบตอบ ต้องนับจาก `gates.yaml` จริง"""
+    gates = yaml.safe_load((ROOT / "gates.yaml").read_text(encoding="utf-8"))["gates"]
+    actual = sum(1 for gate in gates if gate.get("axis") == "supply-chain")
+
+    text = (ROOT / BADGE_WORKSHEET).read_text(encoding="utf-8")
+    claims = re.findall(r"SUPPLY-CHAIN\.md`?\s*\((\d+) gate\)", text)
+    assert claims, f"{BADGE_WORKSHEET} ไม่ได้บอกจำนวน gate ของแกน supply chain"
+
+    wrong = sorted({claimed for claimed in claims if int(claimed) != actual})
+    assert not wrong, f"{BADGE_WORKSHEET} บอกว่ามี {wrong} gate แต่ gates.yaml มี {actual}"
+
+
+def test_the_badge_worksheet_quotes_the_real_coverage_floor():
+    """พื้น coverage ในใบตอบมาจาก `fail_under` เหมือนที่ README ถูกบังคับ"""
+    pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    floor = re.search(r"^fail_under\s*=\s*(\d+)", pyproject, re.MULTILINE)
+    assert floor, "อ่าน `fail_under` จาก pyproject.toml ไม่ได้ — ชื่อคีย์เปลี่ยนไปแล้ว"
+
+    text = (ROOT / BADGE_WORKSHEET).read_text(encoding="utf-8")
+    claims = re.findall(r"fail_under\s*=\s*(\d+)", text)
+    assert claims, f"{BADGE_WORKSHEET} ไม่ได้อ้างพื้น coverage ในรูปแบบที่เทสต์อ่านได้"
+
+    wrong = sorted({claimed for claimed in claims if claimed != floor.group(1)})
+    assert not wrong, f"{BADGE_WORKSHEET} บอกพื้น coverage {wrong} แต่ pyproject บังคับ {floor.group(1)}"
 
 
 def test_contributing_points_at_gates_that_exist():

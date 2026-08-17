@@ -80,7 +80,6 @@ UNPROVEN = frozenset(
         "legal-pdpa-worksheet-honest",
         "licensing-no-copyleft",
         "security-policy-consistent",
-        "contributor-docs-truthful",
         "actions-sha-pinned",
         "image-digest-pinned",
         "ci-tools-hash-pinned",
@@ -116,7 +115,7 @@ UNPROVEN = frozenset(
     }
 )
 # เพดานของรายการข้างบน ณ วันที่กติกาเริ่ม (ADR 0059) — ขยับลงได้อย่างเดียว
-UNPROVEN_CEILING = 79
+UNPROVEN_CEILING = 78
 
 
 @pytest.fixture(scope="module")
