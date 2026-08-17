@@ -194,6 +194,51 @@ def test_every_gate_declares_a_pillar(gates):
         )
 
 
+# ด่านที่แพงและยังไม่เคยจับอะไร ต้องบอกได้ว่ามัน *คุ้มอะไรอยู่* — ADR 0062
+GATES_THAT_MUST_DECLARE_WHAT_THEY_GUARD = frozenset(
+    {
+        "perf-regression-tripwire",
+        "oidc-end-to-end",
+        "ldap-end-to-end",
+        "vault-end-to-end",
+        "metrics-scraped-for-real",
+        "a11y-real-browser",
+    }
+)
+
+
+def test_expensive_gates_declare_what_they_guard(gates):
+    """`guards:` คือครึ่งหนึ่งของคำถาม "ยังคุ้มไหม" — อีกครึ่งคือ "เคยแดงไหม"
+
+    ADR 0062: ด่าน real-service หกตัวกินเวลาเครื่อง 15% ต่อ push และยังไม่เคย
+    จับอะไรในหน้าต่าง 200 run · การตัดสินว่าจะเก็บไว้หรือย้ายไปรันตามรอบ ต้องดู
+    ทั้งสองอย่างคู่กัน — ด่านที่ไม่เคยแดงเพราะไม่มีใครแตะโค้ดที่มันคุ้ม ต่างจาก
+    ด่านที่ไม่เคยแดงทั้งที่โค้ดนั้นถูกแก้ทุกสัปดาห์คนละเรื่อง
+    """
+    declared = {
+        g["id"]: g.get("guards")
+        for g in gates
+        if g["id"] in GATES_THAT_MUST_DECLARE_WHAT_THEY_GUARD
+    }
+
+    missing = sorted(gid for gid, paths in declared.items() if not paths)
+    assert not missing, f"gate ที่ต้องประกาศ guards แต่ยังไม่มี: {missing}"
+
+    unknown = sorted(GATES_THAT_MUST_DECLARE_WHAT_THEY_GUARD - set(declared))
+    assert not unknown, f"รายการอ้าง gate ที่ไม่มีแล้ว: {unknown}"
+
+
+def test_declared_guards_point_at_paths_that_exist(gates):
+    """เส้นทางที่ไม่มีจริง = ตัวทบทวนจะอ่านว่า "ไม่มีใครแตะเลย" ตลอดกาล"""
+    dead = [
+        f"{g['id']} → {path}"
+        for g in gates
+        for path in g.get("guards") or []
+        if not (ROOT / path).exists()
+    ]
+    assert not dead, f"guards ที่ชี้ของที่ไม่มีจริง: {dead}"
+
+
 def test_portable_gates_carry_their_origin(gates):
     """กฎสากลที่เล่าไม่ได้ว่ามาจากกับดักไหน คือกฎที่จะถูกลบวันที่ไม่มีใครจำเหตุผล"""
     missing = [

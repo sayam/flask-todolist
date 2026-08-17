@@ -353,3 +353,22 @@ def test_posture_refuses_to_pass_when_it_cannot_read(monkeypatch, capsys):
 
     assert audit_posture.main([]) == 2
     assert "ห้ามแปลงกรณีนี้เป็นการข้ามเงียบ ๆ" in capsys.readouterr().err
+
+
+def test_the_census_names_the_jobs_that_never_went_red():
+    """ครึ่งแรกของคำถาม "ด่านนี้ยังคุ้มไหม" — job ที่ไม่โผล่ในสถิติเลยต้องถูกเรียกชื่อ
+
+    ADR 0062: ด่าน real-service ที่ไม่เคยแดงจะถูกตัดสินด้วยข้อมูลสองชั้น (ไม่แดง
+    + โค้ดที่มันคุ้มไม่ถูกแตะ) ไม่ใช่ด้วยความรู้สึกว่ามันแพง
+    """
+    summary = rerun_census.census([HIDDEN_RUN, VISIBLE_RUN])
+    defined = {"dast", "test", "vault", "sso"}
+
+    assert rerun_census.jobs_never_red(summary, defined) == ["sso", "vault"]
+
+
+def test_the_census_counts_a_rerun_job_as_having_gone_red():
+    """job ที่แดงแล้วถูก rerun **ไม่ใช่** job ที่ไม่เคยแดง — กับดักที่ D1 เพิ่งปิด"""
+    summary = rerun_census.census([HIDDEN_RUN])
+
+    assert rerun_census.jobs_never_red(summary, {"dast", "vault"}) == ["vault"]
