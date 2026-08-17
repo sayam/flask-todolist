@@ -154,6 +154,12 @@
   `ProtectHome=true` ทำให้ **ทุกอย่างที่หน่วยแตะต้องอยู่นอก home** ไม่งั้นได้
   `203/EXEC` ที่ไม่บอกสาเหตุ · `Environment=` ต้องใส่เครื่องหมายคำพูดถ้ามีช่องว่าง
 - `scripts/` — สคริปต์ที่รันมือ ไม่ได้ถูกเรียกตอนแอปทำงาน
+- **ท่าทีฝั่ง GitHub ถูกเครื่องตรวจแล้ว** (ADR 0061) — job `posture` ใน
+  `scorecard.yml` เรียก `scripts/audit_posture.py` เทียบ branch protection ·
+  required check สองทิศ (job ที่รันบน PR ต้องถูกบังคับ **และ** ห้ามมี context ผี) ·
+  auto-merge · `sha_pinning_required` กับสิ่งที่ ADR 0053 กับ SECURITY-CADENCE
+  ประกาศไว้ · **อ่าน API ไม่ได้ = แดง (exit 2) ไม่ใช่ข้าม** ทั้งกรณีสิทธิ์ไม่พอ
+  และกรณี GitHub ล่ม · เพิ่ม job ใหม่แล้วลืมทำให้เป็น required = ด่านนี้แดง
 - **นับความล้มเหลวของ CI ด้วย `scripts/rerun_census.py` เท่านั้น** (audit r7) —
   `gh run list --json conclusion` รายงานผลของ **attempt สุดท้าย** การกด rerun
   จนเขียวจึงลบความล้มเหลวเดิมออกจากสถิติ (วัดจริง: 100 run ล่าสุด เห็น 7 ซ่อน 3
@@ -1175,7 +1181,7 @@ generate จาก portable gate · `overlays/flask/` เอากฎไปบ�
 
 **อะไรเปลี่ยนไปหลัง Phase 5**: ฐานข้อมูล/cache/แหล่งความลับ/ปัจจัยยืนยันตัวตน
 เป็น plugin ที่เลือกด้วย config ตัวเดียวทั้งหมด · มี stack ที่รันจริงพร้อม
-reverse proxy, TLS, ≥2 replica, IdP และ directory · CI มี **27 job (29 check)** ที่ยิง
+reverse proxy, TLS, ≥2 replica, IdP และ directory · CI มี **28 job (30 check)** ที่ยิง
 ของจริงทุก push (ไม่ใช่ mock): สามยี่ห้อฐานข้อมูล, stack, SSO, LDAP, Vault,
 image, timer ของงานลบข้อมูล
 

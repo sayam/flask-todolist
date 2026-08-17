@@ -22,7 +22,7 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 |---|---|---|
 | `description_good` MUST | ผ่าน | `README.md` ย่อหน้าแรกบอกว่าเป็นอะไรและแก้ปัญหาอะไร · ช่อง About ของ repo เติมแล้ว (อัปเดตตามรุ่น — ล่าสุด v1.6.0) |
 | `interact` MUST | ผ่าน | `README.md` มีวิธีติดตั้ง/รัน · `CONTRIBUTING.md` มีวิธีเสนอการเปลี่ยนแปลง · Issues เปิดอยู่ |
-| `contribution` MUST | ผ่าน | `CONTRIBUTING.md` — อธิบายว่าใช้ PR, ต้องผ่าน 27 required check (จาก 29 check — scorecard กับ job ของ workflow release ไม่บังคับ), merge ด้วย rebase, และกติกาลงทะเบียนไฟล์เทสต์ใน `gates.yaml` |
+| `contribution` MUST | ผ่าน | `CONTRIBUTING.md` — อธิบายว่าใช้ PR, ต้องผ่าน 27 required check (จาก 30 check — scorecard, `posture` และ job ของ workflow release ไม่รันบน PR จึงไม่บังคับ), merge ด้วย rebase, และกติกาลงทะเบียนไฟล์เทสต์ใน `gates.yaml` |
 | `contribution_requirements` SHOULD | ผ่าน | `CONTRIBUTING.md` — Conventional Commits (หัว ≤72), ruff/mypy, **กติกา mutation test ของเทสต์ใหม่** |
 | `floss_license` MUST | ผ่าน | `LICENSE` (MIT) · GitHub ตรวจพบเป็น `MIT` แล้ว |
 | `floss_license_osi` SUGGESTED | ผ่าน | MIT เป็นสัญญาอนุญาตที่ OSI รับรอง — [ADR 0038](adr/0038-mit-license.md) |
@@ -71,7 +71,7 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 | `test` MUST | ผ่าน | pytest ทั้งชุดเป็น required check ทุก push (job `test`) · coverage floor `fail_under = 96` แบบ ratchet · `diff-cover` บังคับบรรทัดที่แก้ 100% · **ไม่ตรึงจำนวนเทสต์ไว้ที่นี่** เพราะทุก PR เพิ่มเทสต์ เลขภาพถ่ายจึงผิดตั้งแต่ commit ถัดไป — นับสดด้วย `pipenv run pytest --collect-only -q` |
 | `test_invocation` SHOULD | ผ่าน | `pipenv run pytest` |
 | `test_most` SUGGESTED | ผ่าน | coverage gate `fail_under = 96` (**ratchet: ขยับขึ้นได้อย่างเดียว**) + `diff-cover` บังคับบรรทัดที่แก้ 100% |
-| `test_continuous_integration` SUGGESTED | ผ่าน | 29 check (27 บังคับ) — รวมสามยี่ห้อฐานข้อมูล, stack จริง, SSO, LDAP, DAST |
+| `test_continuous_integration` SUGGESTED | ผ่าน | 30 check (27 บังคับ) — รวมสามยี่ห้อฐานข้อมูล, stack จริง, SSO, LDAP, DAST |
 | `test_policy` MUST | ผ่าน | `CONTRIBUTING.md` + `CLAUDE.md`: **เทสต์ใหม่ทุกตัวต้องถูกพิสูจน์ด้วย mutation test ว่าจับของจริงได้ก่อนถือว่าเสร็จ** และ `diff-cover` บังคับที่ CI · ตั้งแต่เฟส 8 มี `gates.yaml` บังคับอีกชั้นว่า **ไฟล์เทสต์ทุกไฟล์ต้องถูกตัดสินว่าเป็นของ gate ไหน** (`tests/test_gates.py`) |
 | `tests_are_added` MUST | ผ่าน | PR ล่าสุดมีเทสต์มาด้วยทุกใบ — และ `gates.yaml` ทำให้ "ลืมเพิ่มเทสต์" กลายเป็น CI แดง ไม่ใช่เรื่องที่ต้องมีคนสังเกต (`tests/test_gates.py`, `test_overlay.py`, `test_harness.py`, `test_asvs_probe.py`) |
 | `tests_documented_added` SUGGESTED | ผ่าน | `CONTRIBUTING.md` |

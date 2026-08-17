@@ -24,7 +24,7 @@ import typing
 
 import pytest
 
-from scripts import audit_image, audit_pins, check_semgrep, rerun_census
+from scripts import audit_image, audit_pins, audit_posture, check_semgrep, rerun_census
 
 
 class Case(typing.NamedTuple):
@@ -288,3 +288,68 @@ def test_the_census_counts_a_run_once_no_matter_how_many_jobs_failed(tmp_path):
     }
 
     assert rerun_census.census([crowded])["runs_failed_visible"] == 1
+
+
+# ------------------------------------------------------------- platform posture
+#
+# audit รอบ 7 ข้อ 2 — ADR 0053 ประกาศว่า main รับของทาง PR เท่านั้นและ
+# `enforce_admins` เปิด · ทั้งหมดเป็น setting ฝั่ง GitHub ที่ไม่มีอะไรในเรโปตรวจ
+# ตัวควบคุมที่ด่านอื่นทุกตัวพิงอยู่ จึงเป็นตัวเดียวที่ไม่มีใครเฝ้า
+
+
+HEALTHY = {
+    "required_checks": ["lint", "test"],
+    "enforce_admins": True,
+    "required_linear_history": True,
+    "allow_force_pushes": False,
+    "allow_deletions": False,
+    "allow_auto_merge": True,
+    "sha_pinning_required": True,
+}
+ON_PR = {"lint", "test"}
+
+
+def test_posture_passes_when_the_platform_matches_what_we_declared():
+    """ทิศ "ผ่านเมื่อควรผ่าน" — ท่าทีที่ตรงทุกข้อต้องไม่มีเสียงบ่น"""
+    assert audit_posture.compare(HEALTHY, ON_PR, 2, (2, 2)) == []
+
+
+@pytest.mark.parametrize(
+    ("change", "why"),
+    [
+        ({"enforce_admins": False}, "ผู้ดูแลข้ามด่านได้อีกครั้ง — ข้อที่ ADR 0053 ตั้งใจปิด"),
+        ({"required_linear_history": False}, "ประวัติแตกสายได้"),
+        ({"allow_force_pushes": True}, "เขียนทับประวัติได้"),
+        ({"allow_deletions": True}, "ลบ branch หลักได้"),
+        ({"allow_auto_merge": False}, "วิธี merge มาตรฐานของทุก PR หายไป"),
+        ({"sha_pinning_required": False}, "แพลตฟอร์มเลิกบังคับสิ่งที่เทสต์เราบังคับอยู่"),
+        ({"required_checks": ["lint"]}, "job ที่รันบน PR หลุดจากรายการบังคับ"),
+        ({"required_checks": ["lint", "test", "ผี"]}, "บังคับ check ที่ไม่มีใครสร้างได้"),
+    ],
+)
+def test_posture_catches_every_way_the_platform_can_drift(change, why):
+    """ทุกทางที่ท่าทีจะเลื่อนต้องแดง — ไม่ใช่แค่กรณีที่นึกถึงตอนเขียน"""
+    assert audit_posture.compare({**HEALTHY, **change}, ON_PR, 2, None), why
+
+
+def test_posture_catches_a_document_that_advertises_the_wrong_count():
+    """เลข "required NN จาก MM" ในเอกสารต้องตรงกับของจริง ไม่ใช่กับตอนที่เขียน"""
+    assert audit_posture.compare(HEALTHY, ON_PR, 2, (26, 29))
+
+
+def test_posture_lets_the_declared_exemptions_through():
+    """job ที่ไม่รันบน PR ต้องไม่ถูกนับว่าหลุด — แต่ต้องประกาศพร้อมเหตุผลที่เดียว"""
+    assert "release-sign" in audit_posture.EXEMPT
+    assert audit_posture.compare(HEALTHY, ON_PR | {"release-sign"}, 3, None) == []
+
+
+def test_posture_refuses_to_pass_when_it_cannot_read(monkeypatch, capsys):
+    """อ่านไม่ได้ = แดง (คืน 2) ไม่ใช่ผ่าน — 403 กับ 5xx ห้ามกลายเป็นการข้าม"""
+
+    def blocked() -> dict:
+        raise PermissionError("HTTP 403")
+
+    monkeypatch.setattr(audit_posture, "fetch", blocked)
+
+    assert audit_posture.main([]) == 2
+    assert "ห้ามแปลงกรณีนี้เป็นการข้ามเงียบ ๆ" in capsys.readouterr().err

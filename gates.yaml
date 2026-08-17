@@ -1568,6 +1568,32 @@ gates:
     pillar: devx
     born_from: ""
 
+  - id: platform-posture-verified
+    title: ท่าทีฝั่งแพลตฟอร์ม (branch protection · required check · auto-merge) ถูกเครื่องตรวจ ไม่ใช่แค่เขียนไว้
+    kind: job
+    severity: blocking
+    enforced_by: {job: posture}
+    standard: []
+    requires: [github-actions]
+    portable: true
+    layer: baseline
+    pillar: security
+    born_from: >-
+      audit governance รอบ 7 (2026-08-17) — กติกาที่ทุกอย่างพิงอยู่ ("main รับของ
+      ทาง PR เท่านั้น · enforce_admins เปิด · required check ครบทุก job ที่รันบน
+      PR" — ADR 0053) เป็น setting ฝั่งผู้ให้บริการที่**ไม่มีอะไรในเรโปอ่านเลย** ·
+      กดปิดในหน้า settings แล้วเอกสารยังอ้างเหมือนเดิม · ตรวจ API วันนั้นยังพบว่า
+      `sha_pinning_required` ปิดอยู่ ทั้งที่เราบังคับ SHA pinning ด้วยเทสต์ของตัวเอง
+    proved_by:
+      - kind: mutation
+        ref: pr/93
+        date: 2026-08-17
+        caught: >-
+          พังตัวตัดสินหกจุดแล้วแดงครบ (ครอบทั้งแปดทางที่ท่าทีจะเลื่อน): ถอดการตรวจ
+          ธงของ branch protection · ถอดการตรวจสวิตช์ระดับ repo · ไม่จับ job ที่หลุด
+          จากรายการบังคับ · ไม่จับ context ผีที่ไม่มี job ไหนสร้างได้ · ไม่เทียบเลขที่
+          เอกสารโฆษณา · และจุดที่หก: ทำให้ "อ่าน API ไม่ได้" กลายเป็นการข้ามเงียบ ๆ
+
   - id: openssf-scorecard
     title: Scorecard วัดแนวปฏิบัติของ repo และเผยแพร่ผล — คะแนน ไม่ใช่ผ่าน/ตก
     kind: job

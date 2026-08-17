@@ -408,6 +408,11 @@
       "kind": "suite",
       "title": "ทุก route ถูก enumerate เทียบรายการยกเว้นสองทิศ — ลืม decorator แล้วแดง",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "platform-posture-verified": {
+      "kind": "suite",
+      "title": "ท่าทีฝั่งแพลตฟอร์ม (branch protection · required check · auto-merge) ถูกเครื่องตรวจ ไม่ใช่แค่เขียนไว้",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     }
   }
 }
