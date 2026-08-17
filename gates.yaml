@@ -615,7 +615,7 @@ gates:
       legal-* ทำให้ประเทศที่มีด่านแต่ไม่ลงทะเบียนถูกจับได้เอง
 
   - id: supply-chain-axis-indexed
-    title: แกน supply chain ตรงกับธง axis ใน gates.yaml สองทิศ — ด่านใหม่ของแกนต้องเข้าดัชนี
+    title: แกน supply chain ตรงกับธง axis สองทิศ — และทะเบียนผู้ให้บริการภายนอกครอบของที่เราดึงจริง
     kind: test
     severity: blocking
     enforced_by: {job: test, tests: [tests/test_supply_chain.py]}
@@ -627,7 +627,17 @@ gates:
     born_from: >-
       G3 ของ ADR 0051 — ธรรมนูญแยก supply chain เป็นแกนอิสระ แต่ด่านของมัน
       กระจายอยู่ 14 ตัว · ดัชนีที่ไม่ถูกบังคับให้ตรงกับความจริงคือดัชนีที่
-      โกหกเงียบ ๆ (บทเรียน semgrep scope เดิม)
+      โกหกเงียบ ๆ (บทเรียน semgrep scope เดิม) · audit รอบ 7 ต่อชั้นที่หก:
+      ห่วงโซ่ไม่ได้ขาดเฉพาะตอนมีคนแทรกของ แต่ขาดตอนผู้ให้บริการเปลี่ยนสัญญาด้วย
+      — Bitnami ย้าย image ไป org ใหม่แล้วเรารู้เพราะ**ของพัง** ไม่ใช่เพราะมีใครบอก
+    proved_by:
+      - kind: mutation
+        ref: pr/94
+        date: 2026-08-17
+        caught: >-
+          พังสี่ทิศแล้วแดงครบ — เพิ่ม action ใหม่ใน workflow โดยไม่ลงทะเบียน ·
+          แถวที่บอกว่าไม่มีเครื่องตรวจแต่ไม่มีตัวทวงกำกับ · อ้าง job ที่ไม่มีจริง ·
+          ถอดชื่อ image ของ stack ออกจากทะเบียน
 
   - id: iso27001-worksheet-honest
     title: worksheet ISO/IEC 27001:2022 ครบทุกข้อ (116) · หลักฐานชี้ของจริง · outline ตรึงด้วย checksum

@@ -32,6 +32,20 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
   image scanner caught `CVE-2026-53615`, the release signer catching its
   own over-wide glob, and one `/readyz` bug turning `stack`, `siem`, and
   `dast` red at once.
+- **A register of who we depend on, and how we would find out** —
+  `docs/SUPPLY-CHAIN.md` grows a sixth layer (audit round 7). The first
+  five answer how the things we pull in are controlled; this one answers
+  a different question: a chain also breaks when the middleman changes
+  the terms. Every row names the supplier, what we lean on them for, and
+  **what would go red** if they changed it — and a row whose answer is
+  "nothing goes red" must carry a review row instead, because a risk with
+  neither a gate nor a reminder is a risk nobody has decided about. The
+  register is enforced both ways: every action and image the CI actually
+  pulls must appear, every job the register leans on must exist, and the
+  one row with no automated check must point at the cadence. It happened
+  for real once already — Bitnami moved its free images to a legacy org
+  and we found out because a job broke, not because anyone announced it.
+
 - **The platform's own settings are checked by a machine now** — job
   `posture` and `scripts/audit_posture.py` (ADR 0061), the round-7
   audit's second finding: ADR 0053 declares that main takes changes
