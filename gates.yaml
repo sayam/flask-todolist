@@ -9,6 +9,12 @@
 # เพิ่มไฟล์เทสต์ใหม่ = มาลงทะเบียนที่นี่ (gate ใหม่ หรือแถวใน app-behavior-suite)
 # เพิ่ม job ใหม่ = ต้องมี gate — ไม่งั้น tests/test_gates.py แดงพร้อมบอกว่าขาดอะไร
 #
+# `proved_by:` = หลักฐานว่าด่านนี้ **เคยแดงตอนที่ของเสียจริง** (ADR 0059) —
+# `kind: ci-red` (แดงเองใน CI · `ref: run/<id>`) หรือ `kind: mutation`
+# (แดงตอนพังโค้ดโดยตั้งใจตอนเขียนด่าน · `ref: pr/<number>`) · `caught:` บอกว่า
+# มันจับอะไรได้ · gate ที่ยังไม่มีหลักฐานต้องอยู่ในรายการ `UNPROVEN` ของ
+# `tests/test_gate_evidence.py` ซึ่งหดได้ทางเดียว — gate ใหม่ต้องมาพร้อมหลักฐาน
+#
 # `portable: true` = กฎที่ export ได้ และต้องมี `born_from` (กับดักที่ให้กำเนิดกฎ)
 # `layer:` = ชั้นของกฎ (ADR 0042): `baseline` (สากล → SKILL.md · ต้อง portable)
 # · `business` (ข้อตกลงของตัวแอป → SKILL-TODOLIST.md ถ้า portable)
@@ -31,6 +37,31 @@ gates:
     born_from: >-
       semgrep เคยตรวจแค่ 71/136 ไฟล์เพราะขอบเขตประกาศสองที่ —
       ดัชนีที่ไม่ถูกบังคับให้ตรงกับความจริงคือดัชนีที่โกหกเงียบ ๆ
+
+  - id: gates-carry-red-evidence
+    title: gate ใหม่ต้องมาพร้อมหลักฐานว่าเคยแดงตอนของเสียจริง — รายการที่ยังไม่มีหดได้ทางเดียว
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_gate_evidence.py]}
+    standard: []
+    requires: []
+    portable: true
+    layer: baseline
+    pillar: devx
+    born_from: >-
+      audit governance รอบ 6 (2026-08-17) — วัดจาก 200 run ล่าสุดแล้วพบว่า
+      **21 job ไม่เคยแดงเลย** ซึ่งแยกไม่ออกจากภายนอกว่า "ของดีจริงจึงไม่แดง"
+      หรือ "ด่านไม่ได้ตรวจอะไร" · ด่านที่ไม่มีใครเคยเห็นแดงคือด่านที่ยังไม่มี
+      ใครพิสูจน์ว่ามันตรวจอะไร — เก็บหลักฐานตอนที่มันเกิด ไม่ใช่ตอนที่ต้องใช้
+    proved_by:
+      - kind: mutation
+        ref: pr/89
+        date: 2026-08-17
+        caught: >-
+          พังห้าทิศแล้วแดงครบ — ใส่ gate ใหม่ที่ไม่มี proved_by · สลับชื่อใน
+          UNPROVEN เป็นชื่อผี · ใส่ ref ที่ผิดรูปของ kind นั้น · ทิ้ง gate ที่
+          พิสูจน์แล้วไว้ใน UNPROVEN ต่อ · ขยับเพดาน ratchet ขึ้น
+          (สองทิศกลางต้องพังแบบคงจำนวนไว้ ไม่งั้น ratchet แดงบังตัวที่ทดสอบอยู่)
 
   - id: skill-mirrors-portable-gates
     title: SKILL.md ที่ export เป็นเงาของ portable gate — generate ห้ามเขียนคู่ขนาน
@@ -277,6 +308,13 @@ gates:
       ใครตรวจรายการนั้นเลย และมันไม่ครบจริง (`/plugin/themes/<id>/style.css`
       เปิดสาธารณะมาตั้งแต่ Phase 4 โดยไม่ถูกนับ) · เทสต์ authz เดิมครอบ route
       ที่คนเขียนนึกถึง ไม่ใช่ทุก route ที่มีอยู่ — OWASP A01 ที่เกิดจากการลืม
+    proved_by:
+      - kind: mutation
+        ref: pr/88
+        date: 2026-08-17
+        caught: >-
+          พังสี่ทิศแล้วแดงครบ — ถอด decorator จริงหนึ่งตัว · ใส่ชื่อผีในรายการ
+          ยกเว้น · เอา style.css ออกจากเอกสาร · ทำให้ตัวสแกนมองข้าม route หนึ่งตัว
 
   - id: authz-in-service-layer
     title: ตรวจสิทธิ์ใน service ไม่ใช่ที่ route · ของคนอื่นตอบ 404 บทบาทไม่ถึงตอบ 403
@@ -741,6 +779,13 @@ gates:
     born_from: >-
       เวอร์ชันที่ประกาศกับเวอร์ชันที่โค้ดรายงานแยกกันได้เงียบ ๆ ตั้งแต่
       release แรก
+    proved_by:
+      - kind: ci-red
+        ref: run/31924726909
+        date: 2026-08-16
+        caught: >-
+          CHANGELOG โฆษณาว่ามี ADR 52 ใบ แต่บนดิสก์มี 53 — ที่ที่สี่ของเลข
+          เดียวกันที่ PR นั้นลืมขยับ
 
   # ----------------------------------------------- supply chain (ฝั่ง pytest)
   - id: actions-sha-pinned
@@ -807,6 +852,14 @@ gates:
       สักบรรทัดแล้วทุกอย่างยังเขียว และ CI รายงาน "ไม่มีอะไรใหม่" ตลอดไปโดยไม่ได้
       ตัดสินอะไร — กฎที่ export ให้คนอื่น (checker 8 ตัวของ overlay) ถูกทดสอบ
       สองทิศมาตลอด ตัวตัดสินที่เราใช้เองต้องไม่ต่ำกว่านั้น
+    proved_by:
+      - kind: mutation
+        ref: pr/87
+        date: 2026-08-17
+        caught: >-
+          พังห้าทิศแล้วแดงครบ — สลับ fresh/stale ของ image judge · ถอดกิ่ง stale ·
+          ตัด stale ออกจาก exit code ของ pins · ทำให้ guard ล็อกไม่ครบตอบ 0 ·
+          ทำให้ไฟล์ที่ไม่ถูกสแกนไม่นับเป็นปัญหา
 
   - id: pins-exceptions-honest
     title: รายการยกเว้น advisory ตรวจสองทิศ และทุก ID มีเหตุผลในเอกสาร
@@ -904,6 +957,13 @@ gates:
     born_from: >-
       "รองรับหลายยี่ห้อ" ที่ไม่เคยยิงยี่ห้อจริงคือคำโฆษณา — deadlock ของสาย
       audit เจอได้เฉพาะบน InnoDB จริงเท่านั้น (ADR 0032/0035)
+    proved_by:
+      - kind: ci-red
+        ref: run/31924726909
+        date: 2026-08-16
+        caught: >-
+          ทั้ง mysql-8 และ mariadb-11 แดงด้วย assertion จริงของชุดเทสต์ —
+          หลักฐานว่าชุดเทสต์เดินบนสองยี่ห้อนั้นจริง ไม่ได้ผ่านเพราะไม่ได้รัน
 
   - id: bare-clone-still-green
     title: สภาพหลัง clone (ไม่มีไลบรารี plugin) ต้องเขียว — "ถอดแล้วไม่พัง" วัดได้
@@ -919,6 +979,42 @@ gates:
     born_from: >-
       ADR 0025 — ห้ามใช้ importorskip เพราะมันทำให้ job หลักข้ามเทสต์เงียบ ๆ
       ตอนไลบรารีหาย ซึ่งคือกรณีที่ต้องการให้แดงที่สุด
+    proved_by:
+      - kind: ci-red
+        ref: run/31924726909
+        date: 2026-08-16
+        caught: >-
+          ชุดเทสต์ในสภาพ bare แดงด้วย assertion เดียวกับ job test —
+          หลักฐานว่ารอบที่สองรันจริง ไม่ใช่ข้ามทั้งชุดแล้วรายงานว่าเขียว
+
+  - id: changed-lines-fully-tested
+    title: บรรทัดที่ PR แก้ต้องถูกเทสต์ครอบ 100% — coverage floor ทั้งไฟล์ตอบคำถามนี้ไม่ได้
+    kind: step
+    severity: blocking
+    enforced_by: {job: test, step: "diff-cover (บรรทัดที่แก้ต้องมีเทสต์ 100%)"}
+    standard: []
+    requires: []
+    portable: true
+    layer: baseline
+    pillar: devx
+    born_from: >-
+      audit governance รอบ 6 (2026-08-17) — ด่านที่แดงบ่อยที่สุดของ repo นี้
+      (5 จาก 13 run ที่ล้มใน 200 run ล่าสุด) กลับไม่มีแถวในดัชนีเลย เพราะกฎ
+      "ทุก job ต้องมี gate" ถือว่า job `test` ถูกครอบด้วย gate ของไฟล์เทสต์แล้ว
+      · coverage รวมของ repo ที่สูงอยู่แล้วกลบบรรทัดใหม่ที่ไม่มีใครเทสต์ได้เสมอ
+    proved_by:
+      - kind: ci-red
+        ref: run/32003087022
+        date: 2026-08-17
+        caught: >-
+          app/cli.py ขาด 3 บรรทัด (575-576,595) — เส้นทางจริงของคำสั่ง CLI
+          ใหม่ไม่ถูกเดินเพราะ env ของเทสต์ไม่มี plugin ที่มันจะไปเรียก
+      - kind: ci-red
+        ref: run/31830203078
+        date: 2026-08-14
+        caught: >-
+          app/plugins/__init__.py ขาด 845,907,996 และ app/services/sso.py ขาด 90
+          (4 จาก 153 บรรทัดที่แก้) ทั้งที่ coverage รวมของ repo ผ่าน floor สบาย ๆ
 
   - id: static-quality-battery
     title: ruff + format + xenon + interrogate + mypy + asvs-worksheet — ratchet ขึ้นทางเดียว
@@ -933,6 +1029,13 @@ gates:
     born_from: >-
       ทุก step มี if !cancelled() เพราะ xenon เคยแดงก่อนแล้วบัง mypy ที่แดงอยู่
       — ด่านที่แดงตัวแรกห้ามบังตัวหลัง
+    proved_by:
+      - kind: ci-red
+        ref: run/31997384345
+        date: 2026-08-17
+        caught: >-
+          xenon: block "app/cli.py:598 mfa_disable" has a rank of C — ความซับซ้อน
+          ที่การรันชุดเทสต์ในเครื่องไม่เห็น (แก้ด้วยการแยก `_mfa_targets` ออกมา)
 
   - id: n-minus-one-served
     title: โค้ดของ tag ล่าสุดต้องให้บริการบน schema ของ HEAD ได้จริง (expand–contract)
@@ -1125,6 +1228,13 @@ gates:
       audit governance 2026-08-16 (ADR 0055) — โค้ดผ่าน SAST สองเครื่องยนต์
       แต่ไฟล์ที่นิยามสภาพแวดล้อมที่โค้ดรันไม่ถูกตรวจอะไรเลยนอกจากการที่มัน
       ใช้งานได้ · misconfig ชั้น CIS Docker คือของที่เครื่องตรวจได้ฟรี
+    proved_by:
+      - kind: ci-red
+        ref: run/31927180292
+        date: 2026-08-16
+        caught: >-
+          DL3066 (USER ไม่ใช่ uid ตัวเลข) + DL3025 (HEALTHCHECK ไม่ใช่ JSON form)
+          — สองข้อที่ hadolint บนเครื่อง (2.14) มองไม่เห็น แต่รุ่นใน action (2.15) เห็น
 
   - id: image-os-cve-audit
     title: OS layer ของ image ถูกสแกน CVE และตัดสินเทียบรายการยกเว้นสองทิศ
@@ -1141,6 +1251,13 @@ gates:
       audit governance 2026-08-16 (ADR 0054) — SBOM ของ image มี 8 ไฟล์แต่
       ไม่มีใครสแกน OS layer เลย: มี SBOM ไม่เท่ากับมีคนอ่าน CVE ของ
       glibc/openssl ใน image คือของที่เราจะรู้ก็ต่อเมื่อคนอื่นบอก
+    proved_by:
+      - kind: ci-red
+        ref: run/31987107952
+        date: 2026-08-17
+        caught: >-
+          CVE-2026-53615 (util-linux · HIGH · Debian มี fix) โผล่ใน OS layer
+          โดยยังไม่มีใครตัดสิน — CVE จริงตัวแรกที่ด่านนี้จับได้ หลังเปิดใช้ 1 วัน
 
   - id: image-exceptions-honest
     title: รายการยกเว้น CVE ของ image ตรวจสองทิศ และทุก ID มีเหตุผลในเอกสาร
@@ -1184,6 +1301,13 @@ gates:
     layer: internal
     pillar: performance
     born_from: ""
+    proved_by:
+      - kind: ci-red
+        ref: run/31833284751
+        date: 2026-08-14
+        caught: >-
+          app:unhealthy ทั้ง 2 replica เพราะ HEALTHCHECK ยิง /readyz แล้วได้ 302
+          (บังคับ https หลังปิด TLS ที่ proxy) — สาขา ADR 0048 ตอนกำลังทำ health probe
 
   - id: tls-modern-protocols-only
     title: รับเฉพาะ TLS 1.2/1.3 — พิสูจน์ว่า server ปฏิเสธ ไม่ใช่ client ปฏิเสธเอง
@@ -1263,6 +1387,13 @@ gates:
     born_from: >-
       ADR 0037 — กฎที่นับแต่ 401 เงียบพอดีตอนที่การโจมตีหนักที่สุด เพราะโควตา
       ตัดที่ 5 ที่เหลือกลายเป็น 429 · ต้องพิสูจน์ว่า alert ดัง ไม่ใช่ว่ามีกฎ
+    proved_by:
+      - kind: ci-red
+        ref: run/31833284751
+        date: 2026-08-14
+        caught: >-
+          "log ของแอปไม่ถึง Loki เลย" — แอปที่ healthcheck ไม่ผ่านไม่มี log ให้เก็บ
+          ด่านจึงปฏิเสธที่จะเขียวทั้งที่ stack ขึ้นครบทุก container
 
   - id: metrics-scraped-for-real
     title: Prometheus ดูด /metrics ผ่านด่าน token จริง และตัวเลขไปถึง TSDB จริง
@@ -1294,6 +1425,20 @@ gates:
       สแกนโดยไม่ login เห็นแค่หน้า login — ด่านแบบนั้นเขียวตลอดโดยไม่ได้ตรวจ
       อะไร · และวันที่แก้จนไม่เหลือ alert การเช็คจากรายงานจะกลายเป็น
       "ไม่เจอ = ไม่ได้สแกน"
+    proved_by:
+      - kind: ci-red
+        ref: run/31833284751
+        date: 2026-08-14
+        caught: >-
+          การสแกนไปไม่ถึงหน้าที่ต้อง login (stack บนสาขานั้น unhealthy) —
+          ด่านปฏิเสธที่จะเขียวโดยไม่ได้ตรวจอะไร
+      - kind: ci-red
+        ref: run/31925875904
+        date: 2026-08-16
+        caught: >-
+          ZAP เองรายงาน FAIL-NEW 0 แต่ตัวตรวจความครอบคลุมแดงเพราะ spider ไม่ถึง
+          /settings — พิสูจน์ว่าสัญญาณที่ตัดสินคือ log ของแอป ไม่ใช่รายงานของ ZAP
+          (รอบนั้นตัดสินว่าเป็น flake และ rerun ผ่าน)
 
   - id: purge-timer-real-systemd
     title: งานลบข้อมูลพ้นระยะติดตั้งบน scheduler จริง (ที่นี่ systemd) และความล้มเหลวมองเห็นได้
@@ -1339,6 +1484,19 @@ gates:
       audit governance 2026-08-16 (ADR 0058) — release แนบ SBOM มาตั้งแต่
       v1.0.0 โดยไม่มีไฟล์ไหนถูกเซ็น: คนโหลดไป verify ไม่ได้ว่ามาจาก CI จริง
       และของที่ build นอก CI ต่อให้เซ็นก็ตอบไม่ได้ว่าสร้างจากอะไร
+    proved_by:
+      - kind: ci-red
+        ref: run/31947741205
+        date: 2026-08-16
+        caught: >-
+          verify สองทิศจับ glob ที่กว้างเกิน — `sbom-*.json` จับไฟล์ bundle ด้วย
+          จึงไปหา `sbom-core.json.sigstore.json.sigstore.json` ที่ไม่มีอยู่จริง
+      - kind: ci-red
+        ref: run/31948656271
+        date: 2026-08-16
+        caught: >-
+          HTTP 422 ReleaseAsset.name already exists — สอง glob ทับกันในคำสั่ง
+          upload เดียว (--clobber ทับของเก่าได้ แต่กันชื่อซ้ำในคำสั่งเดียวไม่ได้)
 
   - id: sbom-per-category
     title: SBOM แยกต่อ category — ตอบได้ว่าถอด plugin แล้ว component ไหนหาย
