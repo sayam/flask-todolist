@@ -31,7 +31,32 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
   mutation). The rule itself is baseline and portable: any project that
   writes its own checkers inherits it.
 
+### Security
+
+- **The image scanner caught its first real CVE**: `CVE-2026-53615`
+  (util-linux, HIGH, fixed in Debian) is present in the pinned
+  `python:3.13-slim` layer, and upstream has not rebuilt yet — the
+  pinned digest is already the newest one published. Accepted
+  temporarily with reasoning per ADR 0054's ordering (no Dependabot PR,
+  no newer digest), with an automatic removal condition: the two-way
+  judge goes red the moment a rebuilt digest makes the advisory
+  disappear, forcing the exception out.
+
 ### Changed
+
+- The verify commands in `SECURITY.md` are now bound to the workflow
+  that actually signs (round-4 audit item 2): tests tie the identity
+  regexp, OIDC issuer, and example asset names to `release.yml`, so
+  renaming the workflow or moving the repo can no longer leave users
+  with a command that fails and reads as a forged artifact.
+- The risk register's "gate that is green without checking" row is
+  raised to **high** (medium × high) and its mitigation now cites the
+  new checker tests — the row already existed, so this corrects it
+  rather than adding a duplicate.
+- A cadence row now tracks the **cost of governance** yearly (baseline
+  recorded: 60 commits = docs 26 · feat 17 · chore 7 · fix 6), with the
+  rule that a slowdown means finding gates that never caught anything —
+  never lowering gates wholesale and never reopening bypass.
 
 - Two small closes from the round-3 governance audit, batched: arming
   auto-merge on a Dependabot PR now requires reading the lock/SHA diff

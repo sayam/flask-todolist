@@ -98,3 +98,56 @@ def test_the_out_of_scope_list_still_matches_decisions_we_actually_made(policy_t
 
     missing = sorted(name for name in referenced if not (ROOT / "docs" / name).is_file())
     assert not missing, f"SECURITY.md ชี้ไปหาเอกสารที่ไม่มีอยู่: {missing}"
+
+
+# --------------------------------------------------------------------------
+# คำสั่ง verify ที่คนนอกคัดลอกไปรัน — สำเนาที่สองของข้อเท็จจริงเดียวกัน
+# (audit governance รอบ 4 ข้อ 2) · workflow เป็นแหล่งจริง เอกสารเป็นสำเนา
+# วันที่เปลี่ยนชื่อไฟล์ workflow หรือย้าย repo แล้วลืมแก้เอกสาร ผู้ใช้จะได้
+# "verify ไม่ผ่าน" ซึ่งอ่านได้ว่า artifact ปลอม — ความเสียหายอยู่ที่ความเชื่อถือ
+# ไม่ใช่ที่ตัวบั๊ก (คลาสเดียวกับเลข ADR/job count ที่ repo ไล่แก้มาแล้ว)
+# --------------------------------------------------------------------------
+
+RELEASE_WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
+OIDC_ISSUER = "https://token.actions.githubusercontent.com"
+
+
+@pytest.fixture(scope="module")
+def release_workflow_text() -> str:
+    assert RELEASE_WORKFLOW.is_file(), "ไม่มี .github/workflows/release.yml — ใครถอดการเซ็นออก?"
+    return RELEASE_WORKFLOW.read_text(encoding="utf-8")
+
+
+def test_the_documented_verify_command_names_the_workflow_that_actually_signs(
+    policy_text, release_workflow_text
+):
+    """regexp ในเอกสารต้องชี้ไฟล์ workflow ตัวที่เซ็นจริง ไม่ใช่ชื่อที่เคยใช้"""
+    assert "cosign sign-blob" in release_workflow_text, (
+        "workflow ไม่ได้เซ็นอะไรแล้ว — เอกสารที่ยังสอนวิธี verify คือคำสัญญาที่ว่างเปล่า"
+    )
+
+    signer = RELEASE_WORKFLOW.name  # แหล่งจริงคือชื่อไฟล์ ไม่ใช่สตริงที่พิมพ์ซ้ำ
+    assert f"/.github/workflows/{signer}@" in policy_text, (
+        f"คำสั่ง verify ใน SECURITY.md ไม่ได้ชี้ {signer} — "
+        "เปลี่ยนชื่อ workflow แล้วเอกสารค้าง ผู้ใช้จะ verify ไม่ผ่านและคิดว่าไฟล์ปลอม"
+    )
+
+
+def test_both_copies_of_the_verify_command_use_the_same_issuer(policy_text, release_workflow_text):
+    """issuer ที่ต่างกันคือการ verify คนละสายความเชื่อถือ โดยที่ทั้งคู่ดู 'ถูก'"""
+    assert OIDC_ISSUER in release_workflow_text, "workflow ไม่ได้ผูกกับ issuer ของ GitHub Actions"
+    assert OIDC_ISSUER in policy_text, "SECURITY.md ต้องบอก issuer เดียวกับที่ workflow ใช้ verify"
+
+
+def test_the_documented_commands_reference_artifacts_the_workflow_really_uploads(
+    policy_text, release_workflow_text
+):
+    """ชื่อไฟล์ในตัวอย่างต้องเป็นของที่ workflow แนบจริง — ตัวอย่างที่ copy แล้วไม่เจอไฟล์ = เอกสารตาย"""
+    assert "sbom-core.json" in release_workflow_text or "sbom-" in release_workflow_text
+    assert "sbom-core.json" in policy_text, "ตัวอย่างต้องใช้ชื่อ asset ที่มีจริงในหน้า release"
+    assert "sbom-core.json.sigstore.json" in policy_text, (
+        "ตัวอย่างต้องอ้าง bundle ลายเซ็นที่ workflow เขียนออกมา (`<ไฟล์>.sigstore.json`)"
+    )
+    assert "gh attestation verify" in policy_text, (
+        "provenance เป็นชั้นที่สองของการ verify — เอกสารต้องสอนทั้งสองชั้น (ADR 0058)"
+    )
