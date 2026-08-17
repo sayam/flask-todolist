@@ -70,7 +70,6 @@ UNPROVEN = frozenset(
         "risk-method-and-register-current",
         "backup-restore-drilled-every-push",
         "country-compliance-indexed",
-        "supply-chain-axis-indexed",
         "iso27001-worksheet-honest",
         "agent-skill-package-derived",
         "design-doc-matches-the-ui",
@@ -115,7 +114,7 @@ UNPROVEN = frozenset(
     }
 )
 # เพดานของรายการข้างบน ณ วันที่กติกาเริ่ม (ADR 0059) — ขยับลงได้อย่างเดียว
-UNPROVEN_CEILING = 78
+UNPROVEN_CEILING = 77
 
 
 @pytest.fixture(scope="module")

@@ -64,6 +64,35 @@ supply chain เป็น**แกนอิสระ**ของชั้น secur
 | `gate openssf-scorecard` | Scorecard วัดแนวปฏิบัติของ repo และเผยแพร่ผล |
 | `gate checkers-proven-two-way` | **ตัวตัดสินของแกนนี้ถูกตัดสินเอง** — สคริปต์ที่บอกว่าผ่าน/ไม่ผ่านมีเทสต์ planted violation + clean input (audit r4) · ตัวตัดสินที่ไม่มีใครทดสอบ ทำให้ด่านทั้งแกนกลายเป็นเขียวเปล่าได้ในคอมมิตเดียว |
 
+### 6. ผู้ให้บริการภายนอกที่เราพึ่ง — และเราจะรู้เมื่อไหร่ถ้าเขาเปลี่ยนสัญญา
+
+ห้าชั้นข้างบนตอบว่า *ของที่เราดึงเข้ามา* ถูกคุมอย่างไร · ชั้นนี้ตอบคนละคำถาม:
+**เราพึ่งใครอยู่บ้าง และถ้าเขาเปลี่ยนกติกา เราจะรู้ตอนไหน** (audit รอบ 7) —
+เพราะห่วงโซ่ไม่ได้ขาดเฉพาะตอนมีคนแทรกของ แต่ขาดตอนที่คนกลางเปลี่ยนสัญญาด้วย
+
+**กติกาขั้นต่ำของทุกแถว**: (1) บอกว่าเราพึ่งอะไร (2) บอกว่า**อะไรจะแดง**ถ้าเขา
+เปลี่ยน (3) ถ้าคำตอบคือ "ไม่มีอะไรแดง" ต้องมีแถวทวงใน `docs/SECURITY-CADENCE.md`
+กำกับ — ความเสี่ยงที่ไม่มีทั้งด่านและตัวทวงคือความเสี่ยงที่เรายังไม่ได้ตัดสินใจ
+
+| ผู้ให้บริการ | เราพึ่งอะไร | อะไรจะแดงถ้าเขาเปลี่ยน |
+|---|---|---|
+| GitHub — branch protection, auto-merge, Actions permissions | กติกาที่ ADR 0053 ประกาศ: PR-only, enforce_admins, required check ครบ | job `posture` (ADR 0061) เทียบ API กับที่ประกาศทุกครั้งที่กฎเปลี่ยนและทุก push บน main |
+| GitHub Actions — runner และ codeload (actions/checkout, actions/setup-python, actions/setup-node, actions/upload-artifact) | ทุก job ใน CI เริ่มด้วยการโหลด action จากที่นี่ | job นั้นแดงที่ step `Set up job` ทันที · แยกออกจาก flake ของด่านเราด้วย `scripts/rerun_census.py` (เกิดจริง 4 ครั้งวันที่ 2026-08-17 ตอน GitHub outage) |
+| GitHub — attestation API และ actions/attest-build-provenance | provenance ของ release ที่ผู้ใช้ verify ได้ | job `release-sign` แดงตอนออกรุ่น (verify สองทิศก่อนแนบ) |
+| sigstore — Fulcio/Rekor และ sigstore/cosign-installer | ลายเซ็น keyless ของ SBOM ทุกไฟล์ | job `release-sign` แดงตอนออกรุ่น |
+| เครื่องมือสแกนที่เป็น action — aquasecurity/trivy-action, github/codeql-action, gitleaks/gitleaks-action, hadolint/hadolint-action, ossf/scorecard-action, grafana/setup-k6-action | ด่าน image, SAST, secret scan, lint ของ Dockerfile, คะแนน posture, tripwire ของ performance | job `image`, `codeql`, `secret-scan`, `lint`, `scorecard`, `perf-smoke` แดง — และรุ่นที่ตัดสินคือรุ่นใน action ไม่ใช่รุ่นบนเครื่อง (ADR 0055) |
+| Debian ผ่าน base image python:3.13-slim | ชั้น OS ของ image ที่ deploy จริง | `gate image-os-cve-audit` (trivy) + Dependabot ecosystem `docker` |
+| PyPI และ npm | ไลบรารีทุกชั้น: core, deploy, plugin, เครื่องมือของ CI | `gate core-deps-cve-audit`, `gate ci-tools-cve-audit`, `gate plugin-deps-cve-visible` |
+| Docker Hub และ quay.io — image ของ stack ที่ CI ยิงจริง (mysql, mariadb, redis, nginx, prom/prometheus, grafana/grafana, grafana/loki, grafana/alloy, hashicorp/vault, quay.io/keycloak/keycloak, bitnamilegacy/openldap) | stack จริงที่ job หลายตัวยิงใส่ทุก push | job `stack`, `sso`, `ldap`, `vault`, `siem`, `scrape`, `dast` แดงทันทีที่ดึง image ไม่ได้ |
+| bestpractices.dev (OpenSSF Best Practices) | badge สามระดับที่ `README.md` โฆษณา และใบตอบใน `docs/BEST-PRACTICES.md` | **ไม่มีเครื่องตรวจ** — มีแถวทบทวนประจำปีใน `docs/SECURITY-CADENCE.md` (ทบทวนคำตอบทั้ง 122 ช่อง) |
+
+**กรณีที่เกิดขึ้นจริงแล้วหนึ่งครั้ง**: Bitnami ย้าย image ที่เคยเปิดฟรีไป org
+`bitnamilegacy` กลางปี 2025 — เรารู้เพราะ **job ที่ใช้มันพัง** ไม่ใช่เพราะมีใคร
+ประกาศให้ฟัง · เหตุผลถูกบันทึกเป็นคอมเมนต์ไว้ที่ `compose.ldap.yaml` ตรงบรรทัด
+ที่ใช้จริง ซึ่งเป็นที่ที่คนถัดไปจะอ่าน · บทเรียน: **สำหรับของที่ CI ดึงทุก push
+"ของพัง" คือกลไกรับรู้ที่เร็วพอ** — ส่วนของที่ไม่มี job ไหนแตะ (เช่น badge)
+ต้องมีตัวทวงตามรอบแทน
+
 ## กติกาของแกนที่ไม่ใช่ gate ตัวไหนตัวเดียว
 
 - **เพิ่ม dependency = `pipenv install`** ห้าม `pip install` ตรง (lock ไม่ sync)
