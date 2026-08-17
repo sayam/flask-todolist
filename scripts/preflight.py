@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 import pathlib
 import re
+import shutil
 import subprocess
 import sys
 
@@ -81,14 +82,20 @@ def plan(workflow: dict, jobs: tuple[str, ...], base: str) -> list[dict]:
 
 def execute(entries: list[dict], root: pathlib.Path) -> int:
     """รันตามแผน พิมพ์ผลทีละบรรทัด — คืนจำนวน step ที่แดง"""
+    # runner ของ GitHub รัน step ด้วย `bash -e {0}` — ที่นี่ต้องเป็น bash ตัวจริง
+    # ไม่ใช่ `/bin/sh` ที่ `shell=True` จะให้ (คำสั่งใน workflow เขียนด้วยกติกา bash)
+    bash = shutil.which("bash")
+    if not bash:
+        raise RuntimeError("ไม่มี bash บนเครื่องนี้ — step ของ workflow ต้องใช้ bash")
+
     failed = 0
     for entry in entries:
         head = f"[{entry['job']}] {entry['label']}"
         if "skip" in entry:
             print(f"–  {head}\n   ข้าม: {entry['skip']}")
             continue
-        result = subprocess.run(  # noqa: S602 — คำสั่งมาจาก workflow ของ repo เอง ซึ่งมีด่านคุมอยู่
-            entry["run"], shell=True, cwd=root, check=False
+        result = subprocess.run(  # noqa: S603 — คำสั่งมาจาก workflow ของ repo เอง ซึ่งมีด่านคุมอยู่
+            [bash, "-e", "-c", entry["run"]], cwd=root, check=False
         )
         if result.returncode == 0:
             print(f"✓  {head}")
