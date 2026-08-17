@@ -60,6 +60,10 @@ ignore = [
 "scripts/generate_sun_table.py" = ["C901"]  # main() เป็นไปป์ไลน์เส้นตรงของขั้นตอน
     # generate ที่อ่านไล่บนลงล่างได้ การหั่นให้ผ่าน gate ทำให้ตามลำดับยากกว่าเดิม
 "scripts/**" = ["T201", "INP001", "PLR2004", "S101"]  # สคริปต์รันมือ: print คือ output,
+"overlays/flask/preflight.py" = ["RUF100"]  # สำเนาที่ส่งมอบต้องตรงกับ
+    # `scripts/preflight.py` **ไบต์ต่อไบต์** (ADR 0063 — tests/test_overlay.py บังคับ)
+    # ต้นทางอยู่ใต้ `scripts/**` ซึ่งเปิดกฎ S จึงต้องมี `# noqa: S603` ส่วนที่นี่ปิด S
+    # ไว้ทั้งหมด noqa ตัวเดียวกันเลยกลายเป็น "ไม่ได้ใช้" — ลบออกไม่ได้เพราะจะ drift
 "overlays/**" = ["T201", "INP001", "S603", "PLR2004"]  # เครื่องมือที่ส่งมอบ:
     # stdlib ล้วน รันเดี่ยว print คือรายงาน · subprocess เรียก checker ของตัวเองด้วย path คงที่
     # ไม่ใช่ package, ตัวเลขในสูตรดาราศาสตร์อ่านคู่กับสูตรตรง ๆ, assert เป็น sanity check

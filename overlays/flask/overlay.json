@@ -2,6 +2,7 @@
   "overlay": "flask",
   "ship": [
     "gates_doctor.py",
+    "preflight.py",
     "scaffold.json.default",
     "ci-template.yml",
     "checks/scan_adr_index.py",

@@ -32,6 +32,20 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
   image scanner caught `CVE-2026-53615`, the release signer catching its
   own over-wide glob, and one `/readyz` bug turning `stack`, `siem`, and
   `dast` red at once.
+- **The overlay ships the tool, not just the rule** — `preflight.py`
+  now travels with `overlays/flask/` (ADR 0063). The rule that a
+  developer harness must report honestly has been baseline — exportable
+  — since it was written, while the tool that makes following it easy
+  stayed here, which in practice means nobody downstream would have one.
+  The shipped copy is byte-identical to the one we run every day, with a
+  test to keep it that way: a copy that can drift is the very trap
+  preflight exists to close. It also stopped assuming this repository's
+  names — jobs come from `scaffold.json` (`preflight_jobs`) and are
+  looked up across every workflow file rather than `ci.yml` alone, which
+  this repo needed anyway once `posture` landed in a second file. A test
+  installs the overlay into an empty project and runs the result,
+  because a tool that fails on its first run is a tool nobody runs twice.
+
 - **Gates that have never fired now carry an expiry rule** — `guards:`
   in `gates.yaml` and ADR 0062 (audit round 7). Measuring the real cost
   of a push showed six real-service jobs — `perf-smoke`, `sso`,
@@ -637,7 +651,7 @@ graph. Nothing in the `/api/v1` contract changed; it only gained fields.
 ## [1.0.0] — 2026-08-12
 
 First public release. Everything below arrived across seven planned phases of
-work; the reasoning for each decision lives in the 62 records in
+work; the reasoning for each decision lives in the 63 records in
 [`docs/adr/`](docs/adr/), and the phase-by-phase plan in
 [`docs/ROADMAP.md`](docs/ROADMAP.md).
 

@@ -18,7 +18,7 @@ import sys
 import pytest
 import yaml
 
-from scripts.preflight import MIRRORED_JOBS, WORKFLOW, plan
+from scripts.preflight import CONFIG, WORKFLOW_DIR, jobs_on_disk, plan, wanted_jobs
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SCRIPT = ROOT / "scripts" / "preflight.py"
@@ -26,13 +26,20 @@ SCRIPT = ROOT / "scripts" / "preflight.py"
 
 @pytest.fixture(scope="module")
 def real_workflow() -> dict:
-    return yaml.safe_load((ROOT / WORKFLOW).read_text(encoding="utf-8"))
+    """workflow ทุกไฟล์รวมเป็นก้อนเดียว — job ไม่ซ้ำชื่อข้ามไฟล์อยู่แล้ว"""
+    return {"jobs": jobs_on_disk(ROOT)}
 
 
-def test_every_step_is_either_run_or_skipped_with_a_reason(real_workflow):
+@pytest.fixture(scope="module")
+def mirrored() -> tuple[str, ...]:
+    """job ที่ repo นี้ประกาศให้ preflight เดิน — อ่านจาก scaffold.json จริง"""
+    return wanted_jobs(ROOT, [])
+
+
+def test_every_step_is_either_run_or_skipped_with_a_reason(real_workflow, mirrored):
     """สองทิศของความซื่อสัตย์: ไม่มีของหาย และของที่ข้ามต้องบอกว่าทำไม"""
-    entries = plan(real_workflow, MIRRORED_JOBS, "main")
-    declared = sum(len(real_workflow["jobs"][job]["steps"]) for job in MIRRORED_JOBS)
+    entries = plan(real_workflow, mirrored, "main")
+    declared = sum(len(real_workflow["jobs"][job]["steps"]) for job in mirrored)
     assert len(entries) == declared, f"step ใน workflow {declared} ตัว แต่แผนมี {len(entries)}"
     for entry in entries:
         assert ("run" in entry) ^ ("skip" in entry), f"สถานะกำกวม: {entry}"
@@ -40,9 +47,9 @@ def test_every_step_is_either_run_or_skipped_with_a_reason(real_workflow):
             assert entry["skip"].strip(), f"ข้ามโดยไม่บอกเหตุผล: {entry['label']}"
 
 
-def test_it_covers_the_checks_the_commit_hook_cannot(real_workflow):
+def test_it_covers_the_checks_the_commit_hook_cannot(real_workflow, mirrored):
     """ด่านที่ hook มองไม่เห็น ต้องอยู่ในแผนจริง ๆ ไม่ใช่แค่ในเจตนา"""
-    commands = " ".join(e["run"] for e in plan(real_workflow, MIRRORED_JOBS, "main") if "run" in e)
+    commands = " ".join(e["run"] for e in plan(real_workflow, mirrored, "main") if "run" in e)
     for tool in ("xenon", "interrogate", "diff-cover", "--cov"):
         assert tool in commands, f"preflight ไม่ได้เดิน {tool} — คลาสที่มันถูกสร้างมาดักหลุดไป"
 
@@ -74,7 +81,7 @@ def test_environment_steps_are_skipped_by_declaration():
 
 
 def _run(tmp_path: pathlib.Path, steps: list[dict]) -> subprocess.CompletedProcess:
-    workflow = tmp_path / WORKFLOW
+    workflow = tmp_path / WORKFLOW_DIR / "ci.yml"
     workflow.parent.mkdir(parents=True, exist_ok=True)
     workflow.write_text(yaml.safe_dump({"jobs": {"lint": {"steps": steps}}}), encoding="utf-8")
     return subprocess.run(  # noqa: S603 — ยิงสคริปต์เหมือนที่คนรันจริง
@@ -102,7 +109,7 @@ def test_clean_input_stays_green(tmp_path):
 
 def test_an_unknown_job_is_an_error_not_a_silent_pass(tmp_path):
     """job ที่ถูกเปลี่ยนชื่อใน workflow ต้องดัง ไม่ใช่ "ไม่มีอะไรให้รัน = ผ่าน" """
-    workflow = tmp_path / WORKFLOW
+    workflow = tmp_path / WORKFLOW_DIR / "ci.yml"
     workflow.parent.mkdir(parents=True, exist_ok=True)
     workflow.write_text(yaml.safe_dump({"jobs": {"lint": {"steps": []}}}), encoding="utf-8")
     result = subprocess.run(  # noqa: S603
@@ -113,3 +120,30 @@ def test_an_unknown_job_is_an_error_not_a_silent_pass(tmp_path):
     )
     assert result.returncode == 2, result.stdout
     assert "ghost" in result.stderr
+
+
+def test_the_jobs_to_walk_come_from_config_not_from_this_repos_names(tmp_path):
+    """ไฟล์นี้ถูกส่งออกไปกับ overlay — ชื่อ job ของ repo นี้ห้ามฝังอยู่ในตัวมัน
+
+    ลำดับที่ชนะกัน: บรรทัดคำสั่ง > `scaffold.json` > ค่าเริ่มต้น · ปลายทางที่
+    ตั้งชื่อ job ต่างจากเรา ต้องได้เครื่องมือที่เดินของเขา ไม่ใช่ของเรา (ADR 0063)
+    """
+    assert wanted_jobs(tmp_path, ["only-this"]) == ("only-this",)
+    assert wanted_jobs(tmp_path, []) == ("lint", "test"), "ไม่มี config ต้องตกที่ค่าเริ่มต้น"
+
+    (tmp_path / CONFIG).write_text('{"preflight_jobs": ["scans"]}', encoding="utf-8")
+    assert wanted_jobs(tmp_path, []) == ("scans",), "config ต้องชนะค่าเริ่มต้น"
+    assert wanted_jobs(tmp_path, ["cli"]) == ("cli",), "บรรทัดคำสั่งต้องชนะ config"
+
+
+def test_jobs_are_found_across_every_workflow_file(tmp_path):
+    """job อยู่คนละไฟล์กันได้ — ผูกกับ `ci.yml` ตัวเดียวคือการผูกกับ repo นี้"""
+    (tmp_path / WORKFLOW_DIR).mkdir(parents=True)
+    (tmp_path / WORKFLOW_DIR / "ci.yml").write_text(
+        yaml.safe_dump({"jobs": {"lint": {"steps": []}}}), encoding="utf-8"
+    )
+    (tmp_path / WORKFLOW_DIR / "other.yml").write_text(
+        yaml.safe_dump({"jobs": {"posture": {"steps": []}}}), encoding="utf-8"
+    )
+
+    assert set(jobs_on_disk(tmp_path)) == {"lint", "posture"}

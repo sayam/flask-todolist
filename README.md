@@ -147,7 +147,7 @@ Written in Thai, because that is the language the thinking happened in.
 
 | | |
 |---|---|
-| [`docs/adr/`](docs/adr/) | 62 architecture decision records — every choice, the options rejected, and what would reverse it |
+| [`docs/adr/`](docs/adr/) | 63 architecture decision records — every choice, the options rejected, and what would reverse it |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | the first seven phases — the application itself — what each closed, and what was deliberately deferred |
 | [`docs/ROADMAP-INFRA.md`](docs/ROADMAP-INFRA.md) | phases 8–12 — the index, the exported skill, the overlay, the fail-fix harness, and the comparison experiment |
 | [`docs/ASVS.md`](docs/ASVS.md) | OWASP ASVS 5.0 Level 2 self-assessment — all 253 in-scope requirements answered, including the 48 that do not pass |
@@ -300,7 +300,7 @@ export และวัดผลแล้ว:
 
 ## เอกสาร
 
-[`docs/adr/`](docs/adr/) 62 ใบ (ทุกการตัดสินใจ ทางที่ไม่ได้เลือก และเงื่อนไข
+[`docs/adr/`](docs/adr/) 63 ใบ (ทุกการตัดสินใจ ทางที่ไม่ได้เลือก และเงื่อนไข
 ที่จะทำให้มันหมดอายุ) · [`docs/ROADMAP.md`](docs/ROADMAP.md) (เฟส 0–7 ของตัวแอป)
 · [`docs/ROADMAP-INFRA.md`](docs/ROADMAP-INFRA.md) (เฟส 8–12 ของ scaffolding) ·
 [`docs/ROADMAP-GOVERNANCE.md`](docs/ROADMAP-GOVERNANCE.md) (แผน G — ธรรมนูญ

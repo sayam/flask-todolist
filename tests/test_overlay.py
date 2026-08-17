@@ -164,3 +164,47 @@ def test_a_gutted_overlay_refuses_to_install(tmp_path):
     )
     assert result.returncode == 1
     assert "ไม่ครบ" in result.stderr
+
+
+def test_the_shipped_preflight_is_the_same_file_we_use_ourselves():
+    """สำเนาที่ส่งออกต้องตรงไบต์ต่อไบต์กับตัวที่ repo นี้ใช้เอง — ADR 0063
+
+    เครื่องมือที่ปลายทางได้ ต้องเป็นตัวเดียวกับที่เราเดินทุกวัน ไม่ใช่รุ่นที่แยก
+    ไปตายอยู่ใน overlay · ถ้าสองไฟล์ต่างกันเมื่อไหร่ แปลว่ามีคนแก้ฝั่งเดียว
+    ซึ่งคือกับดักเดียวกับที่ preflight เองถูกสร้างมาปิด (คำสั่งของ CI ที่ถูกลอกไว้)
+    """
+    ours = (ROOT / "scripts" / "preflight.py").read_bytes()
+    shipped = (OVERLAY / "preflight.py").read_bytes()
+
+    assert ours == shipped, (
+        "overlays/flask/preflight.py ไม่ตรงกับ scripts/preflight.py — "
+        "แก้ตัวใดตัวหนึ่งแล้ว copy ทับอีกตัว (cp scripts/preflight.py overlays/flask/)"
+    )
+
+
+def test_the_installed_preflight_runs_on_a_fresh_project(tmp_path):
+    """ติดตั้งลง repo เปล่าแล้ว preflight ต้องเดิน workflow ตั้งต้นได้จริง
+
+    `ci-template.yml` วาง job ชื่อ `scans` และ `scaffold.json.default` ประกาศ
+    `preflight_jobs` ให้ตรงกัน — คู่ที่ไม่ตรงกันแปลว่าปลายทางได้เครื่องมือที่
+    รันครั้งแรกก็แดงด้วยเรื่องของตัวมันเอง ซึ่งคือเครื่องมือที่ไม่มีใครใช้ต่อ
+    """
+    target = tmp_path / "fresh"
+    install = subprocess.run(  # noqa: S603
+        [sys.executable, str(OVERLAY / "install.py"), str(target)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert install.returncode == 0, install.stderr
+
+    result = subprocess.run(  # noqa: S603 — รันแบบเดียวกับที่ปลายทางรัน
+        [sys.executable, str(target / "tools" / "preflight.py"), "--root", str(target)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, (
+        f"preflight ของปลายทางแดงตั้งแต่ครั้งแรก: {result.stdout}{result.stderr}"
+    )
+    assert "gates_doctor.py" in result.stdout, result.stdout
