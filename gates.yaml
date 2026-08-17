@@ -219,10 +219,10 @@ gates:
       ตอนตีสาม — class ที่ประกาศต้องถูกบังคับตอนโหลด และต้องมีตัวเลขวัดรองรับ
 
   - id: fail-fix-harness-honest
-    title: harness รายงานสามสถานะตรงความจริง นับรอบต่อเนื่อง และไม่ผ่านเงียบ ๆ
+    title: harness ของนักพัฒนารายงานตรงความจริง ไม่ผ่านเงียบ ๆ และไม่ลอกคำสั่งของ CI มาเก็บที่สอง
     kind: test
     severity: blocking
-    enforced_by: {job: test, tests: [tests/test_harness.py]}
+    enforced_by: {job: test, tests: [tests/test_harness.py, tests/test_preflight.py]}
     standard: []
     requires: []
     portable: true
@@ -231,7 +231,17 @@ gates:
     born_from: >-
       harness ที่รายงานผ่านตอนเทสต์แดง ป้อนความมั่นใจผิด ๆ ให้ loop ที่เชื่อมัน
       สนิท — และการพิสูจน์ 11-03 รอบแรกก็ย้ำบทเรียนเดิม: plant ที่ตกใน docstring
-      ทำให้ "ผ่านทั้งที่ควรแดง" โดยที่ด่านไม่ได้บอด
+      ทำให้ "ผ่านทั้งที่ควรแดง" โดยที่ด่านไม่ได้บอด · audit รอบ 6 ต่ออีกชั้น
+      (ADR 0060): preflight ที่ *ลอก* คำสั่งของ CI มาไว้เองจะ drift แล้วบอกว่า
+      "ผ่าน" ในจังหวะที่ CI กำลังจะบอกว่าไม่
+    proved_by:
+      - kind: mutation
+        ref: pr/90
+        date: 2026-08-17
+        caught: >-
+          พังสี่ทิศแล้วแดงครบ — ให้แผนทิ้ง step เงียบ ๆ · รัน expression ของ CI
+          ที่แทนค่าไม่ได้แทนที่จะข้าม · คืน exit 0 ทั้งที่มี step แดง ·
+          ถอด job `test` ออกจากรายการที่ mirror (xenon/diff-cover หายไปทั้งคลาส)
 
   - id: comparison-instrument-verified
     title: ตัววัดของการทดลองต้องแยกแอปที่ทำครบออกจากแอปที่ละเมิดได้ทุกข้อ

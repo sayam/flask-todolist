@@ -15,6 +15,11 @@
 - รัน test: `pipenv run pytest -v` (coverage gate: `pipenv run pytest --cov`)
 - lint/format: `pipenv run ruff check .` / `pipenv run ruff format .`
 - type check: `pipenv run mypy app scripts` (strict list ใน pyproject — ขยาย ห้ามหด)
+- **ก่อนเปิด PR: `pipenv run python scripts/preflight.py`** — เดินด่านของ CI
+  (job `lint` + `test`) บนเครื่องโดย**อ่านคำสั่งจาก workflow จริง** ไม่ใช่รายการ
+  ที่ลอกไว้ (ADR 0060) · hook ก่อน commit ตรวจแค่ ruff/format/mypy — xenon ·
+  interrogate · coverage floor · diff-cover อยู่ใน CI อย่างเดียว ซึ่งเป็นคลาส
+  ที่ทำ PR แดงมาแล้วสองรอบติด · `--only lint` เอาเฉพาะที่เร็ว
 - ครั้งแรกหลัง clone: `pipenv run pre-commit install --hook-type pre-commit --hook-type commit-msg`
 - เพิ่ม dependency: `pipenv install <pkg>` (ห้ามใช้ `pip install` ตรง ๆ — Pipfile/Pipfile.lock จะไม่ sync)
 - สร้าง user: `pipenv run flask create-user <ชื่อ>` (ไม่มีหน้าสมัครสมาชิก โดยตั้งใจ)
@@ -1186,6 +1191,13 @@ convention ของสัญลักษณ์ข้ามไฟล์ · **ข
 ตารางภาพรวมเฟสของ ROADMAP (เฟส 5–7 ปิดไปแล้ว 4 วัน) เพราะ prompt สั่งหา
 "ประโยคที่เป็นเท็จ" ซึ่งเครื่องหมายที่หายไปไม่ใช่ประโยค — ตอนสั่ง agent
 ตรวจเอกสาร ให้ระบุแกน "missing marks" แยกจาก "stale claims" เสมอ
+
+**คำว่า "ไม่มี/ยังไม่มี" ต้องมี grep ยืนยันก่อนเขียนลงรายงานเสมอ** — ไม่ใช่
+เชื่อความจำของตัวเอง · พลาดมาแล้วสองครั้งในรายงาน audit และทั้งสองครั้งจับได้
+ตอนลงมือแก้ ซึ่งสายไปหนึ่งขั้น: รอบ 2 อ้างว่าไม่มีแถว pentest ในตาราง cadence
+(มีอยู่ก่อนแล้ว) · รอบ 4 อ้างว่าทะเบียนความเสี่ยงไม่มีแถว "ด่านเขียวเปล่า"
+(มีอยู่ก่อนแล้วเหมือนกัน) — ข้อความว่าอะไร*มี*อยู่ ผิดแล้วแก้ง่าย แต่ข้อความว่า
+อะไร*ไม่มี* พาไปสร้างของซ้ำและทำให้ข้อสรุปทั้งรายงานน่าสงสัย
 
 **บทเรียนที่ใช้ได้กับทุกเฟสถัดไป — สามข้อ เรื่องเดียวกัน:**
 1. ด่านที่ "มีอยู่" กับด่านที่ "ครอบชั้นที่พังจริง" เป็นคนละเรื่อง และความต่าง

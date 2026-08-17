@@ -32,6 +32,18 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
   image scanner caught `CVE-2026-53615`, the release signer catching its
   own over-wide glob, and one `/readyz` bug turning `stack`, `siem`, and
   `dast` red at once.
+- **A preflight that mirrors CI instead of copying it** —
+  `scripts/preflight.py` (ADR 0060): the commit hook checks ruff, format,
+  and mypy; xenon, interrogate, the coverage floor, and diff-cover live
+  only in CI, and that gap made one PR red twice in a row for exactly
+  that class. The script reads `.github/workflows/ci.yml` and runs the
+  `lint` and `test` steps locally — the workflow stays the single source
+  of the commands, and anything it cannot run (actions, environment
+  setup) is skipped **with the reason printed**, never dropped. Its first
+  real run caught two ruff errors in its own source. It is deliberately
+  not wired into a hook: a four-minute wait per commit gets bypassed
+  within a week, and a bypassed hook is worse than none.
+
 - **The gate that fails most often is finally in the index** —
   `changed-lines-fully-tested`: `diff-cover` accounted for 5 of the 13
   failed runs in that sample yet had no row in `gates.yaml`, because
@@ -545,7 +557,7 @@ graph. Nothing in the `/api/v1` contract changed; it only gained fields.
 ## [1.0.0] — 2026-08-12
 
 First public release. Everything below arrived across seven planned phases of
-work; the reasoning for each decision lives in the 59 records in
+work; the reasoning for each decision lives in the 60 records in
 [`docs/adr/`](docs/adr/), and the phase-by-phase plan in
 [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
