@@ -56,6 +56,14 @@ description: Universal production-discipline rules for web applications, distill
 
 **ตัวบังคับใน reference:** `tests/test_gates.py`
 
+### `gates-carry-red-evidence`
+
+**กฎ:** gate ใหม่ต้องมาพร้อมหลักฐานว่าเคยแดงตอนของเสียจริง — รายการที่ยังไม่มีหดได้ทางเดียว
+
+**เกิดจาก:** audit governance รอบ 6 (2026-08-17) — วัดจาก 200 run ล่าสุดแล้วพบว่า **21 job ไม่เคยแดงเลย** ซึ่งแยกไม่ออกจากภายนอกว่า "ของดีจริงจึงไม่แดง" หรือ "ด่านไม่ได้ตรวจอะไร" · ด่านที่ไม่มีใครเคยเห็นแดงคือด่านที่ยังไม่มี ใครพิสูจน์ว่ามันตรวจอะไร — เก็บหลักฐานตอนที่มันเกิด ไม่ใช่ตอนที่ต้องใช้
+
+**ตัวบังคับใน reference:** `tests/test_gate_evidence.py`
+
 ### `skill-mirrors-portable-gates`
 
 **กฎ:** SKILL.md ที่ export เป็นเงาของ portable gate — generate ห้ามเขียนคู่ขนาน
@@ -391,6 +399,14 @@ description: Universal production-discipline rules for web applications, distill
 **เกิดจาก:** ADR 0025 — ห้ามใช้ importorskip เพราะมันทำให้ job หลักข้ามเทสต์เงียบ ๆ ตอนไลบรารีหาย ซึ่งคือกรณีที่ต้องการให้แดงที่สุด
 
 **ตัวบังคับใน reference:** job `bare`
+
+### `changed-lines-fully-tested`
+
+**กฎ:** บรรทัดที่ PR แก้ต้องถูกเทสต์ครอบ 100% — coverage floor ทั้งไฟล์ตอบคำถามนี้ไม่ได้
+
+**เกิดจาก:** audit governance รอบ 6 (2026-08-17) — ด่านที่แดงบ่อยที่สุดของ repo นี้ (5 จาก 13 run ที่ล้มใน 200 run ล่าสุด) กลับไม่มีแถวในดัชนีเลย เพราะกฎ "ทุก job ต้องมี gate" ถือว่า job `test` ถูกครอบด้วย gate ของไฟล์เทสต์แล้ว · coverage รวมของ repo ที่สูงอยู่แล้วกลบบรรทัดใหม่ที่ไม่มีใครเทสต์ได้เสมอ
+
+**ตัวบังคับใน reference:** job `test` step "diff-cover (บรรทัดที่แก้ต้องมีเทสต์ 100%)"
 
 ### `static-quality-battery`
 

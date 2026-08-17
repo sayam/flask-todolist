@@ -19,6 +19,16 @@
       "title": "ดัชนี gate ตรงกับความจริงสองทิศ และไฟล์เทสต์ทุกไฟล์ถูกตัดสิน",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     },
+    "gates-carry-red-evidence": {
+      "kind": "suite",
+      "title": "gate ใหม่ต้องมาพร้อมหลักฐานว่าเคยแดงตอนของเสียจริง — รายการที่ยังไม่มีหดได้ทางเดียว",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "changed-lines-fully-tested": {
+      "kind": "suite",
+      "title": "บรรทัดที่ PR แก้ต้องถูกเทสต์ครอบ 100% — coverage floor ทั้งไฟล์ตอบคำถามนี้ไม่ได้",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
     "skill-mirrors-portable-gates": {
       "kind": "suite",
       "title": "SKILL.md ที่ export เป็นเงาของ portable gate — generate ห้ามเขียนคู่ขนาน",

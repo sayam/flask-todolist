@@ -20,6 +20,25 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Added
 
+- **Gates now carry proof that they have been red** — `proved_by` in
+  `gates.yaml` (ADR 0059), the round-6 audit's finding: measuring 200 CI
+  runs showed 9 jobs have failed at least once and **21 have never failed
+  at all**, which from outside is indistinguishable between "nothing was
+  ever broken" and "this gate checks nothing". Each entry records how the
+  gate was proven (`ci-red` with a run id, or `mutation` with a PR),
+  when, and *what it caught*. Gates that predate the rule sit in an
+  `UNPROVEN` list that only shrinks; new gates arrive with evidence.
+  Fourteen gates carry real evidence already — including the day the
+  image scanner caught `CVE-2026-53615`, the release signer catching its
+  own over-wide glob, and one `/readyz` bug turning `stack`, `siem`, and
+  `dast` red at once.
+- **The gate that fails most often is finally in the index** —
+  `changed-lines-fully-tested`: `diff-cover` accounted for 5 of the 13
+  failed runs in that sample yet had no row in `gates.yaml`, because
+  "every job needs a gate" treated job `test` as covered by the gates of
+  its test files. Repository-wide coverage that is already high will
+  always hide new untested lines.
+
 - **The judges are judged now** — `gate checkers-proven-two-way`, the
   round-4 audit's finding: `audit_pins.py`, `audit_image.py`, and
   `check_semgrep.py` decide whether the supply-chain gates are green,
@@ -526,7 +545,7 @@ graph. Nothing in the `/api/v1` contract changed; it only gained fields.
 ## [1.0.0] — 2026-08-12
 
 First public release. Everything below arrived across seven planned phases of
-work; the reasoning for each decision lives in the 58 records in
+work; the reasoning for each decision lives in the 59 records in
 [`docs/adr/`](docs/adr/), and the phase-by-phase plan in
 [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
