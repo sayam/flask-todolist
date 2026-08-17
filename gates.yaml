@@ -261,6 +261,23 @@ gates:
       ADR 0021 — มิติต่อ IP อย่างเดียวแพ้คนเปลี่ยน IP ไปเรื่อย ๆ ·
       และถ้ารหัสถูกทะลุด่านได้ คนไล่เดาจะรู้ทันทีว่าเจอรหัสที่ใช่
 
+  - id: route-authz-enumerated
+    title: ทุก route ถูก enumerate เทียบรายการยกเว้นสองทิศ — ลืม decorator แล้วแดง
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_route_authz.py]}
+    standard: []
+    requires: []
+    portable: true
+    layer: baseline
+    pillar: security
+    born_from: >-
+      audit governance รอบ 5 (2026-08-17) — กฎข้อแรกของโปรเจกต์คือ "ทุก route
+      ต้องมี login_required" พร้อมรายการยกเว้นที่เขียนว่า "มีเท่านี้" แต่ไม่มี
+      ใครตรวจรายการนั้นเลย และมันไม่ครบจริง (`/plugin/themes/<id>/style.css`
+      เปิดสาธารณะมาตั้งแต่ Phase 4 โดยไม่ถูกนับ) · เทสต์ authz เดิมครอบ route
+      ที่คนเขียนนึกถึง ไม่ใช่ทุก route ที่มีอยู่ — OWASP A01 ที่เกิดจากการลืม
+
   - id: authz-in-service-layer
     title: ตรวจสิทธิ์ใน service ไม่ใช่ที่ route · ของคนอื่นตอบ 404 บทบาทไม่ถึงตอบ 403
     kind: test

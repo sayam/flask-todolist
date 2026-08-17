@@ -258,8 +258,12 @@
 - Query model นอก request ต้องอยู่ใน `with app.app_context():`
 - **ทุก route ต้องมี `@login_required`** และ query ต้อง filter ด้วย `user_id=current_user.id` เสมอ
   — ข้อยกเว้นที่ตั้งใจมีเท่านี้: `/login*` · `/lang/<code>`+`/mode/<value>` (ใช้จาก
-  หน้า login) · `/privacy` (PDPA ม.23) · `/healthz`+`/readyz` (ของ orchestrator —
-  ADR 0048) · `/api/v1`+`/metrics` (ด่าน token คนละชั้น)
+  หน้า login) · `/privacy` (PDPA ม.23) · `/plugin/themes/<id>/style.css` (หน้า login
+  ต้องโหลดธีมได้ · ไอดีถูกตรวจกับรายการ plugin จริงจึง traverse ไม่ได้) ·
+  `/healthz`+`/readyz` (ของ orchestrator — ADR 0048) · `/api/v1`+`/metrics`
+  (ด่าน token คนละชั้น) — **รายการนี้ถูกเทสต์บังคับให้ตรงกับความจริงสองทิศ**
+  (`tests/test_route_authz.py` — route ใหม่ที่ลืม decorator แดง · ชื่อผีในรายการ
+  ก็แดง) เพราะกฎที่มีรายการยกเว้นที่ไม่มีใครตรวจ คือกฎที่ครบเฉพาะบนกระดาษ
 - **แถวในลิสต์งานอ่านอย่างเดียว** การแก้อยู่ที่หน้า `/edit/<id>` แยกต่างหาก
   เพราะมีทั้งชื่อ หมวด วันเริ่ม และกำหนดส่ง ใส่ในแถวเดียวแล้วอ่านไม่ออก
 - checkbox "แสดงวันเริ่ม" จำไว้ใน session ต้องมี hidden `filters_submitted`
