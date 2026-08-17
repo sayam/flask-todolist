@@ -18,5 +18,10 @@
     "Dockerfile"
   ],
   "adr_path": "docs/adr",
-  "_purge_paths_why": "purge.py = ที่ลบจริงของ core (ADR 0014) · personal_data ของ plugin ลบจริงทันทีตอนปิดบัญชีโดยออกแบบ (ADR 0034) · factor ลบ enrollment ที่ยังไม่ยืนยัน — ทุกที่อยู่ใต้ tests/test_write_discipline.py ของ repo ซึ่งลึกกว่า scan นี้"
+  "_purge_paths_why": "purge.py = ที่ลบจริงของ core (ADR 0014) · personal_data ของ plugin ลบจริงทันทีตอนปิดบัญชีโดยออกแบบ (ADR 0034) · factor ลบ enrollment ที่ยังไม่ยืนยัน — ทุกที่อยู่ใต้ tests/test_write_discipline.py ของ repo ซึ่งลึกกว่า scan นี้",
+  "preflight_jobs": [
+    "lint",
+    "test"
+  ],
+  "_preflight_jobs_why": "job ที่ preflight เดินบนเครื่อง — ที่เหลือต้องมี docker/service/secret ของ CI (ADR 0060/0063)"
 }

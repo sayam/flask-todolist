@@ -4,6 +4,9 @@
 
 ผลลัพธ์ในปลายทาง:
 - `tools/gates_doctor.py` + `tools/checks/` + `tools/overlay.json` — ตัวตรวจ
+- `tools/preflight.py` — เดินด่านของ CI บนเครื่องก่อนเปิด PR โดยอ่านคำสั่งจาก
+  workflow จริงของโปรเจกต์ (ADR 0060/0063 ของ repo แม่) · job ที่จะเดินประกาศใน
+  `scaffold.json` คีย์ `preflight_jobs`
 - `scaffold.json` — config (ไม่ทับของที่มีอยู่)
 - `.github/workflows/gates.yml` — workflow ตั้งต้น (ไม่ทับของที่มีอยู่)
 

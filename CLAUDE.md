@@ -221,7 +221,9 @@
   ทุก push ว่า import ลง repo เปล่าได้จริง **และ repo นี้ผ่าน scan ของ overlay
   ตัวเอง** (dogfood — `scaffold.json` ที่รากคือ config ของการ dogfood นั้น)
   · เพิ่ม portable gate ต้องเพิ่ม entry ใน `overlay.json` ด้วย ไม่งั้น
-  `tests/test_overlay.py` แดง
+  `tests/test_overlay.py` แดง · **overlay ส่งออก `preflight.py` ด้วย (ADR 0063)**
+  ซึ่งเป็นสำเนาที่ต้องตรงกับ `scripts/preflight.py` **ไบต์ต่อไบต์** (เทสต์บังคับ) —
+  แก้ตัวไหนแล้ว `cp` ทับอีกตัวเสมอ
 - `docs/GATES-ASVS.md` — crosswalk gate ↔ ASVS **generate มา ห้ามแก้ด้วยมือ**
   (`scripts/build_gates_crosswalk.py`) derive จากหลักฐานใน `ASVS.md` ผ่าน
   partition ของ `gates.yaml` — บอกด้วยว่าแถวไหนผ่านด้วยด่านที่รันทุก push

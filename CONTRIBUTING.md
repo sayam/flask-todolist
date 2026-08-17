@@ -7,7 +7,7 @@
 
 The code, commit messages, and this file are in English. **Almost everything that
 explains *why* the code looks the way it does is in Thai** — [`CLAUDE.md`](CLAUDE.md)
-(the working notes), the 62 records in [`docs/adr/`](docs/adr/), and the rest of
+(the working notes), the 63 records in [`docs/adr/`](docs/adr/), and the rest of
 `docs/`. Machine translation handles them acceptably, but you should know that
 before you invest an afternoon.
 
