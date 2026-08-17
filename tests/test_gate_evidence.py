@@ -46,7 +46,6 @@ UNPROVEN = frozenset(
         "models-match-migrations",
         "dialect-discipline",
         "migration-class-declared",
-        "fail-fix-harness-honest",
         "comparison-instrument-verified",
         "csrf-guards-every-form",
         "session-hardening",
@@ -118,7 +117,7 @@ UNPROVEN = frozenset(
     }
 )
 # เพดานของรายการข้างบน ณ วันที่กติกาเริ่ม (ADR 0059) — ขยับลงได้อย่างเดียว
-UNPROVEN_CEILING = 81
+UNPROVEN_CEILING = 80
 
 
 @pytest.fixture(scope="module")

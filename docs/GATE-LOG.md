@@ -25,6 +25,31 @@ pipenv run python scripts/run_gates.py --root <worktree>   # ตรวจ tree �
 assertion ที่พัง · hint มาจาก `born_from` · เลขรอบนับต่อ · gate ที่ไม่รู้จัก
 เป็น usage error ไม่ใช่ผ่านเงียบ ๆ
 
+## harness ตัวที่สอง — `scripts/preflight.py` (ADR 0060)
+
+คนละคำถามกับ `run_gates.py` จึงเป็นคนละเครื่องมือ:
+
+| | `run_gates.py` | `preflight.py` |
+|---|---|---|
+| ตอบคำถาม | gate ตัวไหนแดง และเพราะอะไร | PR นี้จะผ่าน CI ไหม |
+| ครอบ | gate ชนิด `test` (pytest) | step ของ job `lint` + `test` **ตามที่ workflow เขียนไว้** |
+| แหล่งคำสั่ง | `gates.yaml` | `.github/workflows/ci.yml` (อ่านสด ไม่ลอกมาเก็บ) |
+
+```sh
+pipenv run python scripts/preflight.py              # lint + test
+pipenv run python scripts/preflight.py --only lint  # เฉพาะที่เร็ว (~1 นาที)
+```
+
+เหมือนกันข้อสำคัญคือ **ข้ามอะไรต้องบอกเหตุผล** — preflight ข้าม step ที่เป็น
+action (ตัวตัดสินคือรุ่นใน CI) และ step ที่จัดสภาพแวดล้อม (`pipenv sync` แก้
+`.venv` ของคนที่กดรัน) · job ที่ต้องมี docker/service ไม่อยู่ในขอบเขตเลยและ
+ประกาศไว้ตรง ๆ ว่า "preflight เขียว ≠ CI เขียว"
+
+**รอบแรกที่รันจริงจับของได้ทันที**: ruff แดงสองข้อในไฟล์ของ preflight เอง
+(บรรทัดยาวเกิน + assert ที่ควรแยก) ซึ่งเป็นคลาสที่ hook ก่อน commit จับได้อยู่
+แล้ว — ส่วนคลาสที่มันถูกสร้างมาดัก (xenon · interrogate · diff-cover) พิสูจน์
+ด้วย mutation สี่ทิศใน `tests/test_preflight.py` แทน
+
 ## บันทึกการพิสูจน์ 11-03 — ฝังช่องโหว่จริงใน worktree (2026-08-14)
 
 ตามเงื่อนไขสำเร็จของ INFRA-VISION ข้อ 3.4 — ทำใน `git worktree` แยก

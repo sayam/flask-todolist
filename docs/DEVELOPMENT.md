@@ -39,7 +39,10 @@
 
 ## เครื่องมือประจำ (ดูคำสั่งเต็มใน `CLAUDE.md` และ `CONTRIBUTING.md`)
 
-- ก่อนเปิด PR: `ruff check` + `ruff format` + `mypy app scripts` + `pytest --cov`
+- ก่อนเปิด PR: `pipenv run python scripts/preflight.py` — เดินด่านของ job `lint`
+  กับ `test` บนเครื่อง โดยอ่านคำสั่งจาก `.github/workflows/ci.yml` เอง (ADR 0060)
+  · hook ก่อน commit ครอบแค่ ruff/format/mypy ส่วน xenon · interrogate ·
+  coverage floor · diff-cover เจอกันครั้งแรกใน CI ถ้าไม่รันตัวนี้
 - ไฟล์เทสต์ใหม่ต้องลงทะเบียนใน `gates.yaml` (`CONTRIBUTING.md` กฎข้อ 8)
 - ไฟล์ generate ห้ามแก้มือ — รายชื่ออยู่ใน `CONTRIBUTING.md` กฎข้อ 5
 - fail-fix loop สำหรับไล่ gate ทีละตัว: `scripts/run_gates.py`

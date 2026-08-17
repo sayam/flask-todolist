@@ -7,7 +7,7 @@
 
 The code, commit messages, and this file are in English. **Almost everything that
 explains *why* the code looks the way it does is in Thai** — [`CLAUDE.md`](CLAUDE.md)
-(the working notes), the 59 records in [`docs/adr/`](docs/adr/), and the rest of
+(the working notes), the 60 records in [`docs/adr/`](docs/adr/), and the rest of
 `docs/`. Machine translation handles them acceptably, but you should know that
 before you invest an afternoon.
 
@@ -173,6 +173,16 @@ contributor arrives, required reviews turn on and ADR 0053 gets revisited.
 ## Before you open a pull request
 
 ```bash
+pipenv run python scripts/preflight.py   # walks CI's own lint + test steps locally
+```
+
+That one command reads `.github/workflows/ci.yml` and runs what CI runs, so the
+list cannot drift from the pipeline (ADR 0060). The commit hook already covers
+ruff, format, and mypy; xenon, interrogate, the coverage floor, and diff-cover
+would otherwise meet you for the first time in CI. Steps it cannot run locally
+are skipped **with the reason printed**. If you prefer the pieces:
+
+```bash
 pipenv run ruff check . && pipenv run ruff format .
 pipenv run mypy app scripts
 pipenv run pytest -v
@@ -289,6 +299,16 @@ pipenv run flask create-user <ชื่อ>
     มี contributor ประจำคนที่สองเมื่อไหร่ เปิด required review ทันที
 
 ## ก่อนเปิด pull request
+
+```bash
+pipenv run python scripts/preflight.py   # เดิน step ของ job lint + test ตามที่ CI ทำ
+```
+
+คำสั่งเดียวนี้อ่าน `.github/workflows/ci.yml` แล้วรันตามที่ CI รันจริง รายการจึง
+drift จาก pipeline ไม่ได้ (ADR 0060) · hook ก่อน commit ครอบ ruff/format/mypy
+อยู่แล้ว ส่วน xenon · interrogate · coverage floor · diff-cover จะเจอกันครั้งแรก
+ใน CI ถ้าไม่รันตัวนี้ · step ที่รันบนเครื่องไม่ได้ถูก**ข้ามพร้อมเหตุผลที่พิมพ์ออกมา**
+· อยากรันทีละชิ้นก็ได้:
 
 ```bash
 pipenv run ruff check . && pipenv run ruff format .
