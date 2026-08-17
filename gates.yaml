@@ -763,7 +763,7 @@ gates:
       ได้ประโยชน์ได้เสมอ
 
   - id: contributor-docs-truthful
-    title: ตัวเลขที่โฆษณาใน docs อ่านจากแหล่งจริง (จำนวน job, ADR, coverage floor)
+    title: ตัวเลขที่โฆษณาใน docs อ่านจากแหล่งจริง (จำนวน job, ADR, coverage floor, เลขรุ่นในใบตอบ badge)
     kind: test
     severity: blocking
     enforced_by: {job: test, tests: [tests/test_contributor_docs.py]}
@@ -774,7 +774,18 @@ gates:
     pillar: devx
     born_from: >-
       เอกสารสามที่บอก "CI 21 job" ขณะที่ workflow นิยาม 20 — ไม่มีใครโกหก
-      แต่ไม่มีใครตรวจ
+      แต่ไม่มีใครตรวจ · 2026-08-17 ซ้ำอีกชั้น: ใบตอบ badge ยังเขียน v1.5.0
+      สามจุดหลังออก v1.6.0 แล้ว ทั้งที่ runbook มีขั้นตอนให้อัปเดต — **ขั้นตอน
+      ที่ไม่มีเทสต์อ่านคู่ ก็เน่าเหมือนตัวเลขที่ไม่มีเทสต์อ่านคู่**
+    proved_by:
+      - kind: mutation
+        ref: pr/91
+        date: 2026-08-17
+        caught: >-
+          พังสี่ทิศแล้วแดงครบ — ย้อนเลขรุ่นในใบตอบเป็นรุ่นเก่า · ใส่จำนวน gate
+          ของแกน supply chain ผิด · อ้างพื้น coverage ที่ไม่ตรง pyproject ·
+          ถอดคำอ้างเรื่องรุ่นออกทั้งสามจุด (ต้องแดงว่าไม่มีของให้ตรวจ ไม่ใช่ผ่าน
+          เพราะไม่เจออะไร — ทิศนี้รอบแรกยังเขียวเพราะลบไม่หมด)
 
   - id: changelog-tracks-version
     title: CHANGELOG ผูกกับ __version__ ของแอป

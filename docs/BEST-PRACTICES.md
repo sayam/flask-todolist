@@ -20,7 +20,7 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 
 | เกณฑ์ | ตอบ | หลักฐาน |
 |---|---|---|
-| `description_good` MUST | ผ่าน | `README.md` ย่อหน้าแรกบอกว่าเป็นอะไรและแก้ปัญหาอะไร · ช่อง About ของ repo เติมแล้ว (อัปเดตตามรุ่น — ล่าสุด v1.5.0) |
+| `description_good` MUST | ผ่าน | `README.md` ย่อหน้าแรกบอกว่าเป็นอะไรและแก้ปัญหาอะไร · ช่อง About ของ repo เติมแล้ว (อัปเดตตามรุ่น — ล่าสุด v1.6.0) |
 | `interact` MUST | ผ่าน | `README.md` มีวิธีติดตั้ง/รัน · `CONTRIBUTING.md` มีวิธีเสนอการเปลี่ยนแปลง · Issues เปิดอยู่ |
 | `contribution` MUST | ผ่าน | `CONTRIBUTING.md` — อธิบายว่าใช้ PR, ต้องผ่าน 27 required check (จาก 29 check — scorecard กับ job ของ workflow release ไม่บังคับ), merge ด้วย rebase, และกติกาลงทะเบียนไฟล์เทสต์ใน `gates.yaml` |
 | `contribution_requirements` SHOULD | ผ่าน | `CONTRIBUTING.md` — Conventional Commits (หัว ≤72), ruff/mypy, **กติกา mutation test ของเทสต์ใหม่** |
@@ -32,7 +32,7 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 | `sites_https` MUST | ผ่าน | โฮสต์บน GitHub ทั้งหมด |
 | `discussion` MUST | ผ่าน | GitHub Issues (ค้นได้ · เธรดได้ · เห็นได้โดยไม่ต้องล็อกอิน) |
 | `english` SHOULD | ผ่าน | `README.md` สองภาษา **อังกฤษขึ้นก่อน** · ข้อความในโค้ดเป็นอังกฤษเสมอ (ภาษาไทยอยู่ในไฟล์คำแปล) |
-| `maintained` MUST | ผ่าน | commit ล่าสุด 2026-08-16 · เจ้าของตอบ issue เอง |
+| `maintained` MUST | ผ่าน | มี commit ต่อเนื่องทุกสัปดาห์นับจากเปิด repo · เจ้าของตอบ issue เอง (วันที่แน่นอนอ่านจาก `git log` ไม่ตรึงไว้ที่นี่ — ภาพถ่ายของวันที่คือของที่เน่าเองเสมอ) |
 
 ## Change Control
 
@@ -42,9 +42,9 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 | `repo_track` MUST | ผ่าน | git |
 | `repo_interim` MUST | ผ่าน | commit ระหว่างทางอยู่ครบบน `main` ไม่ใช่แค่ของที่ release |
 | `repo_distributed` SUGGESTED | ผ่าน | git |
-| `version_unique` MUST | ผ่าน | ทุกรุ่นมี tag ไม่ซ้ำ — v1.0.0 ถึง v1.5.0 |
+| `version_unique` MUST | ผ่าน | ทุกรุ่นมี tag ไม่ซ้ำ — v1.0.0 ถึง v1.6.0 |
 | `version_semver` SUGGESTED | ผ่าน | SemVer · นิยามของ 1.0.0 บันทึกไว้ใน `docs/ROADMAP.md` |
-| `version_tags` SUGGESTED | ผ่าน | git tag ทุกรุ่น (v1.0.0 ถึง v1.5.0) |
+| `version_tags` SUGGESTED | ผ่าน | git tag ทุกรุ่น (v1.0.0 ถึง v1.6.0) |
 | `release_notes` MUST | ผ่าน | `CHANGELOG.md` (Keep a Changelog) ผูกกับ `app.__version__` และมีเทสต์คุม |
 | `release_notes_vulns` MUST | ผ่าน | **v1.5.0 คือรุ่นแรกที่แก้ CVE และ notes ระบุครบทั้งเจ็ด** (cryptography 45.0.7→50.0.0) — ตามที่นโยบายใน `docs/SECURITY-CADENCE.md` สัญญาไว้ |
 
@@ -68,7 +68,7 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 | `build` MUST | ผ่าน | `Dockerfile` (multi-stage) · job `image` ใน CI **build จริงแล้วยิงใส่มันทุก push** ไม่ใช่แค่ตรวจ syntax |
 | `build_common_tools` SUGGESTED | ผ่าน | Docker + pipenv |
 | `build_floss_tools` SHOULD | ผ่าน | ทุกตัวเป็น FLOSS |
-| `test` MUST | ผ่าน | pytest — **1,282 เทสต์** (นับ 2026-08-17) |
+| `test` MUST | ผ่าน | pytest ทั้งชุดเป็น required check ทุก push (job `test`) · coverage floor `fail_under = 96` แบบ ratchet · `diff-cover` บังคับบรรทัดที่แก้ 100% · **ไม่ตรึงจำนวนเทสต์ไว้ที่นี่** เพราะทุก PR เพิ่มเทสต์ เลขภาพถ่ายจึงผิดตั้งแต่ commit ถัดไป — นับสดด้วย `pipenv run pytest --collect-only -q` |
 | `test_invocation` SHOULD | ผ่าน | `pipenv run pytest` |
 | `test_most` SUGGESTED | ผ่าน | coverage gate `fail_under = 96` (**ratchet: ขยับขึ้นได้อย่างเดียว**) + `diff-cover` บังคับบรรทัดที่แก้ 100% |
 | `test_continuous_integration` SUGGESTED | ผ่าน | 29 check (27 บังคับ) — รวมสามยี่ห้อฐานข้อมูล, stack จริง, SSO, LDAP, DAST |
@@ -190,7 +190,7 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 | `installation_common` MUST | Met | pipenv / docker compose ตามมาตรฐาน ecosystem |
 | `installation_standard_variables` MUST | Met | ไม่มี installer เอง — ใช้ convention ของ pip/docker ตรง ๆ |
 | `installation_development_quick` MUST | Met | clone → รันได้ในห้าคำสั่ง |
-| `external_dependencies` MUST | Met | Pipfile ราย category + SBOM ทุก release + `docs/SUPPLY-CHAIN.md` (18 gate) |
+| `external_dependencies` MUST | Met | Pipfile ราย category + SBOM ทุก release + `docs/SUPPLY-CHAIN.md` (19 gate) |
 | `dependency_monitoring` MUST | Met | Dependabot + pip-audit/npm-audit ทุกชั้นสองทิศ |
 | `updateable_reused_components` MUST | Met | ทุกอย่างเป็น package มาตรฐานจาก lockfile ไม่มี vendored |
 | `interfaces_current` SHOULD | Met | Python 3.13 · SQLAlchemy 2.0 typed · deprecation โผล่ผ่านด่าน lint/type |

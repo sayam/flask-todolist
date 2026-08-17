@@ -32,6 +32,18 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
   image scanner caught `CVE-2026-53615`, the release signer catching its
   own over-wide glob, and one `/readyz` bug turning `stack`, `siem`, and
   `dast` red at once.
+- **The badge worksheet is read by a test now** — `docs/BEST-PRACTICES.md`
+  had drifted three ways with nothing to catch it: it still called
+  v1.5.0 the latest release, still claimed 18 supply-chain gates when
+  `gates.yaml` has 19, and quoted a test count from a day earlier that
+  was already wrong. `docs/RELEASE.md` had an instruction to update the
+  file; the instruction rotted exactly like an unchecked number would.
+  Version claims are now tied to `__version__`, the gate count to
+  `gates.yaml`, and the coverage floor to `pyproject.toml`. The test
+  count is simply gone — every PR adds tests, so a snapshot there is
+  wrong by the next commit; the criteria it answers are the enforced
+  ones (required job, ratcheted floor, 100% on changed lines).
+
 - **The evidence rule paid for itself the same day**: `semgrep-sast`
   turned red on the preflight's own `shell=True`, so it left the
   `UNPROVEN` list with a run id attached (81 → 79 across the two changes).
