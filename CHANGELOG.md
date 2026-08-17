@@ -18,6 +18,19 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ## [Unreleased]
 
+### Added
+
+- **The judges are judged now** — `gate checkers-proven-two-way`, the
+  round-4 audit's finding: `audit_pins.py`, `audit_image.py`, and
+  `check_semgrep.py` decide whether the supply-chain gates are green,
+  yet nothing ran their decision logic — inverting one set operation
+  left the whole suite green while CI reported "nothing new" forever.
+  `tests/test_checker_logic.py` now drives each one through `main()`
+  with planted violations and clean input, the same shape the eight
+  exported overlay checkers have always had (proven five ways by
+  mutation). The rule itself is baseline and portable: any project that
+  writes its own checkers inherits it.
+
 ### Changed
 
 - Two small closes from the round-3 governance audit, batched: arming

@@ -58,7 +58,7 @@ passing (2026-08-16) · **ผลรวมสุดท้าย: ผ่าน 79 
 
 ผลจริง: `docs/SUPPLY-CHAIN.md` — ห้าชั้นของห่วงโซ่ (ของในแอป · เครื่องมือ
 ของ CI · ของที่รันจริง · ใครขยับ pin · หลักฐาน posture) · สมาชิกแกนประกาศ
-ที่ gate ด้วย field `axis: supply-chain` (14 ตัวตอนปิด G3 · ปัจจุบัน 18 — ข้าม pillar ได้:
+ที่ gate ด้วย field `axis: supply-chain` (14 ตัวตอนปิด G3 · ปัจจุบัน 19 — ข้าม pillar ได้:
 `bare-clone-still-green` เป็น manageability แต่รับใช้แกนนี้) ·
 `tests/test_supply_chain.py` บังคับดัชนี↔ธงสองทิศ · gate:
 `supply-chain-axis-indexed`

@@ -328,6 +328,14 @@
 
 **ตัวบังคับใน reference:** `tests/test_ci_pinning.py`
 
+### `checkers-proven-two-way`
+
+**กฎ:** สคริปต์ที่ตัดสินผ่าน/ไม่ผ่าน ต้องมีเทสต์ planted violation + clean input
+
+**เกิดจาก:** audit governance รอบ 4 (2026-08-17) — ตัวตัดสินของแกน supply chain สามตัว (`audit_pins` · `audit_image` · `check_semgrep`) มีไฟล์เทสต์ชื่อคู่กันจริง แต่เทสต์เหล่านั้นตรวจแค่ดัชนีกับ wiring · กลับเงื่อนไข set arithmetic สักบรรทัดแล้วทุกอย่างยังเขียว และ CI รายงาน "ไม่มีอะไรใหม่" ตลอดไปโดยไม่ได้ ตัดสินอะไร — กฎที่ export ให้คนอื่น (checker 8 ตัวของ overlay) ถูกทดสอบ สองทิศมาตลอด ตัวตัดสินที่เราใช้เองต้องไม่ต่ำกว่านั้น
+
+**ตัวบังคับใน reference:** `tests/test_checker_logic.py`
+
 ### `pins-exceptions-honest`
 
 **กฎ:** รายการยกเว้น advisory ตรวจสองทิศ และทุก ID มีเหตุผลในเอกสาร
