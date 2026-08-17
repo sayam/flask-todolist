@@ -33,6 +33,9 @@
 - ออก API token: `pipenv run flask token-create <ชื่อผู้ใช้> --name "<ใช้ทำอะไร>"`
   (ดู `token-list` / เพิกถอน `token-revoke <ชื่อผู้ใช้> <id>`)
 - ล้างข้อมูลที่พ้นระยะ: `pipenv run flask purge-expired` (ดูก่อนด้วย `--dry-run`)
+- ดู/ปิดปัจจัยที่สองของผู้ใช้ (ทางกู้เมื่ออุปกรณ์หาย — ทางเดียวของผู้ดูแล):
+  `pipenv run flask mfa-status <ชื่อ>` / `mfa-disable <ชื่อ> [--factor auth/totp] [--yes]`
+  (หน้าเว็บปิดได้เฉพาะของคนที่ login อยู่ ซึ่งคือคนที่ login ไม่ได้พอดี)
 - ตรวจ audit: `pipenv run flask audit-verify` / อ่าน audit: `pipenv run flask audit-log`
 - เปลี่ยน schema: `pipenv run flask db migrate -m "..."` แล้ว `pipenv run flask db upgrade`
 - อัปเดตสัญญา API: `PYTHONPATH=. pipenv run python scripts/generate_openapi.py`
@@ -1097,8 +1100,14 @@ log ขึ้น "Running upgrade" ครบทุกตัว exit code เป�
 
 ## ยังไม่ได้ทำ
 - หน้า login ไม่รองรับ `?next=` โดยตั้งใจ (กัน open redirect) login เสร็จเด้งไปหน้าแรกเสมอ
-- **ไม่มี recovery code ของ MFA** — ทำโทรศัพท์หายต้องให้ผู้ดูแลปิดให้ (ยังไม่มีคำสั่ง CLI
-  ของ plugin สำหรับข้อนี้ — งานที่เหลืออยู่จริง)
+- **ไม่มี recovery code ของ MFA — แต่ทางกู้มีแล้ว** (ทบทวน 2026-08-17 · audit r5):
+  ผู้ดูแลปิดปัจจัยให้ได้ด้วย `flask mfa-disable` ซึ่งลง audit เหมือนการเขียนอื่น ๆ ·
+  **recovery code เต็มรูปยังไม่ทำโดยตั้งใจ**: มันต้องมีที่เก็บความลับชุดที่สอง
+  (hash + เผาเมื่อใช้ + แสดงครั้งเดียว) ซึ่งเพิ่มผิวของความลับให้ระบบเพื่อแลกกับ
+  ความสะดวกที่ CLI ให้อยู่แล้วในสเกลนี้ · **เงื่อนไขที่ทำให้ต้องทำ**: มีผู้ใช้ที่
+  ผู้ดูแลติดต่อไม่ได้ทันที (self-service ต้องมี) หรือวันที่ตัดสินใจบังคับ MFA
+  (ADR 0033 ระบุว่าต้องมี recovery code ก่อน) — ทะเบียนนี้ถูกทบทวนตามรอบใน
+  `docs/SECURITY-CADENCE.md` แล้ว
 - ปัจจัยหลักมีสองรูปแบบ (ADR 0029): `redirect` (OIDC — `begin`/`finish`) กับ
   `credential` (LDAP — `authenticate`) **manifest ประกาศด้วย `style` core ไม่เดา**
   · **รหัสผ่านของที่นี่ถูกลองก่อน directory ภายนอกเสมอ**

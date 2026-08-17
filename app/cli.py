@@ -16,6 +16,7 @@ from app import audit, db
 from app.models import Category, User
 from app.purge import AUDIT_RETAIN_DAYS, PURGE_AFTER_DAYS, preview_expired, purge_expired
 from app.services import ServiceError
+from app.services import mfa as mfa_service
 from app.services import passwords as passwords_service
 from app.services import personal_data as personal_data_service
 from app.services import roles as roles_service
@@ -560,6 +561,76 @@ def audit_log(limit):
         click.echo(f"\t{row.changes}")
 
 
+@click.command("mfa-status")
+@click.argument("username")
+@with_appcontext
+def mfa_status(username):
+    """Show which second factors a user has enrolled."""
+    user = _find_user(username.strip())
+    if user is None:
+        raise click.ClickException(f"No user named {username!r}.")
+
+    rows = mfa_service.state(user)
+    if not rows:
+        click.echo("No second-factor plugin is available in this installation.")
+        return
+
+    for row in rows:
+        if row["enrolled"]:
+            status = "enrolled"
+        elif row["pending"]:
+            status = "pending (setup started, never confirmed)"
+        else:
+            status = "not enrolled"
+        click.echo(f"{row['key']:<24} {status}")
+
+
+@click.command("mfa-disable")
+@click.argument("username")
+@click.option(
+    "--factor",
+    "key",
+    default=None,
+    help="Plugin key to disable (default: every enrolled factor).",
+)
+@click.option("--yes", is_flag=True, help="Skip the confirmation prompt.")
+@with_appcontext
+def mfa_disable(username, key, yes):
+    """Turn a user's second factor off — the recovery path when a device is lost.
+
+    This is the administrator's only supported way in: the web UI can only
+    disable a factor for the person already signed in, which is exactly who
+    cannot sign in after losing the device. The action is audited like any
+    other write, and the user can enrol again afterwards.
+    """
+    user = _find_user(username.strip())
+    if user is None:
+        raise click.ClickException(f"No user named {username!r}.")
+
+    enrolled = [row["key"] for row in mfa_service.state(user) if row["enrolled"] or row["pending"]]
+    targets = [key] if key else enrolled
+    if key and key not in enrolled:
+        raise click.ClickException(f"{username!r} has no factor {key!r} enrolled.")
+    if not targets:
+        click.echo(f"{username} has no second factor enrolled — nothing to do.")
+        return
+
+    if not yes:
+        click.confirm(
+            f"Disable {', '.join(targets)} for {username}? "
+            "They will sign in with a password alone.",
+            abort=True,
+        )
+
+    for target in targets:
+        try:
+            mfa_service.disable(user, target)
+        except ServiceError as error:  # plugin หายไปจากดิสก์/ถูกปิดด้วย DISABLED_PLUGINS
+            raise click.ClickException(error.message) from error
+        click.echo(f"disabled {target} for {username}")
+    db.session.commit()
+
+
 def register_cli(app):
     """ผูกทุก command เข้ากับ flask CLI — ตัว command ประกาศระดับ module"""
     app.cli.add_command(create_user)
@@ -580,3 +651,5 @@ def register_cli(app):
     app.cli.add_command(purge_expired_command)
     app.cli.add_command(audit_verify)
     app.cli.add_command(audit_log)
+    app.cli.add_command(mfa_status)
+    app.cli.add_command(mfa_disable)
