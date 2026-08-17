@@ -136,7 +136,7 @@ and measured:
 | | |
 |---|---|
 | [`gates.yaml`](gates.yaml) | an index of every gate, verified **in both directions** — every CI job must have a gate, and every test file must belong to exactly one gate. A gate may only cite an ASVS requirement whose own evidence points back at it |
-| [`SKILL.md`](SKILL.md) | 66 framework-agnostic baseline rules, **generated** from the portable gates. Each one carries the trap that produced it. You cannot write a rule into this file by hand — you add a gate and regenerate. App-type agreements (the rules a different app could legitimately choose differently, like soft delete) live in their own generated sheet, [`SKILL-TODOLIST.md`](SKILL-TODOLIST.md) |
+| [`SKILL.md`](SKILL.md) | 67 framework-agnostic baseline rules, **generated** from the portable gates. Each one carries the trap that produced it. You cannot write a rule into this file by hand — you add a gate and regenerate. App-type agreements (the rules a different app could legitimately choose differently, like soft delete) live in their own generated sheet, [`SKILL-TODOLIST.md`](SKILL-TODOLIST.md) |
 | [`overlays/flask/`](overlays/flask/) | the enforcement half for other Flask projects: 8 scanners in the standard library only, a doctor, and an installer. CI proves on every push that it installs into an empty repo **and** that this repo passes its own overlay |
 | [`skill/`](skill/) | the same rules packaged as an installable agent skill (ADR 0050) — frontmatter + the generated rule sheets + the overlay's checkers, every byte derived; a test rejects hand edits and stray files |
 | [`docs/comparison/`](docs/comparison/) | does any of it change the code that actually gets written? One spec, three arms of five generated apps, one measurement battery — including the finding that a plain "review your own work once" pass closes about three quarters of the gap |
@@ -152,7 +152,7 @@ Written in Thai, because that is the language the thinking happened in.
 | [`docs/ROADMAP-INFRA.md`](docs/ROADMAP-INFRA.md) | phases 8–12 — the index, the exported skill, the overlay, the fail-fix harness, and the comparison experiment |
 | [`docs/ASVS.md`](docs/ASVS.md) | OWASP ASVS 5.0 Level 2 self-assessment — all 253 in-scope requirements answered, including the 48 that do not pass |
 | [`docs/ISO27001.md`](docs/ISO27001.md) | ISO/IEC 27001:2022 self-assessment — all 116 items answered (clauses 4–10 and every Annex A control) — and since 2026-08-16, all of them pass or are justified n/a |
-| [`docs/SUPPLY-CHAIN.md`](docs/SUPPLY-CHAIN.md) | the supply-chain axis — five layers of the chain and the 18 gates that guard them, kept honest against `gates.yaml` both ways |
+| [`docs/SUPPLY-CHAIN.md`](docs/SUPPLY-CHAIN.md) | the supply-chain axis — five layers of the chain and the 19 gates that guard them, kept honest against `gates.yaml` both ways |
 | [`docs/COMPLIANCE.md`](docs/COMPLIANCE.md) | the per-country legal index — Thailand (PDPA) today, and the contract for adding a country additively |
 | [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) | measured numbers, including the ones that hurt |
 | [`docs/DATA-CLASSIFICATION.md`](docs/DATA-CLASSIFICATION.md) | what is stored, how sensitive it is, how long it is kept |
@@ -284,7 +284,7 @@ export และวัดผลแล้ว:
   ต้องมี gate และไฟล์เทสต์ทุกไฟล์ต้องเป็นของ gate เดียว · gate จะอ้างข้อ ASVS
   ได้ก็ต่อเมื่อหลักฐานของข้อนั้นชี้กลับมาหามันจริง · ทุก gate ประกาศ `layer`
   (`baseline`/`business`/`internal`) ซึ่งเป็นตัวแบ่งใบ SKILL สองใบ
-- [`SKILL.md`](SKILL.md) — กฎ baseline 66 ข้อ **generate จาก gate ที่ portable**
+- [`SKILL.md`](SKILL.md) — กฎ baseline 67 ข้อ **generate จาก gate ที่ portable**
   แต่ละข้อพก "กับดักที่ให้กำเนิดมัน" มาด้วย · เขียนกฎลงไฟล์นี้ตรง ๆ ไม่ได้
   ต้องเพิ่ม gate แล้ว regenerate · ข้อตกลงระดับตัวแอป (ที่แอปอื่นเลือกต่างได้
   โดยชอบ เช่น soft delete) แยกอยู่ [`SKILL-TODOLIST.md`](SKILL-TODOLIST.md)
@@ -312,7 +312,7 @@ org graph) · [`docs/PDPA.md`](docs/PDPA.md) (worksheet แบบเดียว
 [`docs/ASVS.md`](docs/ASVS.md) ·
 [`docs/ISO27001.md`](docs/ISO27001.md) (27001:2022 ครบ 116 ข้อ) ·
 [`docs/SUPPLY-CHAIN.md`](docs/SUPPLY-CHAIN.md) (แกน supply chain — ห้าชั้น
-18 gate ตรวจกับ gates.yaml สองทิศ) ·
+19 gate ตรวจกับ gates.yaml สองทิศ) ·
 [`docs/COMPLIANCE.md`](docs/COMPLIANCE.md) (ดัชนี legal รายประเทศ +
 สัญญาการเพิ่มประเทศแบบ additive) ·
 [`docs/RISK-ASSESSMENT.md`](docs/RISK-ASSESSMENT.md) (วิธีประเมินความเสี่ยง

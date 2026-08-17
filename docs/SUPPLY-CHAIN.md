@@ -62,6 +62,7 @@ supply chain เป็น**แกนอิสระ**ของชั้น secur
 | `gate sbom-per-category` | SBOM แยกต่อ category — ตอบได้ว่าถอด plugin แล้ว component ไหนหาย (แนบทุก release) |
 | `gate push-secret-scan` | gitleaks ทุก push — ความลับหลุดเข้า git คือ supply chain ของคนที่ clone เรา |
 | `gate openssf-scorecard` | Scorecard วัดแนวปฏิบัติของ repo และเผยแพร่ผล |
+| `gate checkers-proven-two-way` | **ตัวตัดสินของแกนนี้ถูกตัดสินเอง** — สคริปต์ที่บอกว่าผ่าน/ไม่ผ่านมีเทสต์ planted violation + clean input (audit r4) · ตัวตัดสินที่ไม่มีใครทดสอบ ทำให้ด่านทั้งแกนกลายเป็นเขียวเปล่าได้ในคอมมิตเดียว |
 
 ## กติกาของแกนที่ไม่ใช่ gate ตัวไหนตัวเดียว
 
