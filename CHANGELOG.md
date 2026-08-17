@@ -18,7 +18,14 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ## [Unreleased]
 
-Nothing yet.
+### Changed
+
+- Two small closes from the round-3 governance audit, batched: arming
+  auto-merge on a Dependabot PR now requires reading the lock/SHA diff
+  first (green checks prove behaviour, not upstream intent), and the
+  yearly worksheet-review cadence row now sweeps the 122 Best Practices
+  form answers alongside ASVS/PDPA/ISO — the audit's third round found
+  the layering fully converged, leaving only these.
 
 ## [1.6.0] — 2026-08-17
 
