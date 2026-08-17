@@ -36,7 +36,17 @@ gates:
     pillar: devx
     born_from: >-
       semgrep เคยตรวจแค่ 71/136 ไฟล์เพราะขอบเขตประกาศสองที่ —
-      ดัชนีที่ไม่ถูกบังคับให้ตรงกับความจริงคือดัชนีที่โกหกเงียบ ๆ
+      ดัชนีที่ไม่ถูกบังคับให้ตรงกับความจริงคือดัชนีที่โกหกเงียบ ๆ · audit รอบ 7
+      ต่ออีกฟิลด์ (`guards:` — ADR 0062): ด่านที่แพงและยังไม่เคยจับอะไรต้องบอกได้
+      ว่ามันคุ้ม*เส้นทางไหน* ไม่งั้นคำถาม "ยังคุ้มไหม" ตอบด้วยความรู้สึกเสมอ
+    proved_by:
+      - kind: mutation
+        ref: pr/95
+        date: 2026-08-17
+        caught: >-
+          พังสองทิศแล้วแดงครบ — ถอด `guards` ออกจาก gate ที่รายการบังคับให้มี ·
+          ให้ `guards` ชี้เส้นทางที่ไม่มีอยู่จริง (เส้นทางผีทำให้ตัวทบทวนอ่านว่า
+          "ไม่มีใครแตะเลย" ตลอดกาล)
 
   - id: gates-carry-red-evidence
     title: gate ใหม่ต้องมาพร้อมหลักฐานว่าเคยแดงตอนของเสียจริง — รายการที่ยังไม่มีหดได้ทางเดียว
@@ -1231,6 +1241,7 @@ gates:
     enforced_by: {job: a11y}
     standard: []
     requires: [node, chromium]
+    guards: [app/templates/, app/static/base.css, .pa11yci.json]
     portable: true
     layer: baseline
     pillar: security
@@ -1321,6 +1332,7 @@ gates:
     enforced_by: {job: perf-smoke}
     standard: []
     requires: [docker-compose]
+    guards: [loadtest/journey.js, app/, Dockerfile]
     portable: true
     layer: baseline
     pillar: performance
@@ -1384,6 +1396,7 @@ gates:
     enforced_by: {job: sso}
     standard: []
     requires: [docker-compose]
+    guards: [app/plugins/auth/oidc/, app/services/sso.py, compose.sso.yaml]
     portable: false
     layer: internal
     pillar: security
@@ -1396,6 +1409,7 @@ gates:
     enforced_by: {job: ldap}
     standard: []
     requires: [docker-compose]
+    guards: [app/plugins/auth/ldap/, compose.ldap.yaml]
     portable: false
     layer: internal
     pillar: security
@@ -1408,6 +1422,7 @@ gates:
     enforced_by: {job: vault}
     standard: []
     requires: [docker-compose]
+    guards: [app/plugins/secrets/vault/, app/secrets.py]
     portable: false
     layer: internal
     pillar: security
@@ -1441,6 +1456,7 @@ gates:
     enforced_by: {job: scrape}
     standard: []
     requires: [docker-compose]
+    guards: [app/metrics.py, compose.metrics.yaml, deploy/prometheus.yml]
     portable: false
     layer: internal
     pillar: performance

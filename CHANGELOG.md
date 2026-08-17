@@ -32,6 +32,19 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
   image scanner caught `CVE-2026-53615`, the release signer catching its
   own over-wide glob, and one `/readyz` bug turning `stack`, `siem`, and
   `dast` red at once.
+- **Gates that have never fired now carry an expiry rule** — `guards:`
+  in `gates.yaml` and ADR 0062 (audit round 7). Measuring the real cost
+  of a push showed six real-service jobs — `perf-smoke`, `sso`,
+  `scrape`, `vault`, `a11y`, `ldap` — taking 15% of the machine time
+  (461 of 3,024 job-seconds) without having gone red once in the last
+  200 runs. Nothing is removed: what changes is that the decision is
+  written down in advance, and it needs two readings, not one. A job
+  that never fires because nobody touched the code it guards is asleep;
+  a job that never fires while that code changes weekly may not be
+  checking anything. `scripts/rerun_census.py --never-red` gives the
+  first reading and `guards:` makes the second one a `git log` away.
+  Removing gates wholesale and opening bypasses both stay forbidden.
+
 - **A register of who we depend on, and how we would find out** —
   `docs/SUPPLY-CHAIN.md` grows a sixth layer (audit round 7). The first
   five answer how the things we pull in are controlled; this one answers
@@ -624,7 +637,7 @@ graph. Nothing in the `/api/v1` contract changed; it only gained fields.
 ## [1.0.0] — 2026-08-12
 
 First public release. Everything below arrived across seven planned phases of
-work; the reasoning for each decision lives in the 61 records in
+work; the reasoning for each decision lives in the 62 records in
 [`docs/adr/`](docs/adr/), and the phase-by-phase plan in
 [`docs/ROADMAP.md`](docs/ROADMAP.md).
 

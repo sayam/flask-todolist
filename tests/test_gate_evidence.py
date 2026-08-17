@@ -34,7 +34,6 @@ REF_SHAPE = {"ci-red": re.compile(r"^run/\d+$"), "mutation": re.compile(r"^pr/\d
 # gate ที่เกิดก่อน ADR 0059 และยังไม่มีหลักฐานว่าเคยแดง — **รายการนี้หดได้ทางเดียว**
 UNPROVEN = frozenset(
     {
-        "gates-registry-total",
         "skill-mirrors-portable-gates",
         "overlay-covers-every-portable-gate",
         "logic-knows-no-http",
@@ -114,7 +113,7 @@ UNPROVEN = frozenset(
     }
 )
 # เพดานของรายการข้างบน ณ วันที่กติกาเริ่ม (ADR 0059) — ขยับลงได้อย่างเดียว
-UNPROVEN_CEILING = 77
+UNPROVEN_CEILING = 76
 
 
 @pytest.fixture(scope="module")

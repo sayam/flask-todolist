@@ -29,6 +29,11 @@ import shutil
 import subprocess
 import sys
 
+# pyyaml มากับ dev tools และไม่มี stub — เหตุผลเดียวกับ build_gates_crosswalk.py
+import yaml  # type: ignore[import-untyped]
+
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+
 # step ที่เป็นของ runner ไม่ใช่ของด่าน — ล้มตรงนี้แปลว่าแพลตฟอร์มมีปัญหา
 PLATFORM_STEPS = frozenset({"Set up job", "Set up runners", "Complete job"})
 
@@ -103,6 +108,16 @@ def census(records: list[dict]) -> dict:
     }
 
 
+def jobs_never_red(summary: dict, defined: set[str]) -> list[str]:
+    """job ที่ไม่แดงเลยในหน้าต่างที่ตรวจ — ครึ่งหนึ่งของคำถาม "ด่านนี้ยังคุ้มไหม"
+
+    อีกครึ่งคือ `guards:` ใน `gates.yaml` (โค้ดที่มันคุ้มถูกแก้ในช่วงเดียวกันไหม)
+    — ADR 0062 · **ไม่แดงเพราะไม่มีใครแตะของที่มันคุ้ม** ต่างจาก **ไม่แดงทั้งที่
+    ของนั้นถูกแก้ทุกสัปดาห์** คนละคำตอบกันคนละขั้ว
+    """
+    return sorted(defined - set(summary["jobs"]))
+
+
 def report(summary: dict) -> None:
     """พิมพ์ผลให้คนอ่าน — ตัวเลขที่ซ่อนอยู่ต้องเด่นกว่าตัวเลขที่ทุกคนเห็นอยู่แล้ว"""
     print(f"ตรวจ {summary['runs_examined']} run")
@@ -123,6 +138,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--input", help="ไฟล์ JSON ของ record (ข้ามการต่อเน็ต)")
     parser.add_argument("--json", action="store_true", help="พิมพ์ผลเป็น JSON")
     parser.add_argument(
+        "--never-red",
+        action="store_true",
+        help="ลงท้ายด้วยรายชื่อ job ที่ไม่แดงเลยในหน้าต่างนี้ (ADR 0062)",
+    )
+    parser.add_argument(
         "--max-hidden",
         type=int,
         default=None,
@@ -140,6 +160,14 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(summary, ensure_ascii=False, indent=2))
     else:
         report(summary)
+
+    if args.never_red:
+        defined = set()
+        for path in sorted((ROOT / ".github" / "workflows").glob("*.y*ml")):
+            defined |= set(yaml.safe_load(path.read_text(encoding="utf-8")).get("jobs", {}))
+        never = jobs_never_red(summary, defined)
+        print(f"\njob ที่ไม่แดงเลยในหน้าต่างนี้ ({len(never)}): {', '.join(never)}")
+        print("อ่านคู่กับ `guards:` ใน gates.yaml ก่อนตัดสินว่าด่านไหนควรย้ายไปรันตามรอบ (ADR 0062)")
 
     if args.max_hidden is not None and summary["runs_failed_hidden"] > args.max_hidden:
         print(
