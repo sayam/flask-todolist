@@ -66,3 +66,4 @@ ADR 0002–0008 เป็นการ backfill การตัดสินใจ
 | [0058](0058-signed-releases-and-provenance.md) | เซ็น release แบบ keyless + SLSA provenance (native attestation ไม่ใช่ slsa-generator ที่บังคับ tag-pin) · SBOM generate ใน CI เท่านั้น | accepted |
 | [0059](0059-gate-red-evidence.md) | ด่านต้องเก็บหลักฐานว่าเคยแดงตอนของเสียจริง (`proved_by`) — gate ใหม่มาพร้อมหลักฐาน · รายการที่ยังไม่มีหดทางเดียว | accepted |
 | [0060](0060-preflight-mirrors-ci.md) | preflight บนเครื่องอ่านคำสั่งจาก workflow จริง ไม่ลอกมาเก็บที่สอง · ข้ามอะไรต้องบอกเหตุผล · ไม่ผูกเข้า hook | accepted |
+| [0061](0061-platform-posture-verified.md) | ท่าทีฝั่งแพลตฟอร์ม (branch protection · required check · auto-merge · sha pinning) ถูกเครื่องตรวจ · อ่านไม่ได้ = แดง ไม่ใช่ข้าม | accepted |

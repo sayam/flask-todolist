@@ -32,6 +32,25 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
   image scanner caught `CVE-2026-53615`, the release signer catching its
   own over-wide glob, and one `/readyz` bug turning `stack`, `siem`, and
   `dast` red at once.
+- **The platform's own settings are checked by a machine now** — job
+  `posture` and `scripts/audit_posture.py` (ADR 0061), the round-7
+  audit's second finding: ADR 0053 declares that main takes changes
+  only through PRs, that `enforce_admins` is on, and that every job
+  running on pull requests is required — all of it GitHub-side
+  configuration that nothing in the repository ever read. The checker
+  compares three sources against what we declared: the required-check
+  set both ways (a job running on PRs that is not required, and a
+  required context no job can produce — the latter leaves every PR
+  waiting for a check that will never arrive), the branch-protection
+  flags, and the repo switches for auto-merge and SHA pinning. The
+  audit also found `sha_pinning_required` switched off while our own
+  test enforced the same rule, so the platform now enforces it too —
+  two mechanisms, one catching it as you write, one as it runs.
+  Reading failures are red (exit 2), never skipped: 403 means the token
+  lacks `administration: read`, 5xx means GitHub is down, and a gate
+  that skips when it cannot read reports all-clear on the day it sees
+  nothing at all.
+
 - **The failure counter can see failures that were rerun away** —
   `scripts/rerun_census.py` (audit round 7). `gh run list --json
   conclusion` reports the *last attempt*, so pressing rerun until green
@@ -591,7 +610,7 @@ graph. Nothing in the `/api/v1` contract changed; it only gained fields.
 ## [1.0.0] — 2026-08-12
 
 First public release. Everything below arrived across seven planned phases of
-work; the reasoning for each decision lives in the 60 records in
+work; the reasoning for each decision lives in the 61 records in
 [`docs/adr/`](docs/adr/), and the phase-by-phase plan in
 [`docs/ROADMAP.md`](docs/ROADMAP.md).
 

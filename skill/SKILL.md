@@ -607,3 +607,11 @@ description: Universal production-discipline rules for web applications, distill
 **เกิดจาก:** ของที่คลิกไว้ใน UI ไม่มีใคร review ได้และหายเงียบ ๆ ได้ (หลัก ADR 0037) · รอบแรกเจอของจริงสองอย่างรวม debugger ที่ติดไปกับ image
 
 **ตัวบังคับใน reference:** job `codeql`
+
+### `platform-posture-verified`
+
+**กฎ:** ท่าทีฝั่งแพลตฟอร์ม (branch protection · required check · auto-merge) ถูกเครื่องตรวจ ไม่ใช่แค่เขียนไว้
+
+**เกิดจาก:** audit governance รอบ 7 (2026-08-17) — กติกาที่ทุกอย่างพิงอยู่ ("main รับของ ทาง PR เท่านั้น · enforce_admins เปิด · required check ครบทุก job ที่รันบน PR" — ADR 0053) เป็น setting ฝั่งผู้ให้บริการที่**ไม่มีอะไรในเรโปอ่านเลย** · กดปิดในหน้า settings แล้วเอกสารยังอ้างเหมือนเดิม · ตรวจ API วันนั้นยังพบว่า `sha_pinning_required` ปิดอยู่ ทั้งที่เราบังคับ SHA pinning ด้วยเทสต์ของตัวเอง
+
+**ตัวบังคับใน reference:** job `posture`

@@ -10,7 +10,7 @@ The app itself is modest and finished: tasks with categories, deadlines,
 filters, two languages, three colour modes, accounts. What makes it worth reading
 is everything around it — a plugin architecture where the core never names a
 single plugin, an append-only audit trail that no feature has to remember to
-call, and 27 CI jobs (29 checks) that run against real databases, a real reverse
+call, and 28 CI jobs (30 checks) that run against real databases, a real reverse
 proxy, a real identity provider, and a real directory server, with nothing
 mocked.
 
@@ -136,7 +136,7 @@ and measured:
 | | |
 |---|---|
 | [`gates.yaml`](gates.yaml) | an index of every gate, verified **in both directions** — every CI job must have a gate, and every test file must belong to exactly one gate. A gate may only cite an ASVS requirement whose own evidence points back at it |
-| [`SKILL.md`](SKILL.md) | 70 framework-agnostic baseline rules, **generated** from the portable gates. Each one carries the trap that produced it. You cannot write a rule into this file by hand — you add a gate and regenerate. App-type agreements (the rules a different app could legitimately choose differently, like soft delete) live in their own generated sheet, [`SKILL-TODOLIST.md`](SKILL-TODOLIST.md) |
+| [`SKILL.md`](SKILL.md) | 71 framework-agnostic baseline rules, **generated** from the portable gates. Each one carries the trap that produced it. You cannot write a rule into this file by hand — you add a gate and regenerate. App-type agreements (the rules a different app could legitimately choose differently, like soft delete) live in their own generated sheet, [`SKILL-TODOLIST.md`](SKILL-TODOLIST.md) |
 | [`overlays/flask/`](overlays/flask/) | the enforcement half for other Flask projects: 8 scanners in the standard library only, a doctor, and an installer. CI proves on every push that it installs into an empty repo **and** that this repo passes its own overlay |
 | [`skill/`](skill/) | the same rules packaged as an installable agent skill (ADR 0050) — frontmatter + the generated rule sheets + the overlay's checkers, every byte derived; a test rejects hand edits and stray files |
 | [`docs/comparison/`](docs/comparison/) | does any of it change the code that actually gets written? One spec, three arms of five generated apps, one measurement battery — including the finding that a plain "review your own work once" pass closes about three quarters of the gap |
@@ -147,7 +147,7 @@ Written in Thai, because that is the language the thinking happened in.
 
 | | |
 |---|---|
-| [`docs/adr/`](docs/adr/) | 60 architecture decision records — every choice, the options rejected, and what would reverse it |
+| [`docs/adr/`](docs/adr/) | 61 architecture decision records — every choice, the options rejected, and what would reverse it |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | the first seven phases — the application itself — what each closed, and what was deliberately deferred |
 | [`docs/ROADMAP-INFRA.md`](docs/ROADMAP-INFRA.md) | phases 8–12 — the index, the exported skill, the overlay, the fail-fix harness, and the comparison experiment |
 | [`docs/ASVS.md`](docs/ASVS.md) | OWASP ASVS 5.0 Level 2 self-assessment — all 253 in-scope requirements answered, including the 48 that do not pass |
@@ -187,7 +187,7 @@ own dependency category) · SQLite / MySQL / MariaDB · gunicorn · pipenv
 ตัวแอปเองเรียบและเสร็จแล้ว — งาน หมวด กำหนดส่ง ตัวกรอง สองภาษา สามโหมดสี
 บัญชีผู้ใช้ · สิ่งที่ทำให้มันน่าอ่านคือของรอบ ๆ: สถาปัตยกรรม plugin ที่ core
 ไม่รู้จักชื่อ plugin ตัวไหนเลย · audit trail แบบเติมได้อย่างเดียวที่ฟีเจอร์ใหม่
-ไม่ต้องจำว่าต้องเรียก · และ CI 27 job (29 check) ที่ยิงใส่ฐานข้อมูลจริง
+ไม่ต้องจำว่าต้องเรียก · และ CI 28 job (30 check) ที่ยิงใส่ฐานข้อมูลจริง
 reverse proxy จริง IdP จริง และ directory จริง โดยไม่มี mock สักตัว
 
 **นี่เป็นโปรเจกต์ส่วนตัว ไม่ใช่ผลิตภัณฑ์** และตั้งใจทำเกินขนาดของมันเพื่อใช้ฝึก
@@ -284,7 +284,7 @@ export และวัดผลแล้ว:
   ต้องมี gate และไฟล์เทสต์ทุกไฟล์ต้องเป็นของ gate เดียว · gate จะอ้างข้อ ASVS
   ได้ก็ต่อเมื่อหลักฐานของข้อนั้นชี้กลับมาหามันจริง · ทุก gate ประกาศ `layer`
   (`baseline`/`business`/`internal`) ซึ่งเป็นตัวแบ่งใบ SKILL สองใบ
-- [`SKILL.md`](SKILL.md) — กฎ baseline 70 ข้อ **generate จาก gate ที่ portable**
+- [`SKILL.md`](SKILL.md) — กฎ baseline 71 ข้อ **generate จาก gate ที่ portable**
   แต่ละข้อพก "กับดักที่ให้กำเนิดมัน" มาด้วย · เขียนกฎลงไฟล์นี้ตรง ๆ ไม่ได้
   ต้องเพิ่ม gate แล้ว regenerate · ข้อตกลงระดับตัวแอป (ที่แอปอื่นเลือกต่างได้
   โดยชอบ เช่น soft delete) แยกอยู่ [`SKILL-TODOLIST.md`](SKILL-TODOLIST.md)
@@ -300,7 +300,7 @@ export และวัดผลแล้ว:
 
 ## เอกสาร
 
-[`docs/adr/`](docs/adr/) 60 ใบ (ทุกการตัดสินใจ ทางที่ไม่ได้เลือก และเงื่อนไข
+[`docs/adr/`](docs/adr/) 61 ใบ (ทุกการตัดสินใจ ทางที่ไม่ได้เลือก และเงื่อนไข
 ที่จะทำให้มันหมดอายุ) · [`docs/ROADMAP.md`](docs/ROADMAP.md) (เฟส 0–7 ของตัวแอป)
 · [`docs/ROADMAP-INFRA.md`](docs/ROADMAP-INFRA.md) (เฟส 8–12 ของ scaffolding) ·
 [`docs/ROADMAP-GOVERNANCE.md`](docs/ROADMAP-GOVERNANCE.md) (แผน G — ธรรมนูญ
