@@ -32,6 +32,21 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
   image scanner caught `CVE-2026-53615`, the release signer catching its
   own over-wide glob, and one `/readyz` bug turning `stack`, `siem`, and
   `dast` red at once.
+- **The failure counter can see failures that were rerun away** —
+  `scripts/rerun_census.py` (audit round 7). `gh run list --json
+  conclusion` reports the *last attempt*, so pressing rerun until green
+  erases the original failure from the statistics; the only trace is in
+  `/runs/<id>/attempts/<n>/jobs`, which nothing read. Measured over the
+  last 100 runs: 7 visible failures and **3 hidden** — `dast` twice and
+  `codeql` once, all three of which the old method reports as "never
+  failed". Two things depended on that number: ADR 0059's baseline
+  (now carries a correction note) and the `dast` flake review row, which
+  literally prescribed the blind method (now fixed). The census also
+  separates platform failures — a job dying in `Set up job` because
+  GitHub returned 429 for an action download is not our flake, and
+  mixing the two ripens a threshold that is not about us. Proven five
+  ways by mutation, including a return to the original bug.
+
 - **The badge worksheet is read by a test now** — `docs/BEST-PRACTICES.md`
   had drifted three ways with nothing to catch it: it still called
   v1.5.0 the latest release, still claimed 18 supply-chain gates when

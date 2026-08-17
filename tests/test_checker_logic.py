@@ -24,7 +24,7 @@ import typing
 
 import pytest
 
-from scripts import audit_image, audit_pins, check_semgrep
+from scripts import audit_image, audit_pins, check_semgrep, rerun_census
 
 
 class Case(typing.NamedTuple):
@@ -216,3 +216,75 @@ def test_semgrep_judge_tolerates_files_git_does_not_know_yet(tmp_path, monkeypat
     monkeypatch.setattr(check_semgrep, "expected_files", lambda: {"app/a.py"})
 
     assert check_semgrep.main(_semgrep_report(tmp_path)) == 0
+
+
+# ---------------------------------------------------------------- rerun census
+#
+# audit รอบ 7 — ตัวนับที่อ่านแค่ผลของ attempt สุดท้าย มองไม่เห็นความล้มเหลว
+# ที่ถูก rerun จนเขียว · วัดจริงบน repo นี้: เห็น 7 ใบ ซ่อนอยู่อีก 3 ใบ
+# (`dast` สองครั้ง · `codeql` หนึ่งครั้ง) และทั้งสอง job อ่านว่า "ไม่เคยแดง"
+# จากวิธีเดิม — ซึ่งเป็นข้อมูลที่ `proved_by` กับเกณฑ์ flake ใช้ตัดสินทั้งคู่
+
+
+def _records(tmp_path, records) -> str:
+    """เขียน record ลงไฟล์แล้วคืน path — โหมด --input คือทางที่เทสต์เดินได้ออฟไลน์"""
+    path = tmp_path / "runs.json"
+    path.write_text(json.dumps(records), encoding="utf-8")
+    return str(path)
+
+
+HIDDEN_RUN = {"id": 1, "attempt": 2, "failures": [{"attempt": 1, "job": "dast", "step": "ZAP"}]}
+VISIBLE_RUN = {"id": 2, "attempt": 1, "failures": [{"attempt": 1, "job": "test", "step": "pytest"}]}
+PLATFORM_RUN = {
+    "id": 3,
+    "attempt": 2,
+    "failures": [{"attempt": 1, "job": "codeql (javascript)", "step": "Set up job"}],
+}
+GREEN_RUN = {"id": 4, "attempt": 1, "failures": []}
+
+
+def test_the_census_sees_the_failure_a_rerun_erased(tmp_path, capsys):
+    """ทิศ "แดงเมื่อควรแดง" ของตัวนับ: ของที่หายจาก `gh run list` ต้องยังถูกนับ"""
+    rerun_census.main(["--input", _records(tmp_path, [HIDDEN_RUN, VISIBLE_RUN, GREEN_RUN])])
+
+    printed = capsys.readouterr().out
+    assert "ล้มแล้วถูก rerun จนหายไป    : 1" in printed, printed
+    assert "dast" in printed, printed
+    assert "ซ่อน 1" in printed, printed
+
+
+def test_the_census_reports_zero_on_a_clean_stretch(tmp_path, capsys):
+    """ทิศ "ผ่านเมื่อควรผ่าน" — ช่วงที่ไม่มีอะไรแดงต้องไม่ถูกรายงานว่ามีของซ่อน"""
+    assert rerun_census.main(["--input", _records(tmp_path, [GREEN_RUN, GREEN_RUN])]) == 0
+    printed = capsys.readouterr().out
+    assert "ล้มแล้วถูก rerun จนหายไป    : 0" in printed, printed
+
+
+def test_the_census_separates_the_platforms_failures_from_ours(tmp_path):
+    """429 ตอนโหลด action ไม่ใช่ flake ของด่านเรา — ปนกันแล้วเกณฑ์ flake ถูกมลพิษ"""
+    summary = rerun_census.census([PLATFORM_RUN, HIDDEN_RUN])
+
+    assert summary["failures_by_class"] == {"platform": 1, "ของเรา": 1}
+
+
+def test_the_census_fails_when_hidden_failures_pass_the_ceiling(tmp_path):
+    """ใช้เป็นด่านตอนทบทวนตามรอบได้ — เพดานที่ไม่มีทางแดงคือเพดานที่ไม่ได้ตั้ง"""
+    path = _records(tmp_path, [HIDDEN_RUN, GREEN_RUN])
+
+    assert rerun_census.main(["--input", path, "--max-hidden", "1"]) == 0
+    assert rerun_census.main(["--input", path, "--max-hidden", "0"]) == 1
+
+
+def test_the_census_counts_a_run_once_no_matter_how_many_jobs_failed(tmp_path):
+    """หนึ่ง run ที่แดงห้า job คือความล้มเหลวหนึ่งครั้ง — ไม่งั้นสถิติเอียงตามขนาด matrix"""
+    crowded = {
+        "id": 5,
+        "attempt": 1,
+        "failures": [
+            {"attempt": 1, "job": "stack", "step": "TLS"},
+            {"attempt": 1, "job": "siem", "step": "loki"},
+            {"attempt": 1, "job": "dast", "step": "ZAP"},
+        ],
+    }
+
+    assert rerun_census.census([crowded])["runs_failed_visible"] == 1
