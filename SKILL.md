@@ -144,6 +144,14 @@
 
 **ตัวบังคับใน reference:** `tests/test_ratelimit.py` · `tests/test_api_ratelimit.py`
 
+### `route-authz-enumerated`
+
+**กฎ:** ทุก route ถูก enumerate เทียบรายการยกเว้นสองทิศ — ลืม decorator แล้วแดง
+
+**เกิดจาก:** audit governance รอบ 5 (2026-08-17) — กฎข้อแรกของโปรเจกต์คือ "ทุก route ต้องมี login_required" พร้อมรายการยกเว้นที่เขียนว่า "มีเท่านี้" แต่ไม่มี ใครตรวจรายการนั้นเลย และมันไม่ครบจริง (`/plugin/themes/<id>/style.css` เปิดสาธารณะมาตั้งแต่ Phase 4 โดยไม่ถูกนับ) · เทสต์ authz เดิมครอบ route ที่คนเขียนนึกถึง ไม่ใช่ทุก route ที่มีอยู่ — OWASP A01 ที่เกิดจากการลืม
+
+**ตัวบังคับใน reference:** `tests/test_route_authz.py`
+
 ### `authz-in-service-layer`
 
 **กฎ:** ตรวจสิทธิ์ใน service ไม่ใช่ที่ route · ของคนอื่นตอบ 404 บทบาทไม่ถึงตอบ 403
