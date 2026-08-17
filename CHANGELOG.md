@@ -58,6 +58,11 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
   rule that a slowdown means finding gates that never caught anything —
   never lowering gates wholesale and never reopening bypass.
 
+- The yearly review row now sweeps **both** registers of open
+  decisions: the review conditions ADRs declare, and the app's own
+  "not doing this yet" list in CLAUDE.md — round 5 found the latter
+  outside the net, with MFA recovery codes the first entry whose
+  context had actually changed.
 - Two small closes from the round-3 governance audit, batched: arming
   auto-merge on a Dependabot PR now requires reading the lock/SHA diff
   first (green checks prove behaviour, not upstream intent), and the
