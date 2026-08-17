@@ -4,9 +4,10 @@
 SQLite ไม่บังคับ FK ให้ ถ้า cascade พังจะไม่มีอะไรฟ้อง แค่เหลือแถวกำพร้า
 """
 
-from app import db
+from app import cli, db
 from app.cli import DEFAULT_CATEGORIES
 from app.models import Category, Todo, User
+from app.services import ServiceError
 from tests.conftest import PASSWORD
 
 
@@ -128,3 +129,87 @@ def test_mfa_disable_refuses_an_unknown_user(app):
 
     assert result.exit_code != 0
     assert "No user named" in result.output
+
+
+def _fake_state(rows):
+    """สถานะปัจจัยแบบปลอม — CLI เป็น adapter ตรรกะจริงมีเทสต์ของตัวเองใน service"""
+    return lambda _user: rows
+
+
+def test_mfa_status_lists_each_factor_with_its_state(app, user_id, monkeypatch):
+    """สามสถานะต้องอ่านออกจากกัน — pending คือ "เริ่มตั้งแล้วไม่เคยยืนยัน" ซึ่งต้องปิดได้ด้วย"""
+    monkeypatch.setattr(
+        cli.mfa_service,
+        "state",
+        _fake_state(
+            [
+                {"key": "auth/totp", "enrolled": True, "pending": False},
+                {"key": "auth/webauthn", "enrolled": False, "pending": True},
+                {"key": "auth/sms", "enrolled": False, "pending": False},
+            ]
+        ),
+    )
+
+    result = app.test_cli_runner().invoke(args=["mfa-status", "tester"])
+
+    assert result.exit_code == 0, result.output
+    assert "auth/totp" in result.output
+    assert "enrolled" in result.output
+    assert "pending" in result.output
+    assert "not enrolled" in result.output
+
+
+def test_mfa_disable_turns_every_enrolled_factor_off(app, user_id, monkeypatch):
+    """ไม่ระบุ --factor = ปิดทุกตัวที่เปิดค้าง (คนที่โทรมาขอความช่วยเหลือไม่รู้ชื่อ plugin)"""
+    monkeypatch.setattr(
+        cli.mfa_service,
+        "state",
+        _fake_state(
+            [
+                {"key": "auth/totp", "enrolled": True, "pending": False},
+                {"key": "auth/webauthn", "enrolled": False, "pending": True},
+            ]
+        ),
+    )
+    disabled = []
+    monkeypatch.setattr(cli.mfa_service, "disable", lambda _u, key: disabled.append(key) or True)
+
+    result = app.test_cli_runner().invoke(args=["mfa-disable", "tester", "--yes"])
+
+    assert result.exit_code == 0, result.output
+    assert disabled == ["auth/totp", "auth/webauthn"], "ต้องปิดทั้งตัวที่ enrolled และที่ค้าง pending"
+
+
+def test_mfa_disable_asks_before_acting(app, user_id, monkeypatch):
+    """ไม่ใส่ --yes แล้วตอบ n ต้องไม่แตะอะไรเลย — คำสั่งนี้ลดระดับความปลอดภัยของบัญชีคนอื่น"""
+    monkeypatch.setattr(
+        cli.mfa_service,
+        "state",
+        _fake_state([{"key": "auth/totp", "enrolled": True, "pending": False}]),
+    )
+    touched = []
+    monkeypatch.setattr(cli.mfa_service, "disable", lambda _u, key: touched.append(key))
+
+    result = app.test_cli_runner().invoke(args=["mfa-disable", "tester"], input="n\n")
+
+    assert result.exit_code != 0, "ตอบ n แล้วต้อง abort"
+    assert touched == [], "abort แล้วต้องไม่มีการปิดปัจจัยใด ๆ"
+
+
+def test_mfa_disable_reports_a_plugin_that_cannot_act(app, user_id, monkeypatch):
+    """plugin ถูกปิดด้วย DISABLED_PLUGINS หรือหายจากดิสก์ = ต้องบอกตรง ๆ ไม่ใช่เงียบ"""
+    monkeypatch.setattr(
+        cli.mfa_service,
+        "state",
+        _fake_state([{"key": "auth/totp", "enrolled": True, "pending": False}]),
+    )
+
+    def _raise(_user, _key):
+        raise ServiceError("plugin auth/totp is not available", code="plugin_unavailable")
+
+    monkeypatch.setattr(cli.mfa_service, "disable", _raise)
+
+    result = app.test_cli_runner().invoke(args=["mfa-disable", "tester", "--yes"])
+
+    assert result.exit_code != 0
+    assert "not available" in result.output

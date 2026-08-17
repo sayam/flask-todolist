@@ -585,6 +585,16 @@ def mfa_status(username):
         click.echo(f"{row['key']:<24} {status}")
 
 
+def _mfa_targets(user, username, key):
+    """ปัจจัยที่จะปิด — ระบุมาต้องมีจริง · ไม่ระบุคือทุกตัวที่เปิดหรือค้างอยู่"""
+    enrolled = [row["key"] for row in mfa_service.state(user) if row["enrolled"] or row["pending"]]
+    if key is None:
+        return enrolled
+    if key not in enrolled:
+        raise click.ClickException(f"{username!r} has no factor {key!r} enrolled.")
+    return [key]
+
+
 @click.command("mfa-disable")
 @click.argument("username")
 @click.option(
@@ -607,10 +617,7 @@ def mfa_disable(username, key, yes):
     if user is None:
         raise click.ClickException(f"No user named {username!r}.")
 
-    enrolled = [row["key"] for row in mfa_service.state(user) if row["enrolled"] or row["pending"]]
-    targets = [key] if key else enrolled
-    if key and key not in enrolled:
-        raise click.ClickException(f"{username!r} has no factor {key!r} enrolled.")
+    targets = _mfa_targets(user, username, key)
     if not targets:
         click.echo(f"{username} has no second factor enrolled — nothing to do.")
         return
