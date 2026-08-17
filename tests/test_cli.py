@@ -213,3 +213,52 @@ def test_mfa_disable_reports_a_plugin_that_cannot_act(app, user_id, monkeypatch)
 
     assert result.exit_code != 0
     assert "not available" in result.output
+
+
+def test_mfa_status_says_so_when_no_plugin_is_installed(app, user_id, monkeypatch):
+    """ติดตั้งแบบไม่มี plugin ปัจจัยที่สองเลย = สถานะปกติ ต้องบอก ไม่ใช่พิมพ์ตารางว่าง"""
+    monkeypatch.setattr(cli.mfa_service, "state", _fake_state([]))
+
+    result = app.test_cli_runner().invoke(args=["mfa-status", "tester"])
+
+    assert result.exit_code == 0, result.output
+    assert "No second-factor plugin" in result.output
+
+
+def test_mfa_disable_refuses_a_factor_that_exists_but_is_not_on(app, user_id, monkeypatch):
+    """plugin มีอยู่แต่ผู้ใช้ไม่ได้เปิด — สั่งปิดต้องล้ม ไม่ใช่รายงานว่าปิดให้แล้ว"""
+    monkeypatch.setattr(
+        cli.mfa_service,
+        "state",
+        _fake_state([{"key": "auth/totp", "enrolled": False, "pending": False}]),
+    )
+
+    result = app.test_cli_runner().invoke(
+        args=["mfa-disable", "tester", "--factor", "auth/totp", "--yes"]
+    )
+
+    assert result.exit_code != 0
+    assert "no factor" in result.output
+
+
+def test_mfa_disable_can_target_one_factor_and_leave_the_rest(app, user_id, monkeypatch):
+    """ระบุ --factor = ปิดตัวเดียว — ผู้ใช้ที่มีสองปัจจัยไม่ควรเสียตัวที่ยังใช้ได้"""
+    monkeypatch.setattr(
+        cli.mfa_service,
+        "state",
+        _fake_state(
+            [
+                {"key": "auth/totp", "enrolled": True, "pending": False},
+                {"key": "auth/webauthn", "enrolled": True, "pending": False},
+            ]
+        ),
+    )
+    disabled = []
+    monkeypatch.setattr(cli.mfa_service, "disable", lambda _u, key: disabled.append(key) or True)
+
+    result = app.test_cli_runner().invoke(
+        args=["mfa-disable", "tester", "--factor", "auth/totp", "--yes"]
+    )
+
+    assert result.exit_code == 0, result.output
+    assert disabled == ["auth/totp"], "ต้องแตะเฉพาะตัวที่ระบุ"
