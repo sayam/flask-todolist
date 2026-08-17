@@ -32,6 +32,13 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
   image scanner caught `CVE-2026-53615`, the release signer catching its
   own over-wide glob, and one `/readyz` bug turning `stack`, `siem`, and
   `dast` red at once.
+- **The evidence rule paid for itself the same day**: `semgrep-sast`
+  turned red on the preflight's own `shell=True`, so it left the
+  `UNPROVEN` list with a run id attached (81 → 79 across the two changes).
+  The fix runs steps through `bash -e -c` — which is what the GitHub
+  runner does anyway, so the preflight and CI can no longer disagree
+  about bashisms.
+
 - **A preflight that mirrors CI instead of copying it** —
   `scripts/preflight.py` (ADR 0060): the commit hook checks ruff, format,
   and mypy; xenon, interrogate, the coverage floor, and diff-cover live

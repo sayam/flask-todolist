@@ -1179,6 +1179,14 @@ gates:
     born_from: >-
       การสแกนที่ผ่านแบบเงียบ ๆ หน้าตาเหมือนการสแกนที่ไม่ได้ตรวจอะไร —
       ตัวตัดสินคือ check_semgrep.py ที่เทียบเซตไฟล์ที่สแกนจริง
+    proved_by:
+      - kind: ci-red
+        ref: run/32034917884
+        date: 2026-08-17
+        caught: >-
+          `subprocess-shell-true` ใน `scripts/preflight.py` ของ PR นี้เอง —
+          `shell=True` รันคำสั่งที่อ่านมาจาก workflow · แก้เป็น `bash -e -c`
+          ที่ resolve path แล้ว ซึ่งตรงกับที่ runner ของ GitHub รันจริงด้วย
 
   - id: plugin-deps-cve-visible
     title: CVE ของไลบรารี plugin ดังพอให้เห็น แต่ไม่หยุด pipeline (คำตอบคือถอด)
