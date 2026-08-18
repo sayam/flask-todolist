@@ -257,6 +257,18 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
   the day the token expires and someone has to confirm the replacement.
   A cadence row tracks that expiry (first token: 2026-11-16).
 
+- **The posture check no longer reports a setting as off when it simply
+  cannot see it.** Its first real run claimed `allow_auto_merge` was
+  disabled; auto-merge is on and used by every PR. GitHub only returns
+  merge-related fields to callers holding `contents:write`, which the
+  read-only `POSTURE_TOKEN` deliberately lacks, so the field arrives as
+  `None` rather than `False`. Granting a read-only auditor write access
+  to the code it audits would be the wrong trade, so absent fields are
+  now reported as unreadable notes, `False` still fails, a cadence row
+  checks the setting by hand quarterly, and the daily compensating
+  control is that `gh pr merge --auto` would fail outright if it were
+  really off (ADR 0061, second note).
+
 ### Fixed
 
 - **The failure census only ever looked at 100 runs, however many you

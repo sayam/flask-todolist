@@ -538,6 +538,24 @@ def test_posture_catches_every_way_the_platform_can_drift(change, why):
     assert audit_posture.compare({**HEALTHY, **change}, ON_PR, 2, None), why
 
 
+def test_posture_tells_off_apart_from_invisible(capsys):
+    """**ปิดอยู่** กับ **มองไม่เห็น** ต่างกันคนละขั้ว — รายงานผิดฝั่งคือการโกหก
+
+    `allow_auto_merge` ถูกคืนมาเฉพาะกับ token ที่มี `contents:write` (เอกสารของ
+    GitHub ระบุไว้ตรง ๆ) · `POSTURE_TOKEN` เป็น token อ่านอย่างเดียวโดยตั้งใจ
+    ฟิลด์นี้จึงมาเป็น `None` ไม่ใช่ `False` — ฉบับแรกอ่านว่า "ไม่เป็น True แปลว่า
+    ปิด" แล้วรายงานว่า auto-merge ปิดอยู่ ทั้งที่มันเปิดและ**ใช้งานอยู่ทุก PR**
+    (run 32108560896 · การรันจริงครั้งแรกของด่านนี้)
+    """
+    invisible = {**HEALTHY, "allow_auto_merge": None}
+
+    assert audit_posture.compare(invisible, ON_PR, 2, None) == [], (
+        "ฟิลด์ที่ token อ่านไม่ได้ ต้องไม่ถูกนับเป็นท่าทีที่ผิด"
+    )
+    assert audit_posture.unreadable(invisible), "แต่ต้องรายงานว่ามองไม่เห็น ไม่ใช่เงียบ"
+    assert audit_posture.unreadable(HEALTHY) == [], "อ่านได้แล้วต้องไม่มีหมายเหตุค้าง"
+
+
 def test_posture_catches_a_document_that_advertises_the_wrong_count():
     """เลข "required NN จาก MM" ในเอกสารต้องตรงกับของจริง ไม่ใช่กับตอนที่เขียน"""
     assert audit_posture.compare(HEALTHY, ON_PR, 2, (26, 29))
