@@ -75,8 +75,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      # อ่าน branch protection — สิทธิ์ไม่พอต้องแดง ไม่ใช่ข้าม (ดูหัวสคริปต์)
-      administration: read
+      # **ไม่มี `administration` ในรายการ scope ของ GITHUB_TOKEN** — เคยประกาศไว้
+      # ที่นี่แล้วทำให้ทั้งไฟล์ไม่ start ("workflow file issue") ตั้งแต่วันที่เพิ่ม
+      # job นี้ จนกว่าจะจับได้ในอีกวัน · สิทธิ์อ่าน branch protection ให้ผ่าน
+      # `POSTURE_TOKEN` ซึ่งเป็น fine-grained PAT (Administration: read) เท่านั้น
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -89,4 +91,8 @@ jobs:
       - name: ท่าทีของ repo ต้องตรงกับที่ ADR 0053 ประกาศ
         run: pipenv run python scripts/audit_posture.py
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # ไม่มี PAT = สคริปต์อ่าน API ไม่ได้แล้ว **แดง (exit 2) ไม่ใช่ข้าม**
+          # ตามที่ ADR 0061 กำหนดไว้ — ด่านที่เงียบตอนอ่านไม่ได้ คือด่านที่รายงาน
+          # ว่าท่าทีถูกต้องทั้งที่ไม่เคยอ่านอะไรเลย · วิธีออก token อยู่ใน
+          # docs/OPERATIONS.md
+          GH_TOKEN: ${{ secrets.POSTURE_TOKEN || secrets.GITHUB_TOKEN }}

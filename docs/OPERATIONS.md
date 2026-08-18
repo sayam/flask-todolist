@@ -640,3 +640,20 @@ alert อัตโนมัติมาจาก **ruler ของ Loki** (`depl
 
 **ห้ามใช้ rerun เป็นนโยบาย** — ด่านที่ถูกกด rerun เป็นนิสัย คือด่านที่วันแดงจริง
 ก็ถูกกด rerun เหมือนกัน (หลักเดียวกับเงื่อนไข flaky ของ ADR 0056)
+
+## `POSTURE_TOKEN` — สิทธิ์อ่านท่าทีของ repo (ADR 0061)
+
+`scripts/audit_posture.py` เทียบ branch protection · required check · auto-merge ·
+sha pinning กับสิ่งที่ ADR 0053 ประกาศไว้ · **`GITHUB_TOKEN` ของ Actions อ่าน
+branch protection ไม่ได้** — สิทธิ์ Administration ไม่อยู่ในชุด scope ที่มันให้ได้
+เลย (ประกาศ `administration: read` ใน workflow **ทำให้ทั้งไฟล์ไม่ start** ซึ่ง
+เกิดขึ้นจริงและเงียบอยู่ข้ามวัน เพราะ `posture` ไม่ใช่ required check)
+
+ออก token: Settings → Developer settings → **Fine-grained personal access tokens**
+→ เลือกเฉพาะ repo นี้ → Repository permissions: **Administration: Read-only** และ
+**Metadata: Read-only** (บังคับมาคู่กัน) → ตั้งวันหมดอายุตามรอบที่รับได้ →
+เก็บเป็น secret ชื่อ `POSTURE_TOKEN` ที่ Settings → Secrets and variables → Actions
+
+**ไม่มี token = job แดง ไม่ใช่ job ที่ข้าม** (ADR 0061 ข้อ 3) — ด่านที่เงียบตอน
+อ่านไม่ได้ คือด่านที่รายงานว่าท่าทีถูกต้องทั้งที่ไม่เคยอ่านอะไรเลย · token หมดอายุ
+เมื่อไหร่จะเห็นเป็นสีแดงที่ workflow `scorecard` ทันที ไม่ใช่ความเงียบ
