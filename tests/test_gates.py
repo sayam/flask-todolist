@@ -19,6 +19,8 @@ import re
 import pytest
 import yaml
 
+from tests.test_asvs import _unresolved
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 GATES = ROOT / "gates.yaml"
 WORKFLOW_DIR = ROOT / ".github" / "workflows"
@@ -35,7 +37,12 @@ ASVS_ROW = re.compile(
 KINDS = {"test", "step", "job"}
 LAYERS = {"baseline", "business", "internal"}
 PILLARS = {"security", "performance", "manageability", "devx"}
-SEVERITIES = {"blocking", "warning"}
+# **สามค่า และต้องตรงกับอำนาจจริง** (ADR 0066) — `blocking` บล็อก merge ได้จริง ·
+# `watched` ตรวจจริงล้มได้แต่ไม่บล็อกใคร · `warning` ไม่ล้มโดยตั้งใจ
+SEVERITIES = {"blocking", "watched", "warning"}
+WATCHER_FIELDS = {"who", "within_days", "how"}
+# กรอบเวลาที่ยาวกว่ารอบทบทวนที่ยาวที่สุดในระบบ ไม่ใช่กรอบเวลา แต่เป็นการยอมแพ้
+MAX_WITHIN_DAYS = 90
 
 
 @pytest.fixture(scope="module")
@@ -57,6 +64,25 @@ def jobs() -> dict[str, list[str]]:
             assert name not in found, f"job {name!r} ประกาศซ้ำสองไฟล์ workflow"
             found[name] = [s["name"] for s in job.get("steps", []) if s.get("name")]
     assert found, "อ่าน job จาก workflow ไม่ได้เลย — ตัวดึงพังหรือเปล่า"
+    return found
+
+
+@pytest.fixture(scope="module")
+def blocking_jobs() -> set[str]:
+    """job ที่ **บล็อก merge ได้จริง** — คือ job ในไฟล์ที่มีทริกเกอร์ `pull_request`
+
+    ด่านที่ไม่ได้รันบน PR บังคับใครไม่ได้เลย ต่อให้ดัชนีจะเขียนว่า blocking
+    (audit รอบ 10 ข้อ 1: `scorecard` ล้ม 27 run ติดกันบน main ข้ามคืน
+    โดยทุก push ผ่านหมด)
+    """
+    found: set[str] = set()
+    for path in sorted(WORKFLOW_DIR.glob("*.y*ml")):
+        workflow = yaml.safe_load(path.read_text(encoding="utf-8"))
+        triggers = workflow.get(True) or workflow.get("on") or {}
+        if "pull_request" not in (triggers if isinstance(triggers, dict) else {triggers: None}):
+            continue
+        found |= set(workflow.get("jobs", {}))
+    assert found, "ไม่มี job ไหนรันบน pull_request เลย — ตัวดึงพังหรือ workflow เปลี่ยนรูป"
     return found
 
 
@@ -302,3 +328,87 @@ def test_cited_standards_exist_and_match_the_assessment(gates, asvs_status):
             elif status != "ผ่าน":
                 broken.append(f"{gate['id']}: {ref} ถูกประเมินว่า {status!r} — ขัดกับการอ้างเป็นหลักฐาน")
     assert not broken, "\n  ".join(["standard ที่อ้างผิด:", *broken])
+
+
+# ------------------------------------------------ อำนาจจริงของด่าน (ADR 0066 · audit r10)
+#
+# `severity` มีมาตั้งแต่ ADR 0039 แต่**ไม่เคยถูกเทียบกับความจริง** — 97 จาก 99 gate
+# ประกาศว่า blocking ขณะที่ 3 จาก 30 check ไม่อยู่ในรายการบังคับเลย และสองในนั้น
+# ถือ gate ที่ประกาศตัวเองว่า blocking · วัดจริง: workflow `scorecard` ล้ม 27 run
+# ติดกัน 14 ชั่วโมง 19 นาที โดยทุก push ลง main ผ่านหมด
+
+
+def _enforcing_job(gate: dict) -> str:
+    return (gate.get("enforced_by") or {}).get("job", "")
+
+
+def test_blocking_gates_are_enforced_by_a_job_that_can_block(gates, blocking_jobs):
+    """ประกาศว่า blocking แล้วต้องบล็อกได้จริง — ไม่งั้นดัชนีโฆษณาอำนาจที่ไม่มี"""
+    lying = [
+        f"{gate['id']} (job {_enforcing_job(gate)} ไม่ได้รันบน pull_request)"
+        for gate in gates
+        if gate.get("severity") == "blocking" and _enforcing_job(gate) not in blocking_jobs
+    ]
+    assert not lying, (
+        "gate ที่ประกาศ blocking แต่ job ของมันบล็อกอะไรไม่ได้:\n  "
+        + "\n  ".join(lying)
+        + "\nใช้ severity: watched แล้วประกาศ watched_by (ADR 0066) — "
+        "ด่านที่ไม่บล็อกใครไม่ใช่เรื่องผิด แต่การเขียนว่ามันบล็อกคือการโฆษณาเกินจริง"
+    )
+
+
+def test_gates_that_can_block_do_not_understate_their_authority(gates, blocking_jobs):
+    """ทิศกลับ — job ที่รันบน PR ห้ามถูกลดชั้นเป็น watched
+
+    ถ้าเลี่ยงการบล็อกได้ด้วยการเปลี่ยนคำเดียวในดัชนี ตาข่ายทั้งใบก็หดได้เงียบ ๆ
+    (หลักเดียวกับ FAIL → WARN ของ .zap/rules.tsv)
+    """
+    understated = [
+        gate["id"]
+        for gate in gates
+        if gate.get("severity") == "watched" and _enforcing_job(gate) in blocking_jobs
+    ]
+    assert not understated, (
+        f"gate ที่ job ของมันรันบน PR อยู่แล้ว แต่ประกาศว่า watched: {understated} — "
+        "ใช้ blocking หรือถ้าตั้งใจให้ไม่ล้มจริง ๆ ใช้ warning พร้อมเหตุผล"
+    )
+
+
+def test_every_gate_that_cannot_block_names_a_watcher(gates):
+    """บล็อกไม่ได้ = ต้องบอกว่าใครเห็น และภายในกี่วัน
+
+    เขียนลงไปว่า "ผู้ดูแล ภายใน 7 วัน" เปลี่ยนความเงียบจากสภาพปกติ
+    เป็นสิ่งที่ผิดนัดได้ — นั่นคือทั้งหมดที่ฟิลด์นี้ทำ
+    """
+    for gate in gates:
+        watcher = gate.get("watched_by")
+        if gate.get("severity") == "blocking":
+            assert not watcher, f"{gate['id']}: blocking แล้วไม่ต้องมี watched_by — ผู้รับคือคนเปิด PR"
+            continue
+        assert watcher, f"{gate['id']}: severity {gate['severity']!r} แต่ไม่บอกว่าใครเห็น"
+        assert set(watcher) == WATCHER_FIELDS, (
+            f"{gate['id']}: watched_by ต้องมีครบ {sorted(WATCHER_FIELDS)} — ได้ {sorted(watcher)}"
+        )
+        assert isinstance(watcher["within_days"], int), f"{gate['id']}: within_days ต้องเป็นตัวเลข"
+        assert 1 <= watcher["within_days"] <= MAX_WITHIN_DAYS, (
+            f"{gate['id']}: within_days = {watcher['within_days']} — "
+            f"เกิน {MAX_WITHIN_DAYS} วันไม่ใช่กรอบเวลา แต่เป็นการยอมแพ้"
+        )
+        assert watcher["who"].strip(), f"{gate['id']}: ไม่ได้บอกว่าใครเป็นผู้รับ"
+
+
+def test_every_watcher_names_a_mechanism_that_exists(gates, jobs):
+    """`how` ต้องอ้างของที่มีจริง — กลไกที่พิมพ์ไว้เฉย ๆ คือความหวัง ไม่ใช่การเฝ้า"""
+    dead = []
+    for gate in gates:
+        watcher = gate.get("watched_by")
+        if not watcher:
+            continue
+        refs = re.findall(r"`([^`]+)`", watcher["how"])
+        assert refs, f"{gate['id']}: watched_by.how ไม่ได้อ้างกลไกไหนเลย"
+        dead += [
+            f"{gate['id']}: `{ref}` — {reason}"
+            for ref in refs
+            if (reason := _unresolved(ref, set(jobs)))
+        ]
+    assert not dead, "กลไกที่เฝ้าอ้างแต่ไม่มีจริง:\n  " + "\n  ".join(dead)

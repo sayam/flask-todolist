@@ -221,6 +221,9 @@
   `business` (ข้อตกลงระดับชนิดแอป → `SKILL-TODOLIST.md` ที่ generate จากตัว
   render เดียวกัน) · `internal` (ของ repo นี้) — ADR 0042 · `tests/test_gates.py`
   บังคับความสอดคล้องของชั้น
+- **`severity:` ต้องตรงกับอำนาจจริง** (ADR 0066) — `blocking` ได้เฉพาะ job ที่รันบน
+  `pull_request` · ที่เหลือเป็น `watched`/`warning` และ**ต้องมี `watched_by:`**
+  (ใคร · ภายในกี่วัน · ด้วยกลไกอะไร ซึ่งต้องมีอยู่จริง)
 - **ทุก gate ประกาศ `pillar:` ด้วย** (ADR 0051 — ธรรมนูญ): `security` >
   `performance` > `manageability` > `devx` คือลำดับความสำคัญของโปรเจกต์
   ชนกันเมื่อไหร่ชั้นบนชนะ · ของใหม่จากภายนอกเข้าผ่าน intake (CONTRIBUTING
