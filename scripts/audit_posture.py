@@ -143,7 +143,7 @@ def compare(
     problems.extend(
         f"{flag} = {state.get(flag)!r} — ต้องเปิด (ADR 0061)"
         for flag in ("allow_auto_merge", "sha_pinning_required")
-        if state.get(flag) is not True
+        if state.get(flag) is False
     )
 
     if claim and claim != (len(required), produced):
@@ -152,6 +152,26 @@ def compare(
             f"แต่ของจริงคือ {len(required)} จาก {produced}"
         )
     return problems
+
+
+# ฟิลด์ที่ GitHub **ไม่คืนให้ token ที่มีสิทธิ์อ่านอย่างเดียว** — เอกสารของ
+# endpoint `GET /repos/{owner}/{repo}` ระบุว่า "To view merge-related settings,
+# you must have the contents:read and contents:write permissions" · การให้สิทธิ์
+# *เขียนโค้ด* แก่ตัวตรวจที่มีหน้าที่อ่านอย่างเดียว แพงกว่าค่าที่ได้จากบูลีนตัวเดียว
+# มาก (ADR 0061 โน้ต 2026-08-18) → รายงานเป็น "ตรวจด้วยเครื่องไม่ได้" ไม่ใช่
+# "ปิดอยู่" เพราะสองอย่างนั้นต่างกันคนละขั้ว และการรายงานผิดฝั่งคือการโกหก
+UNREADABLE_AT_LEAST_PRIVILEGE = {
+    "allow_auto_merge": "ต้องการ contents:write จึงจะเห็น — ตรวจด้วยมือตามรอบ cadence",
+}
+
+
+def unreadable(state: dict) -> list[str]:
+    """ฟิลด์ที่หายไปจากคำตอบ (None) เพราะสิทธิ์ ไม่ใช่เพราะถูกปิด"""
+    return [
+        f"{flag} = อ่านไม่ได้ ({why})"
+        for flag, why in UNREADABLE_AT_LEAST_PRIVILEGE.items()
+        if state.get(flag) is None
+    ]
 
 
 def claimed_counts() -> tuple[int, int] | None:
@@ -213,9 +233,13 @@ def main(argv: list[str] | None = None) -> int:
         print("ท่าทีของแพลตฟอร์มไม่ตรงกับสิ่งที่ประกาศไว้:", file=sys.stderr)
         for line in problems:
             print(f"  - {line}", file=sys.stderr)
+        for line in unreadable(state):
+            print(f"  หมายเหตุ (ไม่ใช่ข้อผิด): {line}", file=sys.stderr)
         return 1
 
     print(f"ท่าทีตรงกับที่ประกาศ — required {len(state['required_checks'])} check · ธงครบตาม ADR 0053")
+    for line in unreadable(state):
+        print(f"  หมายเหตุ: {line}")
     return 0
 
 
