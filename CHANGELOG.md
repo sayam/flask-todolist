@@ -207,6 +207,27 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
   form answers alongside ASVS/PDPA/ISO — the audit's third round found
   the layering fully converged, leaving only these.
 
+### Fixed
+
+- **The CI failure census was reading the wrong signal** (round-8 audit,
+  D1). It told platform failures apart from ours by the *name of the
+  failing step* (`Set up job`) — but during the GitHub outage of
+  2026-08-17/18 `codeql` failed four times inside
+  `Run github/codeql-action/init@…`, whose actual cause was a 503 from
+  GitHub itself, and all four were counted as ours. The counter now
+  classifies by the **failure message** in the check run's annotations,
+  and anything it cannot decide lands in a third class, `ต้องอ่านเอง`
+  ("read it yourself"), instead of silently defaulting to ours. Status
+  codes only count as platform evidence with HTTP context around them,
+  because this app asserts `503` on `/readyz` in its own tests. The
+  supply-chain register and the flake cadence row, both of which named
+  the old signal, were corrected too.
+- Pressing rerun now has a written procedure (round-8 audit, D2):
+  ask `githubstatus.com` **before** rerunning — anything but
+  operational means wait, not retry — then classify the failure, and
+  rerun only what is provably the platform's. Six red runs during that
+  outage had nothing of ours broken in them.
+
 ## [1.6.0] — 2026-08-17
 
 The silver release: the OpenSSF Best Practices badge reached **Silver
@@ -663,7 +684,7 @@ graph. Nothing in the `/api/v1` contract changed; it only gained fields.
 ## [1.0.0] — 2026-08-12
 
 First public release. Everything below arrived across seven planned phases of
-work; the reasoning for each decision lives in the 63 records in
+work; the reasoning for each decision lives in the 64 records in
 [`docs/adr/`](docs/adr/), and the phase-by-phase plan in
 [`docs/ROADMAP.md`](docs/ROADMAP.md).
 

@@ -9,9 +9,21 @@
 **กลับไปเป็น "ไม่เคยแดง"** ได้ — ซึ่งเป็นข้อมูลที่ ADR 0059 (`proved_by`) กับแถว
 ทบทวน flake ใน `docs/SECURITY-CADENCE.md` ใช้ตัดสินทั้งคู่
 
-**แยกสองคลาสด้วย step ที่ล้ม**: step ของ runner เอง (`Set up job` — โหลด action
-ไม่ได้ ฯลฯ) คือความล้มเหลว *ของแพลตฟอร์ม* ซึ่งเราแก้ไม่ได้และไม่ควรปนกับเกณฑ์
-flake ของด่านเรา · ที่เหลือนับเป็นของเรา
+**แยกคลาสด้วย*ข้อความ*ของความล้มเหลว ไม่ใช่ชื่อ step** (แก้ตาม audit r8) —
+ฉบับแรกอ่านแค่ชื่อ step (`Set up job`) แล้ววันที่ GitHub ล่มจริง (2026-08-17/18)
+`codeql` ล้มสี่ครั้งที่ step `Run github/codeql-action/init@…` ซึ่ง*ข้างใน*คือ
+HTTP 503 ของ GitHub เอง — ตัวนับอ่านว่า "ของเรา" ทั้งสี่ครั้ง · **ชื่อ step บอก
+ว่าล้มตรงไหน ไม่ได้บอกว่าใครพัง** สัญญาณที่บอกได้คือ annotation ของ check run
+
+สามคลาส ไม่ใช่สอง:
+
+- `platform` — มีร่องรอยของ "โลกพัง" ชัดเจน (429/503 · No server is currently
+  available ฯลฯ) หรือล้มที่ step ของ runner เอง · เราแก้ไม่ได้ ไม่ปนเกณฑ์ flake
+- `ของเรา` — ล้มที่ step ที่เป็นคำสั่งของเราเอง พร้อมข้อความที่ไม่ใช่ของแพลตฟอร์ม
+- `ต้องอ่านเอง` — **ที่เหลือทั้งหมด** (ไม่มี annotation ให้อ่าน หรือล้มใน action
+  ของคนอื่นโดยไม่มีร่องรอยว่าฝั่งไหนพัง) · ชั้นนี้มีไว้เพื่อให้ของที่จำแนกไม่ได้
+  **ไม่ตกไปอยู่ "ของเรา" เงียบ ๆ** — การเดาผิดทิศนั้นทำให้เกณฑ์ flake สุกงอม
+  ด้วยเรื่องที่เราแก้ไม่ได้ ซึ่งคือความผิดพลาดที่ฉบับแรกทำมาแล้ว
 
 ใช้:
     python3 scripts/rerun_census.py --limit 200          # ดึงสดจาก GitHub ผ่าน gh
@@ -25,9 +37,11 @@ import argparse
 import collections
 import json
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
+import typing
 
 # pyyaml มากับ dev tools และไม่มี stub — เหตุผลเดียวกับ build_gates_crosswalk.py
 import yaml  # type: ignore[import-untyped]
@@ -37,9 +51,57 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 # step ที่เป็นของ runner ไม่ใช่ของด่าน — ล้มตรงนี้แปลว่าแพลตฟอร์มมีปัญหา
 PLATFORM_STEPS = frozenset({"Set up job", "Set up runners", "Complete job"})
 
+PLATFORM = "platform"
+OURS = "ของเรา"
+UNKNOWN = "ต้องอ่านเอง"
 
-def _gh(path: str) -> dict:
-    """เรียก `gh api` แล้วคืน JSON — แยกออกมาเพื่อให้เทสต์ปลอมได้ที่จุดเดียว"""
+# ร่องรอยของ "โลกพัง" ในข้อความของความล้มเหลว — เก็บจาก outage จริง 2026-08-17/18
+# **รหัสสถานะต้องมีบริบท HTTP กำกับเสมอ** ไม่ใช่ตัวเลขลอย ๆ เพราะเทสต์ของแอปนี้
+# assert 503 กับ `/readyz` อยู่จริง — ตัวเลขลอยจะทำให้ความล้มเหลวของเราถูกอ่าน
+# เป็นของแพลตฟอร์ม ซึ่งเป็นความผิดพลาดทิศเดียวกับที่ audit r8 เพิ่งจับได้
+PLATFORM_MESSAGES = re.compile(
+    r"""(?ix)
+      \bhttp/?[\d.]*\s* (?:error\s*)? (?:429|50[234])\b
+    | \b(?:status|code)\b [^\n]{0,20} \b(?:429|50[234])\b
+    | \b(?:429|50[234])\b \s* [:-]? \s*
+      (?:too\ many\ requests|bad\ gateway|service\ unavailable|gateway\ time-?out)
+    | too\ many\ requests
+    | bad\ gateway
+    | service\ unavailable
+    | server\ error
+    | no\ server\ is\ currently\ available
+    | (?:api\ )?rate\ limit\ exceeded
+    | you\ have\ exceeded\ a\ secondary\ rate\ limit
+    """
+)
+
+# step ที่รัน action ของคนอื่น — ชื่อเริ่มด้วย "Run <เจ้าของ>/<ชื่อ>@<รุ่น>"
+# ล้มตรงนี้โดยไม่มีข้อความของแพลตฟอร์ม แปลว่าตัดสินไม่ได้ว่าเป็นเซิร์ฟเวอร์ของเขา
+# หรือ config ของเรา (เคสของ codeql ที่ r8 เจอ) → ต้องมีคนอ่าน ไม่ใช่ให้ตัวนับเดา
+THIRD_PARTY_STEP = re.compile(r"^Run [\w.-]+/[\w./-]+@")
+
+
+def classify(failure: dict) -> str:
+    """ความล้มเหลวหนึ่งครั้งเป็นของใคร — **อ่านข้อความก่อน แล้วค่อยดูว่าล้มตรงไหน**
+
+    ลำดับนี้สำคัญ: ข้อความคือหลักฐาน ส่วนชื่อ step เป็นแค่บริบท · ที่ไม่มีหลักฐาน
+    ทั้งสองทางต้องออกทาง `ต้องอ่านเอง` เสมอ (ดูหัวไฟล์ — ADR ของบทเรียนนี้คือ
+    audit r8: ตัวจำแนกที่ผ่าน mutation test ครบ ยังอ่านโลกจริงผิดได้ 4 ใน 9 ครั้ง)
+    """
+    message = str(failure.get("message") or "").strip()
+    if message and PLATFORM_MESSAGES.search(message):
+        return PLATFORM
+    if failure.get("step") in PLATFORM_STEPS:
+        return PLATFORM
+    if not message:
+        return UNKNOWN
+    if THIRD_PARTY_STEP.match(str(failure.get("step") or "")):
+        return UNKNOWN
+    return OURS
+
+
+def _gh_json(path: str) -> typing.Any:
+    """เรียก `gh api` แล้วคืน JSON ดิบ — แยกออกมาเพื่อให้เทสต์ปลอมได้ที่จุดเดียว"""
     binary = shutil.which("gh")
     if not binary:
         raise RuntimeError("ไม่มี gh บนเครื่องนี้ — ตัวนับต้องถาม GitHub API ผ่านมัน")
@@ -49,7 +111,34 @@ def _gh(path: str) -> dict:
         text=True,
         check=True,
     )
-    return dict(json.loads(result.stdout))
+    return json.loads(result.stdout)
+
+
+def _gh(path: str) -> dict:
+    """ปลายทางที่คืน object เดียว (runs · jobs)"""
+    return dict(_gh_json(path))
+
+
+def _annotations(job: dict) -> str:
+    """ข้อความของความล้มเหลวจาก check run ของ job นั้น — หลักฐานว่าใครพัง
+
+    **อ่านไม่ได้ต้องคืนค่าว่าง ห้าม raise** (สิทธิ์ไม่พอ · annotation หมดอายุ ·
+    หรือ API ล่มเอง) แล้วปล่อยให้ความล้มเหลวนั้นตกชั้น `ต้องอ่านเอง` — สำมะโนที่
+    ตายกลางทางเพราะ job เดียวอ่านไม่ได้ คือสำมะโนที่รันไม่ได้ตอน GitHub มีปัญหา
+    ซึ่งเป็นตอนที่ต้องการมันที่สุด
+    """
+    url = str(job.get("check_run_url") or "")
+    if not url:
+        return ""
+    try:
+        rows = _gh_json(f"{url}/annotations")
+    except (subprocess.CalledProcessError, json.JSONDecodeError):
+        return ""
+    return " · ".join(
+        str(row.get("message") or "")
+        for row in rows
+        if isinstance(row, dict) and row.get("annotation_level") == "failure"
+    ).strip()
 
 
 def collect(limit: int) -> list[dict]:
@@ -70,7 +159,12 @@ def collect(limit: int) -> list[dict]:
                     s["name"] for s in job.get("steps", []) if s.get("conclusion") == "failure"
                 ]
                 failures.append(
-                    {"attempt": n, "job": job["name"], "step": steps[0] if steps else ""}
+                    {
+                        "attempt": n,
+                        "job": job["name"],
+                        "step": steps[0] if steps else "",
+                        "message": _annotations(job),
+                    }
                 )
         records.append({"id": run["id"], "attempt": attempt, "failures": failures})
     return records
@@ -93,8 +187,7 @@ def census(records: list[dict]) -> dict:
             where = "visible" if failure.get("attempt", 1) >= last else "hidden"
             job = str(failure.get("job", "?")).split(" (")[0]
             by_job[job][where] += 1
-            kind = "platform" if failure.get("step") in PLATFORM_STEPS else "ของเรา"
-            classes[kind] += 1
+            classes[classify(failure)] += 1
             seen.add(where)
         for where in seen:
             runs[where] += 1
@@ -125,6 +218,12 @@ def report(summary: dict) -> None:
     print(f"  ล้มแล้วถูก rerun จนหายไป    : {summary['runs_failed_hidden']}")
     for kind, count in sorted(summary["failures_by_class"].items()):
         print(f"  ความล้มเหลวชนิด {kind}: {count}")
+    unread = summary["failures_by_class"].get(UNKNOWN, 0)
+    if unread:
+        print(
+            f"  ↳ {unread} ครั้งจำแนกด้วยเครื่องไม่ได้ — เปิดอ่านเองก่อนนับเข้าเกณฑ์ flake\n"
+            '    (ขั้นตอนตัดสิน "ของเราพัง vs โลกพัง" อยู่ใน docs/OPERATIONS.md)'
+        )
     for job, counts in summary["jobs"].items():
         hidden = counts.get("hidden", 0)
         mark = f"  (ซ่อน {hidden})" if hidden else ""
