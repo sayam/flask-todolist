@@ -86,11 +86,23 @@ zap_config="$zap_config -config replacer.full_list(1).replacement=$USER_AGENT"
 # โผล่ตอน crawl ธรรมดาด้วย เป็นหลักฐานเพิ่มว่าควรแก้ ไม่ใช่หลักฐานว่าไม่ต้อง
 zap_config="$zap_config -config spider.thread=1"
 
+# **ตัวกรองของหน้ารายการทำให้ URL เดียวกลายเป็นสิบกว่า URL** — `?status=`,
+# `?when=`, `?within=`, `?category=` ผสมกันได้หลายสิบแบบ และ spider ที่มีงบเวลา
+# จำกัดจะใช้งบไปกับ*ค่าของพารามิเตอร์*จนไม่เหลือไปถึงหน้าอื่น · `IGNORE_VALUE`
+# ยุบให้เหลือหนึ่ง URL ต่อชุดชื่อพารามิเตอร์ ซึ่งตรงกับคำถามของ job นี้พอดี
+# (baseline เป็นการสแกนแบบ passive — มันไม่ได้ยิงค่าเข้าไปทดสอบอยู่แล้ว)
+#
+# เกิดจริงสามครั้งใน 2 วัน: FAIL-NEW 0 แต่ด่านความครอบคลุมแดงเพราะ spider
+# ไม่เคยไปถึง `/settings` (2026-08-17 สองครั้ง · 2026-08-18 หนึ่งครั้ง) —
+# เกณฑ์ flake ใน docs/SECURITY-CADENCE.md สั่งให้แก้ความไม่แน่นอน ไม่ใช่ rerun
+zap_config="$zap_config -config spider.handleParameters=IGNORE_VALUE"
+
 status=0
 docker run --rm --network host \
   -v "$ROOT/.zap:/zap/wrk/:rw" \
   "$ZAP_IMAGE" zap-baseline.py \
   -t "$BASE" \
+  -m 3 \
   -c rules.tsv \
   -r out/report.html \
   -w out/report.md \
@@ -102,8 +114,13 @@ docker run --rm --network host \
 # รายงานว่า "ไม่พบอะไร" ซึ่งอ่านเหมือนผลดีที่สุด ทั้งที่คือการไม่ได้ตรวจอะไรเลย
 # หน้าที่ต้อง login ถึงจะเข้าได้ต้องโผล่ในรายงาน ไม่งั้นถือว่าการสแกนใช้ไม่ได้
 for path in /categories /settings; do
-  grep -qF "$path" "$out/report.json" \
-    || { echo "การสแกนไม่เคยไปถึง $path — ผลที่ได้ไม่ใช่ผลของแอปที่ login แล้ว"; exit 1; }
+  grep -qF "$path" "$out/report.json" && continue
+  # **ข้อความต้องบอกด้วยว่าสแกนไปได้แค่ไหน** — "ไม่เคยไปถึง" เฉย ๆ อ่านไม่ออกว่า
+  # คุกกี้ไม่ติด (สแกนได้ 2-3 URL) หรือ spider หมดงบ (สแกนได้หลายสิบ URL)
+  # ซึ่งเป็นสองสาเหตุที่แก้คนละทางกันโดยสิ้นเชิง
+  echo "การสแกนไม่เคยไปถึง $path — ผลที่ได้ไม่ใช่ผลของแอปที่ login แล้ว"
+  echo "  URL ที่สแกนได้ทั้งหมด: $(grep -oE 'https?://[^"]+' "$out/report.json" | sort -u | wc -l)"
+  exit 1
 done
 
 exit "$status"
