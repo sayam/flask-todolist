@@ -194,6 +194,19 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
   A floor on the number of `FAIL` rules keeps the regression net from
   shrinking by a one-word edit.
 
+- Documentation swept after the round-9 batch: ADR 0061's rejected-option
+  line still claimed `administration: read` was enough for `GITHUB_TOKEN`
+  (it is not a scope at all — the note at the end now corrects the line
+  itself), the supply-chain register described the posture check as
+  running only on main pushes and rule changes, the governance roadmap's
+  audit table stopped at r7, and the risk register's "gate that is green
+  without checking" row gained the sharper variant this round found: a
+  gate that never ran at all because it is not a required check. Two
+  fixes came from the missing-marks axis rather than the stale-claims
+  one: a finished row in the dialect-landmine table had lost its ✅, and
+  the small-backlog row for MFA recovery codes still said no CLI existed,
+  four days after round 5 added one.
+
 ### Changed
 
 - The verify commands in `SECURITY.md` are now bound to the workflow

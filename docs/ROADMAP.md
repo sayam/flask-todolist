@@ -104,7 +104,7 @@ correctness) backend จริงเป็น plugin และ rate-limiter stor
 | ~~raw SQL `UPDATE user SET ...` ใน migration `296ab616c11b` — `user` เป็น reserved word~~ **ปิดแล้ว** | PostgreSQL/Oracle/MSSQL (fresh install ที่ replay migration) — **MySQL/MariaDB รอด** | Phase 2: rename เป็น `tdl_user` (หมดปัญหาถาวร) + **P5-02: ยุบสายเดิม 13 ตัวเป็น baseline `5ffefa218ed7` ✅ raw SQL หายไปทั้งหมด** |
 | ~~MySQL `DATETIME` default ตัด microsecond แต่โค้ดเก็บ `datetime.now()` เต็ม precision~~ **ปิดฝั่งประกาศแล้ว** | MySQL/MariaDB (silent truncation กระทบ ordering tie และ audit hash) | **P5-03: `UTCDateTime` ใน `app/db_types.py` ประกาศ variant `DATETIME(6)` ครอบทั้ง mysql/mariadb ✅ ทุกคอลัมน์เวลารวมของ plugin** — เหลือพิสูจน์ค่าจริงที่วิ่งไปกลับใน CI matrix (P5-04) |
 | ~~`batch_alter_table` + data fix เฉพาะ SQLite ใน migration เก่า~~ **ปิดแล้ว** | ไม่ระเบิด (no-op บนยี่ห้ออื่น) แต่รก | **P5-02: หายไปพร้อมการยุบสาย ✅ baseline ไม่มี `batch_alter_table` เลยสักจุด** |
-| ชื่อคอลัมน์ String ระบุความยาวครบทุกตัวแล้ว | — | ทุนที่มีแล้ว (MySQL บังคับ) |
+| ✅ ชื่อคอลัมน์ String ระบุความยาวครบทุกตัวแล้ว | — | ทุนที่มีแล้ว (MySQL บังคับ) |
 
 **Baseline squash (Phase 5):** ณ จุดที่รองรับหลาย DB จะสร้าง migration ตั้งต้น
 ใหม่จาก model ปัจจุบันสำหรับ fresh install (สาย migration เก่าเก็บไว้ให้ DB
@@ -696,7 +696,7 @@ coverage **96.31%** (เพดาน 96) · interrogate **84.9%** (เพดา�
 
 | เรื่อง | สถานะ | เก็บเมื่อไหร่ |
 |---|---|---|
-| recovery code ของ MFA (ทำโทรศัพท์หายแล้วกู้เอง) | ยังไม่มี — ตอนนี้ต้องให้ผู้ดูแลปิดให้ ซึ่งยังไม่มีคำสั่ง CLI ของ plugin ด้วยซ้ำ | ตอนแตะ `app/plugins/auth/totp/` ครั้งหน้า |
+| recovery code ของ MFA (ทำโทรศัพท์หายแล้วกู้เอง) | ยังไม่มี — **แต่ทางกู้มีแล้วตั้งแต่ audit r5**: `flask mfa-status` / `mfa-disable` (ลง audit เหมือนการเขียนอื่น) · เต็มรูปยังไม่ทำเพราะเพิ่มผิวของความลับชุดที่สอง เงื่อนไขที่ทำให้ต้องทำอยู่ใน `CLAUDE.md` หัวข้อ "ยังไม่ได้ทำ" | เมื่อมีผู้ใช้ที่ผู้ดูแลติดต่อไม่ได้ทันที หรือวันที่ตัดสินใจบังคับ MFA (ADR 0033) |
 | `password` เป็น plugin ที่มีแต่ manifest (core ยังเรียก `check_password()` ตรง ๆ) | **ตัดสินแล้วว่าไม่ยก** — ปัจจัยหลักตัวที่สองมีแล้ว (OIDC/LDAP) แต่ seam ที่ต้องมีคือ "ปัจจัยหลัก*เพิ่มเติม*" ซึ่งทำแล้ว · รหัสผ่านต้องอยู่เสมอตาม ADR 0028 ข้อ 7 การย้ายออกไม่ทำให้อะไรถอดได้เพิ่ม | — (คำตัดสินถาวร) |
 | ~~CI actions ยัง target Node.js 20 ที่ deprecated~~ | ✅ เก็บแล้ว 2026-08-03 — ขยับครบ 5 ตัวเป็น `checkout@v7`, `setup-python@v7`, `setup-node@v7`, `upload-artifact@v7`, `gitleaks-action@v3` ทุกตัวรันบน Node 24 แล้ว (เส้นตาย: GitHub ถอด Node 20 ออกจาก runner 2026-09-16) | — |
 | ~~raw SQL 3 จุดใน migration เก่าอ้างตาราง `user` แบบไม่ quote~~ | ✅ ปิดแล้ว — baseline squash P5-02 ล้างครบ (ตัวดักย้ายไปอยู่ใต้ gate `dialect-discipline` ตั้งแต่ ADR 0057) | — |

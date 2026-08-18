@@ -76,7 +76,7 @@ supply chain เป็น**แกนอิสระ**ของชั้น secur
 
 | ผู้ให้บริการ | เราพึ่งอะไร | อะไรจะแดงถ้าเขาเปลี่ยน |
 |---|---|---|
-| GitHub — branch protection, auto-merge, Actions permissions | กติกาที่ ADR 0053 ประกาศ: PR-only, enforce_admins, required check ครบ | job `posture` (ADR 0061) เทียบ API กับที่ประกาศทุกครั้งที่กฎเปลี่ยนและทุก push บน main |
+| GitHub — branch protection, auto-merge, Actions permissions | กติกาที่ ADR 0053 ประกาศ: PR-only, enforce_admins, required check ครบ | job `posture` (ADR 0061) เทียบ API กับที่ประกาศทุกครั้งที่กฎเปลี่ยน ทุก push บน main และกดรันเองได้ (`workflow_dispatch`) · อ่านด้วย secret `POSTURE_TOKEN` (PAT อ่านอย่างเดียว) · ฟิลด์ที่ token อ่านไม่ได้รายงานว่า **มองไม่เห็น ไม่ใช่ปิดอยู่** และมีแถว cadence ตรวจด้วยมือแทน |
 | GitHub Actions — runner และ codeload (actions/checkout, actions/setup-python, actions/setup-node, actions/upload-artifact) | ทุก job ใน CI เริ่มด้วยการโหลด action จากที่นี่ | job นั้นแดงทันที — **ไม่จำเป็นต้องแดงที่ `Set up job`** (เกิดจริง 4 ครั้งวันที่ 2026-08-17/18: `codeql` แดงที่ step ของ action เอง โดยข้างในเป็น HTTP 503) · แยกออกจาก flake ของด่านเราด้วย `scripts/rerun_census.py` ซึ่งอ่าน**ข้อความ**ของความล้มเหลว ไม่ใช่ชื่อ step และส่งของที่จำแนกไม่ได้ไปชั้น `ต้องอ่านเอง` · ขั้นตอนตัดสินก่อนกด rerun อยู่ใน `docs/OPERATIONS.md` |
 | GitHub — attestation API และ actions/attest-build-provenance | provenance ของ release ที่ผู้ใช้ verify ได้ | job `release-sign` แดงตอนออกรุ่น (verify สองทิศก่อนแนบ) |
 | sigstore — Fulcio/Rekor และ sigstore/cosign-installer | ลายเซ็น keyless ของ SBOM ทุกไฟล์ | job `release-sign` แดงตอนออกรุ่น |

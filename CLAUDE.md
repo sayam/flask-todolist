@@ -132,7 +132,9 @@
   `deploy/accepted-image-advisories.txt` ซึ่งควรว่างเป็นปกติ)
 - `.hadolint.yaml` — ขอบเขต lint ของ `Dockerfile` (ADR 0055 — job `lint` รัน
   hadolint ทุกระดับรวม info ต้องเขียว) **ข้อยกเว้นต้องมีเหตุผลกำกับที่นี่
-  ที่เดียว** · รุ่นที่ตัดสินคือรุ่นใน action — รุ่นบนเครื่องเป็นแค่ preview
+  ที่เดียว** (`tests/test_exception_registers.py` บังคับ พร้อมกับห้าม workflow
+  ตั้ง `failure-threshold` ซึ่งยกเว้นทั้งชั้นด้วยบรรทัดเดียว) · รุ่นที่ตัดสิน
+  คือรุ่นใน action — รุ่นบนเครื่องเป็นแค่ preview
 - job `perf-smoke` — **tripwire ของ pillar performance** (ADR 0056): เดิน
   `loadtest/journey.js` ใส่ stack จาก image จริง 5 VUs/60s เกณฑ์หลวม 2× เป้า
   (`P95_MS`/`P99_MS` — default ของ journey ยังเป็นเป้าจริง) · **เป็น tripwire
@@ -171,6 +173,11 @@
   auto-merge · `sha_pinning_required` กับสิ่งที่ ADR 0053 กับ SECURITY-CADENCE
   ประกาศไว้ · **อ่าน API ไม่ได้ = แดง (exit 2) ไม่ใช่ข้าม** ทั้งกรณีสิทธิ์ไม่พอ
   และกรณี GitHub ล่ม · เพิ่ม job ใหม่แล้วลืมทำให้เป็น required = ด่านนี้แดง
+  · สิทธิ์มาจาก secret `POSTURE_TOKEN` (fine-grained PAT อ่านอย่างเดียว — วิธีออก
+  และวันหมดอายุอยู่ใน `docs/OPERATIONS.md`) · ฟิลด์ที่ token อ่านไม่ได้ต้องรายงาน
+  ว่า **"มองไม่เห็น" ไม่ใช่ "ปิดอยู่"** (ADR 0061 โน้ต 2 — รายงานผิดฝั่งคือการโกหก)
+  · **ด่านนี้ไม่ใช่ required check** จึงล้มเงียบได้ ตัวที่ทำให้มองเห็นคือสำมะโนที่
+  นับ run ที่ไม่ได้ start (ADR 0064) — workflow ที่ GitHub ปฏิเสธทั้งไฟล์มี 0 job
 - **นับความล้มเหลวของ CI ด้วย `scripts/rerun_census.py` เท่านั้น** (audit r7) —
   `gh run list --json conclusion` รายงานผลของ **attempt สุดท้าย** การกด rerun
   จนเขียวจึงลบความล้มเหลวเดิมออกจากสถิติ (วัดจริง: 100 run ล่าสุด เห็น 7 ซ่อน 3
@@ -895,6 +902,8 @@ session มาก่อนโปรไฟล์เพื่อให้กดส
   · ใน `-z` **ห้ามใส่ backslash หน้าวงเล็บ** ของ `replacer.full_list(0)`
 - กติกาต่อรายการอยู่ใน `.zap/rules.tsv` — **ทุกบรรทัดต้องมีเหตุผล** และ
   ข้อที่ตั้งเป็น FAIL ทั้งหมด**ผ่านอยู่แล้ว** มันเป็นตาข่ายกันถอยหลัง ไม่ใช่ตัวหาของใหม่
+  · `tests/test_exception_registers.py` บังคับทั้งเหตุผล id ที่ไม่ซ้ำ และ
+  **เพดานล่างของจำนวน FAIL** (เปลี่ยน FAIL เป็น WARN คือการปิดเสียงที่แก้คำเดียว)
 - **spider ใช้ thread เดียว** เพราะ ZAP submit ฟอร์มด้วย การ crawl หลาย thread
   จึงไปกระตุ้น MySQL deadlock ที่ ADR 0032 บันทึกว่ายังไม่ได้แก้ แล้ว job แดง
   ด้วยเรื่องที่ไม่เกี่ยวกับ PR นั้น
