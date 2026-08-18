@@ -29,6 +29,7 @@ from scripts import (
     audit_pins,
     audit_posture,
     check_semgrep,
+    red_streak_census,
     rerun_census,
     schedule_census,
 )
@@ -777,3 +778,77 @@ def test_dependabot_is_reported_as_something_no_machine_can_check():
 
     assert ecosystems, "dependabot.yml ประกาศรอบไว้แต่ตัวรายงานไม่เห็น"
     assert all("weekly" in line or "daily" in line or "monthly" in line for line in ecosystems)
+
+
+# ------------------------- `within_days` ทำได้จริงไหม (ADR 0066 → วัดได้ในรอบ 11)
+#
+# รอบ 10 ให้ทุก gate ที่บล็อกไม่ได้ประกาศว่า "ใครเห็นภายในกี่วัน" แต่สิ่งเดียวที่
+# ตรวจมันคือ *รูปแบบ* · ตัวนี้วัดขอบบนของเวลาที่ใช้รับรู้+แก้ จากความยาวของช่วง
+# ที่ workflow อยู่ในสถานะแดงบน main — ไม่ใช่ MTTA แท้ ๆ และต้องเรียกให้ถูก
+
+
+def _run(path, stamp, conclusion, name="ชื่ออะไรก็ได้"):
+    return {"path": path, "created_at": stamp, "conclusion": conclusion, "name": name}
+
+
+WATCHED = ".github/workflows/scorecard.yml"
+
+
+def test_a_red_streak_is_measured_from_first_failure_to_next_success():
+    runs = [
+        _run(WATCHED, "2026-08-17T16:30:00+00:00", "failure"),
+        _run(WATCHED, "2026-08-17T23:00:00+00:00", "failure"),
+        _run(WATCHED, "2026-08-18T06:49:00+00:00", "success"),
+    ]
+
+    assert red_streak_census.longest_red_hours(runs)[WATCHED] == pytest.approx(14.3, abs=0.1)
+
+
+def test_runs_are_grouped_by_path_not_by_name():
+    """run ที่ GitHub ปฏิเสธทั้งไฟล์ถูกตั้งชื่อด้วย *path* — รวมด้วยชื่อจะตัดประวัติเป็นสองก้อน
+
+    ฉบับแรกของการวัดนี้พลาดตรงนี้จริง: ได้ 2.2 ชม. แทนที่จะเป็น 14.6
+    """
+    runs = [
+        _run(WATCHED, "2026-08-17T16:30:00+00:00", "failure", name=WATCHED),
+        _run(WATCHED, "2026-08-18T06:49:00+00:00", "success", name="scorecard"),
+    ]
+
+    measured = red_streak_census.longest_red_hours(runs)
+
+    assert list(measured) == [WATCHED], "ชื่อที่ต่างกันต้องไม่ทำให้กลายเป็นสอง workflow"
+    assert measured[WATCHED] > 14
+
+
+def test_a_streak_that_has_not_ended_yet_still_counts():
+    """ความแดงที่ยังไม่จบคือความแดงที่ยาวที่สุดเสมอเมื่อมองจากตอนนี้"""
+    runs = [
+        _run(WATCHED, "2026-08-10T00:00:00+00:00", "failure"),
+        _run(WATCHED, "2026-08-18T00:00:00+00:00", "failure"),
+    ]
+
+    assert red_streak_census.longest_red_hours(runs)[WATCHED] == pytest.approx(192.0, abs=0.1)
+
+
+def test_a_promise_that_reality_beats_is_quiet():
+    """ทิศ "ผ่านเมื่อควรผ่าน" — แดง 14 ชม. ใต้คำสัญญา 7 วัน ต้องไม่มีเสียงบ่น"""
+    assert red_streak_census.problems({WATCHED: 7}, {WATCHED: 14.6}) == []
+
+
+def test_a_promise_reality_cannot_keep_is_red():
+    """สัญญาว่าเห็นภายใน 1 วัน แต่ความแดงยืนอยู่ 3 วัน = สัญญาเกินกว่าที่ทำได้"""
+    found = red_streak_census.problems({WATCHED: 1}, {WATCHED: 72.0})
+
+    assert found, "คำสัญญาที่ทำไม่ได้ต้องแดง"
+    assert "เลิกสัญญาเกินจริง" in found[0]
+
+
+def test_workflows_that_also_block_are_left_out_of_the_comparison():
+    """`ci.yml` มี job ที่บล็อกปนอยู่ — ผลของ run เป็นของทั้งไฟล์ จึงวัดตัวที่ถูกเฝ้าไม่ได้
+
+    เขียวที่ไม่ได้แปลว่าอะไร แย่กว่าไม่วัด
+    """
+    promised = red_streak_census.promised_days()
+
+    assert ".github/workflows/ci.yml" not in promised
+    assert ".github/workflows/scorecard.yml" in promised, "ไฟล์ที่ทุก job ถูกเฝ้าต้องถูกวัด"
