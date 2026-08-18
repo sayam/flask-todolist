@@ -50,6 +50,9 @@ request · linear history · ห้าม force push** — และ `docs/SECUR
 - **ใช้ PAT ของเจ้าของ** — ปัดตก *เป็นค่าเริ่มต้น*: `GITHUB_TOKEN` +
   `permissions: administration: read` พอสำหรับการอ่าน · ถ้าวันหนึ่งมันไม่พอ
   ด่านจะแดงพร้อมข้อความที่บอกทางแก้ ไม่ใช่เงียบ
+  — **ข้อนี้ผิด ดูโน้ตท้ายใบ**: `administration` ไม่ใช่ scope ที่ `GITHUB_TOKEN`
+  มีเลย และการประกาศมันทำให้ workflow ไม่ start ทั้งไฟล์ · คำตัดสินจริงกลับด้าน
+  เป็น PAT อ่านอย่างเดียว (`POSTURE_TOKEN`)
 
 ## เงื่อนไขที่ทำให้คำตัดสินนี้หมดอายุ
 
