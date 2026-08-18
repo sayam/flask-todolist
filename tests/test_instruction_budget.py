@@ -19,6 +19,7 @@ governance โดยไม่มีใครเคยตัดสินว่า
 """
 
 import pathlib
+import re
 
 import pytest
 
@@ -85,3 +86,42 @@ def test_every_file_with_a_budget_exists():
     """เพดานของไฟล์ที่ถูกลบไปแล้ว คือเพดานที่ผ่านตลอดกาล"""
     missing = [name for name in BUDGETS if not (ROOT / name).is_file()]
     assert not missing, f"ตั้งเพดานให้ไฟล์ที่ไม่มีอยู่: {missing}"
+
+
+# ------------------ เลขที่เขียนซ้ำต้องตรงกัน (audit r13 · ข้อ 3)
+#
+# เพดานถูกเขียนไว้สามที่: ตารางในไฟล์นี้ · หัว `CLAUDE.md` · หัว `docs/GOVERNANCE.md`
+# repo นี้มีธรรมเนียมตรวจ "เลขที่โฆษณาต้องตรงกับของจริง" อยู่แล้วหลายที่ (จำนวน job ·
+# จำนวน ADR · พื้น coverage · จำนวน gate ของแกน supply chain) — **กฎที่เพิ่งสร้างใน
+# รอบ 11–12 เป็นกฎเดียวที่ยังไม่มี** และเลขที่เขียนซ้ำโดยไม่มีใครเทียบ คือเลขที่
+# จะเพี้ยนในวันที่มีคนขยับเพดานแล้วลืมหัวไฟล์
+
+HEADER_LINES = 25  # เพดานถูกประกาศไว้ในย่อหน้าแรกของทั้งสองไฟล์
+DECLARED_LINES = re.compile(r"([\d,]+)\s*บรรทัด")
+DECLARED_WORDS = re.compile(r"([\d,]+)\s*คำ")
+
+
+def _declared_in_header(name: str) -> tuple[int | None, int | None]:
+    """เลขที่หัวไฟล์ประกาศไว้เอง — อ่านจากย่อหน้าแรกเท่านั้น"""
+    head = "\n".join((ROOT / name).read_text(encoding="utf-8").splitlines()[:HEADER_LINES])
+    lines = DECLARED_LINES.search(head)
+    words = DECLARED_WORDS.search(head)
+    return (
+        int(lines.group(1).replace(",", "")) if lines else None,
+        int(words.group(1).replace(",", "")) if words else None,
+    )
+
+
+@pytest.mark.parametrize("name", sorted(BUDGETS))
+def test_the_file_header_quotes_the_same_ceiling_as_the_table(name):
+    """หัวไฟล์บอกเพดานของตัวเอง — ถ้ามันไม่ตรงกับที่บังคับจริง คนอ่านจะเชื่อเลขผิด"""
+    lines, words = _declared_in_header(name)
+    budget = BUDGETS[name]
+
+    assert lines == budget["lines"], (
+        f"{name}: หัวไฟล์บอกเพดาน {lines} บรรทัด แต่ที่บังคับจริงคือ {budget['lines']} — "
+        "ขยับเพดานแล้วต้องแก้หัวไฟล์ในคอมมิตเดียวกัน"
+    )
+    assert words == budget["words"], (
+        f"{name}: หัวไฟล์บอกเพดาน {words} คำ แต่ที่บังคับจริงคือ {budget['words']}"
+    )
