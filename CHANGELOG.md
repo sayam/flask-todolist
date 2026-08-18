@@ -234,7 +234,28 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
   re-wrapping look like shrinking. Raising it takes an ADR; a cadence row
   revisits it every six months (ADR 0065).
 
+- **Real CI failures can now be harvested as gate evidence**
+  (round-9 audit, item 1). ADR 0059's `UNPROVEN` list is shrink-only and
+  had stopped shrinking: 76 of 97 gates carried no proof they had ever
+  been red for a real defect, and the list sat exactly at its ceiling
+  while CI went red several times a week and the evidence disappeared
+  with the logs. `rerun_census.py --evidence` reads which test files
+  failed out of each job's log and maps them back to gates through the
+  partition `tests/test_gates.py` already enforces, then **proposes**
+  `proved_by` rows. It stops at proposing on purpose — deciding what a
+  red actually proves is a person's job, since a test can fail because a
+  fixture broke rather than because the gate caught anything. A cadence
+  row every six months makes someone act on it and lower the ceiling by
+  whatever was really proven.
+
 ### Fixed
+
+- **The failure census only ever looked at 100 runs, however many you
+  asked for.** GitHub caps `per_page` at 100 and silently returns that
+  many, so the two cadence rows that say `--limit 200` were measuring
+  half the window they claimed. It now pages through, which is the same
+  class of defect the counter itself exists to close: a statistic that
+  quietly sees less than it reports.
 
 - **The platform-posture gate had never run once** (round-9 audit, found
   while closing another item). `posture` declared

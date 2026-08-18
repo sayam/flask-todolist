@@ -165,11 +165,31 @@ def startup_failure(run: dict, failures: list[dict]) -> list[dict]:
     ]
 
 
+# **`per_page` ของ GitHub ตันที่ 100** — ขอ 200 แล้วได้ 100 เงียบ ๆ ซึ่งแปลว่า
+# หน้าต่างที่แถว cadence สั่งไว้ (`--limit 200`) เคยแคบกว่าที่เขียนไว้ครึ่งหนึ่ง
+# โดยไม่มีอะไรบอก (เจอตอน audit r9 ขณะเขียนตัวเก็บหลักฐาน)
+PAGE_SIZE = 100
+
+
+def _recent_runs(limit: int) -> list[dict]:
+    """run ล่าสุด `limit` ใบ — **ไล่ทีละหน้า** เพราะ API ให้ทีละ 100 เท่านั้น"""
+    runs: list[dict] = []
+    page = 1
+    while len(runs) < limit:
+        size = min(PAGE_SIZE, limit - len(runs))
+        batch = _gh(f"repos/:owner/:repo/actions/runs?per_page={size}&page={page}")
+        got = batch.get("workflow_runs", [])
+        if not got:
+            break
+        runs.extend(got)
+        page += 1
+    return runs[:limit]
+
+
 def collect(limit: int) -> list[dict]:
     """ดึง run ล่าสุดพร้อม**ทุก attempt ที่ถูกแทนที่ไปแล้ว** — ส่วนที่ต้องต่อเน็ต"""
-    runs = _gh(f"repos/:owner/:repo/actions/runs?per_page={limit}")
     records = []
-    for run in runs["workflow_runs"]:
+    for run in _recent_runs(limit):
         attempt = run.get("run_attempt", 1)
         base = f"repos/:owner/:repo/actions/runs/{run['id']}"
         failures = []
@@ -188,6 +208,7 @@ def collect(limit: int) -> list[dict]:
                         "job": job["name"],
                         "step": steps[0] if steps else "",
                         "message": _annotations(job),
+                        "job_id": job.get("id"),
                     }
                 )
         records.append(
@@ -241,6 +262,96 @@ def jobs_never_red(summary: dict, defined: set[str]) -> list[str]:
     return sorted(defined - set(summary["jobs"]))
 
 
+# บรรทัดที่ pytest พิมพ์ตอนสรุป: "FAILED tests/test_x.py::test_y - AssertionError"
+PYTEST_FAILED = re.compile(r"^FAILED\s+(tests/[\w/]+\.py)::", re.MULTILINE)
+
+
+def failing_tests(log: str) -> set[str]:
+    """ไฟล์เทสต์ที่แดงใน log หนึ่งก้อน — **หลักฐานว่าด่านไหนเพิ่งจับของได้จริง**
+
+    ADR 0059 บอกว่า gate ต้องมีหลักฐานว่าเคยแดงตอนของเสียจริง · หลักฐานแบบนั้น
+    เกิดขึ้นเองทุกครั้งที่ CI แดง แล้วหายไปกับ log — ที่นี่หยิบมันออกมาก่อนหาย
+    """
+    return set(PYTEST_FAILED.findall(log))
+
+
+def gates_by_test_file(gates: list[dict]) -> dict[str, dict]:
+    """แม็ป ไฟล์เทสต์ → gate ที่มันบังคับ (partition ที่ `tests/test_gates.py` คุมอยู่)"""
+    return {path: gate for gate in gates for path in gate.get("enforced_by", {}).get("tests", [])}
+
+
+def evidence_proposals(records: list[dict], gates: list[dict]) -> list[dict]:
+    """ข้อเสนอ `proved_by` จากความแดงจริง — **เสนอ ไม่ใช่เขียนให้**
+
+    ตัดสินว่าความแดงนั้น*พิสูจน์*อะไรได้จริงไหม เป็นงานของคน (เทสต์อาจแดงเพราะ
+    fixture พัง ไม่ใช่เพราะ gate จับของเสีย) เครื่องมือจึงหยุดที่การเสนอ ·
+    เสนอเฉพาะ gate ที่**ยังไม่มีหลักฐาน** เพราะที่มีแล้วไม่ต้องการเพิ่ม
+    """
+    owners = gates_by_test_file(gates)
+    found: dict[str, dict] = {}
+    for record in records:
+        for failure in record.get("failures", []):
+            if classify(failure) != OURS:
+                continue
+            for path in sorted(failure.get("tests", [])):
+                gate = owners.get(path)
+                if gate is None or gate.get("proved_by"):
+                    continue
+                entry = found.setdefault(
+                    gate["id"], {"gate": gate["id"], "run": record["id"], "tests": set()}
+                )
+                entry["tests"].add(path)
+    return [
+        {**entry, "tests": sorted(entry["tests"])}
+        for entry in sorted(found.values(), key=lambda e: e["gate"])
+    ]
+
+
+def _job_log(job_id: object) -> str:
+    """log ของ job — หมดอายุ/อ่านไม่ได้ให้คืนค่าว่าง ไม่ใช่ล้มทั้งสำมะโน"""
+    if not job_id:
+        return ""
+    binary = shutil.which("gh")
+    if not binary:
+        return ""
+    result = subprocess.run(  # noqa: S603 — argument เป็นของเราเอง
+        [
+            binary,
+            "api",
+            "--allow-escape-sequences",
+            f"repos/:owner/:repo/actions/jobs/{job_id}/logs",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return result.stdout if result.returncode == 0 else ""
+
+
+def harvest(records: list[dict]) -> None:
+    """เติมรายชื่อไฟล์เทสต์ที่แดงลงในแต่ละความล้มเหลว (ส่วนที่ต้องต่อเน็ต)"""
+    for record in records:
+        for failure in record.get("failures", []):
+            if classify(failure) == OURS and "tests" not in failure:
+                failure["tests"] = sorted(failing_tests(_job_log(failure.get("job_id"))))
+
+
+def report_evidence(proposals: list[dict]) -> None:
+    """พิมพ์แถวที่พร้อมวางลง `gates.yaml` — คนอ่านแล้วตัดสินเองว่ารับไหม"""
+    if not proposals:
+        print("\nไม่มี gate ไหนที่ยังไม่มีหลักฐานแล้วแดงจริงในหน้าต่างนี้")
+        return
+    print(f"\ngate ที่แดงจริงในหน้าต่างนี้และยังไม่มีหลักฐาน ({len(proposals)}):")
+    for proposal in proposals:
+        print(f"\n  # {proposal['gate']} — จาก {', '.join(proposal['tests'])}")
+        print("    proved_by:")
+        print("      - kind: ci-red")
+        print(f"        ref: run/{proposal['run']}")
+        print("        date: <วันที่ของ run นั้น>")
+        print("        caught: <มันจับอะไรได้ — เขียนเอง อย่าลอกชื่อเทสต์มาวาง>")
+    print("\n**อ่าน log ก่อนรับทุกแถว** — เทสต์ที่แดงเพราะ fixture พัง ไม่ได้แปลว่า gate จับของเสียได้")
+
+
 def report(summary: dict) -> None:
     """พิมพ์ผลให้คนอ่าน — ตัวเลขที่ซ่อนอยู่ต้องเด่นกว่าตัวเลขที่ทุกคนเห็นอยู่แล้ว"""
     print(f"ตรวจ {summary['runs_examined']} run")
@@ -272,6 +383,11 @@ def main(argv: list[str] | None = None) -> int:
         help="ลงท้ายด้วยรายชื่อ job ที่ไม่แดงเลยในหน้าต่างนี้ (ADR 0062)",
     )
     parser.add_argument(
+        "--evidence",
+        action="store_true",
+        help="เสนอแถว proved_by จาก gate ที่แดงจริงในหน้าต่างนี้ (ADR 0059)",
+    )
+    parser.add_argument(
         "--max-hidden",
         type=int,
         default=None,
@@ -283,6 +399,12 @@ def main(argv: list[str] | None = None) -> int:
         records = json.loads(pathlib.Path(args.input).read_text(encoding="utf-8"))
     else:
         records = collect(args.limit)
+
+    if args.evidence:
+        if not args.input:
+            harvest(records)
+        gates = yaml.safe_load((ROOT / "gates.yaml").read_text(encoding="utf-8"))["gates"]
+        report_evidence(evidence_proposals(records, gates))
 
     summary = census(records)
     if args.json:

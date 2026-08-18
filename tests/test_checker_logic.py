@@ -402,6 +402,100 @@ def test_the_census_counts_a_run_once_no_matter_how_many_jobs_failed(tmp_path):
     assert rerun_census.census([crowded])["runs_failed_visible"] == 1
 
 
+# ------------------------------------------------- เก็บหลักฐานจากความแดงจริง
+#
+# audit r9 ข้อ 1 — `UNPROVEN` 76 ตัวนั่งอยู่ที่เพดานพอดีและไม่มีอะไรทวงให้หด
+# ขณะที่ CI แดงจริงหลายครั้งต่อสัปดาห์ · ADR 0059 ต้องการหลักฐานว่า gate "เคยแดง
+# ตอนของเสียจริง" ซึ่งเกิดขึ้นเองทุกครั้งที่ CI แดงแล้วหายไปกับ log
+
+
+LOG_WITH_FAILURES = """\
+=================================== FAILURES ===================================
+tests/test_gates.py:110: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_gates.py::test_every_job_has_a_gate - AssertionError: job ...
+FAILED tests/test_audit.py::test_chain_survives - assert 1 == 2
+1 failed, 1362 passed in 360.37s
+"""
+
+GATES_FIXTURE = [
+    {"id": "gates-index-two-way", "enforced_by": {"job": "test", "tests": ["tests/test_gates.py"]}},
+    {
+        "id": "audit-chain",
+        "enforced_by": {"job": "test", "tests": ["tests/test_audit.py"]},
+        "proved_by": [{"kind": "mutation", "ref": "pr/1"}],
+    },
+]
+
+
+def test_the_window_is_as_wide_as_it_was_asked_to_be(monkeypatch):
+    """`per_page` ของ GitHub ตันที่ 100 — ขอ 200 แล้วได้ 100 เงียบ ๆ
+
+    แถว cadence สองแถวสั่ง `--limit 200` · ถ้าตัวนับไม่ไล่หน้า หน้าต่างที่วัดจริง
+    จะแคบกว่าที่เอกสารบอกครึ่งหนึ่งโดยไม่มีอะไรฟ้อง — ซึ่งคือรูปเดียวกับที่ตัวนับ
+    ใบนี้ถูกสร้างมาเพื่อปิด (สถิติที่มองไม่เห็นบางส่วนของความจริง)
+    """
+    pages: list[str] = []
+
+    def fake(path: str) -> dict:
+        pages.append(path)
+        page = int(path.split("&page=")[1])
+        return {"workflow_runs": [{"id": page * 1000 + i} for i in range(100)] if page <= 2 else []}
+
+    monkeypatch.setattr(rerun_census, "_gh", fake)
+
+    runs = rerun_census._recent_runs(150)
+
+    assert len(runs) == 150, f"ขอ 150 ได้ {len(runs)} — หน้าต่างแคบกว่าที่สั่ง"
+    assert len(pages) == 2, f"ต้องไล่สองหน้า ไม่ใช่ {len(pages)}"
+    assert "per_page=100&page=1" in pages[0]
+
+
+def test_the_harvester_reads_which_test_files_went_red(tmp_path):
+    """หลักฐานอยู่ใน log ของ job ไม่ใช่ใน annotation — annotation บอกแค่ exit code"""
+    found = rerun_census.failing_tests(LOG_WITH_FAILURES)
+
+    assert found == {"tests/test_gates.py", "tests/test_audit.py"}
+    assert rerun_census.failing_tests("1362 passed in 360.37s") == set()
+
+
+def test_the_harvester_proposes_evidence_only_for_gates_that_lack_it(tmp_path):
+    """เสนอเฉพาะที่ยังไม่มีหลักฐาน — ที่มีแล้วไม่ต้องการเพิ่ม และเสนอ ไม่ใช่เขียนให้"""
+    record = {
+        "id": 4242,
+        "attempt": 1,
+        "failures": [
+            {
+                **_fail("test", "pipenv run pytest", "Process completed with exit code 1."),
+                "tests": ["tests/test_gates.py", "tests/test_audit.py"],
+            }
+        ],
+    }
+
+    proposals = rerun_census.evidence_proposals([record], GATES_FIXTURE)
+
+    assert [p["gate"] for p in proposals] == ["gates-index-two-way"], (
+        "gate ที่มี proved_by อยู่แล้วต้องไม่ถูกเสนอซ้ำ และ gate ที่ยังไม่มีต้องถูกเสนอ"
+    )
+    assert proposals[0]["run"] == 4242, "ต้องชี้ run ที่เป็นหลักฐานได้"
+
+
+def test_the_harvester_ignores_failures_that_are_not_ours(tmp_path):
+    """503 ของ GitHub ไม่ใช่หลักฐานว่าด่านของเราจับอะไรได้ (ADR 0064)"""
+    outage = {
+        "id": 7,
+        "attempt": 1,
+        "failures": [
+            {
+                **_fail("test", "Run github/codeql-action/init@v3", "HTTP 503 from api.github.com"),
+                "tests": ["tests/test_gates.py"],
+            }
+        ],
+    }
+
+    assert rerun_census.evidence_proposals([outage], GATES_FIXTURE) == []
+
+
 # ------------------------------------------------------------- platform posture
 #
 # audit รอบ 7 ข้อ 2 — ADR 0053 ประกาศว่า main รับของทาง PR เท่านั้นและ
