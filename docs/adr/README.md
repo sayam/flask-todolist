@@ -71,3 +71,4 @@ ADR 0002–0008 เป็นการ backfill การตัดสินใจ
 | [0063](0063-overlay-ships-the-preflight-tool.md) | overlay ส่งออก*เครื่องมือ*ไม่ใช่แค่กฎ — preflight ตัวเดียวกับที่เราใช้เอง (เทียบไบต์) · เลิกผูกกับชื่อ job ของ repo นี้ | accepted |
 | [0064](0064-who-broke-it-is-read-from-the-message.md) | "ของเราพัง vs โลกพัง" อ่านจากข้อความของความล้มเหลว ไม่ใช่ชื่อ step · สามคลาส (ที่จำแนกไม่ได้ต้องมีคนอ่าน) · ขั้นตอนก่อนกด rerun | accepted |
 | [0065](0065-instruction-file-ceiling.md) | `CLAUDE.md` มีเพดานแบบ ratchet (บรรทัด+คำ) — เต็มแล้วย้ายเนื้อออก ไม่ใช่ขยับเพดาน · เพดานลอยเหนือของจริงไม่ได้ | accepted |
+| [0066](0066-severity-must-match-real-authority.md) | `severity` ของ gate ต้องตรงกับอำนาจจริง (blocking ได้เฉพาะ job ที่รันบน PR) · ที่บล็อกไม่ได้ต้องประกาศ `watched_by` ว่าใครเห็นภายในกี่วัน | accepted |
