@@ -53,6 +53,14 @@ derive มา** อยู่ใน CI อย่างเดียว — ช่�
 - **ถ้า CI ย้ายจาก GitHub Actions** ตัวอ่าน workflow ต้องย้ายตาม — สัญญาของ
   ADR นี้คือ "อ่านจากแหล่งเดียวกับที่ CI ใช้" ไม่ใช่ "อ่าน YAML ของ GitHub"
 
+## โน้ต 2026-08-18 — กลไกถูกขยายโดย ADR 0063
+
+`preflight.py` ถูกส่งออกไปกับ overlay แล้ว จึงเลิกอ่านเฉพาะ
+`.github/workflows/ci.yml` และเลิกฝังชื่อ job ของ repo นี้: อ่าน workflow **ทุกไฟล์**
+(repo นี้เองก็ต้องการ — job `posture` ของ ADR 0061 อยู่คนละไฟล์) และรับชื่อ job จาก
+`scaffold.json` คีย์ `preflight_jobs` · **สัญญาข้อหลักไม่เปลี่ยน**: คำสั่งอ่านจาก
+แหล่งเดียวกับที่ CI ใช้ ไม่ลอกมาเก็บที่สอง
+
 ## ผลที่ตามมา
 
 - gate `fail-fix-harness-honest` ครอบ harness สองตัว (`run_gates.py` ที่ไล่

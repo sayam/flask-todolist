@@ -32,13 +32,17 @@ assertion ที่พัง · hint มาจาก `born_from` · เลขร
 | | `run_gates.py` | `preflight.py` |
 |---|---|---|
 | ตอบคำถาม | gate ตัวไหนแดง และเพราะอะไร | PR นี้จะผ่าน CI ไหม |
-| ครอบ | gate ชนิด `test` (pytest) | step ของ job `lint` + `test` **ตามที่ workflow เขียนไว้** |
-| แหล่งคำสั่ง | `gates.yaml` | `.github/workflows/ci.yml` (อ่านสด ไม่ลอกมาเก็บ) |
+| ครอบ | gate ชนิด `test` (pytest) | step ของ job ที่ `scaffold.json` ประกาศไว้ (`preflight_jobs` — ที่นี่คือ `lint` + `test`) **ตามที่ workflow เขียนไว้** |
+| แหล่งคำสั่ง | `gates.yaml` | workflow **ทุกไฟล์** ใต้ `.github/workflows/` (อ่านสด ไม่ลอกมาเก็บ) |
 
 ```sh
-pipenv run python scripts/preflight.py              # lint + test
+pipenv run python scripts/preflight.py              # job ที่ scaffold.json ประกาศ
 pipenv run python scripts/preflight.py --only lint  # เฉพาะที่เร็ว (~1 นาที)
 ```
+
+**ไฟล์นี้ถูกส่งออกไปกับ overlay ด้วย** (ADR 0063) — `overlays/flask/preflight.py`
+ต้องตรงกับ `scripts/preflight.py` **ไบต์ต่อไบต์** และเทสต์ติดตั้งลง repo เปล่า
+แล้วรันจริงทุกครั้ง · ชื่อ job จึงมาจาก config ไม่ใช่ฝังในโค้ด
 
 เหมือนกันข้อสำคัญคือ **ข้ามอะไรต้องบอกเหตุผล** — preflight ข้าม step ที่เป็น
 action (ตัวตัดสินคือรุ่นใน CI) และ step ที่จัดสภาพแวดล้อม (`pipenv sync` แก้

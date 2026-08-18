@@ -195,7 +195,8 @@
   gate ที่เกิดก่อนกติกานี้อยู่ในรายการ `UNPROVEN` ของ
   `tests/test_gate_evidence.py` ซึ่ง **หดได้ทางเดียว** — พิสูจน์แล้วต้องถอด
   ชื่อออก และห้ามเติมชื่อใหม่แทนการพิสูจน์ · เพราะ "ไม่เคยแดง" แยกไม่ออกจาก
-  "ไม่ได้ตรวจอะไร" (วัดจริงจาก 200 run: 21 job ไม่เคยแดงเลย)
+  "ไม่ได้ตรวจอะไร" (วัดจาก 200 run ตอนตั้งกติกา: 21 job ไม่เคยแดงเลย — **เลขนั้น
+  ต่ำกว่าจริงเพราะวัดด้วยวิธีที่มองไม่เห็นของที่ถูก rerun** ดู `rerun_census.py`)
 - **ทุก gate ประกาศ `layer:`** — `baseline` (สากล ต้อง portable → `SKILL.md`) ·
   `business` (ข้อตกลงระดับชนิดแอป → `SKILL-TODOLIST.md` ที่ generate จากตัว
   render เดียวกัน) · `internal` (ของ repo นี้) — ADR 0042 · `tests/test_gates.py`
@@ -216,7 +217,7 @@
   ของ overlay · `tests/test_agent_skill.py` เทียบผล generate สด**รวมทั้งเซตไฟล์**
   (ไฟล์แปลกปลอม = แดง) — แก้กฎ = แก้ `gates.yaml` แล้ว regenerate สองที่
 - `overlays/flask/` — enforcement ของกฎสากลสำหรับโปรเจกต์ Flask อื่น:
-  scan checker 8 ตัว (stdlib ล้วน) + `gates_doctor.py` + `install.py`
+  scan checker 8 ตัว (stdlib ล้วน) + `gates_doctor.py` + **`preflight.py`** (ADR 0063) + `install.py`
   (copy ตาม manifest `overlay.json` — ไม่ครบ = ล้มดัง) · job `scaffold` พิสูจน์
   ทุก push ว่า import ลง repo เปล่าได้จริง **และ repo นี้ผ่าน scan ของ overlay
   ตัวเอง** (dogfood — `scaffold.json` ที่รากคือ config ของการ dogfood นั้น)

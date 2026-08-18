@@ -40,7 +40,8 @@
 ## เครื่องมือประจำ (ดูคำสั่งเต็มใน `CLAUDE.md` และ `CONTRIBUTING.md`)
 
 - ก่อนเปิด PR: `pipenv run python scripts/preflight.py` — เดินด่านของ job `lint`
-  กับ `test` บนเครื่อง โดยอ่านคำสั่งจาก `.github/workflows/ci.yml` เอง (ADR 0060)
+  กับ `test` บนเครื่อง โดยอ่านคำสั่งจาก workflow ทุกไฟล์เอง (ADR 0060/0063 — job
+  ที่เดินประกาศใน `scaffold.json` คีย์ `preflight_jobs`)
   · hook ก่อน commit ครอบแค่ ruff/format/mypy ส่วน xenon · interrogate ·
   coverage floor · diff-cover เจอกันครั้งแรกใน CI ถ้าไม่รันตัวนี้
 - ไฟล์เทสต์ใหม่ต้องลงทะเบียนใน `gates.yaml` (`CONTRIBUTING.md` กฎข้อ 8)

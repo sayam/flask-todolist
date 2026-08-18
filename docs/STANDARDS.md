@@ -224,7 +224,7 @@ sqlfluff → เมื่อ migration ซับซ้อนขึ้น (Phase 
 
 **เครื่องมือที่เฟส 8–12 เพิ่มเข้ามา** — ไม่ได้อยู่ในรายการสำรวจเดิมเพราะมันไม่ใช่
 เครื่องมือสำเร็จรูป แต่เป็นของที่เขียนเอง: `gates.yaml` (ดัชนี gate ตรวจสองทิศ)
-· `scripts/build_skill.py` → `SKILL.md` · `overlays/flask/` (scan 8 ตัว stdlib
+· `scripts/build_skill.py` → `SKILL.md` · `overlays/flask/` (ส่งออก 12 ไฟล์: scan 8 ตัว stdlib
 ล้วน สำหรับโปรเจกต์อื่น) · `scripts/run_gates.py` (fail-fix loop) ·
 `scripts/measure_generated.py` + `scripts/asvs_probe.py` (วัดผลของ scaffolding)
 · **เหตุผลที่ไม่ใช้เครื่องมือสำเร็จรูปแทน**: กฎที่ต้องบังคับเป็นข้อตกลงเฉพาะ
