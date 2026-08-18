@@ -69,3 +69,4 @@ ADR 0002–0008 เป็นการ backfill การตัดสินใจ
 | [0061](0061-platform-posture-verified.md) | ท่าทีฝั่งแพลตฟอร์ม (branch protection · required check · auto-merge · sha pinning) ถูกเครื่องตรวจ · อ่านไม่ได้ = แดง ไม่ใช่ข้าม | accepted |
 | [0062](0062-expiry-for-gates-that-never-fired.md) | เกณฑ์ล่วงหน้าสำหรับด่านที่ยังไม่เคยจับอะไร — ไม่แดง 12 เดือน **และ** โค้ดที่คุ้มไม่ถูกแตะ = ย้ายไปรันตามรอบ (ไม่ใช่ถอด) | accepted |
 | [0063](0063-overlay-ships-the-preflight-tool.md) | overlay ส่งออก*เครื่องมือ*ไม่ใช่แค่กฎ — preflight ตัวเดียวกับที่เราใช้เอง (เทียบไบต์) · เลิกผูกกับชื่อ job ของ repo นี้ | accepted |
+| [0064](0064-who-broke-it-is-read-from-the-message.md) | "ของเราพัง vs โลกพัง" อ่านจากข้อความของความล้มเหลว ไม่ใช่ชื่อ step · สามคลาส (ที่จำแนกไม่ได้ต้องมีคนอ่าน) · ขั้นตอนก่อนกด rerun | accepted |

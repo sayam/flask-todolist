@@ -233,14 +233,33 @@ def _records(tmp_path, records) -> str:
     return str(path)
 
 
-HIDDEN_RUN = {"id": 1, "attempt": 2, "failures": [{"attempt": 1, "job": "dast", "step": "ZAP"}]}
-VISIBLE_RUN = {"id": 2, "attempt": 1, "failures": [{"attempt": 1, "job": "test", "step": "pytest"}]}
+def _fail(job: str, step: str, message: str = "") -> dict:
+    """ความล้มเหลวหนึ่งครั้งในรูปที่ `collect()` สร้าง — **มี `message` เสมอตั้งแต่ r8**"""
+    return {"attempt": 1, "job": job, "step": step, "message": message}
+
+
+HIDDEN_RUN = {"id": 1, "attempt": 2, "failures": [_fail("dast", "ZAP", "FAIL-NEW: 1 alert")]}
+VISIBLE_RUN = {"id": 2, "attempt": 1, "failures": [_fail("test", "pytest", "assert 1 == 2")]}
 PLATFORM_RUN = {
     "id": 3,
     "attempt": 2,
-    "failures": [{"attempt": 1, "job": "codeql (javascript)", "step": "Set up job"}],
+    "failures": [_fail("codeql (javascript)", "Set up job", "")],
 }
 GREEN_RUN = {"id": 4, "attempt": 1, "failures": []}
+
+# เหตุการณ์จริง 2026-08-17/18 ที่ audit r8 จับได้: `codeql` ล้มสี่ครั้ง **ไม่ใช่ที่
+# `Set up job`** แต่ที่ step ของ action เอง ซึ่งข้างในคือ 503 ของ GitHub
+OUTAGE_RUN = {
+    "id": 6,
+    "attempt": 1,
+    "failures": [
+        _fail(
+            "codeql (python)",
+            "Run github/codeql-action/init@v3",
+            "Server Error: HTTP 503 while contacting api.github.com",
+        )
+    ],
+}
 
 
 def test_the_census_sees_the_failure_a_rerun_erased(tmp_path, capsys):
@@ -265,6 +284,72 @@ def test_the_census_separates_the_platforms_failures_from_ours(tmp_path):
     summary = rerun_census.census([PLATFORM_RUN, HIDDEN_RUN])
 
     assert summary["failures_by_class"] == {"platform": 1, "ของเรา": 1}
+
+
+def test_the_census_reads_the_message_not_the_name_of_the_step(tmp_path, capsys):
+    """**D1 ของ audit r8** — 503 ของ GitHub ที่ล้มใน action ต้องไม่ถูกอ่านว่าเป็นของเรา
+
+    ฉบับแรกแยกคลาสด้วยชื่อ step อย่างเดียว (`Set up job`) · วันที่ GitHub ล่มจริง
+    `codeql` ล้มสี่ครั้งที่ step `Run github/codeql-action/init@…` แล้วถูกนับเป็น
+    "ของเรา" ทั้งสี่ — เกณฑ์ flake ของด่านเราจึงสุกงอมด้วยเรื่องที่เราแก้ไม่ได้
+    """
+    assert rerun_census.classify(OUTAGE_RUN["failures"][0]) == rerun_census.PLATFORM
+
+    summary = rerun_census.census([OUTAGE_RUN])
+    assert summary["failures_by_class"] == {"platform": 1}
+
+
+def test_the_census_refuses_to_guess_that_a_failure_is_ours(tmp_path):
+    """ที่จำแนกไม่ได้ต้องออกทาง `ต้องอ่านเอง` — **ห้ามตกไปอยู่ "ของเรา" เงียบ ๆ**
+
+    สองรูปที่ตัดสินด้วยเครื่องไม่ได้: ไม่มี annotation ให้อ่านเลย · และล้มใน action
+    ของคนอื่นโดยไม่มีร่องรอยว่าฝั่งไหนพัง (เซิร์ฟเวอร์ของเขา หรือ config ของเรา)
+    """
+    silent = _fail("stack", "docker compose up", "")
+    third_party = _fail("image", "Run docker/build-push-action@v6", "buildx failed")
+
+    assert rerun_census.classify(silent) == rerun_census.UNKNOWN
+    assert rerun_census.classify(third_party) == rerun_census.UNKNOWN
+
+    summary = rerun_census.census([{"id": 7, "attempt": 1, "failures": [silent, third_party]}])
+    assert summary["failures_by_class"] == {"ต้องอ่านเอง": 2}
+
+
+def test_the_census_does_not_read_our_own_status_codes_as_an_outage(tmp_path):
+    """ทิศตรงข้าม: เลขสถานะที่*เราเอง* assert ไว้ ไม่ใช่หลักฐานว่าโลกพัง
+
+    `/readyz` ของแอปนี้ตอบ 503 โดยตั้งใจ และเทสต์ของมัน assert เลขนั้นตรง ๆ —
+    ตัวจำแนกที่จับ "503" ลอย ๆ จะย้ายความล้มเหลวของเราไปอยู่ฝั่งแพลตฟอร์ม
+    ซึ่งเป็นความผิดพลาดทิศเดียวกับที่ r8 จับได้ แค่กลับด้าน
+    """
+    ours = _fail("test", "pipenv run pytest", "assert 200 == 503\nE  where 503 = resp.status_code")
+
+    assert rerun_census.classify(ours) == rerun_census.OURS
+
+
+def test_the_census_tells_the_reader_what_it_could_not_classify(tmp_path, capsys):
+    """ชั้น `ต้องอ่านเอง` ที่ไม่ถูกพิมพ์ออกมา คือชั้นที่ไม่มีใครไปอ่าน"""
+    rerun_census.main(
+        [
+            "--input",
+            _records(
+                tmp_path,
+                [
+                    {
+                        "id": 8,
+                        "attempt": 1,
+                        "failures": [
+                            _fail("stack", "docker compose up", ""),
+                        ],
+                    }
+                ],
+            ),
+        ]
+    )
+
+    printed = capsys.readouterr().out
+    assert "ต้องอ่านเอง" in printed, printed
+    assert "OPERATIONS.md" in printed, printed
 
 
 def test_the_census_fails_when_hidden_failures_pass_the_ceiling(tmp_path):
