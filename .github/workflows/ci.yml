@@ -23,9 +23,18 @@ permissions:
 # hash" และ "มี dependency ที่ไม่ได้ถูกระบุไว้" — ล็อกที่ครอบไม่ครบจึงเป็น error
 # ไม่ใช่ช่องโหว่เงียบ ๆ · ของที่ตรึงไว้ถูก Dependabot ขยับให้ ไม่ใช่แช่ไว้เฉย ๆ
 
+# **ทุก job ประกาศ `timeout-minutes` เอง** (ADR 0067 — audit รอบ 11)
+# ค่าเริ่มต้นของ GitHub คือ **6 ชั่วโมง** ซึ่งแปลว่า job ที่ค้างจริงกับ job ที่แค่
+# ช้ากว่าปกติ หน้าตาเหมือนกันทั้งวัน · เกิดขึ้นแล้ว 2026-08-18: `dialect (mysql-8)`
+# ใช้เวลา 30+ นาที (ปกติ 10) แล้วถูก cancel ทิ้งทั้งที่เดินอยู่ที่ 92%
+#
+# เลขที่ตั้งมาจาก **ที่วัดได้จริง คูณเผื่อวันที่ runner ช้า ~3 เท่า** (ซึ่งวัดได้
+# ในวันเดียวกันนั้น) ไม่ใช่เลขกลม ๆ — ตัวเลขที่ไม่มีที่มาคือตัวเลขที่ถูกขยับ
+# ทุกครั้งที่มันแดง จนไม่เหลือความหมาย
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     # **redis จริงเพื่อให้เทสต์ที่ต้องมี store ที่แชร์ได้ *รันจริงทุก push*** (P5-07)
     # ก่อนหน้านี้เทสต์พวกนั้นข้ามตัวเองเสมอใน CI เพราะไม่มีใครตั้ง `TEST_REDIS_URL`
     # แปลว่า "พิสูจน์แล้ว" หมายถึง "พิสูจน์บนเครื่องคนเขียนครั้งเดียว" ซึ่งไม่ใช่
@@ -80,6 +89,7 @@ jobs:
     # (ในเครื่องจะยิงเองก็ตั้ง MySQL/MariaDB ที่ไหนก็ได้แล้วส่ง TEST_DATABASE_URL มา)
     name: dialect (${{ matrix.db.name }})
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     strategy:
       # **ห้าม fail-fast** — อยากเห็นว่าพังยี่ห้อเดียวหรือทั้งสอง ซึ่งเป็นคนละอาการ
       fail-fast: false
@@ -143,6 +153,7 @@ jobs:
     # ทุก push แทนที่จะเป็นความตั้งใจที่เขียนไว้ในเอกสาร — และมันคือสภาพของ
     # เครื่องที่ `pipenv sync --dev` เฉย ๆ ได้ ซึ่งคือค่าเริ่มต้นของทุกคนที่ clone
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -198,6 +209,7 @@ jobs:
 
   lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -245,6 +257,7 @@ jobs:
     # ที่ไม่มีใคร deploy) → รันสคริปต์ smoke ผ่าน /api/v1 ซึ่งสัญญาตรึงข้ามรุ่น
     # อยู่แล้ว (ADR 0018) จึงไม่ต้องแก้เมื่อ tag ขยับ
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
       DATABASE_URL: sqlite:////tmp/n1.db
@@ -288,6 +301,7 @@ jobs:
     # (ซ้ำกับ tests/test_migrations.py::test_models_match_the_migrated_schema
     # ตั้งใจให้ซ้ำ — job นี้บอกสาเหตุตรง ๆ โดยไม่ต้องอ่าน traceback ของ pytest)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -314,6 +328,7 @@ jobs:
     # (ซ้ำกับ tests/test_openapi.py ตั้งใจให้ซ้ำ — job นี้บอกสาเหตุตรง ๆ
     # โดยไม่ต้องอ่าน diff ของ dict ที่ pytest พิมพ์ออกมา)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -337,6 +352,7 @@ jobs:
   # มีประโยชน์กว่าตรวจหลัง merge อยู่แล้ว
   commit-lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -364,6 +380,7 @@ jobs:
 
   security:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -439,6 +456,7 @@ jobs:
     # (ADR 0025) — CVE ของของที่ถอดได้จึง **ไม่ทำให้ job ของ core แดง**
     # แต่ต้องดังพอให้เห็น: ล้มแล้วยิง ::warning:: + เขียนลงสรุปของ run
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -492,6 +510,7 @@ jobs:
     # (contrast หลัง CSS ทำงาน, ชื่อที่ AT คำนวณได้จริง) สแกนทั้งโหมดมืด ธีม ocean
     # และภาษาไทย เพราะ contrast/ความยาวข้อความต่างกันตามนั้น
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -547,6 +566,7 @@ jobs:
     # ข้อความธรรมดา และ image ที่ build ผ่านแต่ไม่เคยถูกรัน ก็บอกได้แค่ว่า syntax ถูก
     # (P5-09 · เครื่อง dev ไม่มี container runtime — CI จึงเป็นที่พิสูจน์)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: build
@@ -647,6 +667,7 @@ jobs:
     # จะถึง P5-13 ด่านที่พิสูจน์แค่ "มันขึ้นได้" จ่ายเวลาทุก push โดยไม่ตอบคำถามที่
     # สำคัญ จะเพิ่มพร้อมกับ SSO ตอนที่มีอะไรให้ login ผ่านมันจริง ๆ
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
       DB_PASSWORD: ci-only-db-password
@@ -870,6 +891,7 @@ jobs:
     # **แยก job ไม่รวมกับ `stack`** เพราะเป็นคนละ topology (ที่นั่น app ไม่ได้
     # publish พอร์ตของตัวเองแล้วตั้งแต่เฟส scale) และตอบคนละคำถาม
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
       KEYCLOAK_ADMIN_PASSWORD: ci-only-keycloak-admin-password
@@ -941,6 +963,7 @@ jobs:
     # เจอสองเรื่องที่ connection ปลอมไม่มีวันเจอ (ldap3 ปฏิเสธ `memberOf` ตาม
     # schema, และ overlay `memberOf` ไม่เติมย้อนหลังให้สมาชิกที่มีอยู่ก่อน)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
       DIRECTORY_PASSWORD: ci-only-directory-password-not-a-real-one
@@ -1025,6 +1048,7 @@ jobs:
     # start ได้ก็ต่อเมื่ออ่านค่าจาก Vault สำเร็จเท่านั้น — ด่านนี้จึงพิสูจน์
     # "ความลับมาจาก Vault" ไม่ใช่แค่ "stack ขึ้นได้"
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       SECRET_KEY: ci-only-value-that-compose-overrides-to-empty
       VAULT_TOKEN: ci-only-vault-root-token
@@ -1108,6 +1132,7 @@ jobs:
     # ตามเวลาเป็นเรื่องของ host ที่ deploy — ด่านนี้จับ typo ในไฟล์ unit ซึ่ง
     # systemd จะ "เตือนแล้วรันต่อ" โดยไม่มีตัวแปรนั้น ไม่ใช่ปฏิเสธที่จะรัน
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: วาง repo ไว้นอก home เหมือน deploy จริง
@@ -1186,6 +1211,7 @@ jobs:
     # **การสแกนโดยไม่ login เห็นแค่หน้า login** ซึ่งเป็นหน้าเดียวที่ไม่มีข้อมูล
     # ของใครเลย — ด่านแบบนั้นเขียวได้ตลอดโดยไม่ได้ตรวจอะไร (บทเรียนของ Phase 5)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
       DB_PASSWORD: ci-only-db-password
@@ -1263,6 +1289,7 @@ jobs:
     # ด่านนี้ต้องเดินสองทิศเหมือนทุกด่านในโปรเจกต์: เงียบตอนที่ควรเงียบ และดัง
     # ตอนที่ควรดัง — ระบบแจ้งเตือนที่ไม่เคยเห็นมันดังคือระบบที่ไม่มีใครรู้ว่ามันตายไปแล้ว
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
       DB_PASSWORD: ci-only-db-password
@@ -1354,6 +1381,7 @@ jobs:
     # ตัวเลขของแอปไปโผล่ใน TSDB ของ Prometheus จริง ผ่านด่าน token จริง —
     # ไม่ใช่แค่ stack ขึ้นได้ (หลักเดียวกับ job siem ที่ถามปลายทางเสมอ)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
       GRAFANA_PASSWORD: ci-only-grafana-password-not-a-real-one
@@ -1422,6 +1450,7 @@ jobs:
     # performance จริงยังเป็น curve หลายรอบใน docs/PERFORMANCE.md เหมือนเดิม
     # (บทเรียน "วัดรอบเดียวไม่ใช่หลักฐาน" ยังจริงทุกประการ ด่านนี้ไม่ได้เถียง)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
     steps:
@@ -1452,6 +1481,7 @@ jobs:
 
   secret-scan:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -1465,6 +1495,7 @@ jobs:
     # ทุกคำสั่งใช้ `python3` เปล่า ๆ โดยตั้งใจ — โปรเจกต์ปลายทางไม่มี dependency
     # ของเราสักตัว ถ้า overlay แอบพึ่งอะไรนอก stdlib ต้องแดงที่นี่ ไม่ใช่ที่ปลายทาง
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: ติดตั้งลง repo เปล่า — ด่านต้องครบ รันได้ และไม่พังบนความว่าง
@@ -1482,6 +1513,7 @@ jobs:
 
   sbom:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -1519,6 +1551,7 @@ jobs:
   # ถ้าพลาดแล้วกระทบทุกหน้า
   codeql:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       security-events: write
       actions: read

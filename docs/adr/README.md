@@ -72,3 +72,4 @@ ADR 0002–0008 เป็นการ backfill การตัดสินใจ
 | [0064](0064-who-broke-it-is-read-from-the-message.md) | "ของเราพัง vs โลกพัง" อ่านจากข้อความของความล้มเหลว ไม่ใช่ชื่อ step · สามคลาส (ที่จำแนกไม่ได้ต้องมีคนอ่าน) · ขั้นตอนก่อนกด rerun | accepted |
 | [0065](0065-instruction-file-ceiling.md) | `CLAUDE.md` มีเพดานแบบ ratchet (บรรทัด+คำ) — เต็มแล้วย้ายเนื้อออก ไม่ใช่ขยับเพดาน · เพดานลอยเหนือของจริงไม่ได้ | accepted |
 | [0066](0066-severity-must-match-real-authority.md) | `severity` ของ gate ต้องตรงกับอำนาจจริง (blocking ได้เฉพาะ job ที่รันบน PR) · ที่บล็อกไม่ได้ต้องประกาศ `watched_by` ว่าใครเห็นภายในกี่วัน | accepted |
+| [0067](0067-every-job-declares-a-time-budget.md) | ทุก job ประกาศ `timeout-minutes` เอง — ค่าเริ่มต้น 6 ชม. ทำให้ "ค้าง" กับ "ช้า" แยกไม่ออก · เลขมาจากที่วัดได้ ไม่ใช่เลขกลม | accepted |
