@@ -1,6 +1,6 @@
 # Todolist (Flask)
 
-> **เพดานของไฟล์นี้: 1,265 บรรทัด / 8,700 คำ** (ADR 0065) — ไฟล์นี้ถูกอ่านทั้งไฟล์
+> **เพดานของไฟล์นี้: 1,200 บรรทัด / 8,100 คำ** (ADR 0065) — ไฟล์นี้ถูกอ่านทั้งไฟล์
 > ทุก session ต้นทุนจึงจ่ายซ้ำตลอดไป · **เต็มแล้วให้ย้ายเนื้อไปเอกสารเฉพาะแล้ว
 > ลิงก์กลับมา ไม่ใช่ขยับเพดาน** — ขยับขึ้นต้องมี ADR · ลดลงทำได้เสมอและ**ต้องทำ
 > ทุกครั้งที่ย้ายเนื้อออก** ไม่งั้นที่ว่างจะถูกถมกลับเงียบ ๆ
@@ -162,106 +162,16 @@
   `ProtectHome=true` ทำให้ **ทุกอย่างที่หน่วยแตะต้องอยู่นอก home** ไม่งั้นได้
   `203/EXEC` ที่ไม่บอกสาเหตุ · `Environment=` ต้องใส่เครื่องหมายคำพูดถ้ามีช่องว่าง
 - `scripts/` — สคริปต์ที่รันมือ ไม่ได้ถูกเรียกตอนแอปทำงาน
-- **ด่านที่แพงและยังไม่เคยจับอะไร ประกาศ `guards:`** (ADR 0062) — เส้นทางที่มัน
-  คุ้ม · การตัดสินว่ายังคุ้มไหมต้องอ่านสองชั้นคู่กัน: `scripts/rerun_census.py
-  --never-red` (เคยแดงไหม) กับ `git log` บนเส้นทางใน `guards` (โค้ดนั้นถูกแตะไหม)
-  · **ไม่แดงเพราะไม่มีใครแตะ** ต่างจาก **ไม่แดงทั้งที่แก้ตลอด** คนละคำตอบคนละขั้ว
-  · ทางที่อนุญาตคือย้าย*ตอนรัน*ทีละตัวพร้อมเหตุผล ไม่ใช่ถอดด่าน
-- **ท่าทีฝั่ง GitHub ถูกเครื่องตรวจแล้ว** (ADR 0061) — job `posture` ใน
-  `scorecard.yml` เรียก `scripts/audit_posture.py` เทียบ branch protection ·
-  required check สองทิศ (job ที่รันบน PR ต้องถูกบังคับ **และ** ห้ามมี context ผี) ·
-  auto-merge · `sha_pinning_required` กับสิ่งที่ ADR 0053 กับ SECURITY-CADENCE
-  ประกาศไว้ · **อ่าน API ไม่ได้ = แดง (exit 2) ไม่ใช่ข้าม** ทั้งกรณีสิทธิ์ไม่พอ
-  และกรณี GitHub ล่ม · เพิ่ม job ใหม่แล้วลืมทำให้เป็น required = ด่านนี้แดง
-  · สิทธิ์มาจาก secret `POSTURE_TOKEN` (fine-grained PAT อ่านอย่างเดียว — วิธีออก
-  และวันหมดอายุอยู่ใน `docs/OPERATIONS.md`) · ฟิลด์ที่ token อ่านไม่ได้ต้องรายงาน
-  ว่า **"มองไม่เห็น" ไม่ใช่ "ปิดอยู่"** (ADR 0061 โน้ต 2 — รายงานผิดฝั่งคือการโกหก)
-  · **ด่านนี้ไม่ใช่ required check** จึงล้มเงียบได้ ตัวที่ทำให้มองเห็นคือสำมะโนที่
-  นับ run ที่ไม่ได้ start (ADR 0064) — workflow ที่ GitHub ปฏิเสธทั้งไฟล์มี 0 job
-  · ตรวจ **alert บนหน้า Security** ด้วย (audit r10) — ทุกใบที่ยังมีอยู่ต้องมีบรรทัดใน
-  `.github/accepted-code-scanning-alerts.txt` **หรือ** ถูก dismiss พร้อมเหตุผล และ
-  บรรทัดที่ไม่ตรงกับ alert ไหนแล้ว = แดง · **"รับไว้" ≠ "ต้อง dismiss"**: กฎที่เนื้อหา
-  เปลี่ยนตามสิ่งที่เจอต้องปล่อยให้เปิดค้าง เพราะ dismiss แล้วใบถัดไปถูกกลบด้วย
-- **นับความล้มเหลวของ CI ด้วย `scripts/rerun_census.py` เท่านั้น** (audit r7) —
-  `gh run list --json conclusion` รายงานผลของ **attempt สุดท้าย** การกด rerun
-  จนเขียวจึงลบความล้มเหลวเดิมออกจากสถิติ (วัดจริง: 100 run ล่าสุด เห็น 7 ซ่อน 3
-  — `dast` สองครั้ง `codeql` หนึ่งครั้ง ซึ่งอ่านว่า "ไม่เคยแดง" จากวิธีเดิม) ·
-  ตัวนับแยกสามชั้นจาก **ข้อความ** ของความล้มเหลว ไม่ใช่ชื่อ step (audit r8 —
-  ชื่อ step บอกว่าล้มตรงไหน ไม่ได้บอกว่าใครพัง): `platform` · `ของเรา` ·
-  **`ต้องอ่านเอง` สำหรับที่จำแนกไม่ได้ ซึ่งห้ามตกไปอยู่ "ของเรา"** · นับ run ที่
-  **ไม่ได้ start** ด้วย (workflow พังทั้งไฟล์ = 0 job = เคยหายไปทั้งใบ) ·
-  `--evidence` เสนอแถว `proved_by` จากไฟล์เทสต์ที่แดงจริง (ADR 0059) · ขั้นตอน
-  ตัดสินก่อนกด rerun (ถาม githubstatus ก่อนเสมอ) อยู่ใน `docs/OPERATIONS.md`
-  · **ตารางเวลาที่หยุดยิงเป็นคนละคำถาม** — `scripts/schedule_census.py` (audit r10)
-- `.semgrepignore` — **ขอบเขตของ semgrep ประกาศที่นี่ ไม่ใช่ค่าเริ่มต้นในตัวมัน**
-  ซึ่งตัด `tests/` ทิ้งเงียบ ๆ (61 จาก 136 ไฟล์ — เจอตอน P8) · ไฟล์นี้**แทน
-  ค่าเริ่มต้นทั้งชุด** `.venv/`/`node_modules/` จึงต้องเขียนเอง · `ci.yml` ห้ามมี
-  `--exclude` แล้ว (ขอบเขตสองที่ = ตัวตรวจคำนวณเซตที่คาดหวังผิด)
-  · ตัวตัดสินคือ `scripts/check_semgrep.py` ที่อ่านรายงาน `--json --time` แล้ว
-  **เทียบเซตไฟล์ที่สแกนจริงกับ `git ls-files` ลบด้วยไฟล์นี้** ไม่ใช่เลขขั้นต่ำ
-  (`tests/test_semgrep_gate.py` คุมอีกชั้น — ห้ามใส่ `--error` กลับ มันทำให้
-  semgrep ตายก่อนถึงตัวตรวจ)
-- `gates.yaml` — **ดัชนี gate ของทั้ง repo** (ADR 0039) — ดัชนี ไม่ใช่แหล่ง:
-  ตัวบังคับจริงคือเทสต์กับ job · `tests/test_gates.py` บังคับสองทิศ:
-  ทุก job ต้องมี gate และ **ไฟล์เทสต์ทุกไฟล์ต้องถูกตัดสินว่าเป็นของ gate ไหน
-  ตัวเดียว** (partition แบบ DATA-CLASSIFICATION) — **เพิ่มไฟล์เทสต์ใหม่ต้องมา
-  ลงทะเบียนที่นี่ด้วย** (gate ใหม่ หรือแถวใน `app-behavior-suite`) ไม่งั้นแดง
-  · `portable: true` ต้องมี `born_from` · `standard` อ้างได้เฉพาะข้อ ASVS
-  ที่ประเมินว่า "ผ่าน" **และหลักฐานของแถวนั้นต้องชี้กลับมาหา gate นี้จริง**
-  (อ้างแถวที่มีอยู่แต่หลักฐานไม่หนุน = แดง)
-- **gate ใหม่ต้องมี `proved_by`** — หลักฐานว่าด่านนั้น**เคยแดงตอนของเสียจริง**
-  (ADR 0059): `kind: ci-red` + `ref: run/<id>` (แดงเองใน CI · ตรวจซ้ำด้วย
-  `gh run view <id> --log-failed`) หรือ `kind: mutation` + `ref: pr/<number>`
-  (แดงตอนพังโค้ดโดยตั้งใจ) พร้อม `date` และ `caught` ว่าจับ*อะไร*ได้ ·
-  gate ที่เกิดก่อนกติกานี้อยู่ในรายการ `UNPROVEN` ของ
-  `tests/test_gate_evidence.py` ซึ่ง **หดได้ทางเดียว** — พิสูจน์แล้วต้องถอด
-  ชื่อออก และห้ามเติมชื่อใหม่แทนการพิสูจน์ · เพราะ "ไม่เคยแดง" แยกไม่ออกจาก
-  "ไม่ได้ตรวจอะไร" (วัดจาก 200 run ตอนตั้งกติกา: 21 job ไม่เคยแดงเลย — **เลขนั้น
-  ต่ำกว่าจริงเพราะวัดด้วยวิธีที่มองไม่เห็นของที่ถูก rerun** ดู `rerun_census.py`)
-- **ทุก gate ประกาศ `layer:`** — `baseline` (สากล ต้อง portable → `SKILL.md`) ·
-  `business` (ข้อตกลงระดับชนิดแอป → `SKILL-TODOLIST.md` ที่ generate จากตัว
-  render เดียวกัน) · `internal` (ของ repo นี้) — ADR 0042 · `tests/test_gates.py`
-  บังคับความสอดคล้องของชั้น
-- **`severity:` ต้องตรงกับอำนาจจริง** (ADR 0066) — `blocking` ได้เฉพาะ job ที่รันบน
-  `pull_request` · ที่เหลือเป็น `watched`/`warning` และ**ต้องมี `watched_by:`**
-  (ใคร · ภายในกี่วัน · ด้วยกลไกอะไร ซึ่งต้องมีอยู่จริง)
-- **ทุก gate ประกาศ `pillar:` ด้วย** (ADR 0051 — ธรรมนูญ): `security` >
-  `performance` > `manageability` > `devx` คือลำดับความสำคัญของโปรเจกต์
-  ชนกันเมื่อไหร่ชั้นบนชนะ · ของใหม่จากภายนอกเข้าผ่าน intake (CONTRIBUTING
-  กฎข้อ 10) — baseline ห้าม break · แผนงาน governance อยู่ใน
-  `docs/ROADMAP-GOVERNANCE.md` (G1–G5 ปิดครบทั้งใบแล้ว 2026-08-16 — ADR 0052 accepted)
-- `SKILL.md` — กฎสากลของ scaffolding **generate มา ห้ามแก้ด้วยมือ**
-  (`scripts/build_skill.py` จาก portable gate ใน `gates.yaml`) · กฎใหม่ที่เป็น
-  สากล = เพิ่ม gate `portable: true` + `born_from` แล้ว regenerate — ห้ามเขียน
-  กฎลงไฟล์นี้ตรง ๆ · **ห้ามมีชื่อไลบรารีของ Flask ในชั้นนี้** (`tests/test_skill.py`
-  ตรวจที่ผล render สด จับได้ตั้งแต่ตอนพิมพ์ลง gates.yaml)
-- `skill/` — **แพ็กเกจ agent skill ที่ generate ล้วน ห้ามแก้ด้วยมือ** (ADR 0050
-  — `scripts/build_agent_skill.py`): frontmatter + render ชั้น baseline ตัวเดียว
-  กับ `SKILL.md` + business sheet ใน `reference/` + checker คัดลอกตาม manifest
-  ของ overlay · `tests/test_agent_skill.py` เทียบผล generate สด**รวมทั้งเซตไฟล์**
-  (ไฟล์แปลกปลอม = แดง) — แก้กฎ = แก้ `gates.yaml` แล้ว regenerate สองที่
-- `overlays/flask/` — enforcement ของกฎสากลสำหรับโปรเจกต์ Flask อื่น:
-  scan checker 8 ตัว (stdlib ล้วน) + `gates_doctor.py` + **`preflight.py`** (ADR 0063) + `install.py`
-  (copy ตาม manifest `overlay.json` — ไม่ครบ = ล้มดัง) · job `scaffold` พิสูจน์
-  ทุก push ว่า import ลง repo เปล่าได้จริง **และ repo นี้ผ่าน scan ของ overlay
-  ตัวเอง** (dogfood — `scaffold.json` ที่รากคือ config ของการ dogfood นั้น)
-  · เพิ่ม portable gate ต้องเพิ่ม entry ใน `overlay.json` ด้วย ไม่งั้น
-  `tests/test_overlay.py` แดง · **overlay ส่งออก `preflight.py` ด้วย (ADR 0063)**
-  ซึ่งเป็นสำเนาที่ต้องตรงกับ `scripts/preflight.py` **ไบต์ต่อไบต์** (เทสต์บังคับ) —
-  แก้ตัวไหนแล้ว `cp` ทับอีกตัวเสมอ
-- `docs/GATES-ASVS.md` — crosswalk gate ↔ ASVS **generate มา ห้ามแก้ด้วยมือ**
-  (`scripts/build_gates_crosswalk.py`) derive จากหลักฐานใน `ASVS.md` ผ่าน
-  partition ของ `gates.yaml` — บอกด้วยว่าแถวไหนผ่านด้วยด่านที่รันทุก push
-  และแถวไหนผ่านด้วยเหตุผล/เอกสารเท่านั้น (ความเชื่อมั่นคนละระดับ)
-- `docs/comparison/` — การทดลองว่ากฎที่ export ออกไป **เปลี่ยนโค้ดที่ถูกเขียนจริง
-  ไหม**: spec กลางหนึ่งชุด (`spec-notes-app.md` — ห้ามแก้ถ้อยคำ ถ้าแก้ต้องวัดใหม่
-  ทั้งชุด) · 3 แขน แขนละ 5 แอป · battery เดียวกัน (`scripts/measure_generated.py`
-  + `scripts/asvs_probe.py`) · ผลกับข้อมูลดิบอยู่คู่กัน และ `tests/test_asvs_probe.py`
-  **บังคับว่าตัวเลขในรายงานต้องตรงกับ JSON** และรายงานต้องบันทึกโมเดล+วันที่+spec
-  · **probe ถูกตรวจสองทิศด้วย fixture สามสำนวน** — มันเคยลงโทษโครงที่ *ดีกว่า*
-  มาแล้วสี่ครั้ง (helper กลาง · `session.get()` ของ Flask · `SECRET_KEY` ใน
-  conftest · `@login_required` ที่อยู่บนบรรทัด decorator ซึ่งไม่อยู่ใน
-  `ast.get_source_segment()` ของ FunctionDef)
+- **กลไก governance ทั้งหมดย้ายไป [`docs/GOVERNANCE.md`](docs/GOVERNANCE.md) แล้ว**
+  (ADR 0065 — ไฟล์นี้มีเพดาน) · ที่นั่นมี: ดัชนี `gates.yaml` และการบังคับสองทิศ ·
+  `proved_by`/`UNPROVEN` · `layer`/`pillar`/`severity`+`watched_by` · `guards:` ·
+  ท่าทีฝั่ง GitHub (`audit_posture.py`) · สำมะโนความล้มเหลวและตารางเวลา ·
+  ขอบเขต semgrep · `SKILL.md`/`skill/`/`overlays/flask/` และ `docs/comparison/`
+  · **สามข้อที่ผิดบ่อยที่สุด และต้องรู้ก่อนแตะอะไรก็ตามในนั้น**:
+  **(1)** เพิ่มไฟล์เทสต์ใหม่ต้องลงทะเบียนใน `gates.yaml` ไม่งั้นแดง ·
+  **(2)** `SKILL.md`/`skill/`/`docs/GATES-ASVS.md` **generate มา ห้ามแก้ด้วยมือ**
+  แก้ที่ `gates.yaml` แล้ว regenerate ทั้งสองที่ ·
+  **(3)** เพิ่ม portable gate ต้องเพิ่ม entry ใน `overlays/flask/overlay.json` ด้วย
 - `pins/` — **ล็อกไฟล์ของเครื่องมือที่ CI ติดตั้งเอง** (pipenv, pip, semgrep, pa11y-ci)
   ไม่ใช่ dependency ของแอป (ของแอปอยู่ใน `Pipfile.lock`) · ทุก `pip install` ใน
   workflow และ `Dockerfile` ต้องเป็น `--require-hashes -r pins/<ชื่อ>/requirements.txt`

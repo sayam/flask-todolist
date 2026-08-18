@@ -150,6 +150,7 @@ Written in Thai, because that is the language the thinking happened in.
 | [`docs/adr/`](docs/adr/) | 67 architecture decision records — every choice, the options rejected, and what would reverse it |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | the first seven phases — the application itself — what each closed, and what was deliberately deferred |
 | [`docs/ROADMAP-INFRA.md`](docs/ROADMAP-INFRA.md) | phases 8–12 — the index, the exported skill, the overlay, the fail-fix harness, and the comparison experiment |
+| [`docs/GOVERNANCE.md`](docs/GOVERNANCE.md) | how the gate machinery itself works — the index and its two-way checks, red-evidence, layers, severity and watchers, the censuses, and what gets exported to other projects |
 | [`docs/ASVS.md`](docs/ASVS.md) | OWASP ASVS 5.0 Level 2 self-assessment — all 253 in-scope requirements answered, including the 48 that do not pass |
 | [`docs/ISO27001.md`](docs/ISO27001.md) | ISO/IEC 27001:2022 self-assessment — all 116 items answered (clauses 4–10 and every Annex A control) — and since 2026-08-16, all of them pass or are justified n/a |
 | [`docs/SUPPLY-CHAIN.md`](docs/SUPPLY-CHAIN.md) | the supply-chain axis — five layers of the chain and the 19 gates that guard them, kept honest against `gates.yaml` both ways |
@@ -311,6 +312,9 @@ org graph) · [`docs/PDPA.md`](docs/PDPA.md) (worksheet แบบเดียว
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) (42010) ·
 [`docs/ASVS.md`](docs/ASVS.md) ·
 [`docs/ISO27001.md`](docs/ISO27001.md) (27001:2022 ครบ 116 ข้อ) ·
+[`docs/GOVERNANCE.md`](docs/GOVERNANCE.md) (กลไกของด่านเอง — ดัชนี `gates.yaml`
+และการบังคับสองทิศ · หลักฐานว่าด่านเคยแดง · ชั้นและผู้เฝ้า · สำมะโน ·
+และของที่ export ไปให้โปรเจกต์อื่น) ·
 [`docs/SUPPLY-CHAIN.md`](docs/SUPPLY-CHAIN.md) (แกน supply chain — ห้าชั้น
 19 gate ตรวจกับ gates.yaml สองทิศ) ·
 [`docs/COMPLIANCE.md`](docs/COMPLIANCE.md) (ดัชนี legal รายประเทศ +
