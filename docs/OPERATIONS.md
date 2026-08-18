@@ -605,8 +605,23 @@ export SECRETS_URL=vault://vault.example.com:8200/secret/todolist
 alert อัตโนมัติมาจาก **ruler ของ Loki** (`deploy/loki-rules.yaml` — stack
 `compose.siem.yaml` · ADR 0037 · job `siem` พิสูจน์ว่าดังจริงทุก push) และ
 ตัวเลข latency ดูได้จาก Prometheus/Grafana (`compose.metrics.yaml`) —
-ส่วน**งานตามรอบ (purge/audit-verify) ยังต้องพึ่งเมลของ cron หรือ
-`systemctl is-failed`** เพราะมันรันนอกตัวแอป ruler มองไม่เห็น
+ส่วน**งานตามรอบ (purge/audit-verify) รันนอกตัวแอป ruler จึงมองไม่เห็น**
+
+**สิ่งที่มีให้แล้วสำหรับงานตามรอบ (audit รอบ 10 ข้อ 4)**: หน่วยหลักตั้ง
+`OnFailure=todolist-purge-failed.service` ไว้ ซึ่งพิมพ์บรรทัดระดับ `err` ที่มีคำว่า
+**`TDL_PURGE_FAILED`** ลง journal ทุกครั้งที่รอบไหนล้ม — หาเจอด้วย
+
+```bash
+systemctl show -p Result,ExecMainExitTimestamp todolist-purge.service
+journalctl -u todolist-purge.service --grep TDL_PURGE_FAILED
+```
+
+**นี่คือสัญญาณ ไม่ใช่การแจ้งเตือน** — มันไม่ส่งไปไหนเพราะยังไม่มีใครรับ
+(หลักเดียวกับ ADR 0037: ปลายทางที่ไม่มีคนอ่านจะถูกปิดเสียงภายในสองสัปดาห์)
+สิ่งที่มันเปลี่ยนคือความล้มเหลว **ค้นเจอด้วยเครื่อง**และมี**จุดแขวน**: ผู้ deploy
+ที่มีปลายทางของตัวเองแล้ว แก้ `ExecStart` ของหน่วยนั้นบรรทัดเดียวได้โดยไม่ต้อง
+แตะหน่วยที่ทำงานจริง · ส่วนการไปดูว่ารอบล่าสุดเดินจริงไหม เป็นแถวทุก 3 เดือน
+ใน `docs/SECURITY-CADENCE.md` แล้ว
 
 ## CI แดง — ตัดสินก่อนกด rerun ว่า "ของเราพัง" หรือ "โลกพัง" (audit r8 · D2)
 
