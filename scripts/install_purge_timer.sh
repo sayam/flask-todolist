@@ -69,6 +69,12 @@ sed \
 install -m 0644 "$SOURCE_DIR/todolist-purge.timer" "$UNIT_DIR/todolist-purge.timer"
 chmod 0644 "$UNIT_DIR/todolist-purge.service"
 
+# **หน่วยที่ `OnFailure=` ชี้ไปหา ต้องมาด้วยกันเสมอ** — ติดตั้งหน่วยหลักโดยไม่มี
+# ตัวนี้ = systemd หาหน่วยไม่เจอตอนงานล้ม แล้วความล้มเหลวก็เงียบพอ ๆ กับตอนที่
+# ยังไม่มี `OnFailure=` เลย ซึ่งเป็นอาการที่แย่กว่าเดิมเพราะไฟล์อ่านแล้วดูเหมือนมี
+install -m 0644 "$SOURCE_DIR/todolist-purge-failed.service" \
+    "$UNIT_DIR/todolist-purge-failed.service"
+
 # ให้ CI (และคนที่อยากดูผลก่อน) สร้างไฟล์ได้โดยไม่แตะ systemd ของเครื่อง
 if [ "${TDL_INSTALL_ONLY:-0}" = "1" ]; then
     echo "TDL_INSTALL_ONLY=1: เขียนไฟล์แล้ว ไม่ได้ enable อะไร"
@@ -85,3 +91,4 @@ echo
 echo "ทดสอบเดี๋ยวนี้ได้ด้วย: systemctl start todolist-purge.service"
 echo "ดูผลรอบล่าสุด        : systemctl status todolist-purge.service"
 echo "ดู log ย้อนหลัง       : journalctl -u todolist-purge.service"
+echo "ถ้ารอบไหนล้ม จะมีบรรทัด TDL_PURGE_FAILED ระดับ err ใน journal (ดู docs/OPERATIONS.md)"

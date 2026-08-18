@@ -1126,7 +1126,26 @@ jobs:
             TDL_PURGE_RUNNER="docker compose -f /opt/todolist-ci/compose.yaml run --rm -T app" \
             /opt/todolist-ci/scripts/install_purge_timer.sh
           sudo chown -R "$(id -un)" "$units"
-          systemd-analyze verify "$units/todolist-purge.service" "$units/todolist-purge.timer"
+          systemd-analyze verify "$units/todolist-purge.service" "$units/todolist-purge.timer" \
+            "$units/todolist-purge-failed.service"
+      - name: ความล้มเหลวของงานตามรอบต้องมีร่องรอยที่หาเจอด้วยเครื่อง
+        run: |
+          # **audit รอบ 10 ข้อ 4** — ระยะเก็บรักษาใน docs/ROPA.md เป็นข้อเท็จจริง
+          # ทางกฎหมายที่เป็นจริงก็ต่อเมื่อหน่วยนี้เดินสำเร็จตามรอบ · ก่อนหน้านี้
+          # ความล้มเหลวมีร่องรอยเดียวคือ `systemctl is-failed` ที่ต้องมีคนไปถาม
+          # ถอด `OnFailure=` ออกเมื่อไหร่ ความเงียบก็กลับมาทันทีโดยไม่มีอะไรฟ้อง
+          units=$(mktemp -d)
+          sudo TDL_UNIT_DIR="$units" TDL_INSTALL_ONLY=1 TDL_PURGE_USER="$(id -un)" \
+            /opt/todolist-ci/scripts/install_purge_timer.sh >/dev/null
+          sudo chown -R "$(id -un)" "$units"
+          grep -q '^OnFailure=todolist-purge-failed.service$' "$units/todolist-purge.service" \
+            || { echo "หน่วยหลักไม่ได้ชี้ไปหาหน่วยที่ทำให้ความล้มเหลวดัง"; exit 1; }
+          # **หน่วยที่ถูกชี้ต้องถูกติดตั้งมาด้วย** ไม่งั้น systemd หาไม่เจอตอนงานล้ม
+          # แล้วผลลัพธ์เงียบเท่าเดิม ทั้งที่ไฟล์อ่านแล้วดูเหมือนมีตัวรับอยู่
+          test -f "$units/todolist-purge-failed.service" \
+            || { echo "ติดตั้งหน่วยหลักโดยไม่มีหน่วยที่ OnFailure= ชี้ไปหา"; exit 1; }
+          grep -q 'TDL_PURGE_FAILED' "$units/todolist-purge-failed.service" \
+            || { echo "ไม่มีคำที่ค้นเจอในบรรทัดที่มันพิมพ์ — สัญญาณที่ grep ไม่เจอคือสัญญาณที่ไม่มี"; exit 1; }
       - name: ค่าที่มีช่องว่างต้องรอดจากการแทนค่า
         run: |
           # **`Environment=` ของ systemd แยกคำตามช่องว่าง** — ค่าที่ไม่ได้ใส่

@@ -11,6 +11,10 @@ Description=todolist retention purge
 # ไม่ต้องรอเน็ต ถ้าฐานข้อมูลอยู่เครื่องเดียวกัน แต่รอไว้ไม่เสียหายเมื่ออยู่คนละเครื่อง
 After=network-online.target
 Wants=network-online.target
+# **ล้มแล้วต้องมีร่องรอยที่หาเจอด้วยเครื่อง ไม่ใช่แค่สถานะที่ต้องมีคนเดินไปถาม**
+# (audit รอบ 10 ข้อ 4) — หน่วยนี้คือตัวที่ทำให้ระยะเก็บรักษาใน docs/ROPA.md
+# เป็นความจริง ความเงียบของมันจึงแปลว่าคำสัญญาทางกฎหมายหยุดเป็นจริงโดยไม่มีใครรู้
+OnFailure=todolist-purge-failed.service
 
 [Service]
 Type=oneshot
