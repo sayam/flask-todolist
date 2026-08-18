@@ -876,7 +876,7 @@ gates:
       ตัวเดียว ที่เหลือทั้งต้นไม้ยังลอย
 
   - id: checkers-proven-two-way
-    title: สคริปต์ที่ตัดสินผ่าน/ไม่ผ่าน ต้องมีเทสต์ planted violation + clean input
+    title: สคริปต์ที่ตัดสินผ่าน/ไม่ผ่าน ต้องมีเทสต์ planted violation + clean input · และรายงานต้องไม่ขัดกันเอง
     kind: test
     severity: blocking
     enforced_by: {job: test, tests: [tests/test_checker_logic.py]}

@@ -227,11 +227,44 @@ def collect(limit: int) -> list[dict]:
     return records
 
 
-def census(records: list[dict]) -> dict:
+def job_identity() -> tuple[set[str], dict[str, str], dict[str, list[str]]]:
+    """ไอดีของ job ทุกตัว · แม็ปจาก **ชื่อ check** กลับไปหาไอดี · และไอดีต่อไฟล์ workflow
+
+    **ทำไมต้องมีแม็ป** (audit รอบ 13 ข้อ 1): API คืน *ชื่อ check* ซึ่งเป็นค่าของ
+    `name:` ถ้า job ตั้งไว้ — `dialects` ประกาศ `name: dialect (${{ matrix.db.name }})`
+    ชื่อที่กลับมาจึงเป็น `dialect (mysql-8)` · ฝั่งที่ถามว่า "job ไหนไม่เคยแดง"
+    อ่านไอดีจากไฟล์ workflow (`dialects`) — สองฝั่งจึงไม่มีทางแมตช์กัน และผลคือ
+    **รายงานฉบับเดียวบอกว่า `dialect` ล้ม 10 ครั้ง แล้วบอกว่า `dialects` ไม่เคยแดง**
+    ซึ่งเป็นครึ่งหนึ่งของคำตัดสินตาม ADR 0062 ว่าด่านไหนควรย้ายไปรันตามรอบ
+    """
+    ids: set[str] = set()
+    by_name: dict[str, str] = {}
+    by_path: dict[str, list[str]] = {}
+    for path in sorted((ROOT / ".github" / "workflows").glob("*.y*ml")):
+        workflow = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        jobs = workflow.get("jobs") or {}
+        ids |= set(jobs)
+        by_path[f".github/workflows/{path.name}"] = sorted(jobs)
+        for job_id, body in jobs.items():
+            by_name[job_id] = job_id
+            declared = (body or {}).get("name")
+            if not declared:
+                continue
+            # ตัดส่วนที่เป็น template ของ matrix ออก เหลือส่วนที่คงที่จริง ๆ
+            static = str(declared).split("${{")[0].strip().rstrip("(").strip()
+            if static:
+                by_name[static] = job_id
+    return ids, by_name, by_path
+
+
+def census(records: list[dict], by_name: dict[str, str] | None = None) -> dict:
     """สรุปว่าอะไรล้มจริงบ้าง — ของที่ถูก rerun ต้องยังถูกนับ
 
     `visible` = ล้มใน attempt สุดท้าย (คือสิ่งที่ `gh run list` เห็น) ·
     `hidden` = ล้มใน attempt ก่อนหน้าแล้วถูก rerun จนเขียว (คือสิ่งที่หายไป)
+
+    `by_name` แปลง **ชื่อ check** ที่ API คืนมา กลับเป็น **ไอดี job** — ต้องส่งมาเสมอ
+    ตอนใช้งานจริง ไม่งั้นตัวเลขฝั่งนี้จะคีย์คนละแบบกับฝั่ง "ไม่เคยแดง" (audit รอบ 13)
     """
     by_job: dict[str, collections.Counter] = collections.defaultdict(collections.Counter)
     runs = {"visible": 0, "hidden": 0}
@@ -242,7 +275,8 @@ def census(records: list[dict]) -> dict:
         seen = set()
         for failure in record.get("failures", []):
             where = "visible" if failure.get("attempt", 1) >= last else "hidden"
-            job = str(failure.get("job", "?")).split(" (")[0]
+            label = str(failure.get("job", "?")).split(" (")[0]
+            job = (by_name or {}).get(label, label)
             by_job[job][where] += 1
             classes[classify(failure)] += 1
             seen.add(where)
@@ -256,6 +290,17 @@ def census(records: list[dict]) -> dict:
         "failures_by_class": dict(classes),
         "jobs": {job: dict(counts) for job, counts in sorted(by_job.items())},
     }
+
+
+def unresolved_labels(summary: dict, ids: set[str]) -> list[str]:
+    """ชื่อที่นับความล้มเหลวไว้แต่แปลงกลับเป็นไอดี job ไม่ได้
+
+    ชื่อแบบนั้นคือชื่อที่จะตกไปอยู่ฝั่ง "ไม่เคยแดง" เงียบ ๆ — ซึ่งเป็นบั๊กที่ audit
+    รอบ 13 เจอ · run ที่ไม่ได้ start ถูกตั้งชื่อด้วย path จึงไม่นับเป็นชื่อแปลก
+    """
+    return sorted(
+        label for label in summary["jobs"] if label not in ids and " — ไม่ได้ start" not in label
+    )
 
 
 def jobs_never_red(summary: dict, defined: set[str]) -> list[str]:
@@ -413,18 +458,33 @@ def main(argv: list[str] | None = None) -> int:
         gates = yaml.safe_load((ROOT / "gates.yaml").read_text(encoding="utf-8"))["gates"]
         report_evidence(evidence_proposals(records, gates))
 
-    summary = census(records)
+    ids, by_name, by_path = job_identity()
+    summary = census(records, by_name)
     if args.json:
         print(json.dumps(summary, ensure_ascii=False, indent=2))
     else:
         report(summary)
 
+    strange = unresolved_labels(summary, ids)
+    if strange:
+        print(
+            f'\n**ชื่อที่แปลงกลับเป็นไอดี job ไม่ได้** — ตัวเลขของมันจะไม่ถูกนับเข้าฝั่ง "ไม่เคยแดง": {strange}',
+            file=sys.stderr,
+        )
+
     if args.never_red:
-        defined = set()
-        for path in sorted((ROOT / ".github" / "workflows").glob("*.y*ml")):
-            defined |= set(yaml.safe_load(path.read_text(encoding="utf-8")).get("jobs", {}))
-        never = jobs_never_red(summary, defined)
+        never = jobs_never_red(summary, ids)
+        clash = sorted(set(never) & set(summary["jobs"]))
+        assert not clash, f"รายงานขัดกันเอง: {clash} อยู่ทั้งสองรายการ"
         print(f"\njob ที่ไม่แดงเลยในหน้าต่างนี้ ({len(never)}): {', '.join(never)}")
+        for label, count in sorted(summary["jobs"].items()):
+            owned = by_path.get(label.split(" — ")[0], [])
+            silent = [job for job in owned if job in never]
+            if silent:
+                print(
+                    f"  หมายเหตุ: {', '.join(silent)} ไม่เคยแดงเอง แต่ workflow ของมัน"
+                    f"ล้มก่อนสร้าง job {sum(count.values())} ครั้ง — คนละเรื่องกับ 'ไม่มีอะไรพัง'"
+                )
         print("อ่านคู่กับ `guards:` ใน gates.yaml ก่อนตัดสินว่าด่านไหนควรย้ายไปรันตามรอบ (ADR 0062)")
 
     if args.max_hidden is not None and summary["runs_failed_hidden"] > args.max_hidden:

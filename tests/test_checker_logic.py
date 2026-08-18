@@ -889,3 +889,89 @@ def test_every_declared_floor_is_read_from_the_file_not_a_comment():
 
     assert set(floors) == {"coverage", "interrogate"}
     assert all(value > 0 for value in floors.values())
+
+
+# ------------------- รายงานต้องไม่ขัดกับตัวเอง (audit r13 · ข้อ 1)
+#
+# `dialects` ประกาศ `name: dialect (${{ matrix.db.name }})` — API จึงคืนชื่อ
+# `dialect (mysql-8)` ส่วนฝั่ง "ไม่เคยแดง" อ่านไอดีจากไฟล์ workflow (`dialects`)
+# ผลคือรายงานฉบับเดียวบอกว่ามันล้ม 10 ครั้ง แล้วบอกว่ามันไม่เคยแดง
+
+
+MATRIX_FAILURE = {
+    "id": 11,
+    "attempt": 1,
+    "failures": [{"attempt": 1, "job": "dialect (mysql-8)", "step": "pytest", "message": "boom"}],
+}
+
+
+def test_a_check_name_is_resolved_back_to_its_job_id():
+    """ชื่อที่ API คืนมา ต้องถูกแปลงกลับเป็นไอดีก่อนนับ"""
+    summary = rerun_census.census([MATRIX_FAILURE], {"dialect": "dialects"})
+
+    assert "dialects" in summary["jobs"], "ชื่อ check ไม่ได้ถูกแปลงกลับเป็นไอดี job"
+    assert "dialect" not in summary["jobs"]
+
+
+def test_the_two_halves_of_the_report_cannot_contradict_each_other():
+    """job ที่นับความล้มเหลวไว้ ต้องไม่โผล่ในรายการ "ไม่เคยแดง" ของรายงานเดียวกัน"""
+    summary = rerun_census.census([MATRIX_FAILURE], {"dialect": "dialects"})
+    never = rerun_census.jobs_never_red(summary, {"dialects", "lint"})
+
+    assert "dialects" not in never, "รายงานขัดกับตัวเอง"
+    assert never == ["lint"]
+
+
+def test_without_the_map_the_old_bug_is_visible():
+    """ทิศที่พิสูจน์ว่าแม็ปคือสิ่งที่แก้ — ไม่ส่งแม็ปแล้วบั๊กเดิมกลับมาทันที"""
+    summary = rerun_census.census([MATRIX_FAILURE])
+
+    assert rerun_census.jobs_never_red(summary, {"dialects"}) == ["dialects"], (
+        "ถ้าไม่มีแม็ป job ที่ล้มจริงจะยังถูกรายงานว่าไม่เคยแดง"
+    )
+
+
+def test_a_name_that_cannot_be_resolved_is_reported_loudly():
+    """ชื่อที่แปลงกลับไม่ได้ = ชื่อที่จะตกไปฝั่ง "ไม่เคยแดง" เงียบ ๆ"""
+    summary = rerun_census.census(
+        [
+            {
+                "id": 12,
+                "attempt": 1,
+                "failures": [{"attempt": 1, "job": "job-ที่ไม่รู้จัก", "step": "s", "message": "m"}],
+            }
+        ]
+    )
+
+    assert rerun_census.unresolved_labels(summary, {"lint"}) == ["job-ที่ไม่รู้จัก"]
+
+
+def test_a_workflow_that_never_started_is_not_counted_as_a_strange_name():
+    """run ที่ไม่ได้ start ถูกตั้งชื่อด้วย path โดยตั้งใจ — ไม่ใช่ชื่อที่แปลงพลาด"""
+    summary = rerun_census.census(
+        [
+            {
+                "id": 13,
+                "attempt": 1,
+                "failures": [
+                    {
+                        "attempt": 1,
+                        "job": ".github/workflows/scorecard.yml — ไม่ได้ start",
+                        "step": "",
+                        "message": "workflow file issue",
+                    }
+                ],
+            }
+        ]
+    )
+
+    assert rerun_census.unresolved_labels(summary, {"lint"}) == []
+
+
+def test_the_identity_map_reads_the_real_workflows():
+    """แม็ปต้องอ่านจากไฟล์จริง — matrix ที่เปลี่ยนชื่อ `name:` ต้องยังตามได้"""
+    ids, by_name, by_path = rerun_census.job_identity()
+
+    assert "dialects" in ids
+    assert by_name.get("dialect") == "dialects", "job ที่ตั้ง name: ต่างจากไอดี ต้องถูกแม็ป"
+    assert "posture" in by_path[".github/workflows/scorecard.yml"]
