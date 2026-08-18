@@ -207,6 +207,18 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
   form answers alongside ASVS/PDPA/ISO — the audit's third round found
   the layering fully converged, leaving only these.
 
+- **`CLAUDE.md` now has a declared ceiling that ratchets** (round-8 audit,
+  D3 — the owner's decision, not a gate's). The file every session reads
+  in full grew from 22 lines on day one to 1,240 lines / 8,488 words in
+  16 days, with 66 commits touching it in the last week alone: no single
+  line was wrong, and nobody had ever decided how large it may get. The
+  ceiling is enforced two ways — the file may not exceed it, **and the
+  ceiling may not float far above the file**, so trimming content forces
+  the ceiling down instead of leaving room to refill quietly. Lines and
+  words are both counted, because counting lines alone would make
+  re-wrapping look like shrinking. Raising it takes an ADR; a cadence row
+  revisits it every six months (ADR 0065).
+
 ### Fixed
 
 - **The CI failure census was reading the wrong signal** (round-8 audit,
@@ -684,7 +696,7 @@ graph. Nothing in the `/api/v1` contract changed; it only gained fields.
 ## [1.0.0] — 2026-08-12
 
 First public release. Everything below arrived across seven planned phases of
-work; the reasoning for each decision lives in the 64 records in
+work; the reasoning for each decision lives in the 65 records in
 [`docs/adr/`](docs/adr/), and the phase-by-phase plan in
 [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
