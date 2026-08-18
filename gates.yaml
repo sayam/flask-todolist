@@ -1632,3 +1632,25 @@ gates:
     pillar: security
     axis: supply-chain
     born_from: ""
+
+  - id: instruction-file-under-a-declared-ceiling
+    title: ไฟล์คำสั่งที่ทุก session อ่าน มีเพดานที่ประกาศไว้ และเพดานลอยเหนือของจริงไม่ได้
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_instruction_budget.py]}
+    standard: []
+    requires: []
+    portable: false
+    layer: internal
+    pillar: devx
+    proved_by:
+      - kind: mutation
+        ref: pr/99
+        date: 2026-08-18
+        caught: >-
+          พังสามทิศแล้วแดงครบ — เติมบรรทัดจนเกินเพดาน · ขยับเพดานขึ้นลอย ๆ
+          (ทิศ ratchet จับ: เพดานที่ลอยเหนือของจริงคือเพดานที่ไม่ได้ตั้ง) ·
+          ยุบ 600 บรรทัดแรกให้เหลือบรรทัดเดียว — บรรทัดลดจาก 1,246 เหลือ 646
+          โดย**จำนวนคำไม่ขยับเลย** ซึ่งคือช่องที่ทำให้ "ลดขนาด" ได้โดยไม่ลดอะไร
+          ถ้านับแต่บรรทัด
+
