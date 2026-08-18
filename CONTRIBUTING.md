@@ -275,7 +275,11 @@ pipenv run flask create-user <ชื่อ>
    `performance`/`manageability`/`devx` — ADR 0051 ดูกฎข้อ 10) ·
    ถ้ากฎนั้นใช้ได้กับโปรเจกต์อื่นด้วย ให้ตั้ง `portable: true` +
    `born_from` (กับดักที่ให้กำเนิดกฎข้อนั้น) เพราะ `SKILL.md`,
-   `SKILL-TODOLIST.md` กับ `overlays/flask/` generate มาจากตรงนั้น
+   `SKILL-TODOLIST.md` กับ `overlays/flask/` generate มาจากตรงนั้น ·
+   **`severity:` ต้องตรงกับอำนาจจริง** (ADR 0066): `blocking` ได้เฉพาะ job ที่รัน
+   บน `pull_request` · ที่เหลือเป็น `watched`/`warning` และต้องมี `watched_by:`
+   (ใคร · ภายในกี่วัน · ด้วยกลไกอะไร) · รายละเอียดของกลไกทั้งหมดอยู่ใน
+   [`docs/GOVERNANCE.md`](docs/GOVERNANCE.md)
 9. **งาน UI เริ่มจาก [`docs/DESIGN.md`](docs/DESIGN.md)** — อ่านก่อนแตะ
    `app/templates/` หรือ `app/static/base.css` และประกาศว่าเป็น **refine**
    (ค่าเริ่มต้น — รักษาตัวตนตามเอกสาร) หรือ **redesign** (เปลี่ยนตัวตน —

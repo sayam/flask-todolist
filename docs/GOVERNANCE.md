@@ -7,7 +7,8 @@
 
 **อ่านไฟล์นี้เมื่อ**: จะเพิ่ม/แก้ gate · แตะ `gates.yaml` · แตะ workflow ที่เป็น
 ด่าน · แก้ของที่ generate ไป `SKILL.md`/`skill/`/`overlays/` · หรือจะอ่านผลของ
-สำมะโน (`rerun_census.py` · `schedule_census.py` · `audit_posture.py`)
+สำมะโน (`rerun_census.py` · `schedule_census.py` · `red_streak_census.py` ·
+`audit_posture.py`)
 
 > กฎที่กระทบงานประจำวันยังอยู่ใน `CLAUDE.md` ตามเดิม — ที่นี่คือ*รายละเอียดของ
 > กลไก* ซึ่งเดาไม่ได้จากการอ่านโค้ดเหมือนกัน แต่ไม่ได้ต้องใช้ทุก session
