@@ -179,6 +179,21 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
   judge goes red the moment a rebuilt digest makes the advisory
   disappear, forcing the exception out.
 
+- **The two files that mute a security check are now checked
+  themselves** (round-9 audit). Reading all thirteen "declared debt"
+  registers side by side for the first time showed the inconsistency:
+  the CVE acceptance lists carry two-way tests, while `.zap/rules.tsv`
+  (8 muted findings) and `.hadolint.yaml` (1) were governed only by a
+  sentence in CLAUDE.md that nothing enforced. Every line in them does
+  carry a reason today — the risk was the tenth line, added in a hurry,
+  with nothing to object. The new tests require a real reason per line,
+  unique rule ids, that the rule file actually reaches ZAP, that each
+  hadolint exception has its reason written above it, and that the
+  workflow does not quietly loosen `failure-threshold`, which would
+  waive a whole severity class without writing a single reason.
+  A floor on the number of `FAIL` rules keeps the regression net from
+  shrinking by a one-word edit.
+
 ### Changed
 
 - The verify commands in `SECURITY.md` are now bound to the workflow
