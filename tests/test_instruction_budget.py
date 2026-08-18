@@ -24,8 +24,8 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 INSTRUCTIONS = ROOT / "CLAUDE.md"
 
 # เพดานปัจจุบัน — **ขยับขึ้นต้องมี ADR · ลดลงทำได้เสมอและควรทำทุกครั้งที่ย้ายเนื้อออก**
-LINE_CEILING = 1_265
-WORD_CEILING = 8_700
+LINE_CEILING = 1_200
+WORD_CEILING = 8_100
 
 # ระยะที่เพดานลอยเหนือของจริงได้ — ที่ว่างสำหรับงานปกติหนึ่งรอบ ไม่ใช่ที่ว่างถาวร
 LINE_SLACK = 40
