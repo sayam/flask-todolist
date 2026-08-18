@@ -661,3 +661,43 @@ def test_the_alert_register_on_disk_is_readable_and_reasoned():
 
     assert accepted, "อ่าน .github/accepted-code-scanning-alerts.txt ไม่ได้เลย"
     assert all(why for why in accepted.values()), "มีบรรทัดที่ไม่มีเหตุผลกำกับ"
+
+
+# ------------------------------- check ที่ไม่ถูกบังคับ ต้องถูกประกาศ (ADR 0066 · audit r10)
+#
+# ทะเบียน `EXEMPT` มีมาตั้งแต่ ADR 0061 แต่ถูกใช้กรองเซต "job ที่รันบน PR แต่ไม่ถูก
+# บังคับ" — ซึ่งสมาชิกของมันไม่มีทางอยู่ในเซตนั้นตั้งแต่ต้น · วัดจริงตอน audit รอบ 10:
+# 2 รายการ 0 ครั้งที่ถูกปรึกษา · ทิศนี้ทำให้มันถูกอ่านทุกครั้งที่ตัวตรวจรัน
+
+
+def test_unrequired_checks_pass_when_every_one_of_them_is_declared():
+    """ทิศ "ผ่านเมื่อควรผ่าน" — ของที่ประกาศไว้แล้วต้องไม่มีเสียงบ่น"""
+    produced = {"lint", "test"} | set(audit_posture.EXEMPT)
+
+    assert audit_posture.unrequired_problems(produced, {"lint", "test"}) == []
+
+
+def test_an_undeclared_unrequired_check_is_red():
+    """job ใหม่ที่ไม่ถูกบังคับและไม่มีใครประกาศ = ด่านที่ล้มเงียบได้ทั้งวัน"""
+    produced = {"lint", "test", "job-ใหม่"} | set(audit_posture.EXEMPT)
+
+    problems = audit_posture.unrequired_problems(produced, {"lint", "test"})
+
+    assert problems, "job ใหม่ที่ไม่มีใครประกาศต้องถูกจับ"
+    assert "job-ใหม่" in problems[0], "ข้อความต้องบอกว่าตัวไหน ไม่ใช่แค่ว่ามีปัญหา"
+
+
+def test_a_declared_exemption_that_names_nothing_is_red():
+    """ทิศที่เงียบเสมอ — ยกเว้น job ที่ถูกลบไปแล้ว ไม่มีอะไรฟ้องถ้าไม่ตรวจทิศนี้"""
+    assert audit_posture.unrequired_problems({"lint"}, {"lint"}), (
+        "EXEMPT ทั้งชุดไม่ตรงกับ job ไหนเลย แต่ตัวตรวจเงียบ"
+    )
+
+
+def test_matrix_checks_are_matched_by_their_job_name():
+    """`dialect (mysql-8)` ต้องนับเป็น job `dialect` ไม่ใช่ชื่อแปลกที่ไม่มีในทะเบียน"""
+    produced = {"dialect (mysql-8)", "dialect (mariadb-11)"} | set(audit_posture.EXEMPT)
+
+    assert audit_posture.unrequired_problems(produced, {"dialect (mysql-8)"}), (
+        "แถว matrix ที่หลุดจากรายการบังคับต้องถูกจับ"
+    )

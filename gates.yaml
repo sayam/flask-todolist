@@ -1222,8 +1222,16 @@ gates:
   - id: plugin-deps-cve-visible
     title: CVE ของไลบรารี plugin ดังพอให้เห็น แต่ไม่หยุด pipeline (คำตอบคือถอด)
     kind: job
+    # **ไม่ล้มโดยตั้งใจ** — คำตอบของ CVE ที่ถอดได้คือ "ถอดก่อน" (ADR 0025)
     severity: warning
     enforced_by: {job: plugin-audit}
+    watched_by:
+      who: ผู้ดูแล
+      within_days: 90
+      how: >-
+        job ยิง annotation ระดับ warning + เขียนลงสรุปของ run ทุกครั้งที่เจอ และมีแถว
+        "ทบทวนช่องโหว่ที่ค้างอยู่และของที่ pin ไว้" ทุก 3 เดือนใน
+        `docs/SECURITY-CADENCE.md` ซึ่งอ่านผลของ job นี้โดยตรง
     standard: []
     requires: []
     portable: true
@@ -1540,8 +1548,16 @@ gates:
   - id: release-signed-and-attested
     title: SBOM ของ release ถูก generate ใน CI เซ็น keyless + provenance และ verify สองทิศก่อนแนบ
     kind: job
-    severity: blocking
+    # **บล็อกไม่ได้จริง** — รันตอน publish release ไม่ใช่บน pull request (ADR 0066)
+    severity: watched
     enforced_by: {job: release-sign}
+    watched_by:
+      who: ผู้ดูแล
+      within_days: 1
+      how: >-
+        release ที่เซ็นไม่สำเร็จ = artifact ที่ verify ไม่ผ่าน ซึ่งอยู่ในรายการ
+        งานชุด release ของ `docs/RELEASE.md` ที่ต้องเดินให้จบทุกครั้ง ·
+        กรอบหนึ่งวันเพราะของที่แจกออกไปแล้วดึงกลับไม่ได้ (`ADR 0058`)
     standard: []
     requires: []
     portable: true
@@ -1610,8 +1626,17 @@ gates:
   - id: platform-posture-verified
     title: ท่าทีฝั่งแพลตฟอร์ม (branch protection · required check · auto-merge · alert ที่ค้างบนหน้า Security) ถูกเครื่องตรวจ ไม่ใช่แค่เขียนไว้
     kind: job
-    severity: blocking
+    # **บล็อกไม่ได้จริง** — `scorecard.yml` ไม่มีทริกเกอร์ `pull_request` (ADR 0066)
+    severity: watched
     enforced_by: {job: posture}
+    watched_by:
+      who: ผู้ดูแล
+      within_days: 7
+      how: >-
+        ความล้มเหลวโผล่ในสำมะโนที่นับ run ที่ไม่ได้ start ด้วย
+        (`scripts/rerun_census.py` — ADR 0064) และมีแถวทวงตามรอบใน
+        `docs/SECURITY-CADENCE.md` · ตัวชดเชยที่ทำงานทุกวัน: ท่าทีที่เลื่อนจริง
+        ทำให้คำสั่ง merge อัตโนมัติของทุก PR ล้มทันที ไม่ใช่ความเงียบ
     standard: []
     requires: [github-actions]
     portable: true
@@ -1638,6 +1663,13 @@ gates:
     kind: job
     severity: warning
     enforced_by: {job: scorecard}
+    watched_by:
+      who: ผู้ดูแล
+      within_days: 30
+      how: >-
+        คะแนนถูกอ่านคู่กับใบคำตอบใน `docs/BEST-PRACTICES.md` ตามแถวทบทวน 12 เดือน
+        ของ `docs/SECURITY-CADENCE.md` · ข้อที่ตกและรับไว้แล้วมีทะเบียนของตัวเอง
+        (`.github/accepted-code-scanning-alerts.txt`) ซึ่ง `ci:posture` ตรวจสองทิศ
     standard: []
     requires: [github-actions]
     portable: false

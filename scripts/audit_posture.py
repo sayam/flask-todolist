@@ -8,9 +8,12 @@ check ครบทุก job ที่รันบน pull request — **ทั�
 
 ตรวจสามอย่างที่คนละแหล่ง:
 
-1. **required check ครบสองทิศ** — job ที่รันบน pull request ทุกตัวต้องอยู่ในรายการ
-   บังคับ (ยกเว้นที่ประกาศไว้พร้อมเหตุผล) และรายการบังคับต้องไม่มีชื่อผี
-   (context ที่ไม่มี job ไหนสร้างได้ = PR รอ check ที่ไม่มีวันมา)
+1. **required check ครบสามทิศ** — job ที่รันบน pull request ทุกตัวต้องอยู่ในรายการ
+   บังคับ · รายการบังคับต้องไม่มีชื่อผี (context ที่ไม่มี job ไหนสร้างได้ = PR รอ
+   check ที่ไม่มีวันมา) · และ **check ที่ repo ผลิตได้แต่ไม่ถูกบังคับ ต้องถูก
+   ประกาศไว้พร้อมเหตุผล** (ADR 0066 — ทิศที่สามเพิ่มตอน audit รอบ 10: ทะเบียน
+   `EXEMPT` มีมาก่อนแล้วแต่ถูกใช้กรองเซตที่มันไม่มีทางอยู่ในนั้น จึงไม่เคยถูก
+   ปรึกษาเลยสักครั้ง — แฟ้มข้อยกเว้นที่ไม่มีใครอ่าน คือไฟล์ข้อความ)
 2. **ธงของ branch protection** — enforce_admins · linear history · ห้าม force push
    และห้ามลบ branch
 3. **สวิตช์ระดับ repo** — auto-merge (วิธี merge มาตรฐานของทุก PR) และ
@@ -61,6 +64,11 @@ PAGE_SIZE = 100
 EXEMPT = {
     "release-sign": "รันตอนออก release ไม่ใช่บน pull request — บังคับแล้ว PR จะรอตลอดกาล",
     "scorecard": "เป็นคะแนนไม่ใช่ผ่าน/ตก และไม่รันบน pull request (ADR 0039 · หัวไฟล์ scorecard.yml)",
+    # **ตัวเองก็อยู่ในรายการนี้** — และมันหายไปจนถึง audit รอบ 10 ซึ่งเป็นหลักฐาน
+    # ตรงตัวว่าทะเบียนที่ไม่มีใครอ่านไม่ครบเสมอ: job นี้เกิดตอนรอบ 9 แล้วไม่มีอะไร
+    # ทวงให้มาลงทะเบียน เพราะทิศที่ปรึกษา EXEMPT ยังไม่มี
+    "posture": "อ่านสถานะระดับ repo (branch protection ของ main) ไม่ใช่ของ commit — "
+    "รันบน PR แล้วจะแดง/เขียวตามสิ่งที่ PR นั้นไม่ได้แตะ (ADR 0066)",
 }
 
 # ธงที่ ADR 0053 ประกาศ — ค่าที่ต้องเป็น ไม่ใช่ค่าที่บังเอิญเป็น
@@ -164,6 +172,50 @@ def total_checks(workflows: dict[str, dict]) -> int:
             matrix = strategy.get("matrix") if isinstance(strategy, dict) else None
             total += len(next(iter(matrix.values()))) if matrix else 1
     return total
+
+
+def all_checks(workflows: dict[str, dict]) -> set[str]:
+    """ชื่อ check **ทุกตัวที่ repo นี้ผลิตได้** ไม่ว่าจะรันบนทริกเกอร์ไหน"""
+    names: set[str] = set()
+    for workflow in workflows.values():
+        for key, job in workflow.get("jobs", {}).items():
+            base = job.get("name") or key
+            strategy = job.get("strategy") or {}
+            matrix = strategy.get("matrix") if isinstance(strategy, dict) else None
+            if not matrix:
+                names.add(base)
+                continue
+            names.update(
+                _resolve(base, combo) if _resolve(base, combo) != base else f"{base} ({combo})"
+                for combos in matrix.values()
+                for combo in combos
+            )
+    return names
+
+
+def unrequired_problems(produced: set[str], required: set[str]) -> list[str]:
+    """check ที่ไม่ถูกบังคับ ต้องถูกประกาศไว้ — และรายการที่ประกาศต้องยังมีของจริง
+
+    ทิศนี้คือตัวที่ทำให้ `EXEMPT` ถูกอ่านจริง (ADR 0066) · ก่อนหน้านี้มันถูกใช้
+    กรองเซต "job ที่รันบน PR แต่ไม่ถูกบังคับ" ซึ่งสมาชิกของมันไม่มีทางอยู่ในนั้น
+    ผลคือทะเบียนที่อ่านแล้วเข้าใจว่ามีการบังคับอยู่ แต่ไม่เคยถูกปรึกษาสักครั้ง
+    """
+    bare = {name.split(" (")[0] for name in produced - required}
+    undeclared = sorted(bare - set(EXEMPT))
+    problems = []
+    if undeclared:
+        problems.append(
+            f"check ที่ไม่ได้ถูกบังคับและไม่ได้ประกาศไว้: {undeclared} — "
+            "บังคับมัน หรือประกาศใน EXEMPT พร้อมเหตุผล และให้ gate ของมันมี watched_by "
+            "(ADR 0066: ด่านที่ไม่บล็อกใครไม่ผิด แต่ต้องบอกได้ว่าใครเห็นและภายในกี่วัน)"
+        )
+
+    everything = {name.split(" (")[0] for name in produced}
+    problems += [
+        f"EXEMPT ยกเว้น {job!r} ไว้ แต่ไม่มี job ชื่อนี้แล้ว — ถอดออก"
+        for job in sorted(set(EXEMPT) - everything)
+    ]
+    return problems
 
 
 def compare(
@@ -329,6 +381,7 @@ def main(argv: list[str] | None = None) -> int:
     problems = compare(
         state, pull_request_checks(workflows), total_checks(workflows), claimed_counts()
     )
+    problems += unrequired_problems(all_checks(workflows), set(state.get("required_checks") or []))
     problems += alert_problems(state.get("alerts"), accepted_alerts())
     if problems:
         print("ท่าทีของแพลตฟอร์มไม่ตรงกับสิ่งที่ประกาศไว้:", file=sys.stderr)
