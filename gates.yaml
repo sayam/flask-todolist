@@ -1675,3 +1675,24 @@ gates:
           ไฟล์กฎให้ ZAP · `ignored:` ของ hadolint ที่ไม่มีเหตุผล ·
           `failure-threshold` ใน workflow ที่ยกเว้นทั้ง severity class เงียบ ๆ
 
+  - id: workflows-are-startable
+    title: ทุก workflow ต้อง start ได้จริง — scope/ทริกเกอร์/job ตรงกับที่ GitHub รับ
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_workflow_validity.py]}
+    standard: []
+    requires: []
+    portable: false
+    layer: internal
+    pillar: security
+    proved_by:
+      - kind: mutation
+        ref: pr/101
+        date: 2026-08-18
+        caught: >-
+          แดงกับ**ของเสียจริง ไม่ใช่ของสังเคราะห์** — `permissions:
+          administration: read` ที่ทำให้ `scorecard.yml` ไม่ start ทุก run
+          รวมบน main ข้ามวัน (run 32097631697 · 22 จาก 30 run ล่าสุด) และ
+          ทำให้ job `posture` ของ ADR 0061 ไม่เคยรันเลยสักครั้ง · อีกสองทิศ:
+          job ที่ไม่มี steps · workflow ที่ไม่มีทริกเกอร์
+
