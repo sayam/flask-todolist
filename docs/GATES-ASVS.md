@@ -38,7 +38,7 @@ derive จากหลักฐานในตาราง `docs/ASVS.md`: แ�
 | `login-rate-limited-two-ways` | V6.1.1 · V6.3.1 |
 | `logs-carry-no-pii` | V1.2.9 · V14.2.4 · V16.2.1 · V16.2.2 · V16.2.4 · V16.2.5 · V16.3.4 · V16.4.1 |
 | `password-policy-nist` | V6.2.1 · V6.2.2 · V6.2.3 · V6.2.4 · V6.2.5 · V6.2.8 · V6.2.9 · V6.2.12 · V6.4.3 · V11.4.2 |
-| `plugin-deps-cve-visible` | V15.1.2 · V15.2.1 |
+| `plugin-deps-cve-decided` | V15.1.2 · V15.2.1 |
 | `purge-timer-real-systemd` | V14.2.4 |
 | `push-secret-scan` | V13.3.1 |
 | `ropa-current` | V13.1.1 · V16.1.1 · V16.2.3 |

@@ -22,7 +22,7 @@ supply chain เป็น**แกนอิสระ**ของชั้น secur
 |---|---|
 | `gate core-deps-cve-audit` | CVE ของ core — ถอดไม่ได้ = หยุด pipeline ได้ |
 | `gate deploy-deps-cve-audit` | CVE ของหมวด deploy — server ที่รับคำขอจริง |
-| `gate plugin-deps-cve-visible` | CVE ของ plugin ดังพอให้เห็น (คำตอบคือถอด — ไม่บล็อก) |
+| `gate plugin-deps-cve-decided` | CVE ของ plugin ต้องถูกตัดสินแล้วทุกตัว — อัปเกรด · ถอดด้วย `DISABLED_PLUGINS` · หรือรับไว้พร้อมเหตุผลในทะเบียน (ADR 0025 โน้ต 1) |
 | `gate bare-clone-still-green` | สภาพหลัง clone ไม่มีไลบรารี plugin ต้องเขียว — "ถอดได้จริง" วัดได้ |
 | `gate licensing-no-copyleft` | เงื่อนไข license ของทุก dependency — ภาระทางกฎหมายก็คือ supply chain |
 
@@ -82,7 +82,7 @@ supply chain เป็น**แกนอิสระ**ของชั้น secur
 | sigstore — Fulcio/Rekor และ sigstore/cosign-installer | ลายเซ็น keyless ของ SBOM ทุกไฟล์ | job `release-sign` แดงตอนออกรุ่น |
 | เครื่องมือสแกนที่เป็น action — aquasecurity/trivy-action, github/codeql-action, gitleaks/gitleaks-action, hadolint/hadolint-action, ossf/scorecard-action, grafana/setup-k6-action | ด่าน image, SAST, secret scan, lint ของ Dockerfile, คะแนน posture, tripwire ของ performance | job `image`, `codeql`, `secret-scan`, `lint`, `scorecard`, `perf-smoke` แดง — และรุ่นที่ตัดสินคือรุ่นใน action ไม่ใช่รุ่นบนเครื่อง (ADR 0055) |
 | Debian ผ่าน base image python:3.13-slim | ชั้น OS ของ image ที่ deploy จริง | `gate image-os-cve-audit` (trivy) + Dependabot ecosystem `docker` |
-| PyPI และ npm | ไลบรารีทุกชั้น: core, deploy, plugin, เครื่องมือของ CI | `gate core-deps-cve-audit`, `gate ci-tools-cve-audit`, `gate plugin-deps-cve-visible` |
+| PyPI และ npm | ไลบรารีทุกชั้น: core, deploy, plugin, เครื่องมือของ CI | `gate core-deps-cve-audit`, `gate ci-tools-cve-audit`, `gate plugin-deps-cve-decided` |
 | Docker Hub และ quay.io — image ของ stack ที่ CI ยิงจริง (mysql, mariadb, redis, nginx, prom/prometheus, grafana/grafana, grafana/loki, grafana/alloy, hashicorp/vault, quay.io/keycloak/keycloak, bitnamilegacy/openldap) | stack จริงที่ job หลายตัวยิงใส่ทุก push | job `stack`, `sso`, `ldap`, `vault`, `siem`, `scrape`, `dast` แดงทันทีที่ดึง image ไม่ได้ |
 | bestpractices.dev (OpenSSF Best Practices) | badge สามระดับที่ `README.md` โฆษณา และใบตอบใน `docs/BEST-PRACTICES.md` | **ไม่มีเครื่องตรวจ** — มีแถวทบทวนประจำปีใน `docs/SECURITY-CADENCE.md` (ทบทวนคำตอบทั้ง 122 ช่อง) |
 

@@ -483,9 +483,7 @@ jobs:
           done
         env:
           SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
-      - name: pip-audit ทีละ category
-        id: audit
-        continue-on-error: true
+      - name: pip-audit ทีละ category (เก็บผลเป็น JSON)
         run: |
           shopt -s nullglob
           files=(req-*.txt)
@@ -493,26 +491,25 @@ jobs:
             echo "ไม่มี plugin ตัวไหนประกาศไลบรารีไว้ — ไม่มีอะไรต้อง audit"
             exit 0
           fi
-          status=0
           for file in "${files[@]}"; do
             category="${file#req-}"
             echo "== ${category%.txt}"
-            # `|| status=$?` ไม่ใช่ `if ! cmd; then status=$?` — ในกิ่งนั้น $? เป็น 0 เสมอ
-            # (กติกาเดียวกับ scripts/purge_cron.sh) และต้อง audit ให้ครบทุก category
-            # ไม่ใช่หยุดที่ตัวแรกที่มี CVE
-            pipenv run pip-audit --no-deps -r "$file" || status=$?
+            # pip-audit คืน non-zero เมื่อเจอ CVE — **ที่นี่ไม่ตัดสิน** ตัวตัดสินคือ
+            # สคริปต์ในขั้นถัดไปที่เทียบกับทะเบียนสองทิศ · `|| true` จึงถูกต้อง
+            # ตรงนี้ที่เดียว (ไม่ใช่รูปแบบ `if ! cmd` ที่กลืน exit code โดยไม่ตั้งใจ)
+            pipenv run pip-audit --no-deps -r "$file" \
+              --format=json --output "found-${category%.txt}.json" || true
           done
-          exit $status
-      - name: รายงานว่ามี CVE ค้างอยู่ในไลบรารีของ plugin
-        if: steps.audit.outcome == 'failure'
+      # **CVE ในของที่ถอดได้ ต้องถูก *ตัดสิน* ไม่ใช่แค่ถูกเห็น** (ADR 0025 โน้ต 1 —
+      # audit รอบ 13 ข้อ 2) · เดิม job นี้เตือนแล้วผ่าน ซึ่งทำให้เวลาที่จะ*รู้*
+      # ยาว 90 วัน ขณะที่กรอบแก้ของ critical คือ 7 วันนับจากวันที่รู้ — สองข้อนี้
+      # พร้อมกันไม่ได้ · ทางปลดยังมีสามทางและทุกทางใช้เวลาไม่กี่นาที: อัปเกรด ·
+      # ถอด plugin ด้วย DISABLED_PLUGINS · หรือเขียนบรรทัดในทะเบียนพร้อมเหตุผล
+      - name: advisory ของ plugin ต้องถูกตัดสินแล้วทุกตัว
         run: |
-          echo "::warning title=CVE ในไลบรารีของ plugin::ดู log ของ job นี้ว่าเป็น category ไหน — ถอด plugin ตัวนั้นด้วย DISABLED_PLUGINS ได้ทันทีโดยไม่ต้อง deploy (ADR 0025)"
-          {
-            echo "### มี CVE ในไลบรารีของ plugin"
-            echo
-            echo "core ไม่แดงเพราะไลบรารีพวกนี้ **ถอดได้** — แต่ต้องมีคนตัดสินใจ"
-            echo "ว่าจะถอด (\`DISABLED_PLUGINS\`) หรืออัปเกรด ดู log ของ job นี้"
-          } >> "$GITHUB_STEP_SUMMARY"
+          shopt -s nullglob
+          reports=(found-*.json)
+          pipenv run python scripts/audit_plugin_deps.py "${reports[@]}"
 
   a11y:
     # WCAG 2.2 AA ด้วย browser จริง — ครอบสิ่งที่ tests/test_a11y.py ตรวจไม่ได้
