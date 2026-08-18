@@ -93,3 +93,65 @@ def test_every_link_to_a_repo_file_resolves():
         if not (DOC.parent / target.split("#", 1)[0]).exists():
             missing.append(target)
     assert not missing, f"ลิงก์ที่ชี้ไปหาไฟล์ที่ไม่มีอยู่: {missing}"
+
+
+# ------------------- ทะเบียนของที่จงใจเลื่อน (audit r12 · ข้อ 3)
+#
+# ADR ที่ประกาศว่า "ยังไม่ปิด" อย่างเปิดเผย เคยเก็บคำตัดสินนั้นไว้ในเนื้อของตัวเอง
+# ที่เดียว · แถวทวงในตารางข้างบนชี้ไปที่ทะเบียนรวม — ตัวนี้บังคับว่าทะเบียนนั้น
+# **ตามทัน**: ADR ที่เลื่อนของไว้ ต้องมีชื่ออยู่ในทะเบียนจริง ไม่ใช่แค่ในใบของตัวเอง
+
+DEFERRED_REGISTER = ROOT / "docs" / "GOVERNANCE.md"
+DEFERRED_HEADING = "## การตัดสินใจที่จงใจเลื่อน"
+# ข้อความที่ ADR ใช้ประกาศว่ายังไม่ปิดของบางอย่างในรอบนั้น
+DEFERRAL_MARKS = ("สิ่งที่ยังไม่ปิด", "ยังไม่ปิดจริง ๆ")
+
+
+def test_the_deferred_register_exists_and_is_not_empty():
+    """ทะเบียนที่หายไปหรือว่างเปล่า ทำให้แถวทวงชี้ไปที่ความว่าง"""
+    text = DEFERRED_REGISTER.read_text(encoding="utf-8")
+
+    assert DEFERRED_HEADING in text, f"ไม่มีหัวข้อ {DEFERRED_HEADING!r} ใน {DEFERRED_REGISTER.name}"
+    body = text[text.index(DEFERRED_HEADING) :]
+    rows = [line for line in body.splitlines() if line.startswith("|") and "---" not in line]
+    assert len(rows) >= 2, "ทะเบียนต้องมีหัวตารางและอย่างน้อยหนึ่งแถว"
+
+
+def test_every_row_answers_what_would_bring_it_back():
+    """ช่องที่สามคือช่องที่ทำให้มันต่างจากรายการความปรารถนา"""
+    text = DEFERRED_REGISTER.read_text(encoding="utf-8")
+    body = text[text.index(DEFERRED_HEADING) :]
+    thin = []
+    for line in body.splitlines():
+        if not line.startswith("|") or "---" in line or "ทำไมถึงยังไม่ทำ" in line:
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if len(cells) != 3 or not all(cells):
+            thin.append(line[:60])
+            continue
+        if len(cells[2]) < 20:
+            thin.append(line[:60])
+    assert not thin, "แถวที่ตอบไม่ครบสามช่อง (เลื่อนอะไร · ทำไม · อะไรจะทำให้ต้องทำ):\n  " + "\n  ".join(
+        thin
+    )
+
+
+def test_an_adr_that_defers_something_is_named_in_the_register():
+    """ADR ที่ประกาศว่ายังไม่ปิดของบางอย่าง ต้องโผล่ในทะเบียนรวมด้วย
+
+    ทิศนี้คือตัวที่ทำให้ทะเบียนตามทัน — ไม่งั้นคำตัดสินจะกลับไปนอนอยู่ในเนื้อ ADR
+    ใบเดียวเหมือนก่อนรอบ 12 แล้วไม่มีใครกวาดมันอีก
+    """
+    register = DEFERRED_REGISTER.read_text(encoding="utf-8")
+    unlisted = []
+    for path in sorted((ROOT / "docs" / "adr").glob("[0-9]*.md")):
+        text = path.read_text(encoding="utf-8")
+        if not any(mark in text for mark in DEFERRAL_MARKS):
+            continue
+        if path.name not in register:
+            unlisted.append(path.name)
+    assert not unlisted, (
+        f"ADR ที่เลื่อนของไว้แต่ไม่มีชื่อในทะเบียน: {unlisted}\n"
+        "ลงทะเบียนใน docs/GOVERNANCE.md หัวข้อ 'การตัดสินใจที่จงใจเลื่อน' "
+        "หรือถ้าปิดไปแล้วให้ถอดข้อความนั้นออกจาก ADR"
+    )

@@ -523,7 +523,7 @@ gates:
       เรื่องใหญ่ที่สุดหายจากสายตา
 
   - id: cadence-not-overdue
-    title: ตารางตรวจตามรอบถูกอ่านจริง เลยกำหนดเกิน 7 วัน = แดง
+    title: ตารางตรวจตามรอบถูกอ่านจริง เลยกำหนดเกิน 7 วัน = แดง · และทะเบียนของที่จงใจเลื่อนตามทัน ADR
     kind: test
     severity: blocking
     enforced_by: {job: test, tests: [tests/test_cadence.py]}
