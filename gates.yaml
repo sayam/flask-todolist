@@ -1658,6 +1658,33 @@ gates:
           จากรายการบังคับ · ไม่จับ context ผีที่ไม่มี job ไหนสร้างได้ · ไม่เทียบเลขที่
           เอกสารโฆษณา · และจุดที่หก: ทำให้ "อ่าน API ไม่ได้" กลายเป็นการข้ามเงียบ ๆ
 
+  - id: schedules-still-fire
+    title: ตารางเวลาที่ประกาศไว้ต้องพิสูจน์ได้ว่ายังยิงอยู่ — "ไม่มี run เลย" ต้องไม่เงียบเท่า "ไม่มี run ไหนแดง"
+    kind: step
+    # บล็อกไม่ได้ — อยู่ใน job `posture` ซึ่งไม่รันบน pull request (ADR 0066)
+    severity: watched
+    enforced_by: {job: posture, step: ตารางเวลาที่ประกาศไว้ต้องยังยิงอยู่จริง}
+    watched_by:
+      who: ผู้ดูแล
+      within_days: 14
+      how: >-
+        `scripts/schedule_census.py` รันทุก push บน main และทุกครั้งที่กฎของ branch
+        เปลี่ยน · เกณฑ์คือรอบที่ประกาศ × 2 ซึ่งสำหรับ cron รายสัปดาห์คือ 14 วัน ·
+        มีแถวทวงตามรอบใน `docs/SECURITY-CADENCE.md` สำหรับส่วนที่เครื่องตรวจไม่ได้
+        (Dependabot ซึ่งไม่มี endpoint สาธารณะให้ถาม)
+    standard: []
+    requires: [github-actions]
+    portable: true
+    layer: baseline
+    pillar: manageability
+    born_from: >-
+      audit รอบ 10 ข้อ 2 — ADR 0064 ปิดชั้น "workflow ที่ไม่ได้ start = 0 job"
+      ไปแล้ว แต่ชั้นถัดขึ้นไปยังเปิด: **workflow ที่ไม่เคยถูกทริกเกอร์ = 0 run**
+      ซึ่งหน้าตาเหมือน "ไม่มี run ไหนแดง" เป๊ะในทุกเครื่องมือที่มี · cron ของ
+      `scorecard.yml` ยิงจริงมาแล้วครั้งเดียวตลอดอายุ repo และถ้ามันหยุดวันนี้
+      ไม่มีเทสต์ job หรือแถว cadence ไหนรู้เลย · GitHub ยังปิด schedule
+      อัตโนมัติให้ repo ที่เงียบเกิน 60 วันด้วย ซึ่งเป็นความเงียบที่มาจากข้างนอก
+
   - id: openssf-scorecard
     title: Scorecard วัดแนวปฏิบัติของ repo และเผยแพร่ผล — คะแนน ไม่ใช่ผ่าน/ตก
     kind: job

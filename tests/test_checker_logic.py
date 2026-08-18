@@ -24,7 +24,14 @@ import typing
 
 import pytest
 
-from scripts import audit_image, audit_pins, audit_posture, check_semgrep, rerun_census
+from scripts import (
+    audit_image,
+    audit_pins,
+    audit_posture,
+    check_semgrep,
+    rerun_census,
+    schedule_census,
+)
 
 
 class Case(typing.NamedTuple):
@@ -701,3 +708,72 @@ def test_matrix_checks_are_matched_by_their_job_name():
     assert audit_posture.unrequired_problems(produced, {"dialect (mysql-8)"}), (
         "แถว matrix ที่หลุดจากรายการบังคับต้องถูกจับ"
     )
+
+
+# --------------------------------- ตารางเวลาที่หยุดยิง (ADR 0064 ชั้นถัดไป · audit r10)
+#
+# "ไม่มี run เลย" หน้าตาเหมือน "ไม่มี run ไหนแดง" เป๊ะในทุกเครื่องมือที่เรามี —
+# `rerun_census.py` นับจากสิ่งที่ *เกิดขึ้น* ไม่ใช่สิ่งที่ *ควรเกิด*
+
+WEEKLY = {"scorecard.yml": schedule_census.WEEK}
+NOW = "2026-08-18T09:00:00+00:00"
+
+
+@pytest.mark.parametrize(
+    ("cron", "hours", "why"),
+    [
+        ("27 5 * * 1", schedule_census.WEEK, "ตรึงวันในสัปดาห์ = ทุกสัปดาห์"),
+        ("0 3 1 * *", schedule_census.MONTH, "ตรึงวันที่ = ทุกเดือน"),
+        ("17 3 * * *", schedule_census.DAY, "ตรึงชั่วโมง = ทุกวัน"),
+        ("*/5 * * * *", schedule_census.HOUR, "ไม่ตรึงอะไรหยาบกว่านาที = ทุกชั่วโมง"),
+    ],
+)
+def test_the_period_of_a_cron_line_is_read_from_its_coarsest_field(cron, hours, why):
+    """รอบต้องอ่านจาก cron จริง ไม่ใช่เดาจากชื่อ workflow"""
+    assert schedule_census.period_hours(cron) == hours, why
+
+
+def test_a_schedule_that_still_fires_on_time_is_quiet():
+    """ทิศ "ผ่านเมื่อควรผ่าน" — ยิงเมื่อวานแล้วต้องไม่มีเสียงบ่น"""
+    last = {"scorecard.yml": "2026-08-17T05:41:19+00:00"}
+
+    assert schedule_census.problems(WEEKLY, last, NOW, 2) == []
+
+
+def test_a_schedule_that_never_fired_is_red():
+    """ประกาศ cron แล้วไม่เคยยิงเลย = workflow ที่ถูกปฏิเสธทั้งไฟล์ (เกิดจริงมาแล้ว)"""
+    found = schedule_census.problems(WEEKLY, {"scorecard.yml": None}, NOW, 2)
+
+    assert found, "cron ที่ไม่เคยยิงเลยต้องแดง"
+    assert "ไม่เคยมี run" in found[0]
+
+
+def test_a_schedule_that_stopped_firing_is_red():
+    """หยุดยิงกลางทางคือความเงียบที่หน้าตาเหมือนความสำเร็จ"""
+    stale = {"scorecard.yml": "2026-07-01T05:41:19+00:00"}
+
+    assert schedule_census.problems(WEEKLY, stale, NOW, 2), "เงียบมา 48 วันแต่ตัวตรวจไม่ว่าอะไร"
+
+
+def test_the_tolerance_is_a_multiple_of_the_declared_period():
+    """cron รายสัปดาห์ที่ยิงเมื่อ 10 วันก่อน ยังอยู่ในเกณฑ์ 2 เท่า แต่ตกเกณฑ์ 1 เท่า"""
+    last = {"scorecard.yml": "2026-08-08T05:41:19+00:00"}
+
+    assert schedule_census.problems(WEEKLY, last, NOW, 2) == []
+    assert schedule_census.problems(WEEKLY, last, NOW, 1), "เกณฑ์ที่แคบลงต้องจับได้"
+
+
+def test_the_declared_schedules_on_disk_are_readable():
+    """อ่านจาก workflow จริงได้ — ไม่ใช่แค่ fixture ในเทสต์ที่อ่านได้"""
+    declared = schedule_census.declared_schedules()
+
+    assert declared, "ไม่เห็น cron สักตัวใน .github/workflows — ตัวดึงพังหรือ workflow เปลี่ยนรูป"
+    assert all(hours > 0 for hours in declared.values())
+
+
+def test_dependabot_is_reported_as_something_no_machine_can_check():
+    """ของที่ตรวจด้วยเครื่องไม่ได้ ต้องถูกเรียกว่าอย่างนั้น ไม่ใช่ถูกเดาไปข้างใดข้างหนึ่ง"""
+    ecosystems = schedule_census.dependabot_ecosystems()
+
+    assert ecosystems, "dependabot.yml ประกาศรอบไว้แต่ตัวรายงานไม่เห็น"
+    assert all("weekly" in line or "daily" in line or "monthly" in line for line in ecosystems)
