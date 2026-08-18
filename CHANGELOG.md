@@ -248,6 +248,15 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
   row every six months makes someone act on it and lower the ceiling by
   whatever was really proven.
 
+- **The posture check can be triggered on demand.** `scorecard.yml` only
+  ran on pushes to main, a weekly schedule, or a branch-protection
+  change, so verifying that `POSTURE_TOKEN` actually carries enough
+  permission meant waiting for the next merge. It now also accepts
+  `workflow_dispatch` — a gate that can only be proven by waiting for an
+  event is harder to test than it needs to be, and that matters most on
+  the day the token expires and someone has to confirm the replacement.
+  A cadence row tracks that expiry (first token: 2026-11-16).
+
 ### Fixed
 
 - **The failure census only ever looked at 100 runs, however many you
