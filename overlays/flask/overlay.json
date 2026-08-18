@@ -402,7 +402,7 @@
     },
     "checkers-proven-two-way": {
       "kind": "suite",
-      "title": "สคริปต์ที่ตัดสินผ่าน/ไม่ผ่าน ต้องมีเทสต์ planted violation + clean input",
+      "title": "สคริปต์ที่ตัดสินผ่าน/ไม่ผ่าน ต้องมีเทสต์ planted violation + clean input · และรายงานต้องไม่ขัดกันเอง",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     },
     "route-authz-enumerated": {
