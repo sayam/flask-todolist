@@ -34,6 +34,7 @@ permissions: read-all
 jobs:
   scorecard:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       # อัปโหลดผลเข้าหน้า code scanning (ที่เดียวกับ CodeQL)
       security-events: write
@@ -77,6 +78,7 @@ jobs:
   # (หลักเดียวกับ scorecard — และตัวมันเองเป็นคนตรวจว่ารายการนั้นครบ)
   posture:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
       # อ่าน alert ของ code scanning ได้ด้วย GITHUB_TOKEN ของ job เอง (ADR 0061

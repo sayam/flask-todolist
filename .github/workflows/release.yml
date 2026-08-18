@@ -28,6 +28,7 @@ permissions:
 jobs:
   release-sign:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write      # อัปโหลด asset เข้า release
       id-token: write      # keyless signing (sigstore OIDC)
