@@ -33,6 +33,7 @@ from scripts import (
     red_streak_census,
     rerun_census,
     schedule_census,
+    whats_pending,
 )
 
 
@@ -975,3 +976,57 @@ def test_the_identity_map_reads_the_real_workflows():
     assert "dialects" in ids
     assert by_name.get("dialect") == "dialects", "job ที่ตั้ง name: ต่างจากไอดี ต้องถูกแม็ป"
     assert "posture" in by_path[".github/workflows/scorecard.yml"]
+
+
+# --------------------- หน้าเดียวที่ตอบว่า "อะไรค้าง" (audit r13 · ข้อ 4)
+#
+# ตัวนี้เป็น *ของอ่าน* ไม่ใช่ด่าน — มันไม่เก็บสถานะของตัวเองเลย · เทสต์จึงพิสูจน์
+# สองอย่าง: มันอ่านแหล่งจริงได้ และมันไม่ทำให้กองดูใหญ่หรือเล็กกว่าความจริง
+
+TODAY = __import__("datetime").date(2026, 8, 19)
+CADENCE_ROWS = [
+    ("ทบทวนอะไรสักอย่าง", "3 เดือน", "2026-08-01"),
+    ("ทบทวนอีกอย่าง", "6 เดือน", "2027-02-18"),
+    ("pentest ด้วยมือ", "ทุก major release", "เมื่อมีผู้ใช้ภายนอกจริง"),
+]
+
+
+def test_an_overdue_row_says_so():
+    """แถวที่เลยกำหนดต้องอ่านออกทันที ไม่ใช่ต้องคำนวณเอง"""
+    soon = whats_pending.due_soon(CADENCE_ROWS, TODAY, within=7)
+
+    assert len(soon) == 1
+    assert "เลยกำหนดแล้ว" in soon[0]
+
+
+def test_rows_far_in_the_future_are_left_out_until_asked_for():
+    """หน้าที่แสดงทุกแถวเสมอ คือหน้าที่ไม่มีใครอ่านจนจบ"""
+    assert whats_pending.due_soon(CADENCE_ROWS, TODAY, within=7) != whats_pending.due_soon(
+        CADENCE_ROWS, TODAY, within=400
+    )
+
+
+def test_conditional_rows_are_counted_separately():
+    """แถวที่รอเงื่อนไขไม่มีวันครบกำหนดเอง — ปนกับแถวที่มีวันที่แล้วจะหายไปในกอง"""
+    waiting = whats_pending.conditional_rows(CADENCE_ROWS)
+
+    assert len(waiting) == 1
+    assert "pentest" in waiting[0]
+
+
+def test_closed_items_do_not_inflate_the_pile():
+    """ข้อที่ขีดฆ่าแล้วใน CLAUDE.md คือของที่ปิดแล้ว ไม่ใช่ของค้าง"""
+    pending = whats_pending.undone()
+
+    assert pending, "อ่านรายการ 'ยังไม่ได้ทำ' จาก CLAUDE.md ไม่ได้เลย"
+    assert not any(item.startswith("~~") for item in pending)
+
+
+def test_the_report_reads_every_source_it_claims_to():
+    """รายงานที่หัวข้อครบแต่เนื้อว่าง คือรายงานที่อ่านแหล่งไม่ได้แล้วเงียบ"""
+    text = whats_pending.report(TODAY, within=400)
+
+    for heading in ("ตรวจตามรอบที่ถึงคิว", "รอเงื่อนไข", "ตัดสินแล้วว่ายังไม่ทำ", "กองที่ต้องอ่าน"):
+        assert heading in text
+    assert "(ไม่มี)" not in text.split("## กองที่ต้องอ่าน")[0], "มีหัวข้อที่อ่านแหล่งไม่ได้"
+    assert all(value >= 0 for value in whats_pending.counts().values())
