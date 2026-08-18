@@ -20,49 +20,68 @@ governance โดยไม่มีใครเคยตัดสินว่า
 
 import pathlib
 
+import pytest
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-INSTRUCTIONS = ROOT / "CLAUDE.md"
+# **ไฟล์ที่มีเพดาน กับเหตุผลว่าทำไมเพดานไม่เท่ากัน** (ADR 0065 · ขยาย audit รอบ 12)
+#
+# `CLAUDE.md` ถูกอ่าน**ทั้งไฟล์ทุก session** ต้นทุนจึงจ่ายซ้ำตลอดไป — เพดานจึงแคบ
+# และที่ว่างที่ยอมให้ลอยเหนือของจริงก็แคบตาม
+#
+# `docs/GOVERNANCE.md` เกิดจากการ**ย้ายเนื้อออกมาจากไฟล์นั้น** (รอบ 11) ต้นทุนของมัน
+# จ่ายตอนมีคนเปิดอ่าน ไม่ใช่ทุกครั้งที่มี session — เพดานจึงกว้างกว่าได้ · **แต่มันต้องมี
+# เพดาน** ไม่งั้นสิ่งที่เกิดคือการย้ายต้นทุน ไม่ใช่การลด (audit รอบ 12 ข้อ 4) และเรารู้
+# อัตราการโตของไฟล์แบบนี้แล้ว: `CLAUDE.md` โตจาก 22 เป็น 1,265 บรรทัดใน 16 วัน
+#
+# **เพดาน: ขยับขึ้นต้องมี ADR · ลดลงทำได้เสมอและควรทำทุกครั้งที่ย้ายเนื้อออก**
+# **slack: ระยะที่เพดานลอยเหนือของจริงได้** — ที่ว่างสำหรับงานปกติหนึ่งรอบ ไม่ใช่ถาวร
+BUDGETS = {
+    "CLAUDE.md": {"lines": 1_200, "words": 8_100, "line_slack": 40, "word_slack": 300},
+    "docs/GOVERNANCE.md": {"lines": 180, "words": 1_400, "line_slack": 60, "word_slack": 500},
+}
 
-# เพดานปัจจุบัน — **ขยับขึ้นต้องมี ADR · ลดลงทำได้เสมอและควรทำทุกครั้งที่ย้ายเนื้อออก**
-LINE_CEILING = 1_200
-WORD_CEILING = 8_100
 
-# ระยะที่เพดานลอยเหนือของจริงได้ — ที่ว่างสำหรับงานปกติหนึ่งรอบ ไม่ใช่ที่ว่างถาวร
-LINE_SLACK = 40
-WORD_SLACK = 300
-
-
-def _size() -> tuple[int, int]:
-    text = INSTRUCTIONS.read_text(encoding="utf-8")
+def _size(name: str) -> tuple[int, int]:
+    text = (ROOT / name).read_text(encoding="utf-8")
     return len(text.splitlines()), len(text.split())
 
 
-def test_the_instruction_file_stays_under_its_ceiling():
+@pytest.mark.parametrize("name", sorted(BUDGETS))
+def test_the_file_stays_under_its_ceiling(name):
     """ทิศที่หนึ่ง — เกินแล้วให้ย้ายเนื้อออก ไม่ใช่ขยับเพดาน"""
-    lines, words = _size()
+    lines, words = _size(name)
+    budget = BUDGETS[name]
 
-    assert lines <= LINE_CEILING, (
-        f"CLAUDE.md มี {lines} บรรทัด เกินเพดาน {LINE_CEILING} — "
+    assert lines <= budget["lines"], (
+        f"{name} มี {lines} บรรทัด เกินเพดาน {budget['lines']} — "
         "ย้ายเนื้อไปเอกสารเฉพาะแล้วลิงก์กลับมา (ADR 0065) การขยับเพดานต้องมี ADR"
     )
-    assert words <= WORD_CEILING, (
-        f"CLAUDE.md มี {words} คำ เกินเพดาน {WORD_CEILING} — การรวมบรรทัดให้ยาวขึ้นไม่นับว่าลดขนาด"
+    assert words <= budget["words"], (
+        f"{name} มี {words} คำ เกินเพดาน {budget['words']} — การรวมบรรทัดให้ยาวขึ้นไม่นับว่าลดขนาด"
     )
 
 
-def test_the_ceiling_ratchets_down_when_the_file_shrinks():
+@pytest.mark.parametrize("name", sorted(BUDGETS))
+def test_the_ceiling_ratchets_down_when_the_file_shrinks(name):
     """ทิศที่สอง — เพดานที่ลอยสูงเกินคือเพดานที่ไม่ได้ตั้ง
 
     ตัวนี้คือ ratchet: ย้ายเนื้อออกไปแล้วต้องลดเพดานลงมาด้วย ไม่งั้นที่ว่าง
     ที่เพิ่งได้จะถูกถมกลับในรอบถัดไปโดยไม่มีใครสังเกต
     """
-    lines, words = _size()
+    lines, words = _size(name)
+    budget = BUDGETS[name]
 
-    assert LINE_CEILING - lines <= LINE_SLACK, (
-        f"เพดาน {LINE_CEILING} ลอยเหนือของจริง ({lines}) เกิน {LINE_SLACK} บรรทัด — "
-        f"ลดเพดานลงมาที่ราว {lines + LINE_SLACK} ก่อน"
+    assert budget["lines"] - lines <= budget["line_slack"], (
+        f"{name}: เพดาน {budget['lines']} ลอยเหนือของจริง ({lines}) เกิน "
+        f"{budget['line_slack']} บรรทัด — ลดเพดานลงมาที่ราว {lines + budget['line_slack']} ก่อน"
     )
-    assert WORD_CEILING - words <= WORD_SLACK, (
-        f"เพดาน {WORD_CEILING} คำ ลอยเหนือของจริง ({words}) เกิน {WORD_SLACK} คำ — "
-        f"ลดเพดานลงมาที่ราว {words + WORD_SLACK} ก่อน"
+    assert budget["words"] - words <= budget["word_slack"], (
+        f"{name}: เพดาน {budget['words']} คำ ลอยเหนือของจริง ({words}) เกิน "
+        f"{budget['word_slack']} คำ — ลดเพดานลงมาที่ราว {words + budget['word_slack']} ก่อน"
     )
+
+
+def test_every_file_with_a_budget_exists():
+    """เพดานของไฟล์ที่ถูกลบไปแล้ว คือเพดานที่ผ่านตลอดกาล"""
+    missing = [name for name in BUDGETS if not (ROOT / name).is_file()]
+    assert not missing, f"ตั้งเพดานให้ไฟล์ที่ไม่มีอยู่: {missing}"
