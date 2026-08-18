@@ -48,6 +48,11 @@ import yaml  # type: ignore[import-untyped]
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
+# **เพดานเวลาของคำสั่งที่เรายิงออกไป** (audit รอบ 11 · ADR 0067) — `subprocess.run`
+# ที่ไม่มี `timeout=` รอตลอดกาล ซึ่งกลายเป็น job ที่ไม่มีวันจบเมื่อรันใน CI
+NETWORK_TIMEOUT_SECONDS = 60  # หนึ่งคำขอไป GitHub API
+LOG_TIMEOUT_SECONDS = 180  # log ของ job หนึ่งตัวอาจใหญ่มาก
+
 # step ที่เป็นของ runner ไม่ใช่ของด่าน — ล้มตรงนี้แปลว่าแพลตฟอร์มมีปัญหา
 PLATFORM_STEPS = frozenset({"Set up job", "Set up runners", "Complete job"})
 
@@ -107,6 +112,7 @@ def _gh_json(path: str) -> typing.Any:
         raise RuntimeError("ไม่มี gh บนเครื่องนี้ — ตัวนับต้องถาม GitHub API ผ่านมัน")
     result = subprocess.run(  # noqa: S603 — path มาจาก shutil.which และ argument เป็นของเราเอง
         [binary, "api", path],
+        timeout=NETWORK_TIMEOUT_SECONDS,
         capture_output=True,
         text=True,
         check=True,
@@ -321,6 +327,7 @@ def _job_log(job_id: object) -> str:
             "--allow-escape-sequences",
             f"repos/:owner/:repo/actions/jobs/{job_id}/logs",
         ],
+        timeout=LOG_TIMEOUT_SECONDS,
         capture_output=True,
         text=True,
         check=False,

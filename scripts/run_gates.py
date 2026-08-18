@@ -28,6 +28,10 @@ import time
 # pyyaml มากับ dev tools และไม่มี stub — เหตุผลเดียวกับ build_gates_crosswalk.py
 import yaml  # type: ignore[import-untyped]
 
+# **เพดานเวลาของคำสั่งที่เรายิงออกไป** (audit รอบ 11 · ADR 0067) — `subprocess.run`
+# ที่ไม่มี `timeout=` รอตลอดกาล ซึ่งกลายเป็น job ที่ไม่มีวันจบเมื่อรันใน CI
+GATE_TIMEOUT_SECONDS = 1800  # หนึ่ง gate = pytest ชุดย่อย · ชุดเต็มบนเครื่องใช้ ~5 นาที
+
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 ROUND_LOG = ".gate-rounds.jsonl"  # gitignore แล้ว — เป็นบันทึกของเครื่องใครเครื่องมัน
 
@@ -42,6 +46,7 @@ def run_test_gate(gate: dict, root: pathlib.Path) -> dict:
         capture_output=True,
         text=True,
         check=False,
+        timeout=GATE_TIMEOUT_SECONDS,
     )
     seconds = round(time.monotonic() - started, 2)
     if result.returncode == 0:

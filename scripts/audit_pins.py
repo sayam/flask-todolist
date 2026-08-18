@@ -29,6 +29,11 @@ import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+
+# **เพดานเวลาของคำสั่งที่เรายิงออกไป** (audit รอบ 11 · ADR 0067) — `subprocess.run`
+# ที่ไม่มี `timeout=` รอตลอดกาล และเครื่องมือพวกนี้รันอยู่ใน job ของ CI ผลคือ
+# `gh` ที่ไม่ตอบกลายเป็น job ที่กินเพดานของ job ไปทั้งก้อนโดยไม่ทำอะไรเลย
+NETWORK_TIMEOUT_SECONDS = 120  # pip-audit/npm audit ต้องต่อเน็ตและช้ากว่า gh มาก
 PINS = ROOT / "pins"
 ACCEPTED = PINS / "accepted-advisories.txt"
 
@@ -56,7 +61,12 @@ def _run(command: list[str], where: pathlib.Path, tool: str) -> str:
     """
     try:
         result = subprocess.run(  # noqa: S603 — อาร์กิวเมนต์คงที่ + path จาก glob ของ repo เอง
-            command, cwd=where, capture_output=True, text=True, check=False
+            command,
+            cwd=where,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=NETWORK_TIMEOUT_SECONDS,
         )
     except FileNotFoundError:
         print(f"ไม่มี {tool} บนเครื่องนี้ — ติดตั้งก่อน อย่าข้าม", file=sys.stderr)

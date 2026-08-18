@@ -7,7 +7,7 @@
 import pytest
 
 from app import create_app
-from config import MIN_SECRET_KEY_LENGTH
+from config import MIN_SECRET_KEY_LENGTH, Config
 from tests.conftest import TestConfig
 
 
@@ -42,3 +42,15 @@ def test_config_has_no_hardcoded_fallback():
     source = __import__("pathlib").Path(config.__file__).read_text()
     assert "dev-secret-change-me" not in source
     assert 'os.environ.get("SECRET_KEY")' in source, "SECRET_KEY ต้องอ่านจาก env ล้วน ๆ ห้ามมี default"
+
+
+def test_dead_pooled_connections_are_checked_before_they_are_handed_out():
+    """สายที่ตายในพูลต้องถูกจับตอนหยิบ ไม่ใช่ตอนที่คำขอของผู้ใช้ไปเจอ
+
+    (audit รอบ 11 · ADR 0067) — proxy/firewall ตัด connection ที่นอนอยู่ได้เงียบ ๆ
+    แล้วคำขอใบถัดไปที่หยิบมันไปใช้จะพังด้วยข้อความที่ชี้ไปผิดที่
+    ("MySQL server has gone away") หรือค้างรอจนถูกฆ่า
+    """
+    options = Config.SQLALCHEMY_ENGINE_OPTIONS
+
+    assert options.get("pool_pre_ping") is True, "ถอด pool_pre_ping ออกแล้วสายที่ตายจะถูกส่งให้คำขอของผู้ใช้"

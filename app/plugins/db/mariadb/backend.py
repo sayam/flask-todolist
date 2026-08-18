@@ -34,3 +34,34 @@ def _set_read_committed(dbapi_connection: object, _connection_record: object) ->
         cursor = dbapi_connection.cursor()
         cursor.execute(f"SET SESSION TRANSACTION ISOLATION LEVEL {ISOLATION_LEVEL}")
         cursor.close()
+
+
+# **เพดานของการ *รอคำตอบ* ต่างจากเพดานของการ *ต่อสาย*** (audit รอบ 11 · ADR 0067)
+# `read_timeout`/`write_timeout` ของ pymysql มีค่าเริ่มต้นเป็น `None` = รอตลอดกาล
+# ฐานที่รับ TCP แล้วเงียบจึงทำให้คำขอค้างจนกว่า gunicorn จะฆ่า worker ทิ้ง
+# — เพดานที่มีอยู่จึงเป็นของคนอื่นทั้งคู่ ไม่ใช่ของเรา
+#
+# 60 วินาทีเลือกให้ **ยาวกว่างานที่ยาวที่สุดที่เราตั้งใจให้เกิด** (การลบตามรอบของ
+# `purge-expired` ซึ่งหน่วย systemd ให้เวลาไว้ 30 นาที แต่แต่ละคำสั่งจบในไม่กี่วินาที)
+# และสั้นกว่า "ตลอดกาล" อย่างมีความหมาย · ถ้าวันหนึ่ง purge ชนเพดานนี้ แปลว่า
+# ข้อมูลโตเกินกว่าที่การลบครั้งเดียวจะไหว ซึ่งเป็นข่าวที่ควรดัง ไม่ใช่ควรรอเงียบ ๆ
+READ_TIMEOUT_SECONDS = 60
+WRITE_TIMEOUT_SECONDS = 60
+# ค่าเริ่มต้นของ pymysql คือ 10 อยู่แล้ว — ประกาศซ้ำเพราะค่าที่สำคัญต้องอ่านได้
+# จากไฟล์ของเรา ไม่ใช่จากเอกสารของไลบรารีที่เปลี่ยนใต้เท้าได้
+CONNECT_TIMEOUT_SECONDS = 10
+
+
+@event.listens_for(Engine, "do_connect")
+def bound_every_wait(dialect: object, _record: object, _cargs: object, cparams: dict) -> None:
+    """ประกาศเพดานของการรอ ตอนที่ connection ถูกสร้าง (เรียกตรง ๆ ได้จากเทสต์)
+
+    ใช้ `do_connect` ไม่ใช่ `connect` เพราะค่าพวกนี้ต้องส่งเข้า driver **ตอนต่อ**
+    ไม่ใช่สั่งหลังต่อเสร็จ · `setdefault` เพื่อให้ `DATABASE_URL` ที่ระบุค่ามาเอง
+    ชนะเสมอ — ผู้ deploy ที่รู้สภาพของตัวเองดีกว่าเรา ต้องแทนที่ได้โดยไม่ต้องแก้โค้ด
+    """
+    if getattr(dialect, "driver", "") != "pymysql":
+        return
+    cparams.setdefault("connect_timeout", CONNECT_TIMEOUT_SECONDS)
+    cparams.setdefault("read_timeout", READ_TIMEOUT_SECONDS)
+    cparams.setdefault("write_timeout", WRITE_TIMEOUT_SECONDS)

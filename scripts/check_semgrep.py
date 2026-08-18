@@ -27,6 +27,10 @@ import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+
+# **เพดานเวลาของคำสั่งที่เรายิงออกไป** (audit รอบ 11 · ADR 0067) — `subprocess.run`
+# ที่ไม่มี `timeout=` รอตลอดกาล ซึ่งกลายเป็น job ที่ไม่มีวันจบเมื่อรันใน CI
+GIT_TIMEOUT_SECONDS = 60  # `git ls-files` บนเครื่อง
 SEMGREPIGNORE = ROOT / ".semgrepignore"
 
 
@@ -53,6 +57,7 @@ def expected_files() -> set[str]:
         capture_output=True,
         text=True,
         check=True,
+        timeout=GIT_TIMEOUT_SECONDS,
     ).stdout.split()
     prefixes = tuple(f"{prefix}/" for prefix in ignored_prefixes())
     return {path for path in listed if not path.startswith(prefixes)}

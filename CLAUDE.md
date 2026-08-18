@@ -227,6 +227,9 @@
 ## Conventions
 - Route คืน `render_template`/`redirect` เท่านั้น ไม่คืน raw string
 - Query model นอก request ต้องอยู่ใน `with app.app_context():`
+- **ทุกจุดที่โค้ดรอปลายทางภายนอก ต้องประกาศเพดานเวลาเอง** (ADR 0067) —
+  ldap3 `receive_timeout` กับ pymysql `read_timeout` มีค่าเริ่มต้นเป็น "รอตลอดกาล"
+  · ค่าของยี่ห้ออยู่ใน `backend.py` ของยี่ห้อนั้น ส่วน `pool_pre_ping` อยู่ที่ core
 - **ทุก route ต้องมี `@login_required`** และ query ต้อง filter ด้วย `user_id=current_user.id` เสมอ
   — ข้อยกเว้นที่ตั้งใจมีเท่านี้: `/login*` · `/lang/<code>`+`/mode/<value>` (ใช้จาก
   หน้า login) · `/privacy` (PDPA ม.23) · `/plugin/themes/<id>/style.css` (หน้า login

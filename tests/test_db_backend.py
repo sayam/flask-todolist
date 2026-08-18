@@ -206,3 +206,38 @@ def test_the_connection_really_runs_at_read_committed(app):
         f"connection รันอยู่ที่ {level!r} ซึ่งไม่ใช่ READ COMMITTED — "
         "backend.py ของยี่ห้อนี้ไม่ได้ถูกโหลด หรือ listener ไม่ทำงาน"
     )
+
+
+# ------------------------------------- เพดานของการรอ (audit รอบ 11 · ADR 0067)
+
+
+@pytest.mark.plugin_deps
+@pytest.mark.parametrize("brand", ["mysql", "mariadb"])
+def test_the_brand_declares_how_long_a_connection_may_wait(brand):
+    """`read_timeout` ของ pymysql เป็น `None` = รอตลอดกาล — ฐานที่เงียบจึงค้างคำขอ
+
+    ค่าพวกนี้อยู่ใน `backend.py` ของยี่ห้อ ไม่ใช่ที่ core (ADR 0026) เพราะมันเป็น
+    ค่าของ *ทาง* ที่ข้อมูลวิ่งผ่าน · SQLite ไม่รู้จักด้วยซ้ำ
+
+    import ในฟังก์ชันโดยตั้งใจ — โมดูลพวกนี้ผูก event listener ตอน import
+    การ import ที่หัวไฟล์จะผูกให้ทุกเทสต์ในโปรเซสโดยไม่มีใครขอ
+    """
+    import importlib
+    import types
+
+    module = importlib.import_module(f"app.plugins.db.{brand}.backend")
+
+    theirs: dict = {}
+    module.bound_every_wait(types.SimpleNamespace(driver="pymysql"), None, [], theirs)
+    for key in ("connect_timeout", "read_timeout", "write_timeout"):
+        assert theirs.get(key), f"{brand}: ไม่ได้ประกาศ {key}"
+
+    # **ต้องไม่แตะยี่ห้ออื่น** — listener ผูกกับคลาส Engine จึงโดนทุก engine ในโปรเซส
+    others: dict = {}
+    module.bound_every_wait(types.SimpleNamespace(driver="pysqlite"), None, [], others)
+    assert others == {}, f"{brand}: ไปตั้งค่าให้ driver อื่นด้วย"
+
+    # และค่าที่ผู้ deploy ระบุมาเองต้องชนะเสมอ
+    chosen: dict = {"read_timeout": 5}
+    module.bound_every_wait(types.SimpleNamespace(driver="pymysql"), None, [], chosen)
+    assert chosen["read_timeout"] == 5, f"{brand}: เขียนทับค่าที่ผู้ deploy ตั้งมาเอง"

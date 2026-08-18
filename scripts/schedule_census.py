@@ -44,6 +44,11 @@ import typing
 import yaml  # type: ignore[import-untyped]
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+
+# **เพดานเวลาของคำสั่งที่เรายิงออกไป** (audit รอบ 11 · ADR 0067) — `subprocess.run`
+# ที่ไม่มี `timeout=` รอตลอดกาล และเครื่องมือพวกนี้รันอยู่ใน job ของ CI ผลคือ
+# `gh` ที่ไม่ตอบกลายเป็น job ที่กินเพดานของ job ไปทั้งก้อนโดยไม่ทำอะไรเลย
+NETWORK_TIMEOUT_SECONDS = 60  # หนึ่งคำขอไป GitHub API
 WORKFLOWS = ROOT / ".github" / "workflows"
 DEPENDABOT = ROOT / ".github" / "dependabot.yml"
 
@@ -63,7 +68,11 @@ def _gh(path: str) -> typing.Any:
     if not binary:
         raise RuntimeError("ไม่มี gh บนเครื่องนี้ — ตัวตรวจนี้ต้องถาม GitHub API ผ่านมัน")
     result = subprocess.run(  # noqa: S603 — path มาจาก shutil.which และ argument เป็นของเราเอง
-        [binary, "api", path], capture_output=True, text=True, check=False
+        [binary, "api", path],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=NETWORK_TIMEOUT_SECONDS,
     )
     if result.returncode != 0:
         raise PermissionError(f"อ่าน {path} ไม่ได้: {result.stderr.strip()}")
