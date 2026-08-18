@@ -750,6 +750,9 @@ def test_plugin_deps_rows_are_a_contract_that_ci_reads(app):
 # เข้าใจผิดว่ามีผล · ฝั่ง bare ยังมีด่านที่ครอบเรื่องเดียวกันแบบไม่ต้องมีไลบรารี:
 # `tests/test_job_timeouts.py` ซึ่งสแกน `subprocess.run` ด้วย AST ล้วน
 PLUGIN_DEPS_BUDGET = 78
+# ระยะที่เพดานลอยเหนือของจริงได้ (audit รอบ 12 ข้อ 1) — เพดานที่ลอยสูงคือเพดาน
+# ที่ไม่ได้ตั้ง · หลักเดียวกับ `LINE_SLACK` ของ ADR 0065 และ `scripts/check_ratchets.py`
+PLUGIN_DEPS_SLACK = 3
 
 TESTS_DIR = pathlib.Path(__file__).resolve().parent
 
@@ -794,6 +797,11 @@ def test_the_bare_job_still_covers_almost_everything():
     ของคำว่าเขียวหดลงเงียบ ๆ — ไม่มีอะไรในระบบฟ้องเรื่องนี้นอกจากเพดานนี้
     """
     marked = _marked_plugin_deps()
+    assert PLUGIN_DEPS_BUDGET - len(marked) <= PLUGIN_DEPS_SLACK, (
+        f"เพดาน {PLUGIN_DEPS_BUDGET} ลอยเหนือของจริง ({len(marked)}) เกิน {PLUGIN_DEPS_SLACK} — "
+        f"ลดเพดานลงมาที่ราว {len(marked) + PLUGIN_DEPS_SLACK} ในคอมมิตที่ทำให้มันหด "
+        "ไม่งั้นที่ว่างที่เพิ่งได้จะถูกใช้คืนโดยไม่มีใครสังเกต"
+    )
     assert len(marked) <= PLUGIN_DEPS_BUDGET, (
         f"มีเทสต์ที่ job `bare` ไม่ได้รัน {len(marked)} ตัว เกินเพดาน {PLUGIN_DEPS_BUDGET}:\n"
         + "\n".join(marked)

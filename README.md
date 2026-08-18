@@ -124,7 +124,7 @@ finished: break the code it claims to cover, watch it go red, restore. That rule
 has caught an ordering test that passed with `order_by` deleted, and a
 preferences test that passed without writing anything.
 
-Coverage is gated at **96%** and moves in one direction only. The API is
+Coverage is gated at **97%** and moves in one direction only. The API is
 additionally fuzzed against its own OpenAPI spec, which found three bugs that
 hand-written tests had walked straight past.
 
@@ -136,7 +136,7 @@ and measured:
 | | |
 |---|---|
 | [`gates.yaml`](gates.yaml) | an index of every gate, verified **in both directions** — every CI job must have a gate, and every test file must belong to exactly one gate. A gate may only cite an ASVS requirement whose own evidence points back at it |
-| [`SKILL.md`](SKILL.md) | 74 framework-agnostic baseline rules, **generated** from the portable gates. Each one carries the trap that produced it. You cannot write a rule into this file by hand — you add a gate and regenerate. App-type agreements (the rules a different app could legitimately choose differently, like soft delete) live in their own generated sheet, [`SKILL-TODOLIST.md`](SKILL-TODOLIST.md) |
+| [`SKILL.md`](SKILL.md) | 75 framework-agnostic baseline rules, **generated** from the portable gates. Each one carries the trap that produced it. You cannot write a rule into this file by hand — you add a gate and regenerate. App-type agreements (the rules a different app could legitimately choose differently, like soft delete) live in their own generated sheet, [`SKILL-TODOLIST.md`](SKILL-TODOLIST.md) |
 | [`overlays/flask/`](overlays/flask/) | the enforcement half for other Flask projects: 8 scanners in the standard library only, a doctor, and an installer. CI proves on every push that it installs into an empty repo **and** that this repo passes its own overlay |
 | [`skill/`](skill/) | the same rules packaged as an installable agent skill (ADR 0050) — frontmatter + the generated rule sheets + the overlay's checkers, every byte derived; a test rejects hand edits and stray files |
 | [`docs/comparison/`](docs/comparison/) | does any of it change the code that actually gets written? One spec, three arms of five generated apps, one measurement battery — including the finding that a plain "review your own work once" pass closes about three quarters of the gap |
@@ -147,7 +147,7 @@ Written in Thai, because that is the language the thinking happened in.
 
 | | |
 |---|---|
-| [`docs/adr/`](docs/adr/) | 67 architecture decision records — every choice, the options rejected, and what would reverse it |
+| [`docs/adr/`](docs/adr/) | 68 architecture decision records — every choice, the options rejected, and what would reverse it |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | the first seven phases — the application itself — what each closed, and what was deliberately deferred |
 | [`docs/ROADMAP-INFRA.md`](docs/ROADMAP-INFRA.md) | phases 8–12 — the index, the exported skill, the overlay, the fail-fix harness, and the comparison experiment |
 | [`docs/GOVERNANCE.md`](docs/GOVERNANCE.md) | how the gate machinery itself works — the index and its two-way checks, red-evidence, layers, severity and watchers, the censuses, and what gets exported to other projects |
@@ -273,7 +273,7 @@ pa11y-ci บน Chromium จริงทั้งโหมดมืด ธีม
 **เทสต์ใหม่ทุกตัวต้องถูกพิสูจน์ว่าจับของจริงได้** ก่อนถือว่าเสร็จ — พังโค้ดที่มัน
 อ้างว่าคุ้ม ดูให้แดง แล้วคืน · กติกาข้อนี้จับเทสต์ลำดับการเรียงที่ผ่านทั้งที่ถอด
 `order_by` ออก และเทสต์ preferences ที่ผ่านทั้งที่ไม่ได้เขียนอะไรเลย ·
-coverage มีพื้นที่ **96%** และขยับขึ้นทางเดียว · API ยังถูก fuzz ด้วยสเปคของ
+coverage มีพื้นที่ **97%** และขยับขึ้นทางเดียว · API ยังถูก fuzz ด้วยสเปคของ
 ตัวเอง ซึ่งเจอบั๊กสามตัวที่เทสต์ที่คนเขียนเองเดินผ่านไป
 
 ## เอาวินัยนี้ไปใช้ที่อื่น
@@ -285,7 +285,7 @@ export และวัดผลแล้ว:
   ต้องมี gate และไฟล์เทสต์ทุกไฟล์ต้องเป็นของ gate เดียว · gate จะอ้างข้อ ASVS
   ได้ก็ต่อเมื่อหลักฐานของข้อนั้นชี้กลับมาหามันจริง · ทุก gate ประกาศ `layer`
   (`baseline`/`business`/`internal`) ซึ่งเป็นตัวแบ่งใบ SKILL สองใบ
-- [`SKILL.md`](SKILL.md) — กฎ baseline 74 ข้อ **generate จาก gate ที่ portable**
+- [`SKILL.md`](SKILL.md) — กฎ baseline 75 ข้อ **generate จาก gate ที่ portable**
   แต่ละข้อพก "กับดักที่ให้กำเนิดมัน" มาด้วย · เขียนกฎลงไฟล์นี้ตรง ๆ ไม่ได้
   ต้องเพิ่ม gate แล้ว regenerate · ข้อตกลงระดับตัวแอป (ที่แอปอื่นเลือกต่างได้
   โดยชอบ เช่น soft delete) แยกอยู่ [`SKILL-TODOLIST.md`](SKILL-TODOLIST.md)
@@ -301,7 +301,7 @@ export และวัดผลแล้ว:
 
 ## เอกสาร
 
-[`docs/adr/`](docs/adr/) 67 ใบ (ทุกการตัดสินใจ ทางที่ไม่ได้เลือก และเงื่อนไข
+[`docs/adr/`](docs/adr/) 68 ใบ (ทุกการตัดสินใจ ทางที่ไม่ได้เลือก และเงื่อนไข
 ที่จะทำให้มันหมดอายุ) · [`docs/ROADMAP.md`](docs/ROADMAP.md) (เฟส 0–7 ของตัวแอป)
 · [`docs/ROADMAP-INFRA.md`](docs/ROADMAP-INFRA.md) (เฟส 8–12 ของ scaffolding) ·
 [`docs/ROADMAP-GOVERNANCE.md`](docs/ROADMAP-GOVERNANCE.md) (แผน G — ธรรมนูญ

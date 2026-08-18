@@ -72,6 +72,11 @@ jobs:
       # เป็นค่าเริ่มต้น การ `fetch --depth=50` ฝั่ง base เพิ่มทีหลังจึงยังหา merge
       # base ไม่เจอ เพราะฝั่ง HEAD ก็ตื้นอยู่ดี → `fatal: no merge base`
       # เจอตอน PR ใบแรกของ repo (Dependabot) ซึ่งเป็นครั้งแรกที่เส้นทางนี้ถูกเดิน
+      # **ratchet ที่ไม่มีตัวทวง คือพื้นที่ค้างอยู่ที่เดิม** (ADR 0068 — audit รอบ 12)
+      # พื้น coverage ค้างที่ 96 ตั้งแต่ 2026-08-12 ขณะที่ของจริงไต่ไป 97.11% —
+      # ที่ว่าง 1.11 จุดคือโค้ดที่มีเทสต์คุมราว 54 บรรทัดซึ่งหายไปได้โดยไม่มีอะไรแดง
+      - name: พื้นของ ratchet ต้องไม่ลอยต่ำกว่าของจริง
+        run: pipenv run python scripts/check_ratchets.py
       - name: diff-cover (บรรทัดที่แก้ต้องมีเทสต์ 100%)
         if: github.event_name == 'pull_request'
         run: |
