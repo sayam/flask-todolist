@@ -1228,6 +1228,7 @@ gates:
     watched_by:
       who: ผู้ดูแล
       within_days: 90
+      cadence: ทบทวนช่องโหว่ที่ค้างอยู่และของที่ pin ไว้
       how: >-
         job ยิง annotation ระดับ warning + เขียนลงสรุปของ run ทุกครั้งที่เจอ และมีแถว
         "ทบทวนช่องโหว่ที่ค้างอยู่และของที่ pin ไว้" ทุก 3 เดือนใน
@@ -1554,6 +1555,7 @@ gates:
     watched_by:
       who: ผู้ดูแล
       within_days: 1
+      cadence: งานชุด release
       how: >-
         release ที่เซ็นไม่สำเร็จ = artifact ที่ verify ไม่ผ่าน ซึ่งอยู่ในรายการ
         งานชุด release ของ `docs/RELEASE.md` ที่ต้องเดินให้จบทุกครั้ง ·
@@ -1631,7 +1633,8 @@ gates:
     enforced_by: {job: posture}
     watched_by:
       who: ผู้ดูแล
-      within_days: 7
+      within_days: 180
+      cadence: ทบทวนหนี้ของหลักฐาน
       how: >-
         ความล้มเหลวโผล่ในสำมะโนที่นับ run ที่ไม่ได้ start ด้วย
         (`scripts/rerun_census.py` — ADR 0064) และมีแถวทวงตามรอบใน
@@ -1666,7 +1669,8 @@ gates:
     enforced_by: {job: posture, step: คำสัญญาของผู้เฝ้าต้องทำได้จริง}
     watched_by:
       who: ผู้ดูแล
-      within_days: 30
+      within_days: 180
+      cadence: ทบทวนคำสัญญาของผู้เฝ้า
       how: >-
         `scripts/red_streak_census.py` รันทุก push บน main · ผลของมันถูกอ่านคู่กับ
         แถวทบทวนผู้เฝ้าใน `docs/SECURITY-CADENCE.md` · ตัวมันเองวัดตัวเอง
@@ -1700,7 +1704,8 @@ gates:
     enforced_by: {job: posture, step: ตารางเวลาที่ประกาศไว้ต้องยังยิงอยู่จริง}
     watched_by:
       who: ผู้ดูแล
-      within_days: 14
+      within_days: 90
+      cadence: ทบทวนของที่รันตามเวลาซึ่งเครื่องตรวจไม่ได้
       how: >-
         `scripts/schedule_census.py` รันทุก push บน main และทุกครั้งที่กฎของ branch
         เปลี่ยน · เกณฑ์คือรอบที่ประกาศ × 2 ซึ่งสำหรับ cron รายสัปดาห์คือ 14 วัน ·
@@ -1736,7 +1741,8 @@ gates:
     enforced_by: {job: scorecard}
     watched_by:
       who: ผู้ดูแล
-      within_days: 30
+      within_days: 365
+      cadence: ทบทวนตาราง ASVS ทั้งใบเทียบกับของจริง
       how: >-
         คะแนนถูกอ่านคู่กับใบคำตอบใน `docs/BEST-PRACTICES.md` ตามแถวทบทวน 12 เดือน
         ของ `docs/SECURITY-CADENCE.md` · ข้อที่ตกและรับไว้แล้วมีทะเบียนของตัวเอง
