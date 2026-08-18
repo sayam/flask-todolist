@@ -1,5 +1,11 @@
 # Todolist (Flask)
 
+> **เพดานของไฟล์นี้: 1,265 บรรทัด / 8,700 คำ** (ADR 0065) — ไฟล์นี้ถูกอ่านทั้งไฟล์
+> ทุก session ต้นทุนจึงจ่ายซ้ำตลอดไป · **เต็มแล้วให้ย้ายเนื้อไปเอกสารเฉพาะแล้ว
+> ลิงก์กลับมา ไม่ใช่ขยับเพดาน** — ขยับขึ้นต้องมี ADR · ลดลงทำได้เสมอและ**ต้องทำ
+> ทุกครั้งที่ย้ายเนื้อออก** ไม่งั้นที่ว่างจะถูกถมกลับเงียบ ๆ
+> (`tests/test_instruction_budget.py` บังคับสองทิศ)
+
 ## Stack
 - Flask + Flask-SQLAlchemy, SQLite (dev), pipenv จัดการ env
 - Flask-Migrate (alembic) จัดการ schema, Flask-Login จัดการ session, Flask-WTF จัดการ CSRF,
