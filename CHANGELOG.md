@@ -32,6 +32,18 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
   image scanner caught `CVE-2026-53615`, the release signer catching its
   own over-wide glob, and one `/readyz` bug turning `stack`, `siem`, and
   `dast` red at once.
+- **Documentation swept after the round-7 batch** — six places still
+  described a mechanism that same day's work had changed (`preflight`
+  reading only `ci.yml`, the overlay shipping only checkers) and five
+  more advertised 28 or 29 checks where CI now produces 30, including
+  two ISO evidence rows. ADR 0060 carries a note pointing at 0063 rather
+  than being edited in place, and `CLAUDE.md` no longer repeats "21 jobs
+  never failed" without saying that figure came from a method blind to
+  reruns. The audit rounds are now recorded in
+  `docs/ROADMAP-GOVERNANCE.md`: plan G closed in August and every piece
+  of governance work since has come from a round that asked a question
+  the previous one could not — no document said so until now.
+
 - **The overlay ships the tool, not just the rule** — `preflight.py`
   now travels with `overlays/flask/` (ADR 0063). The rule that a
   developer harness must report honestly has been baseline — exportable
