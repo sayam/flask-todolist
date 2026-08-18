@@ -40,9 +40,13 @@ PILLARS = {"security", "performance", "manageability", "devx"}
 # **สามค่า และต้องตรงกับอำนาจจริง** (ADR 0066) — `blocking` บล็อก merge ได้จริง ·
 # `watched` ตรวจจริงล้มได้แต่ไม่บล็อกใคร · `warning` ไม่ล้มโดยตั้งใจ
 SEVERITIES = {"blocking", "watched", "warning"}
-WATCHER_FIELDS = {"who", "within_days", "how"}
-# กรอบเวลาที่ยาวกว่ารอบทบทวนที่ยาวที่สุดในระบบ ไม่ใช่กรอบเวลา แต่เป็นการยอมแพ้
-MAX_WITHIN_DAYS = 90
+WATCHER_FIELDS = {"who", "within_days", "how", "cadence"}
+# **เพดานคือรอบที่ยาวที่สุดที่มีอยู่จริงในตาราง cadence** (12 เดือน) — ยาวกว่านั้น
+# ไม่ใช่กรอบเวลา แต่เป็นการยอมแพ้ · ตัวเลขที่ต่ำกว่านี้ต้องมีกลไกที่เร็วพอรองรับ
+# ซึ่ง `test_every_promise_is_backed_by_a_mechanism_that_is_fast_enough` บังคับ
+MAX_WITHIN_DAYS = 365
+CADENCE_DOC = ROOT / "docs" / "SECURITY-CADENCE.md"
+MONTHS = 30  # รอบใน cadence เขียนเป็นเดือน — แปลงหยาบ ๆ พอสำหรับการเทียบขอบเขต
 
 
 @pytest.fixture(scope="module")
@@ -412,3 +416,63 @@ def test_every_watcher_names_a_mechanism_that_exists(gates, jobs):
             if (reason := _unresolved(ref, set(jobs)))
         ]
     assert not dead, "กลไกที่เฝ้าอ้างแต่ไม่มีจริง:\n  " + "\n  ".join(dead)
+
+
+# --------------------- คำสัญญาต้องมีกลไกรองรับ (ADR 0066 โน้ต 1 · audit r12 ข้อ 2)
+#
+# รอบ 10 ให้ทุก gate ที่บล็อกไม่ได้ประกาศว่า "ใครเห็นภายในกี่วัน" · ตัวตรวจที่มีอยู่
+# ดูแค่ว่าเป็นเลขและไม่เกินเพดาน และดูว่า `how` อ้างของที่มีอยู่จริง — **ไม่มีอะไร
+# ถามว่าของที่อ้างนั้นเร็วพอกับตัวเลขไหม** · วัดตอนตั้งกฎ: สี่ในหกใบสัญญาเร็วกว่า
+# กลไกของตัวเอง 3–12 เท่า (7 วัน กับกลไกที่มีรอบ 90 วัน เป็นต้น)
+
+
+def _cadence_periods() -> dict[str, int]:
+    """หัวข้อของแถวใน cadence → รอบเป็นวัน (ข้ามแถวที่ผูกกับเหตุการณ์ ไม่ใช่เวลา)"""
+    text = CADENCE_DOC.read_text(encoding="utf-8")
+    start = text.index("## ส่วนที่ต้องมีคนลงมือ")
+    end = text.index("## กรอบเวลาแก้ช่องโหว่", start)
+    rows = {}
+    for line in text[start:end].splitlines():
+        if not line.startswith("|") or line.startswith("|---") or "ครบกำหนด" in line:
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if len(cells) != 5:
+            continue
+        months = re.fullmatch(r"(\d+) เดือน", cells[1])
+        rows[cells[0].replace("**", "")] = int(months.group(1)) * MONTHS if months else 0
+    return rows
+
+
+def test_every_promise_is_backed_by_a_mechanism_that_is_fast_enough(gates):
+    """`within_days` ต้องไม่เล็กกว่ารอบของกลไกที่มันอ้าง
+
+    สัญญาที่เร็วกว่าเครื่องมือที่ตัวเองอ้างถึง คือสัญญาที่ไม่มีใครทำได้ — และมันถูก
+    เขียนในรอบเดียวกับที่ประกาศว่า `severity` ต้องตรงกับอำนาจจริง
+    **อยากให้ตัวเลขเล็กลง ต้องสร้างกลไกที่เร็วกว่าก่อน ไม่ใช่แก้ตัวเลข**
+
+    รอบที่ผูกกับเหตุการณ์ (`ทุก release`) ถือว่าเร็วพอเสมอ เพราะสัญญาณเกิดตอนที่
+    คนกำลังทำงานนั้นอยู่พอดี — แต่แถวนั้นต้องมีอยู่จริงเหมือนแถวอื่น
+    """
+    periods = _cadence_periods()
+    unbacked = []
+    for gate in gates:
+        watcher = gate.get("watched_by")
+        if not watcher:
+            continue
+        anchor = watcher["cadence"]
+        matched = [name for name in periods if anchor in name]
+        assert matched, (
+            f"{gate['id']}: `cadence: {anchor}` ไม่ตรงกับแถวไหนใน docs/SECURITY-CADENCE.md — "
+            "กลไกที่อ้างต้องมีอยู่จริง"
+        )
+        slowest = max(periods[name] for name in matched)
+        if slowest and watcher["within_days"] < slowest:
+            unbacked.append(
+                f"{gate['id']}: สัญญา {watcher['within_days']} วัน "
+                f"แต่กลไกที่อ้าง ({matched[0][:40]}…) มีรอบ {slowest} วัน"
+            )
+    assert not unbacked, (
+        "คำสัญญาที่เร็วกว่ากลไกของตัวเอง:\n  "
+        + "\n  ".join(unbacked)
+        + "\nสร้างกลไกที่เร็วกว่าก่อน หรือขยับตัวเลขให้ตรงกับความจริง (ADR 0066 โน้ต 1)"
+    )
