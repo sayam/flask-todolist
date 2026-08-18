@@ -40,7 +40,7 @@
 | 6. bytecode / multi-CPU / cache tiers | gunicorn workers (ของค้างเดิม — ปรับแล้ววัดใหม่) — เฟส 16 | fragment cache: **เลื่อนจนกว่าการวัดจะชี้** (Phase 6 วัดแล้ว คอขวดคือจำนวน process ไม่ใช่ query) · bytecode: Python คอมไพล์ `.pyc` อยู่แล้ว |
 | 9. enforce policy แบบ SOA | มีเกือบครบ (`ASVS.md` = SOA · `GATES-ASVS.md` = หลักฐานเชื่อม) · เติม: การแยกชั้นที่บังคับด้วย partition + ใบ business ต้องประกาศ baseline เป็น prerequisite — เฟส 13 | เอกสาร SOA ใบใหม่แยกต่างหาก — ที่ที่สามคือที่ให้ drift |
 | 11+17. encryption | **at rest**: `EncryptedType` ตามชั้นข้อมูล คีย์จาก secrets source (ADR 0030) · KMS-ready ตาม seam ใน backlog — เฟส 15 · **in transit**: มีแล้ว (TLS+PFS วัดจริง) | **in process** — ไม่มีกลไกจริงใน Python webapp เคลมไปคือคำขวัญ (ลง ADR ตัด) |
-| 20. software development standards | ส่วนที่ขาดจริง: issue/PR template + `docs/DEVELOPMENT.md` map ข้อกำหนด → ตัวบังคับ — เฟส 13 | ที่เหลือมีครบแล้วและ*มีตัวบังคับ*แล้ว — บทความเองเตือนเรื่องมาตรฐานเกินพอดี (repo นี้ตอบด้วย 96% ratchet ไม่ใช่ 100%) |
+| 20. software development standards | ส่วนที่ขาดจริง: issue/PR template + `docs/DEVELOPMENT.md` map ข้อกำหนด → ตัวบังคับ — เฟส 13 | ที่เหลือมีครบแล้วและ*มีตัวบังคับ*แล้ว — บทความเองเตือนเรื่องมาตรฐานเกินพอดี (repo นี้ตอบด้วย 97% ratchet ไม่ใช่ 100%) |
 
 ### ตัด / เลื่อน (ลง ADR 0043)
 

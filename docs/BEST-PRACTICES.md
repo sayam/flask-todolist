@@ -68,9 +68,9 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 | `build` MUST | ผ่าน | `Dockerfile` (multi-stage) · job `image` ใน CI **build จริงแล้วยิงใส่มันทุก push** ไม่ใช่แค่ตรวจ syntax |
 | `build_common_tools` SUGGESTED | ผ่าน | Docker + pipenv |
 | `build_floss_tools` SHOULD | ผ่าน | ทุกตัวเป็น FLOSS |
-| `test` MUST | ผ่าน | pytest ทั้งชุดเป็น required check ทุก push (job `test`) · coverage floor `fail_under = 96` แบบ ratchet · `diff-cover` บังคับบรรทัดที่แก้ 100% · **ไม่ตรึงจำนวนเทสต์ไว้ที่นี่** เพราะทุก PR เพิ่มเทสต์ เลขภาพถ่ายจึงผิดตั้งแต่ commit ถัดไป — นับสดด้วย `pipenv run pytest --collect-only -q` |
+| `test` MUST | ผ่าน | pytest ทั้งชุดเป็น required check ทุก push (job `test`) · coverage floor `fail_under = 97` แบบ ratchet · `diff-cover` บังคับบรรทัดที่แก้ 100% · **ไม่ตรึงจำนวนเทสต์ไว้ที่นี่** เพราะทุก PR เพิ่มเทสต์ เลขภาพถ่ายจึงผิดตั้งแต่ commit ถัดไป — นับสดด้วย `pipenv run pytest --collect-only -q` |
 | `test_invocation` SHOULD | ผ่าน | `pipenv run pytest` |
-| `test_most` SUGGESTED | ผ่าน | coverage gate `fail_under = 96` (**ratchet: ขยับขึ้นได้อย่างเดียว**) + `diff-cover` บังคับบรรทัดที่แก้ 100% |
+| `test_most` SUGGESTED | ผ่าน | coverage gate `fail_under = 97` (**ratchet: ขยับขึ้นได้อย่างเดียว**) + `diff-cover` บังคับบรรทัดที่แก้ 100% |
 | `test_continuous_integration` SUGGESTED | ผ่าน | 30 check (27 บังคับ) — รวมสามยี่ห้อฐานข้อมูล, stack จริง, SSO, LDAP, DAST |
 | `test_policy` MUST | ผ่าน | `CONTRIBUTING.md` + `CLAUDE.md`: **เทสต์ใหม่ทุกตัวต้องถูกพิสูจน์ด้วย mutation test ว่าจับของจริงได้ก่อนถือว่าเสร็จ** และ `diff-cover` บังคับที่ CI · ตั้งแต่เฟส 8 มี `gates.yaml` บังคับอีกชั้นว่า **ไฟล์เทสต์ทุกไฟล์ต้องถูกตัดสินว่าเป็นของ gate ไหน** (`tests/test_gates.py`) |
 | `tests_are_added` MUST | ผ่าน | PR ล่าสุดมีเทสต์มาด้วยทุกใบ — และ `gates.yaml` ทำให้ "ลืมเพิ่มเทสต์" กลายเป็น CI แดง ไม่ใช่เรื่องที่ต้องมีคนสังเกต (`tests/test_gates.py`, `test_overlay.py`, `test_harness.py`, `test_asvs_probe.py`) |
@@ -196,7 +196,7 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 | `interfaces_current` SHOULD | Met | Python 3.13 · SQLAlchemy 2.0 typed · deprecation โผล่ผ่านด่าน lint/type |
 | `automated_integration_testing` MUST | Met | dialects จริงสองยี่ห้อ · stack TLS 2 replica · SSO/LDAP จริง · DAST แบบ login ทุก push |
 | `regression_tests_added50` MUST | Met | ทุก bugfix มาพร้อมเทสต์ที่พิสูจน์ด้วย mutation |
-| `test_statement_coverage80` MUST | Met | 96% (เปิด branch) ratchet + diff-cover 100% |
+| `test_statement_coverage80` MUST | Met | 97% (เปิด branch) ratchet + diff-cover 100% |
 | `test_policy_mandated` MUST | Met | CONTRIBUTING ข้อ 1 + ข้อ 8 |
 | `tests_documented_added` MUST | Met | เดียวกัน — บังคับด้วย gates registry |
 | `warnings_strict` MUST | Met | warning = error ใน CI ทุกตัว |

@@ -28,6 +28,7 @@ from scripts import (
     audit_image,
     audit_pins,
     audit_posture,
+    check_ratchets,
     check_semgrep,
     red_streak_census,
     rerun_census,
@@ -852,3 +853,39 @@ def test_workflows_that_also_block_are_left_out_of_the_comparison():
 
     assert ".github/workflows/ci.yml" not in promised
     assert ".github/workflows/scorecard.yml" in promised, "ไฟล์ที่ทุก job ถูกเฝ้าต้องถูกวัด"
+
+
+# ------------------------------- ratchet ต้องไม่ลอยต่ำกว่าของจริง (ADR 0068 · audit r12)
+#
+# `pyproject.toml` เขียนกำกับทั้งสองที่ว่า "ขยับขึ้นได้อย่างเดียว" — ทิศถูก แต่ไม่มี
+# อะไรทำให้ขยับ · หกวันหลังตั้งเลข coverage จริงไต่ไป 97.11% ขณะที่พื้นยังเป็น 96
+
+
+def test_a_floor_that_sits_just_below_reality_is_quiet():
+    """ทิศ "ผ่านเมื่อควรผ่าน" — ห่างไม่เกินระยะที่ประกาศ ต้องไม่มีเสียงบ่น"""
+    assert check_ratchets.problems({"coverage": 97.0}, {"coverage": 97.11}) == []
+
+
+def test_a_floor_left_behind_by_reality_is_red():
+    """ที่ว่าง 1.11 จุด = โค้ดที่มีเทสต์คุมราว 54 บรรทัดหายไปได้เงียบ ๆ"""
+    found = check_ratchets.problems({"coverage": 96.0}, {"coverage": 97.11})
+
+    assert found, "พื้นที่ตามของจริงไม่ทันต้องแดง"
+    assert "97" in found[0], "ข้อความต้องบอกด้วยว่าควรขยับไปที่เท่าไหร่"
+
+
+def test_a_floor_above_reality_is_not_this_test_s_problem():
+    """พื้นที่สูงกว่าของจริงเป็นเรื่องของด่านหลัก (`fail_under` เอง) ไม่ใช่ของทิศนี้
+
+    แยกกันเพราะสองทิศนี้ล้มด้วยเหตุผลคนละอย่าง และข้อความที่บอกว่าต้องทำอะไรต่อ
+    ก็คนละอย่าง — รวมกันเมื่อไหร่ คนอ่านจะได้คำแนะนำที่ผิดครึ่งหนึ่งของเวลา
+    """
+    assert check_ratchets.problems({"coverage": 99.0}, {"coverage": 97.11}) == []
+
+
+def test_every_declared_floor_is_read_from_the_file_not_a_comment():
+    """อ่านพื้นจาก `pyproject.toml` จริง — คอมเมนต์ที่เขียนกำกับคือสิ่งที่รอบนี้กำลังตรวจ"""
+    floors = check_ratchets.declared()
+
+    assert set(floors) == {"coverage", "interrogate"}
+    assert all(value > 0 for value in floors.values())
