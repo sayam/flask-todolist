@@ -596,3 +596,68 @@ def test_the_census_counts_a_rerun_job_as_having_gone_red():
     summary = rerun_census.census([HIDDEN_RUN])
 
     assert rerun_census.jobs_never_red(summary, {"dast", "vault"}) == ["vault"]
+
+
+# ------------------------------------------ alert บนหน้า Security (audit r10 · ข้อ 3)
+#
+# คำตัดสินอยู่ในเรโปครบแล้ว (pins/accepted-advisories.txt ฯลฯ) แต่พื้นผิวที่คนนอก
+# อ่านก่อนเพื่อนคือหน้า Security ซึ่งค้างว่า "high · เปิดอยู่" 4 ใบนาน 5.6 วัน
+# โดยไม่มีรอบทบทวนไหนครอบ — แถวที่มีอยู่ครอบเฉพาะใบที่ถูก dismiss ไปแล้ว
+
+ACCEPTED = {"Scorecard/VulnerabilitiesID": "ตัวบังคับจริงคือ job security"}
+
+
+def _alert(rule, state="open", comment="", tool="Scorecard", number=1):
+    return {
+        "number": number,
+        "state": state,
+        "tool": {"name": tool},
+        "rule": {"id": rule},
+        "dismissed_comment": comment,
+    }
+
+
+def test_alerts_pass_when_every_one_of_them_has_been_decided():
+    """ทิศ "ผ่านเมื่อควรผ่าน" — ลงทะเบียนไว้ หรือ dismiss พร้อมเหตุผล ถือว่าตัดสินแล้วทั้งคู่"""
+    alerts = [
+        _alert("VulnerabilitiesID"),
+        _alert("py/x", state="dismissed", comment="เป็น false positive เพราะ …", tool="CodeQL"),
+        _alert("py/y", state="fixed", tool="CodeQL"),
+    ]
+
+    assert audit_posture.alert_problems(alerts, ACCEPTED) == []
+
+
+@pytest.mark.parametrize(
+    ("alerts", "accepted", "why"),
+    [
+        ([_alert("NewRuleID")], ACCEPTED, "ของใหม่ที่ยังไม่มีใครตัดสิน ต้องแดง"),
+        (
+            [_alert("NewRuleID", state="dismissed")],
+            ACCEPTED,
+            "dismiss เงียบ ๆ โดยไม่เขียนเหตุผล = ปิดเสียงที่ไม่มีใครทวนได้",
+        ),
+        (
+            [_alert("VulnerabilitiesID")],
+            {**ACCEPTED, "Scorecard/GhostID": "ยกเว้นไว้นานแล้ว"},
+            "บรรทัดที่ไม่ตรงกับ alert ไหนแล้ว ต้องถูกบังคับให้ถอด (ทิศที่เงียบเสมอ)",
+        ),
+        (
+            [_alert("VulnerabilitiesID", state="fixed")],
+            ACCEPTED,
+            "alert ที่ถูกแก้ไปแล้ว ต้องไม่ค้ำบรรทัดในทะเบียนไว้ต่อ",
+        ),
+        (None, ACCEPTED, "อ่านไม่ได้ = แดง ไม่ใช่ข้าม (ADR 0061 ข้อ 3)"),
+    ],
+)
+def test_alerts_catch_every_way_a_signal_goes_unowned(alerts, accepted, why):
+    """ทุกทางที่ alert จะกลายเป็นของไม่มีเจ้าของต้องแดง"""
+    assert audit_posture.alert_problems(alerts, accepted), why
+
+
+def test_the_alert_register_on_disk_is_readable_and_reasoned():
+    """ทะเบียนจริงต้องย่อยได้ด้วยตัวมันเอง — ไม่ใช่แค่ fixture ในเทสต์ที่ย่อยได้"""
+    accepted = audit_posture.accepted_alerts()
+
+    assert accepted, "อ่าน .github/accepted-code-scanning-alerts.txt ไม่ได้เลย"
+    assert all(why for why in accepted.values()), "มีบรรทัดที่ไม่มีเหตุผลกำกับ"

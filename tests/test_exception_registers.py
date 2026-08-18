@@ -135,3 +135,57 @@ def test_the_hadolint_scope_is_not_loosened_outside_the_exception_file(hadolint_
         "**ทุกระดับรวม info ต้องเขียว** และการผ่อนต้องเกิดที่ .hadolint.yaml "
         "ทีละข้อพร้อมเหตุผล ไม่ใช่ปิดทั้งระดับด้วยบรรทัดเดียวใน workflow"
     )
+
+
+# ------------------------------------------- ทะเบียน alert ฝั่งแพลตฟอร์ม (audit r10 · ข้อ 3)
+#
+# แฟ้มที่สามในตระกูลเดียวกัน ต่างที่ของที่มันปิดเสียงอยู่**ไม่ได้อยู่ในเรโป** —
+# มันอยู่บนหน้า Security ของ GitHub ซึ่งเป็นพื้นผิวที่คนนอกอ่านก่อนเพื่อน
+# ตอนตั้งแถวนี้: alert เปิดค้าง 4 ใบ (3 ใบ high) นาน 5.6 วัน โดยรอบทบทวนที่มีอยู่
+# ครอบเฉพาะใบที่ถูก dismiss ไปแล้ว — ที่ยัง**เปิดอยู่**ไม่มีแถวไหนครอบเลย
+
+ALERT_REGISTER = ROOT / ".github" / "accepted-code-scanning-alerts.txt"
+CADENCE_DOC = ROOT / "docs" / "SECURITY-CADENCE.md"
+
+
+@pytest.fixture(scope="module")
+def alert_rows() -> list[tuple[str, str]]:
+    rows = []
+    for line in ALERT_REGISTER.read_text(encoding="utf-8").splitlines():
+        body = line.strip()
+        if not body or body.startswith("#"):
+            continue
+        name, _, why = body.partition("#")
+        rows.append((name.strip(), why.strip()))
+    assert rows, "อ่านทะเบียน alert ไม่ได้เลย — รูปแบบไฟล์เปลี่ยนไปแล้ว"
+    return rows
+
+
+def test_every_accepted_alert_carries_a_reason(alert_rows):
+    """บรรทัดที่ไม่มีเหตุผล คือการยกเว้นที่ไม่มีใครรู้ว่าจะถอดคืนได้เมื่อไหร่"""
+    for name, why in alert_rows:
+        assert "/" in name, f"{name}: ต้องเป็นรูป <tool>/<rule id> ให้ตรงกับที่ API คืนมา"
+        assert len(why) >= MIN_REASON, (
+            f"{name}: เหตุผลสั้นเกินกว่าจะตัดสินได้ — ทะเบียนข้อยกเว้นที่ไม่มีเหตุผลคือรายการที่ไม่มีใครกล้าถอด"
+        )
+
+
+def test_no_duplicate_rows_in_the_alert_register(alert_rows):
+    """ชื่อซ้ำ = เหตุผลสองชุดของเรื่องเดียว แล้วไม่มีใครรู้ว่าอันไหนคือคำตัดสิน"""
+    names = [name for name, _ in alert_rows]
+    assert len(names) == len(set(names)), "มีชื่อ alert ซ้ำในทะเบียน"
+
+
+def test_every_accepted_alert_is_explained_in_the_cadence_document(alert_rows):
+    """ทะเบียนบอกว่า *อะไร* เอกสารบอกว่า *ทำไม* — ขาดข้างใดข้างหนึ่งคือครึ่งเดียว
+
+    หลักเดียวกับ `pins/accepted-advisories.txt` ↔ `docs/SECURITY-CADENCE.md`
+    ที่ `tests/test_pins_audit.py` บังคับสองทิศไว้ก่อนแล้ว
+    """
+    doc = CADENCE_DOC.read_text(encoding="utf-8")
+    for name, _ in alert_rows:
+        rule = name.split("/", 1)[1]
+        assert rule in doc, (
+            f"{name}: ไม่มีเหตุผลใน docs/SECURITY-CADENCE.md — "
+            "ทะเบียนที่ไม่มีเอกสารหนุน คือคำตัดสินที่อ่านได้เฉพาะคนที่เขียนมันเอง"
+        )

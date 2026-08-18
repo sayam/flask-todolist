@@ -15,6 +15,12 @@ check ครบทุก job ที่รันบน pull request — **ทั�
    และห้ามลบ branch
 3. **สวิตช์ระดับ repo** — auto-merge (วิธี merge มาตรฐานของทุก PR) และ
    `sha_pinning_required` ที่ให้แพลตฟอร์มบังคับสิ่งที่เทสต์เราบังคับอยู่แล้ว
+4. **alert บนหน้า Security** — ทุกใบที่โผล่ (เปิดอยู่ก็ตาม ถูก dismiss ไปแล้วก็ตาม)
+   ต้องมีบรรทัดใน `.github/accepted-code-scanning-alerts.txt` และทุกบรรทัดในนั้น
+   ต้องยังตรงกับ alert จริง — **สองทิศ แบบเดียวกับ `audit_pins.py`** (audit รอบ 10
+   ข้อ 3: คำตัดสินอยู่ในเรโปครบแล้ว แต่พื้นผิวที่คนนอกอ่านก่อนเพื่อนยังค้างว่า
+   "high · เปิดอยู่" 4 ใบนาน 5.6 วัน โดยไม่มีรอบทบทวนไหนครอบ — แถวที่มีอยู่
+   ครอบเฉพาะ alert ที่ถูก dismiss แล้ว)
 
 **สิทธิ์ไม่พอ = แดง ไม่ใช่ข้าม** — ด่านที่ข้ามเงียบ ๆ ตอนอ่านไม่ได้ คือด่านที่
 รายงานว่าทุกอย่างเรียบร้อยในวันที่มันมองไม่เห็นอะไรเลย
@@ -28,11 +34,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import pathlib
 import re
 import shutil
 import subprocess
 import sys
+import typing
 
 # pyyaml มากับ dev tools และไม่มี stub — เหตุผลเดียวกับ build_gates_crosswalk.py
 import yaml  # type: ignore[import-untyped]
@@ -40,6 +48,14 @@ import yaml  # type: ignore[import-untyped]
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 WORKFLOWS = ROOT / ".github" / "workflows"
 CADENCE = ROOT / "docs" / "SECURITY-CADENCE.md"
+ALERT_REGISTER = ROOT / ".github" / "accepted-code-scanning-alerts.txt"
+
+# **alert อ่านด้วย token คนละใบกับท่าที** — `POSTURE_TOKEN` เป็น fine-grained PAT
+# ที่มีแค่ Administration+Metadata (อ่าน branch protection) ส่วน code scanning
+# ต้องการ `security-events: read` ซึ่ง `GITHUB_TOKEN` ของ job ขอเองได้ฟรี —
+# ขยาย scope ของ PAT เพื่ออ่าน alert คือการจ่ายสิทธิ์ถาวรให้ของที่ยืมได้ต่อ run
+ALERTS_ENV = "GH_TOKEN_ALERTS"
+PAGE_SIZE = 100
 
 # job ที่ไม่ต้องอยู่ในรายการ required — พร้อมเหตุผลที่ต้องอ่านได้จากที่นี่ที่เดียว
 EXEMPT = {
@@ -60,17 +76,47 @@ MATRIX_REF = re.compile(r"\$\{\{\s*matrix\.([a-zA-Z0-9_.]+)\s*\}\}")
 CLAIM = re.compile(r"required check \*\*(\d+) จาก (\d+)\*\*")
 
 
-def _gh(path: str) -> dict:
-    """ถาม GitHub API — แยกไว้จุดเดียวให้เทสต์ปลอมได้ และให้ข้อผิดพลาดสิทธิ์ดังพอ"""
+def _request(path: str, token_env: str | None = None) -> typing.Any:
+    """ถาม GitHub API — แยกไว้จุดเดียวให้เทสต์ปลอมได้ และให้ข้อผิดพลาดสิทธิ์ดังพอ
+
+    `token_env` ชี้ตัวแปรที่ถือ token ของ *คำถามนั้น* — ไม่ตั้งหรือไม่มีค่าก็ตกกลับ
+    ไปใช้ token เริ่มต้นของ `gh` ซึ่งคือสิ่งที่เกิดตอนรันบนเครื่องผู้ดูแล
+    """
     binary = shutil.which("gh")
     if not binary:
         raise RuntimeError("ไม่มี gh บนเครื่องนี้ — ตัวตรวจนี้ต้องถาม GitHub API ผ่านมัน")
+    env = None
+    borrowed = os.environ.get(token_env or "")
+    if borrowed:
+        env = {**os.environ, "GH_TOKEN": borrowed, "GITHUB_TOKEN": borrowed}
     result = subprocess.run(  # noqa: S603 — path มาจาก shutil.which และ argument เป็นของเราเอง
-        [binary, "api", path], capture_output=True, text=True, check=False
+        [binary, "api", path], capture_output=True, text=True, check=False, env=env
     )
     if result.returncode != 0:
         raise PermissionError(f"อ่าน {path} ไม่ได้: {result.stderr.strip()}")
-    return dict(json.loads(result.stdout))
+    return json.loads(result.stdout)
+
+
+def _gh(path: str) -> dict:
+    """คำตอบที่เป็น object เดียว"""
+    return dict(_request(path))
+
+
+def _gh_pages(path: str, token_env: str | None = None) -> list[dict]:
+    """คำตอบที่เป็นรายการ — **ไล่ทีละหน้า** เพราะ `per_page` ของ GitHub ตันที่ 100
+
+    audit รอบ 9 เจอมาแล้วว่าการขอเกิน 100 ได้ 100 มาเงียบ ๆ ตัวตรวจที่อ่านหน้าเดียว
+    จึงประกาศว่า "ไม่มี alert ค้าง" ได้ทั้งที่ใบที่ 101 ค้างอยู่
+    """
+    rows: list[dict] = []
+    page = 1
+    while True:
+        joiner = "&" if "?" in path else "?"
+        batch = _request(f"{path}{joiner}per_page={PAGE_SIZE}&page={page}", token_env)
+        rows.extend(batch)
+        if len(batch) < PAGE_SIZE:
+            return rows
+        page += 1
 
 
 def _resolve(name: str, combo: object) -> str:
@@ -165,6 +211,58 @@ UNREADABLE_AT_LEAST_PRIVILEGE = {
 }
 
 
+def accepted_alerts() -> dict[str, str]:
+    """ทะเบียน alert ที่รับไว้ — `<tool>/<rule id>` → เหตุผล"""
+    rows = {}
+    for line in ALERT_REGISTER.read_text(encoding="utf-8").splitlines():
+        body = line.strip()
+        if not body or body.startswith("#"):
+            continue
+        name, _, why = body.partition("#")
+        rows[name.strip()] = why.strip()
+    return rows
+
+
+def live_alerts(alerts: list[dict] | None) -> list[dict]:
+    """alert ที่ยังมีอยู่จริง — ตัด `fixed` ทิ้ง เพราะมันหายไปด้วยการแก้ ไม่ใช่ด้วยการยกเว้น"""
+    return [alert for alert in (alerts or []) if alert.get("state") != "fixed"]
+
+
+def alert_problems(alerts: list[dict] | None, accepted: dict[str, str]) -> list[str]:
+    """alert ทุกใบต้องถูกตัดสินแล้ว และทุกบรรทัดในทะเบียนต้องยังตรงกับของจริง
+
+    "ถูกตัดสินแล้ว" มีสองรูปที่ยอมรับเท่ากัน: มีบรรทัดในทะเบียนของเรา **หรือ**
+    ถูก dismiss พร้อมเหตุผลที่ไม่ว่าง — สิ่งที่ห้ามคือใบที่ไม่มีทั้งสองอย่าง
+    เพราะนั่นคือ alert ที่นั่งอยู่บนหน้าที่คนนอกอ่านก่อนเพื่อน โดยไม่มีใครเคยอ่าน
+    """
+    if alerts is None:
+        return ["อ่าน alert ของ code scanning ไม่ได้ — ต้องมี `security-events: read`"]
+
+    problems = []
+    seen = set()
+    # `fixed` = หายไปแล้วเพราะโค้ดถูกแก้ ไม่ใช่เพราะมีคนตัดสิน — ไม่ต้องมีทะเบียน
+    # และ**ต้องไม่ถูกนับเป็น "ยังมีอยู่"** ไม่งั้นบรรทัดที่ควรถอดจะอยู่ต่อได้ตลอด
+    for alert in live_alerts(alerts):
+        name = f"{(alert.get('tool') or {}).get('name')}/{(alert.get('rule') or {}).get('id')}"
+        seen.add(name)
+        if name in accepted:
+            continue
+        if alert.get("state") == "dismissed" and (alert.get("dismissed_comment") or "").strip():
+            continue
+        problems.append(
+            f"alert {name} (#{alert.get('number')} · {alert.get('state')}) ยังไม่ถูกตัดสิน — "
+            "แก้ หรือ dismiss พร้อมเหตุผล หรือลงทะเบียนใน "
+            ".github/accepted-code-scanning-alerts.txt"
+        )
+
+    problems.extend(
+        f"ทะเบียนยกเว้น alert {name} ไว้ แต่ไม่มี alert ชื่อนี้แล้ว — ถอดบรรทัดออก "
+        "(การยกเว้นเงียบเสมอเมื่อของที่ยกเว้นหายไป)"
+        for name in sorted(set(accepted) - seen)
+    )
+    return problems
+
+
 def unreadable(state: dict) -> list[str]:
     """ฟิลด์ที่หายไปจากคำตอบ (None) เพราะสิทธิ์ ไม่ใช่เพราะถูกปิด"""
     return [
@@ -181,11 +279,13 @@ def claimed_counts() -> tuple[int, int] | None:
 
 
 def fetch() -> dict:
-    """รวมท่าทีจากสาม endpoint ให้เป็นก้อนเดียวที่ `compare()` อ่านได้"""
+    """รวมท่าทีจากสี่ endpoint ให้เป็นก้อนเดียวที่ตัวตัดสินอ่านได้"""
     protection = _gh("repos/:owner/:repo/branches/main/protection")
     repo = _gh("repos/:owner/:repo")
     actions = _gh("repos/:owner/:repo/actions/permissions")
+    alerts = _gh_pages("repos/:owner/:repo/code-scanning/alerts?state=all", ALERTS_ENV)
     return {
+        "alerts": alerts,
         "required_checks": (protection.get("required_status_checks") or {}).get("contexts", []),
         "enforce_admins": (protection.get("enforce_admins") or {}).get("enabled"),
         "required_linear_history": (protection.get("required_linear_history") or {}).get("enabled"),
@@ -217,8 +317,8 @@ def main(argv: list[str] | None = None) -> int:
         reason = str(problem)
         print(
             f"อ่านท่าทีของ repo ไม่ได้: {reason}\n"
-            "  · 403/404 = สิทธิ์ไม่พอ → job ต้องประกาศ `permissions: administration: read` "
-            "หรือใช้ token ที่อ่าน branch protection ได้\n"
+            "  · 403/404 = สิทธิ์ไม่พอ → ท่าที: token ที่อ่าน branch protection ได้ "
+            "(`POSTURE_TOKEN`) · alert: `permissions: security-events: read` ของ job\n"
             "  · 5xx = GitHub เองมีปัญหา → รันใหม่ ไม่ใช่ปิดด่าน\n"
             "**ห้ามแปลงกรณีนี้เป็นการข้ามเงียบ ๆ ทั้งสองแบบ** — ด่านที่ข้ามตอนอ่านไม่ได้ "
             "คือด่านที่รายงานว่าเรียบร้อยในวันที่มันมองไม่เห็นอะไรเลย",
@@ -229,6 +329,7 @@ def main(argv: list[str] | None = None) -> int:
     problems = compare(
         state, pull_request_checks(workflows), total_checks(workflows), claimed_counts()
     )
+    problems += alert_problems(state.get("alerts"), accepted_alerts())
     if problems:
         print("ท่าทีของแพลตฟอร์มไม่ตรงกับสิ่งที่ประกาศไว้:", file=sys.stderr)
         for line in problems:
@@ -237,7 +338,11 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  หมายเหตุ (ไม่ใช่ข้อผิด): {line}", file=sys.stderr)
         return 1
 
-    print(f"ท่าทีตรงกับที่ประกาศ — required {len(state['required_checks'])} check · ธงครบตาม ADR 0053")
+    print(
+        f"ท่าทีตรงกับที่ประกาศ — required {len(state['required_checks'])} check "
+        f"· ธงครบตาม ADR 0053 · alert ที่ยังมีอยู่และถูกตัดสินแล้ว "
+        f"{len(live_alerts(state.get('alerts')))} ใบ"
+    )
     for line in unreadable(state):
         print(f"  หมายเหตุ: {line}")
     return 0

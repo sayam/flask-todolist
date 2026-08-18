@@ -79,6 +79,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      # อ่าน alert ของ code scanning ได้ด้วย GITHUB_TOKEN ของ job เอง (ADR 0061
+      # โน้ต 2026-08-18 · audit รอบ 10 ข้อ 3) — **ไม่ต้องขยาย scope ของ PAT**
+      # สิทธิ์ที่ยืมได้ต่อ run ถูกกว่าสิทธิ์ถาวรที่ผูกกับบัญชีคนเสมอ
+      security-events: read
       # **ไม่มี `administration` ในรายการ scope ของ GITHUB_TOKEN** — เคยประกาศไว้
       # ที่นี่แล้วทำให้ทั้งไฟล์ไม่ start ("workflow file issue") ตั้งแต่วันที่เพิ่ม
       # job นี้ จนกว่าจะจับได้ในอีกวัน · สิทธิ์อ่าน branch protection ให้ผ่าน
@@ -100,3 +104,5 @@ jobs:
           # ว่าท่าทีถูกต้องทั้งที่ไม่เคยอ่านอะไรเลย · วิธีออก token อยู่ใน
           # docs/OPERATIONS.md
           GH_TOKEN: ${{ secrets.POSTURE_TOKEN || secrets.GITHUB_TOKEN }}
+          # token คนละใบสำหรับคำถามคนละชั้น — ท่าทีต้องใช้ PAT ส่วน alert ใช้ของ job
+          GH_TOKEN_ALERTS: ${{ secrets.GITHUB_TOKEN }}

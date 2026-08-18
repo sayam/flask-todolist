@@ -1595,7 +1595,7 @@ gates:
     born_from: ""
 
   - id: platform-posture-verified
-    title: ท่าทีฝั่งแพลตฟอร์ม (branch protection · required check · auto-merge) ถูกเครื่องตรวจ ไม่ใช่แค่เขียนไว้
+    title: ท่าทีฝั่งแพลตฟอร์ม (branch protection · required check · auto-merge · alert ที่ค้างบนหน้า Security) ถูกเครื่องตรวจ ไม่ใช่แค่เขียนไว้
     kind: job
     severity: blocking
     enforced_by: {job: posture}
