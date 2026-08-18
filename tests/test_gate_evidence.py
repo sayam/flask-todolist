@@ -104,7 +104,6 @@ UNPROVEN = frozenset(
         "ldap-end-to-end",
         "vault-end-to-end",
         "metrics-scraped-for-real",
-        "purge-timer-real-systemd",
         "push-secret-scan",
         "sbom-per-category",
         "codeql-sast",
@@ -113,7 +112,7 @@ UNPROVEN = frozenset(
     }
 )
 # เพดานของรายการข้างบน ณ วันที่กติกาเริ่ม (ADR 0059) — ขยับลงได้อย่างเดียว
-UNPROVEN_CEILING = 76
+UNPROVEN_CEILING = 75
 
 
 @pytest.fixture(scope="module")
