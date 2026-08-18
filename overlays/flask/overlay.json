@@ -280,11 +280,6 @@
       "title": "SAST ด้วย ruleset ของ framework และภาษา — ตัดสินด้วยรายงาน ไม่ใช่ exit code",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     },
-    "plugin-deps-cve-visible": {
-      "kind": "suite",
-      "title": "CVE ของไลบรารี plugin ดังพอให้เห็น แต่ไม่หยุด pipeline (คำตอบคือถอด)",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
     "a11y-real-browser": {
       "kind": "suite",
       "title": "pa11y + Chromium จริง สแกนรวมโหมดมืด ธีม ocean และภาษาไทย",
@@ -433,6 +428,11 @@
     "ratchets-do-not-drift-below-reality": {
       "kind": "suite",
       "title": "พื้นของ ratchet ต้องไม่ลอยต่ำกว่าของจริงเกินระยะที่ประกาศ",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "plugin-deps-cve-decided": {
+      "kind": "suite",
+      "title": "CVE ในไลบรารีของ plugin ต้องถูกตัดสินแล้วทุกตัว (อัปเกรด · ถอด · หรือรับไว้พร้อมเหตุผล)",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     }
   }

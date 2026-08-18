@@ -27,6 +27,7 @@ import pytest
 from scripts import (
     audit_image,
     audit_pins,
+    audit_plugin_deps,
     audit_posture,
     check_ratchets,
     check_semgrep,
@@ -1030,3 +1031,49 @@ def test_the_report_reads_every_source_it_claims_to():
         assert heading in text
     assert "(ไม่มี)" not in text.split("## กองที่ต้องอ่าน")[0], "มีหัวข้อที่อ่านแหล่งไม่ได้"
     assert all(value >= 0 for value in whats_pending.counts().values())
+
+
+# ------------- CVE ของ plugin ต้องถูกตัดสิน (ADR 0025 โน้ต 1 · audit r13 ข้อ 2)
+#
+# เดิม job นี้เตือนแล้วผ่าน — เวลาที่จะ*รู้*จึงเป็น 90 วัน ขณะที่กรอบแก้ของ critical
+# คือ 7 วันนับจากวันที่รู้ · สองนโยบายของเราเองพร้อมกันไม่ได้
+
+REPORT = {"dependencies": [{"name": "cryptography", "vulns": [{"id": "GHSA-aaaa"}]}]}
+
+
+def test_an_advisory_nobody_decided_is_red():
+    """ของใหม่ที่ไม่มีบรรทัดในทะเบียน = ยังไม่มีใครตัดสิน"""
+    found = audit_plugin_deps.advisories([REPORT])
+
+    trouble = audit_plugin_deps.problems(found, set())
+
+    assert trouble, "ของใหม่ที่ไม่มีใครตัดสินต้องแดง"
+    assert "GHSA-aaaa" in trouble[0]
+    assert "DISABLED_PLUGINS" in trouble[0], "ข้อความต้องบอกทางที่เร็วที่สุดด้วย"
+
+
+def test_an_advisory_that_was_decided_is_quiet():
+    """ทิศ "ผ่านเมื่อควรผ่าน" — รับไว้แล้วต้องไม่มีเสียงบ่น"""
+    found = audit_plugin_deps.advisories([REPORT])
+
+    assert audit_plugin_deps.problems(found, {"GHSA-aaaa"}) == []
+
+
+def test_a_register_line_that_no_longer_matches_is_red():
+    """ทิศที่เงียบเสมอ — ยกเว้นไว้แล้วของหายไป ต้องบังคับให้ถอดบรรทัด"""
+    trouble = audit_plugin_deps.problems({}, {"GHSA-เก่า"})
+
+    assert trouble, "บรรทัดที่ไม่ตรงกับอะไรแล้วต้องแดง"
+    assert "ถอดบรรทัดออก" in trouble[0]
+
+
+def test_the_reader_understands_pip_audit_output():
+    """อ่านรูปที่ `pip-audit --format=json` คืนมาจริง ไม่ใช่รูปที่เราคิดเอง"""
+    found = audit_plugin_deps.advisories([REPORT, {"dependencies": []}])
+
+    assert found == {"GHSA-aaaa": "cryptography"}
+
+
+def test_the_register_on_disk_is_readable():
+    """ทะเบียนจริงต้องย่อยได้ — ปกติมันควรว่าง เพราะคำตอบที่เร็วที่สุดคือถอด"""
+    assert audit_plugin_deps.accepted_advisories() == set()

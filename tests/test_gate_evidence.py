@@ -93,7 +93,6 @@ UNPROVEN = frozenset(
         "core-deps-cve-audit",
         "deploy-deps-cve-audit",
         "ci-tools-cve-audit",
-        "plugin-deps-cve-visible",
         "a11y-real-browser",
         "image-built-and-probed",
         "image-exceptions-honest",
@@ -112,7 +111,7 @@ UNPROVEN = frozenset(
     }
 )
 # เพดานของรายการข้างบน ณ วันที่กติกาเริ่ม (ADR 0059) — ขยับลงได้อย่างเดียว
-UNPROVEN_CEILING = 75
+UNPROVEN_CEILING = 74
 
 
 @pytest.fixture(scope="module")
