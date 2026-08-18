@@ -1654,3 +1654,24 @@ gates:
           โดย**จำนวนคำไม่ขยับเลย** ซึ่งคือช่องที่ทำให้ "ลดขนาด" ได้โดยไม่ลดอะไร
           ถ้านับแต่บรรทัด
 
+  - id: exception-registers-are-reasoned
+    title: แฟ้มที่ปิดเสียงด่านต้องมีเหตุผลทุกบรรทัด ถูกใช้จริง และผ่อนเกณฑ์ทั้งชั้นไม่ได้
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_exception_registers.py]}
+    standard: []
+    requires: []
+    portable: false
+    layer: internal
+    pillar: security
+    proved_by:
+      - kind: mutation
+        ref: pr/100
+        date: 2026-08-18
+        caught: >-
+          พังหกทิศแล้วแดงครบ — กฎ IGNORE ที่ไม่มีเหตุผล · เปลี่ยน FAIL เป็น WARN
+          (ตาข่ายกันถอยหลังหดด้วยการแก้คำเดียว) · id ซ้ำ (ZAP อ่านบรรทัดหลังทับ
+          เหตุผลข้างบนจึงเป็นเหตุผลของสิ่งที่ไม่มีผล) · `dast_scan.sh` เลิกส่ง
+          ไฟล์กฎให้ ZAP · `ignored:` ของ hadolint ที่ไม่มีเหตุผล ·
+          `failure-threshold` ใน workflow ที่ยกเว้นทั้ง severity class เงียบ ๆ
+
