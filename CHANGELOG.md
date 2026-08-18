@@ -236,6 +236,21 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Fixed
 
+- **The platform-posture gate had never run once** (round-9 audit, found
+  while closing another item). `posture` declared
+  `permissions: administration: read`, which is not a scope GitHub's
+  `GITHUB_TOKEN` can grant, so GitHub rejected the whole file before
+  creating any job: `scorecard.yml` had failed on every push — main
+  included — since the commit that introduced the job, 22 of the last 30
+  runs at the time it was caught. Nothing surfaced it because that
+  workflow is deliberately not a required check, and because a run that
+  fails with zero jobs was invisible to the failure census, which counts
+  failures per job. All three holes are closed: the scope is gone and
+  the permission now comes from a `POSTURE_TOKEN` PAT (missing token
+  still means red, per ADR 0061), the census records runs that never
+  started, and a new test validates every workflow's permission scopes,
+  triggers, and jobs against what GitHub accepts.
+
 - **The CI failure census was reading the wrong signal** (round-8 audit,
   D1). It told platform failures apart from ours by the *name of the
   failing step* (`Set up job`) — but during the GitHub outage of

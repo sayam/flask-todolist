@@ -141,6 +141,30 @@ def _annotations(job: dict) -> str:
     ).strip()
 
 
+def startup_failure(run: dict, failures: list[dict]) -> list[dict]:
+    """run ที่ล้ม **โดยไม่มี job ไหนล้มเลย** คือ workflow ที่ไม่ได้ start
+
+    จุดบอดที่เจอตอน audit r9: ตัวนับไล่ดูความล้มเหลวจาก*job* — run ที่ GitHub
+    ปฏิเสธตั้งแต่ก่อนสร้าง job ("This run likely failed because of a workflow
+    file issue") จึงมี 0 job และ**หายไปจากสำมะโนทั้งใบ** · ของจริงที่ซ่อนอยู่ใต้
+    จุดบอดนี้: `scorecard.yml` ล้มทุก run ข้ามวันรวมบน main เพราะ scope ที่
+    `GITHUB_TOKEN` ไม่มี ทำให้ job `posture` (ADR 0061) ไม่เคยรันเลยสักครั้ง
+
+    นับเป็นชนิด "ของเรา" เพราะไฟล์ workflow เป็นของเรา — แต่ขั้นตอนก่อนกด rerun
+    ใน `docs/OPERATIONS.md` ยังใช้เหมือนเดิม: ถามแพลตฟอร์มก่อนเสมอ
+    """
+    if failures or run.get("conclusion") != "failure":
+        return failures
+    return [
+        {
+            "attempt": run.get("run_attempt", 1),
+            "job": f"{run.get('name') or '(ไม่ทราบ workflow)'} — ไม่ได้ start",
+            "step": "",
+            "message": "workflow file issue — run นี้ไม่ได้สร้าง job สักตัว",
+        }
+    ]
+
+
 def collect(limit: int) -> list[dict]:
     """ดึง run ล่าสุดพร้อม**ทุก attempt ที่ถูกแทนที่ไปแล้ว** — ส่วนที่ต้องต่อเน็ต"""
     runs = _gh(f"repos/:owner/:repo/actions/runs?per_page={limit}")
@@ -166,7 +190,13 @@ def collect(limit: int) -> list[dict]:
                         "message": _annotations(job),
                     }
                 )
-        records.append({"id": run["id"], "attempt": attempt, "failures": failures})
+        records.append(
+            {
+                "id": run["id"],
+                "attempt": attempt,
+                "failures": startup_failure(run, failures),
+            }
+        )
     return records
 
 

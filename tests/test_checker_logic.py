@@ -360,6 +360,33 @@ def test_the_census_fails_when_hidden_failures_pass_the_ceiling(tmp_path):
     assert rerun_census.main(["--input", path, "--max-hidden", "0"]) == 1
 
 
+def test_the_census_notices_a_workflow_that_never_started(tmp_path):
+    """**จุดบอดของ audit r9** — run ที่ล้มโดยมี 0 job หายไปจากสำมะโนทั้งใบ
+
+    ของจริงที่ซ่อนอยู่ใต้จุดบอดนี้: `scorecard.yml` ล้มทุก run ข้ามวันรวมบน main
+    เพราะประกาศ scope ที่ `GITHUB_TOKEN` ไม่มี → job `posture` (ADR 0061) ไม่เคย
+    รันเลยสักครั้ง และไม่มีใครเห็นเพราะมันไม่ใช่ required check
+    """
+    run = {"id": 9, "conclusion": "failure", "run_attempt": 1, "name": "scorecard.yml"}
+
+    made = rerun_census.startup_failure(run, [])
+
+    assert len(made) == 1, "run ที่ล้มโดยไม่มี job ล้ม ต้องถูกบันทึกไว้หนึ่งรายการ"
+    assert "scorecard.yml" in made[0]["job"], "ต้องบอกได้ว่า workflow ไหนไม่ได้ start"
+    assert rerun_census.classify(made[0]) == rerun_census.OURS
+    assert (
+        rerun_census.census([{"id": 9, "attempt": 1, "failures": made}])["runs_failed_visible"] == 1
+    )
+
+
+def test_the_census_does_not_invent_failures_that_did_not_happen(tmp_path):
+    """ทิศตรงข้าม — run ที่เขียว และ run ที่มี job ล้มอยู่แล้ว ต้องไม่ถูกเติมของปลอม"""
+    real = [_fail("test", "pytest", "assert 1 == 2")]
+
+    assert rerun_census.startup_failure({"conclusion": "success"}, []) == []
+    assert rerun_census.startup_failure({"conclusion": "failure"}, real) == real
+
+
 def test_the_census_counts_a_run_once_no_matter_how_many_jobs_failed(tmp_path):
     """หนึ่ง run ที่แดงห้า job คือความล้มเหลวหนึ่งครั้ง — ไม่งั้นสถิติเอียงตามขนาด matrix"""
     crowded = {
