@@ -37,6 +37,14 @@ from .models import DirectoryIdentity
 
 # ไม่ให้คำขอค้างเพราะ directory ที่ไม่ตอบ — คำขอที่ค้างคือ worker ที่หายไปหนึ่งตัว
 CONNECT_TIMEOUT_SECONDS = 5
+# **เพดานของการ *รอคำตอบ* ต่างจากเพดานของการ *ต่อสาย*** (audit รอบ 11 · ADR 0067)
+# `receive_timeout` ของ ldap3 มีค่าเริ่มต้นเป็น `None` = รอตลอดกาล — directory ที่
+# รับ TCP แล้วเงียบจึงทำให้ worker ค้างจนกว่า gunicorn จะฆ่าทิ้งที่ 30 วินาที
+# (ค่าเริ่มต้นของ gunicorn ซึ่งเราไม่ได้ตั้งเช่นกัน) และค่าเริ่มต้นของ container
+# คือ 1 worker (ADR 0052) แปลว่า bind ที่ค้างครั้งเดียว = ทั้ง container ไม่รับ
+# งานอื่นเลยตลอดช่วงนั้น · 10 วินาทีคือเวลาที่ยาวกว่า bind ปกติหลายสิบเท่า
+# แต่สั้นกว่าเพดานของคำขอ จึงล้มด้วยข้อความของเราเอง ไม่ใช่ถูกฆ่ากลางคัน
+RECEIVE_TIMEOUT_SECONDS = 10
 
 
 def _setting(name: str, default: str = "") -> str:
@@ -110,7 +118,12 @@ def _connect(user: str | None = None, password: str | None = None) -> Any:
     )
     try:
         connection = ldap3.Connection(
-            server, user=user, password=password, auto_bind=False, raise_exceptions=False
+            server,
+            user=user,
+            password=password,
+            auto_bind=False,
+            raise_exceptions=False,
+            receive_timeout=RECEIVE_TIMEOUT_SECONDS,
         )
         if not connection.bind():
             return None

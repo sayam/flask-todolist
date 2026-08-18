@@ -744,7 +744,12 @@ def test_plugin_deps_rows_are_a_contract_that_ci_reads(app):
 # ต้องการไลบรารี ทั้งไฟล์ test_totp ย้ายออกจาก job bare ตามกติกา · ฝั่ง bare
 # ยังมีเทสต์ generic คุมว่า plugin ที่ไลบรารีขาด **ปิดตัวเอง** ไม่ใช่พัง
 # — ดูเทสต์ generic ชื่อ a_factor_whose_library_is_missing_disables_itself
-PLUGIN_DEPS_BUDGET = 76
+# ขยับ 76 → 78 ตอน audit รอบ 11 (ADR 0067): เพดานเวลาของการรอปลายทางภายนอก
+# ต้องพิสูจน์ที่ **พารามิเตอร์ที่ส่งเข้าไปจริง** ซึ่งอ่านได้เฉพาะเมื่อมีไลบรารีของ
+# ยี่ห้อนั้นอยู่ (ldap3 · pymysql) — ค่าคงที่ที่ไม่มีใครส่งต่อคือค่าที่อ่านแล้ว
+# เข้าใจผิดว่ามีผล · ฝั่ง bare ยังมีด่านที่ครอบเรื่องเดียวกันแบบไม่ต้องมีไลบรารี:
+# `tests/test_job_timeouts.py` ซึ่งสแกน `subprocess.run` ด้วย AST ล้วน
+PLUGIN_DEPS_BUDGET = 78
 
 TESTS_DIR = pathlib.Path(__file__).resolve().parent
 

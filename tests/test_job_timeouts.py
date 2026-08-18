@@ -1,4 +1,4 @@
-"""ทุก job ต้องประกาศเวลาที่คาดไว้ — ADR 0067 (audit governance รอบ 11)
+"""ทุกอย่างที่ *รอ* ต้องประกาศเพดานเวลา — ADR 0067 (audit governance รอบ 11)
 
 ค่าเริ่มต้นของ GitHub Actions คือ **6 ชั่วโมง** ซึ่งไม่ใช่เพดานที่ใครเลือก มันคือ
 เลขที่แปลว่า "ไม่มีเพดาน" ในทางปฏิบัติ · ผลที่ตามมาไม่ใช่เรื่องเวลาเครื่อง แต่เป็น
@@ -22,6 +22,7 @@ runner ที่ได้มาในวันนั้น (วัดจริ�
 **มีการตัดสินใจเขียนไว้ไหม** ไม่ใช่ว่าการตัดสินใจนั้นแม่นแค่ไหน
 """
 
+import ast
 import pathlib
 
 import pytest
@@ -29,6 +30,7 @@ import yaml
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 WORKFLOW_DIR = ROOT / ".github" / "workflows"
+SCRIPTS_DIR = ROOT / "scripts"
 
 # ต่ำกว่านี้คือเพดานที่จะแดงเพราะวันที่ runner ช้า ไม่ใช่เพราะของเสีย
 # (วัดจริง 2026-08-18: job เดียวกันใช้ 10 นาทีกับ 33 นาทีในวันเดียวกัน)
@@ -91,3 +93,45 @@ def test_the_expensive_jobs_leave_room_for_a_slow_runner(jobs):
         assert budgets, f"ไม่เจอ job {job!r} — เปลี่ยนชื่อแล้วต้องมาแก้ MEASURED ด้วย"
         tight += [f"{job}: เพดาน {b} แต่เคยวัดได้ {measured}" for b in budgets if b and b <= measured]
     assert not tight, "เพดานที่ไม่เผื่อจากของที่วัดได้จริง:\n  " + "\n  ".join(tight)
+
+
+# ------------------------------------------- คำสั่งที่เครื่องมือของเรายิงออกไป
+#
+# `subprocess.run` ที่ไม่มี `timeout=` **รอตลอดกาล** · เครื่องมือพวกนี้รันอยู่ใน job
+# ของ CI ซึ่งเพิ่งได้เพดานของตัวเองจาก ADR 0067 — แต่เพดานของ job จะถูกกินทั้งก้อน
+# โดยคำสั่งเดียวที่ไม่ตอบ แล้วรายงานว่า "job หมดเวลา" ซึ่งชี้ผิดที่
+
+
+def _subprocess_calls(path: pathlib.Path) -> list[ast.Call]:
+    """ทุกจุดที่เรียก `subprocess.run` ในไฟล์เดียว"""
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    return [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "run"
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id == "subprocess"
+    ]
+
+
+def test_every_command_we_shell_out_to_declares_a_timeout():
+    """คำสั่งที่ไม่มีเพดาน = job ที่ไม่มีวันจบ แม้ job จะมีเพดานของตัวเองแล้ว"""
+    unbounded = [
+        f"{path.relative_to(ROOT)}:{call.lineno}"
+        for path in sorted(SCRIPTS_DIR.glob("*.py"))
+        for call in _subprocess_calls(path)
+        if not any(keyword.arg == "timeout" for keyword in call.keywords)
+    ]
+    assert not unbounded, (
+        f"subprocess.run ที่ไม่มี timeout=: {unbounded}\n"
+        "ค่าเริ่มต้นคือรอตลอดกาล — และเครื่องมือพวกนี้รันใน CI (ADR 0067)"
+    )
+
+
+def test_the_scan_actually_finds_the_calls_it_claims_to_check():
+    """ด่านที่นับได้ศูนย์เพราะตัวสแกนพัง จะเขียวเหมือนด่านที่ทุกอย่างเรียบร้อย"""
+    found = sum(len(_subprocess_calls(p)) for p in sorted(SCRIPTS_DIR.glob("*.py")))
+
+    assert found >= 10, f"เจอ subprocess.run แค่ {found} จุด — ตัวสแกนน่าจะพัง เพราะของจริงมีมากกว่านั้น"

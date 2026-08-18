@@ -34,6 +34,10 @@ import sys
 # pyyaml มากับ dev tools และไม่มี stub — เหตุผลเดียวกับ build_gates_crosswalk.py
 import yaml  # type: ignore[import-untyped]
 
+# **เพดานเวลาของคำสั่งที่เรายิงออกไป** (audit รอบ 11 · ADR 0067) — `subprocess.run`
+# ที่ไม่มี `timeout=` รอตลอดกาล ซึ่งกลายเป็น job ที่ไม่มีวันจบเมื่อรันใน CI
+STEP_TIMEOUT_SECONDS = 3600  # หนึ่ง step ของ workflow — ชุดเต็ม + coverage อยู่ในนี้
+
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 WORKFLOW_DIR = pathlib.Path(".github") / "workflows"
 CONFIG = "scaffold.json"
@@ -123,7 +127,7 @@ def execute(entries: list[dict], root: pathlib.Path) -> int:
             print(f"–  {head}\n   ข้าม: {entry['skip']}")
             continue
         result = subprocess.run(  # noqa: S603 — คำสั่งมาจาก workflow ของ repo เอง ซึ่งมีด่านคุมอยู่
-            [bash, "-e", "-c", entry["run"]], cwd=root, check=False
+            [bash, "-e", "-c", entry["run"]], cwd=root, check=False, timeout=STEP_TIMEOUT_SECONDS
         )
         if result.returncode == 0:
             print(f"✓  {head}")

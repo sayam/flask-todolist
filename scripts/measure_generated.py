@@ -31,6 +31,11 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
 from asvs_probe import CHECKS, probe
 
+# **เพดานเวลาของคำสั่งที่เรายิงออกไป** (audit รอบ 11 · ADR 0067) — `subprocess.run`
+# ที่ไม่มี `timeout=` รอตลอดกาล ซึ่งกลายเป็น job ที่ไม่มีวันจบเมื่อรันใน CI
+CHECKER_TIMEOUT_SECONDS = 300  # checker ตัวเดียวบนแอปที่ generate มา
+SEMGREP_TIMEOUT_SECONDS = 1800  # semgrep สแกนทั้งแอป
+
 REPO = pathlib.Path(__file__).resolve().parent.parent
 CHECKERS = sorted((REPO / "overlays" / "flask" / "checks").glob("scan_*.py"))
 DEFAULT_CONFIG = REPO / "overlays" / "flask" / "scaffold.json.default"
@@ -51,6 +56,7 @@ def run_scans(app_dir: pathlib.Path) -> dict[str, Any]:
     for checker in CHECKERS:
         result = subprocess.run(  # noqa: S603 — checker ของ repo เองกับ path ที่ผู้ใช้ชี้
             [sys.executable, str(checker), str(app_dir)],
+            timeout=CHECKER_TIMEOUT_SECONDS,
             capture_output=True,
             text=True,
             check=False,
@@ -92,6 +98,7 @@ def run_semgrep(app_dir: pathlib.Path, binary: pathlib.Path | None) -> int | Non
             "--quiet",
         ],
         cwd=app_dir,
+        timeout=SEMGREP_TIMEOUT_SECONDS,
         capture_output=True,
         text=True,
         check=False,

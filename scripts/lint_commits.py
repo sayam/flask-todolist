@@ -14,6 +14,11 @@ import re
 import subprocess
 import sys
 
+# **เพดานเวลาของคำสั่งที่เรายิงออกไป** (audit รอบ 11 · ADR 0067) — `subprocess.run`
+# ที่ไม่มี `timeout=` รอตลอดกาล และเครื่องมือพวกนี้รันอยู่ใน job ของ CI ผลคือ
+# `gh` ที่ไม่ตอบกลายเป็น job ที่กินเพดานของ job ไปทั้งก้อนโดยไม่ทำอะไรเลย
+LOCAL_TIMEOUT_SECONDS = 60  # `git log` บนเครื่อง — ช้ากว่านี้แปลว่ามีอย่างอื่นผิด
+
 TYPES = "feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert"
 TITLE = re.compile(rf"^({TYPES})(\([\w./-]+\))?!?: \S.{{0,70}}$")
 MAX_TITLE = 72
@@ -42,6 +47,7 @@ def commits_in_range(rev_range: str) -> list[tuple[str, str]]:
         capture_output=True,
         text=True,
         check=True,
+        timeout=LOCAL_TIMEOUT_SECONDS,
     ).stdout
     return [
         (sha[:9], subject)

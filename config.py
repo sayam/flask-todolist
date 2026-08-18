@@ -49,6 +49,16 @@ class Config:
     DATA_ENCRYPTION_KEY = os.environ.get("DATA_ENCRYPTION_KEY", "")
     SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "sqlite:///todolist.db")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    # **สายที่ตายแล้วต้องถูกตรวจก่อนใช้ ไม่ใช่ตอนที่คำขอของผู้ใช้ไปเจอ**
+    # (audit รอบ 11 · ADR 0067) — connection ที่นอนอยู่ในพูลถูก proxy/firewall
+    # ตัดทิ้งได้เงียบ ๆ แล้วคำขอใบถัดไปที่หยิบมันไปใช้จะค้างหรือพังด้วยข้อความ
+    # ที่ชี้ไปผิดที่ ("MySQL server has gone away") · `pool_pre_ping` แลกคำสั่ง
+    # ตรวจหนึ่งครั้งต่อการหยิบ กับการไม่ต้องเดาว่าสายยังดีอยู่ไหม
+    #
+    # **นี่เป็นนโยบายของ core ไม่ใช่ค่าของยี่ห้อ** (ต่างจาก read/write timeout
+    # ที่อยู่ใน `backend.py` ของยี่ห้อนั้นตาม ADR 0026) เพราะคำถาม "สายที่หยิบมา
+    # ยังใช้ได้ไหม" มีคำตอบเดียวกันทุกยี่ห้อ
+    SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}
 
     # multi-worker (ADR 0052 — G5): `WEB_CONCURRENCY` คือปุ่มเดียวที่รองรับ
     # (มาตรฐานของ gunicorn) · >1 worker ต้องประกาศ METRICS_MULTIPROC_DIR ด้วย

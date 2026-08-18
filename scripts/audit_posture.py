@@ -49,6 +49,11 @@ import typing
 import yaml  # type: ignore[import-untyped]
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+
+# **เพดานเวลาของคำสั่งที่เรายิงออกไป** (audit รอบ 11 · ADR 0067) — `subprocess.run`
+# ที่ไม่มี `timeout=` รอตลอดกาล และเครื่องมือพวกนี้รันอยู่ใน job ของ CI ผลคือ
+# `gh` ที่ไม่ตอบกลายเป็น job ที่กินเพดานของ job ไปทั้งก้อนโดยไม่ทำอะไรเลย
+NETWORK_TIMEOUT_SECONDS = 60  # หนึ่งคำขอไป GitHub API
 WORKFLOWS = ROOT / ".github" / "workflows"
 CADENCE = ROOT / "docs" / "SECURITY-CADENCE.md"
 ALERT_REGISTER = ROOT / ".github" / "accepted-code-scanning-alerts.txt"
@@ -98,7 +103,12 @@ def _request(path: str, token_env: str | None = None) -> typing.Any:
     if borrowed:
         env = {**os.environ, "GH_TOKEN": borrowed, "GITHUB_TOKEN": borrowed}
     result = subprocess.run(  # noqa: S603 — path มาจาก shutil.which และ argument เป็นของเราเอง
-        [binary, "api", path], capture_output=True, text=True, check=False, env=env
+        [binary, "api", path],
+        capture_output=True,
+        text=True,
+        check=False,
+        env=env,
+        timeout=NETWORK_TIMEOUT_SECONDS,
     )
     if result.returncode != 0:
         raise PermissionError(f"อ่าน {path} ไม่ได้: {result.stderr.strip()}")

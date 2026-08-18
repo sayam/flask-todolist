@@ -305,3 +305,30 @@ def test_a_search_that_blows_up_becomes_a_refusal_not_a_500(ldap_app, monkeypatc
         "/login", data={"username": "somchai", "password": USER_PASSWORD}
     )
     assert response.status_code == 401
+
+
+def test_the_bind_declares_how_long_it_will_wait(ldap_app, monkeypatch):
+    """directory ที่รับสายแล้วเงียบ ต้องทำให้เราเลิกรอเอง (audit รอบ 11 · ADR 0067)
+
+    `receive_timeout` ของ ldap3 มีค่าเริ่มต้นเป็น `None` = รอตลอดกาล · เพดานเดียว
+    ที่เคยกันไว้คือ gunicorn ที่ฆ่า worker ทิ้งที่ 30 วินาที ซึ่งเป็นค่าเริ่มต้นของ
+    เครื่องมืออื่นและทำให้คำขอหายไปโดยไม่มีคำตอบ — แย่กว่าการล้มด้วยข้อความของเราเอง
+
+    เทสต์นี้ดูที่ **พารามิเตอร์ที่ส่งเข้าไปจริง** ไม่ใช่ที่ค่าคงที่ในโมดูล เพราะ
+    ค่าคงที่ที่ไม่มีใครส่งต่อ คือค่าที่อ่านแล้วเข้าใจผิดว่ามีผล
+    """
+    seen: dict = {}
+
+    class _Recording(_Connection):
+        def __init__(self, server, **kwargs):
+            seen.update(kwargs)
+            seen["connect_timeout"] = getattr(server, "connect_timeout", None)
+            super().__init__(server, **kwargs)
+
+    monkeypatch.setattr(factor().ldap3, "Connection", _Recording)
+    with ldap_app.app_context():
+        _make_user("somchai")
+    authenticate(ldap_app)
+
+    assert seen.get("receive_timeout"), "bind ไม่ได้ประกาศเพดานของการรอคำตอบ"
+    assert seen.get("connect_timeout"), "ไม่ได้ประกาศเพดานของการต่อสาย"
