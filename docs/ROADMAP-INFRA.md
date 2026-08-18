@@ -135,7 +135,7 @@ corroboration บังคับว่า `standard:` ทุกคำอ้า�
 gates:
   - id: service-layer-knows-no-http
     standard: [ASVS-V1.2.1]      # ว่างได้ — กฎของเราเองที่มาตรฐานไม่มีข้อให้อ้าง
-    severity: blocking            # blocking | warning (ตรงกับ job ที่แดงได้/ไม่ได้)
+    severity: blocking            # blocking | watched | warning (ADR 0066 — ต้องตรงกับอำนาจจริง)
     check: pipenv run pytest tests/test_service_layer.py -q
     enforced_by: {test: tests/test_service_layer.py, job: lint}
     requires: []                  # เช่น [stack] สำหรับ gate ที่ต้องมี TLS+replica

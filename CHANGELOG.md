@@ -20,6 +20,70 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Added
 
+- **Every signal now names who receives it and by when** — `severity` in
+  `gates.yaml` gained a third value and a companion field (ADR 0066,
+  round-10 audit). The field had existed since ADR 0039 and 97 of 99
+  gates declared themselves `blocking`, but nothing ever compared that
+  claim against reality: 3 of the 30 checks are not required, and two of
+  those carried gates that called themselves blocking — the gate that
+  verifies the platform's own posture, and the one that signs what we
+  ship. `blocking` is now only allowed on a job that runs on
+  `pull_request`; everything else is `watched` or `warning` and must
+  declare `watched_by` — who sees it, within how many days, and by what
+  mechanism, which has to resolve to something that exists. Writing down
+  "the maintainer, within 7 days" turns silence from the normal state
+  into something that can be missed.
+- **The Security tab is now part of the posture check** — every alert
+  that still exists must either have a line in
+  `.github/accepted-code-scanning-alerts.txt` or be dismissed with a
+  reason, and every line in that register must still match a real alert
+  (round-10 audit). Four alerts, three of them high, had sat open for 5.6
+  days; all four were already adjudicated inside the repo, but nothing
+  connected the two, and the existing review row covered only alerts that
+  were already dismissed. Accepting an alert is not the same as
+  dismissing it: `VulnerabilitiesID` is deliberately left open because
+  GitHub never reopens a dismissed alert, so silencing it today would
+  silence the next vulnerability too.
+- **A census for schedules that stop firing** —
+  `scripts/schedule_census.py` (round-10 audit). ADR 0064 closed "a
+  workflow GitHub refuses to start produces zero jobs"; the layer above
+  it was still open: a workflow that is never triggered produces *zero
+  runs*, which looks exactly like "no run ever failed" in every tool we
+  had. The weekly cron had fired exactly once in the repository's life,
+  and nothing would have noticed if it stopped. Dependabot appears in the
+  report as something no machine can check — there is no public endpoint
+  for its last run — so it is printed with that label and given its own
+  review row instead of being guessed either way.
+- **The retention job now leaves a trace when it fails** —
+  `deploy/systemd/todolist-purge-failed.service`, wired through
+  `OnFailure=` (round-10 audit). `docs/ROPA.md` states retention periods
+  as legal fact, and they are only true while `todolist-purge.service`
+  succeeds on schedule; the gate covering it claimed "failures are
+  visible" but reached only as far as the exit code handed to systemd.
+  This is a signal, not an alert — it goes nowhere, because nobody is on
+  call (ADR 0037) — but the failure is now greppable and there is one
+  line for a deployer to hang their own notifier on.
+- **Every job declares how long it should take** — `timeout-minutes` on
+  all 28 jobs (ADR 0067, round-11 audit). None of them had one, so the
+  ceiling was GitHub's six-hour default, which is not a ceiling anyone
+  chose. The cost is not machine time but the ability to decide: a job
+  that is stuck and a job that is merely slower than usual give identical
+  signals. It had already cost something — `dialect (mysql-8)` took 30+
+  minutes against a normal 10 and was cancelled while it was 92% of the
+  way through. The numbers come from what was measured, multiplied by
+  the slow-runner factor measured the same day, with a floor and a
+  ceiling so the value stays defensible in both directions.
+- **`within_days` is now measured against reality** —
+  `scripts/red_streak_census.py` (round-11 audit). Round 10 made every
+  non-blocking gate declare when someone would see it; the only thing
+  checking that was the *shape* of the number. Pairing "first failure →
+  next success" on `main` over the same four-day window shows red that
+  blocks someone standing for **0.4 hours** and red that blocks nobody
+  standing for **14.6 hours** — a factor of 36 on one repository, and
+  the first quantitative evidence for everything round 10 assumed. The
+  measurement is deliberately called an *upper bound on time-to-fix*,
+  not MTTA: it does not know when a human looked.
+
 - **Gates now carry proof that they have been red** — `proved_by` in
   `gates.yaml` (ADR 0059), the round-6 audit's finding: measuring 200 CI
   runs showed 9 jobs have failed at least once and **21 have never failed
@@ -209,6 +273,35 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Changed
 
+- **Everything that waits now declares its own ceiling** (round-11
+  audit, ADR 0067 note 1). The project has always insisted that values
+  that matter live in a file a reviewer can see — token permissions in
+  the workflow rather than the Settings page, alert rules in a file
+  rather than clicked into a UI — but time was the last configuration
+  layer still inherited from other people's defaults, and those defaults
+  disagree with each other: six hours, thirty seconds, and in two places
+  no ceiling at all. `ldap3`'s `receive_timeout` and pymysql's
+  `read_timeout` both default to waiting forever; a directory or database
+  that accepts the connection and then goes quiet held a worker until
+  gunicorn killed it, and the container ships with one worker by default.
+  Both now declare a bound, connections are checked before they leave the
+  pool, and all eleven `subprocess.run` calls in `scripts/` carry a
+  timeout — a single unanswered command used to consume a job's entire
+  budget and then report "the job timed out", which points at the wrong
+  thing.
+- **The instruction file moved a hundred lines out and lowered its own
+  ceiling** (round-11 audit). `CLAUDE.md` hit 1,265 of 1,265 lines,
+  which is the moment ADR 0065 was written to produce: when it is full,
+  move content to a dedicated document *and ratchet the ceiling down*,
+  rather than raising it. The gate machinery — the index and its two-way
+  checks, red evidence, layers, severity and watchers, the censuses, the
+  scanner scope, and everything exported to other projects — now lives in
+  `docs/GOVERNANCE.md`, verbatim. Eleven lines of pointers stay behind,
+  carrying the three mistakes people actually make. The mechanism proved
+  itself on the way: the `timeout-minutes` rule could not be written into
+  `CLAUDE.md` in the previous pull request because the file was exactly
+  full.
+
 - The verify commands in `SECURITY.md` are now bound to the workflow
   that actually signs (round-4 audit item 2): tests tie the identity
   regexp, OIDC issuer, and example asset names to `release.yml`, so
@@ -283,6 +376,17 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
   really off (ADR 0061, second note).
 
 ### Fixed
+
+- **The exemption register had never been consulted, not once** — two
+  entries, zero reads (round-10 audit). `EXEMPT` in
+  `scripts/audit_posture.py` listed the checks that are allowed not to be
+  required, but it filtered a set its own members could never be in: the
+  jobs it named do not run on pull requests at all. The check now asks
+  the third direction — every check the repository can produce but does
+  not require must be declared with a reason — and that direction caught
+  something the moment it was written: `posture` itself had never been
+  registered since the day it was created, because nothing asked.
+
 
 - **The failure census only ever looked at 100 runs, however many you
   asked for.** GitHub caps `per_page` at 100 and silently returns that
