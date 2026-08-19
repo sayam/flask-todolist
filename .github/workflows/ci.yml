@@ -217,6 +217,11 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # **ต้องมีประวัติจริง** — `scripts/removals_census.py` อ่านจาก git log
+          # (audit รอบ 16) · checkout แบบตื้นทำให้มันรายงาน "ไม่มีอะไรถูกถอด"
+          # ทุกครั้งอย่างมั่นใจ ซึ่งเป็นคำตอบที่ผิดที่อันตรายกว่าการไม่มีคำตอบ
+          fetch-depth: 0
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
@@ -240,6 +245,12 @@ jobs:
       # · อยู่ที่นี่เพื่อให้มัน*ถูกรัน*ทุก push · ของอ่านที่ไม่มีใครรันคือของที่พังเงียบ
       # แล้วไปพังในวันที่มีคนต้องใช้จริง ซึ่งคือวันที่แย่ที่สุดที่จะพัง
       - run: pipenv run python scripts/whats_pending.py
+        if: ${{ !cancelled() }}
+      # **หน้าเดียวที่ตอบว่ามีอะไรถูกถอดออกไปบ้าง** (audit รอบ 16 ข้อ 3) — ไม่ใช่
+      # ด่าน มันคืนศูนย์เสมอ · บันทึกมีครบใน git อยู่แล้ว ที่ไม่มีคือคนอ่าน ·
+      # ต้องใช้ประวัติจริงจึงต้อง fetch-depth: 0 (ดู step checkout ของ job นี้)
+      - name: หน้าเดียวที่ตอบว่ามีอะไรถูกถอดออกไปบ้าง
+        run: pipenv run python scripts/removals_census.py --since 30.days
         if: ${{ !cancelled() }}
       # ตารางประเมิน ASVS ต้องตรงกับมาตรฐานที่ตรึงไว้ — ไม่ใช่แค่ "มีไฟล์อยู่"
       # (ตัวเนื้อหาของหลักฐานถูกตรวจโดย tests/test_asvs.py ใน job `test`)
