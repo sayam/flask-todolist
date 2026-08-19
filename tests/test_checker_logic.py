@@ -32,6 +32,7 @@ from scripts import (
     check_ratchets,
     check_semgrep,
     red_streak_census,
+    removals_census,
     rerun_census,
     schedule_census,
     whats_pending,
@@ -1191,3 +1192,70 @@ def test_the_reader_understands_pip_audit_output():
 def test_the_register_on_disk_is_readable():
     """ทะเบียนจริงต้องย่อยได้ — ปกติมันควรว่าง เพราะคำตอบที่เร็วที่สุดคือถอด"""
     assert audit_plugin_deps.accepted_advisories() == set()
+
+
+# ------------- อ่านว่ามีอะไรถูกถอดไปบ้าง (audit r16 · ข้อ 3)
+#
+# บันทึกมีครบใน git อยู่แล้ว · ที่ไม่มีคือใครสักคนที่อ่านมัน — และปัญหาที่แท้จริง
+# คือ **แยกไม่ออกว่าบรรทัดที่หายไปคือ "ถูกถอด" หรือ "ถูกเขียนใหม่"** ต้องเปิดอ่าน
+# ทีละ diff ซึ่งไม่มีใครทำ
+
+
+RENAMED_IN_ONE_COMMIT = """abc1234\u241frefactor: เปลี่ยนชื่อ gate
+-  - id: old-name
++  - id: new-name
+"""
+
+EDITED_ROW = """def5678\u241fdocs: แก้ถ้อยคำของแถวเดิม
+-| ทบทวนทะเบียนข้อยกเว้นทุกแฟ้ม | 6 เดือน |
++| ทบทวนทะเบียนข้อยกเว้นทุกแฟ้ม (รวม pins) | 6 เดือน |
+"""
+
+REALLY_REMOVED = """9876fed\u241fchore: ถอดแถวที่ไม่ต้องทำแล้ว
+-| ทบทวน alert ของ CodeQL ที่ถูก dismiss ไว้ | 6 เดือน |
+"""
+
+
+def _entries(monkeypatch, raw, pattern):
+    monkeypatch.setattr(removals_census, "_git", lambda *_args: raw)
+    return removals_census.removed_entries("x", pattern, "30.days")
+
+
+def test_a_rename_is_not_a_removal(monkeypatch):
+    """ลบ+เพิ่มใน commit เดียว = เปลี่ยนชื่อ · gate สองตัวที่หายไปตลอดอายุ repo เป็นแบบนี้ทั้งคู่"""
+    gone, edits = _entries(monkeypatch, RENAMED_IN_ONE_COMMIT, removals_census.WATCHED["gate"][1])
+
+    assert gone == [], f"การเปลี่ยนชื่อไม่ใช่การถอด: {gone}"
+    assert edits == 1
+
+
+def test_an_edited_row_is_not_a_removal(monkeypatch):
+    """แถวที่ถูกแก้ถ้อยคำหน้าตาเหมือนการถอดทุกประการใน `git log -p`"""
+    pattern = removals_census.WATCHED["แถวตรวจตามรอบ"][1]
+    gone, edits = _entries(monkeypatch, EDITED_ROW, pattern)
+
+    assert gone == [], f"การแก้ถ้อยคำไม่ใช่การถอด: {gone}"
+    assert edits == 1
+
+
+def test_a_real_removal_is_reported_with_the_commit_that_did_it(monkeypatch):
+    """ทิศที่ต้องจับได้ — และต้องมาพร้อมหัว commit เพราะเหตุผลอยู่ตรงนั้น"""
+    pattern = removals_census.WATCHED["แถวตรวจตามรอบ"][1]
+    gone, edits = _entries(monkeypatch, REALLY_REMOVED, pattern)
+
+    assert len(gone) == 1, f"ของที่ถูกถอดจริงต้องถูกรายงาน: {gone}"
+    commit, subject, item = gone[0]
+    assert commit == "9876fed"
+    assert "ถอดแถว" in subject, "ต้องพ่วงหัว commit มาด้วย — เหตุผลของการถอดอยู่ตรงนั้น"
+    assert "CodeQL" in item
+    assert edits == 0
+
+
+def test_the_report_prints_the_pile_it_chose_not_to_count(monkeypatch):
+    """ของที่ถูกตัดออกเงียบ ๆ คือของที่ไม่มีใครทบทวน — ตัวเลขการตีความต้องอยู่ในหน้า"""
+    monkeypatch.setattr(removals_census, "_git", lambda *_args: EDITED_ROW)
+
+    text = removals_census.report("30.days")
+
+    assert "การแก้ข้อความ" in text
+    assert "ไม่นับเป็นการถอด" in text
