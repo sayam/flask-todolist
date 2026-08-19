@@ -539,8 +539,12 @@ session มาก่อนโปรไฟล์เพื่อให้กดส
 - จำลองบนเครื่อง: ย้าย package ออกจาก `.venv/lib/python3.13/site-packages/`
   ชั่วคราวแล้วรัน `pipenv run pytest -q -m "not plugin_deps"` (คืนกลับให้ครบด้วย)
 - `pip-audit`/SBOM แยกตาม category แล้ว: core อยู่ใน job `security`/`sbom` (แดงได้)
-  ของ plugin อยู่ใน job `plugin-audit` ซึ่ง **ไม่ทำให้ pipeline แดง** แต่ยิง
-  `::warning::` + สรุปของ run เพราะคำตอบของ CVE ที่ถอดได้คือ "ถอดก่อน"
+  ของ plugin อยู่ใน job `plugin-audit` ซึ่ง **แดงได้เหมือนกันตั้งแต่ audit รอบ 13**
+  (ADR 0025 โน้ต 1) — แต่แดงด้วยเกณฑ์ที่ต่างกัน: ไม่ใช่ "ห้ามมี CVE" แต่คือ
+  **"CVE ทุกตัวต้องถูกตัดสินแล้ว"** ปลดได้สามทางซึ่งใช้เวลาไม่กี่นาทีทุกทาง —
+  อัปเกรด · ถอด plugin ด้วย `DISABLED_PLUGINS` (คำตอบที่เร็วที่สุดตาม ADR 0025) ·
+  หรือเขียนบรรทัดใน `app/plugins/accepted-advisories.txt` พร้อมเหตุผล
+  (ตรวจสองทิศ: ยกเว้นไว้แต่ไม่โผล่แล้ว = แดงเหมือนกัน)
 
 ### สวิตช์ปิดตอน runtime (`DISABLED_PLUGINS`)
 - ปิดจุด plug ได้ทุกชั้นด้วยคีย์เดียวกับที่ `flask plugin-list` แสดง
