@@ -19,6 +19,28 @@ repos:
         language: system
         pass_filenames: false
         types: [python]
+      # **ก่อน push ไม่ใช่ก่อน commit** (audit รอบ 15 ข้อ 3) — ระหว่างทำ audit
+      # รอบ 14 CI รัน 9 ครั้ง แดง 5 (77 นาที) และทั้งห้าใบเป็น pytest ที่รันบน
+      # เครื่องได้: ไฟล์ที่ generate มาไม่ได้ regenerate · gate ใหม่ไม่ได้ลงใน
+      # overlay · เลขที่ README โฆษณาไม่ตรง — **สามคลาสเดียวกันหมด คือ "แก้ของ
+      # หนึ่งที่ แล้วมีอีกสามที่ต้องตามให้ทัน"**
+      #
+      # `files:` จำกัดให้รันเฉพาะ push ที่แตะไฟล์ต้นทางของคลาสนี้ ไม่ใช่ทุก push
+      # — **hook ที่แพงเกินไปคือ hook ที่คนเรียนรู้ที่จะข้าม** แล้วมันจะไม่กัน
+      # อะไรอีกเลย · ชุดนี้ใช้เวลาไม่กี่วินาที ส่วนชุดเต็ม 6 นาทียังเป็นงานของ CI
+      - id: derived-files-agree
+        name: ไฟล์ที่ derive จาก gates.yaml ต้องตรงกัน (ก่อน push)
+        entry: >-
+          pipenv run pytest -q --no-header
+          tests/test_gates.py tests/test_gate_evidence.py tests/test_skill.py
+          tests/test_agent_skill.py tests/test_overlay.py
+          tests/test_supply_chain.py tests/test_compliance_index.py
+          tests/test_contributor_docs.py
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+        files: ^(gates\.yaml|overlays/|SKILL.*\.md|skill/|docs/(SUPPLY-CHAIN|COMPLIANCE)\.md|README\.md)
+
       - id: conventional-commit
         name: conventional commit message
         entry: pipenv run python scripts/lint_commits.py --msg-file

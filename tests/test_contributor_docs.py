@@ -231,3 +231,35 @@ def test_the_code_of_conduct_names_a_private_reporting_route():
         "CoC ไม่ได้บอกทางออกสำหรับกรณีที่เรื่องเป็นเรื่องของคนดูแลเอง — "
         "โปรเจกต์คนเดียวไม่มีใครให้อุทธรณ์ต่อ ต้องเขียนไว้ให้ตรง"
     )
+
+
+# ------------- คำสั่งติดตั้ง hook ต้องครบทุก stage ที่ประกาศไว้ (audit r15 · ข้อ 3)
+#
+# hook ที่ประกาศใน `.pre-commit-config.yaml` แต่ไม่ถูกติดตั้ง = hook ที่ไม่มีอยู่จริง
+# · คนที่ clone มาใหม่แล้วทำตามคำสั่งในเอกสารเป๊ะ ๆ จะได้เครื่องที่ต่างจากที่เรา
+# ออกแบบไว้ โดยไม่มีอะไรบอก — คลาสเดียวกับ "ตรึงไว้แล้วไม่มีใครขยับ"
+
+
+def _declared_stages() -> set[str]:
+    """stage ทุกตัวที่ hook ในไฟล์คอนฟิกประกาศไว้ (ไม่ประกาศ = pre-commit)"""
+    config = yaml.safe_load((ROOT / ".pre-commit-config.yaml").read_text(encoding="utf-8"))
+    stages = set()
+    for repo in config["repos"]:
+        for hook in repo["hooks"]:
+            stages.update(hook.get("stages", ["pre-commit"]))
+    return stages
+
+
+@pytest.mark.parametrize("doc", ["CLAUDE.md", "CONTRIBUTING.md"])
+def test_the_install_command_covers_every_declared_stage(doc):
+    text = (ROOT / doc).read_text(encoding="utf-8")
+    lines = [line for line in text.splitlines() if "pre-commit install" in line]
+    assert lines, f"{doc} ไม่มีคำสั่งติดตั้ง hook เลย"
+    for line in lines:
+        missing = sorted(
+            stage for stage in _declared_stages() if f"--hook-type {stage}" not in line
+        )
+        assert not missing, (
+            f"{doc}: คำสั่งติดตั้งไม่ครอบ stage {missing}\n  {line.strip()}\n"
+            "hook ที่ประกาศไว้แต่ไม่ถูกติดตั้ง คือ hook ที่ไม่มีอยู่จริงสำหรับคนที่ clone ใหม่"
+        )

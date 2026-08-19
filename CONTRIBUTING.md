@@ -27,7 +27,7 @@ is entirely reasonable — and better to know now.
 
 ```bash
 pipenv install --dev
-pipenv run pre-commit install --hook-type pre-commit --hook-type commit-msg
+pipenv run pre-commit install --hook-type pre-commit --hook-type commit-msg --hook-type pre-push
 cp .env.example .env      # then put a real SECRET_KEY in it (≥ 32 chars)
 pipenv run flask db upgrade
 pipenv run flask create-user <name>
@@ -240,7 +240,7 @@ uses. Reports go to the maintainer through the private channel described there.
 
 ```bash
 pipenv install --dev
-pipenv run pre-commit install --hook-type pre-commit --hook-type commit-msg
+pipenv run pre-commit install --hook-type pre-commit --hook-type commit-msg --hook-type pre-push
 cp .env.example .env      # แล้วใส่ SECRET_KEY จริง (ยาว ≥ 32 ตัว)
 pipenv run flask db upgrade
 pipenv run flask create-user <ชื่อ>
