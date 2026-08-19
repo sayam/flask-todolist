@@ -18,11 +18,14 @@ audit governance รอบ 4 ชี้ช่องว่างที่สาม
 ไม่เหมือนรูปของคำขอจริง รายงานผ่านในจังหวะที่เราอยากได้ยินที่สุด)
 """
 
+import ast
 import json
 import pathlib
+import re
 import typing
 
 import pytest
+import yaml
 
 from scripts import (
     audit_image,
@@ -1437,3 +1440,100 @@ def test_every_deciding_script_is_in_this_file():
         "เพิ่มเข้า import ของไฟล์นี้พร้อมเทสต์ planted violation + clean input "
         "หรือสร้าง tests/test_<ชื่อ>.py ของตัวเอง"
     )
+
+
+# ------------- รายการไฟล์ที่วัด coverage ของ `scripts/` ต้อง derive มา (รอบ 17 · ข้อ 2)
+#
+# ตอนตั้งด่านนี้ (ข้อ 1) รายการเป็นชื่อไฟล์สี่ชื่อที่พิมพ์มือลงใน `ci.yml` —
+# ซึ่งเป็นโรคเดียวกับที่ข้อ 3 ของรอบเดียวกันไปรักษาที่อื่น · เทสต์ที่เพิ่มเข้ามา
+# ใหม่จะไม่ถูกนับ แล้วตัวเลขที่ ratchet เฝ้าอยู่ก็ต่ำกว่าความจริงไปเรื่อย ๆ
+#
+# ตอนนี้ workflow คัดไฟล์ด้วย `grep` · เทสต์นี้คัดด้วย **AST** แล้วเทียบกัน —
+# สองวิธีที่พังคนละแบบ ตรวจทะเบียนใบเดียวกัน
+
+CI_WORKFLOW = pathlib.Path(__file__).resolve().parent.parent / ".github" / "workflows" / "ci.yml"
+TESTS_DIR = pathlib.Path(__file__).resolve().parent
+
+
+def _coverage_step() -> str:
+    """คำสั่งของ step ที่วัด coverage ของ `scripts/` — หาไม่เจอ = ด่านหายไปแล้ว"""
+    workflow = yaml.safe_load(CI_WORKFLOW.read_text(encoding="utf-8"))
+    for step in workflow["jobs"]["test"]["steps"]:
+        if "scripts/" in str(step.get("name", "")) and "coverage" in str(step.get("name", "")):
+            return str(step["run"])
+    raise AssertionError("ไม่มี step ที่วัด coverage ของ scripts/ ใน job test แล้ว")
+
+
+def _imports_a_script(path: pathlib.Path) -> bool:
+    """ไฟล์นี้ import โมดูลจาก `scripts` ไหม — อ่านจาก AST ไม่ใช่จากข้อความ"""
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom) and (node.module or "").split(".")[0] == "scripts":
+            return True
+        if isinstance(node, ast.Import) and any(
+            alias.name.split(".")[0] == "scripts" for alias in node.names
+        ):
+            return True
+    return False
+
+
+def test_the_coverage_step_does_not_hardcode_the_files_it_measures():
+    """ชื่อไฟล์เทสต์ที่พิมพ์ไว้ตรง ๆ ใน workflow = ทะเบียนที่ไม่มีใครตรวจสมาชิก"""
+    step = _coverage_step()
+
+    typed = [word for word in step.split() if word.startswith("tests/") and word.endswith(".py")]
+
+    assert not typed, f"step วัด coverage พิมพ์ชื่อไฟล์ไว้เอง: {typed}"
+
+
+def test_every_test_that_imports_a_script_is_inside_the_measurement(tmp_path):
+    """สองวิธีคัดไฟล์ต้องได้ผลเดียวกัน — grep ของ workflow กับ AST ของเทสต์นี้
+
+    ทิศที่สำคัญคือ **AST ⊆ grep**: ไฟล์ที่ import สคริปต์จริงแต่ grep ไม่เจอ
+    แปลว่ามันรันอยู่นอกการวัด และโค้ดที่มันคุ้มถูกนับเป็น "ไม่มีใครทดสอบ"
+    """
+    step = _coverage_step()
+    pattern = re.search(r"grep -lE '([^']+)'", step)
+    assert pattern, f"อ่านตัวคัดไฟล์จาก step ไม่ออก:\n{step}"
+
+    selected = {
+        path.name
+        for path in sorted(TESTS_DIR.glob("test_*.py"))
+        if re.search(pattern.group(1), path.read_text(encoding="utf-8"), re.MULTILINE)
+    }
+    importers = {
+        path.name for path in sorted(TESTS_DIR.glob("test_*.py")) if _imports_a_script(path)
+    }
+
+    missed = sorted(importers - selected)
+    assert not missed, (
+        f"ไฟล์ที่ import สคริปต์แต่ตัวคัดของ workflow ไม่เจอ: {missed}\n"
+        "แก้ regex ใน step 'coverage ของโค้ดที่บังคับกฎ' ของ ci.yml"
+    )
+    assert len(selected) >= 15, f"ตัวคัดเลือกได้แค่ {len(selected)} ไฟล์ — น้อยผิดปกติ"
+
+
+def test_subprocess_children_are_counted_or_the_number_punishes_the_better_test(tmp_path):
+    """`COVERAGE_PROCESS_START` ต้องถูกตั้ง ไม่งั้นเทสต์ที่ยิงผ่าน subprocess ได้ 0%
+
+    repo นี้บังคับเองว่าการยิงสคริปต์ **ผ่าน subprocess** ดีกว่าการ import แล้ว
+    เรียกฟังก์ชัน (`tests/test_harness.py` · `tests/test_preflight.py` ·
+    `tests/test_measure_generated.py` ทำแบบนั้นทั้งหมด) · ถ้าตัววัดไม่นับลูก
+    เกณฑ์จะสูงขึ้นเมื่อเขียนเทสต์ให้**แย่ลง** ซึ่งเป็นแรงจูงใจที่กลับด้าน
+    """
+    workflow = yaml.safe_load(CI_WORKFLOW.read_text(encoding="utf-8"))
+    (step,) = [
+        s
+        for s in workflow["jobs"]["test"]["steps"]
+        if "scripts/" in str(s.get("name", "")) and "coverage" in str(s.get("name", ""))
+    ]
+
+    assert (step.get("env") or {}).get("COVERAGE_PROCESS_START"), (
+        "step วัด coverage ไม่ได้ตั้ง COVERAGE_PROCESS_START — "
+        "สคริปต์ที่ถูกยิงผ่าน subprocess จะถูกนับเป็น 0% ทุกตัว"
+    )
+    config = pathlib.Path(__file__).resolve().parent.parent / str(
+        step["env"]["COVERAGE_PROCESS_START"]
+    )
+    assert config.is_file(), f"ชี้ไปไฟล์ config ที่ไม่มีอยู่: {config}"
+    assert "scripts" in config.read_text(encoding="utf-8"), "config ของลูกไม่ได้วัด scripts/"
