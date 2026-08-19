@@ -195,7 +195,7 @@
   บังคับสองทิศ + pillar security) · ประเทศใหม่ = worksheet + gate + แถว
   แบบ additive ตามนิยามขั้นต่ำสี่ข้อในไฟล์
 - `docs/SUPPLY-CHAIN.md` — ดัชนีแกน supply chain (G3 — ADR 0051): สมาชิก
-  ประกาศที่ gate ด้วย `axis: supply-chain` (19 ตัว) · เพิ่มด่าน supply chain
+  ประกาศที่ gate ด้วย `axis: supply-chain` (20 ตัว) · เพิ่มด่าน supply chain
   ใหม่ต้องติดธง+ลงดัชนี ไม่งั้น `tests/test_supply_chain.py` แดงสองทิศ
 - `docs/RISK-ASSESSMENT.md` — วิธีประเมินความเสี่ยง (โอกาส×ผลกระทบ สูตรผลคูณ)
   + ทะเบียน · ระดับต้องตรงสูตร (`tests/test_risk_assessment.py`) · รอบเต็ม
