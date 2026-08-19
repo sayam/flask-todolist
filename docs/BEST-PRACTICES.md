@@ -190,7 +190,7 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 | `installation_common` MUST | Met | pipenv / docker compose ตามมาตรฐาน ecosystem |
 | `installation_standard_variables` MUST | Met | ไม่มี installer เอง — ใช้ convention ของ pip/docker ตรง ๆ |
 | `installation_development_quick` MUST | Met | clone → รันได้ในห้าคำสั่ง |
-| `external_dependencies` MUST | Met | Pipfile ราย category + SBOM ทุก release + `docs/SUPPLY-CHAIN.md` (19 gate) |
+| `external_dependencies` MUST | Met | Pipfile ราย category + SBOM ทุก release + `docs/SUPPLY-CHAIN.md` (20 gate) |
 | `dependency_monitoring` MUST | Met | Dependabot + pip-audit/npm-audit ทุกชั้นสองทิศ |
 | `updateable_reused_components` MUST | Met | ทุกอย่างเป็น package มาตรฐานจาก lockfile ไม่มี vendored |
 | `interfaces_current` SHOULD | Met | Python 3.13 · SQLAlchemy 2.0 typed · deprecation โผล่ผ่านด่าน lint/type |
