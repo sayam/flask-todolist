@@ -37,7 +37,7 @@ ADR 0002–0008 เป็นการ backfill การตัดสินใจ
 | [0029](0029-credential-style-primary-factors.md) | ปัจจัยหลักมีสองรูปแบบ: redirect กับ credential | accepted |
 | [0030](0030-secrets-come-from-a-declared-source.md) | ความลับมาจากแหล่งที่ประกาศด้วย scheme | accepted |
 | [0031](0031-performance-targets-and-what-they-mean.md) | เป้าประสิทธิภาพเป็นตัวเลขที่มีที่มา | accepted |
-| [0032](0032-serialising-audit-appends.md) | ต่อสาย audit ให้เป็นลำดับด้วยการล็อกแถวท้าย | accepted |
+| [0032](0032-serialising-audit-appends.md) | ต่อสาย audit ให้เป็นลำดับด้วยการล็อกแถวท้าย | accepted — **ข้อ 1 ถูกแทนโดย 0035** |
 | [0033](0033-mfa-is-offered-not-required.md) | ไม่บังคับ MFA พร้อมเหตุผลและมาตรการชดเชย | accepted |
 | [0034](0034-data-subject-rights.md) | เจ้าของข้อมูล export/ลบบัญชีตัวเองได้ | accepted |
 | [0035](0035-audit-appends-queue-on-one-row.md) | ต่อคิวสาย audit ที่แถวเดียว ไม่ใช่ที่หางสาย | accepted — แทนที่ ADR 0032 ข้อ 1 |
