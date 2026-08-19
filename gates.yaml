@@ -557,6 +557,17 @@ gates:
       Dependabot แยก docker-compose ออกจาก docker (ซึ่งอ่านแค่ Dockerfile)
       เราประกาศไว้แค่ตัวหลังมาตลอด การตรึงโดยไม่มีตัวขยับจึงจะเป็นการแช่
       ช่องโหว่ ด่านนี้บังคับสองข้อคู่กัน
+    proved_by:
+      - kind: mutation
+        ref: pr/129
+        date: 2026-08-19
+        caught: >-
+          ห้าทิศ — ถอด digest ของ redis · ตรึง grafana/grafana คนละ digest ในสอง
+          ไฟล์ · ถอด ecosystem docker-compose · ถอด tag ทิ้งเหลือแต่ digest ·
+          และทำให้ regex อ่านไฟล์ compose ไม่เจอ · สองทิศหลังเป็นของที่การทำ
+          mutation จริงเป็นคนหาเจอ: regex รุ่นแรกบังคับว่าต้องมี tag ผลคือ
+          reference ที่ไม่มี tag หลุดจากรายการแทนที่จะถูกฟ้อง ด่านจึงเขียว
+          เพราะมองไม่เห็นของที่ผิด
 
   - id: adr-index-complete
     title: ดัชนี ADR ครอบทุกใบ เลขไม่ซ้ำไม่มีรู · และการแทนที่ถูกบันทึกสองทิศ
