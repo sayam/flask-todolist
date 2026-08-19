@@ -23,6 +23,12 @@ ratchet ที่นับเป็น *จำนวน* ต่างจาก�
 เปลี่ยนก็ต่อเมื่อมีคนแก้ลิสต์ — **ระยะจึงเป็น 0 และตรวจสองทิศ** (หดแล้วแดง
 เพราะไม่มีเครื่องมือตัวไหนบังคับทิศนั้นให้ · ขยายแล้วไม่ขยับพื้นก็แดง)
 
+**audit รอบ 17 เพิ่ม `scripts_coverage`** — โค้ดที่บังคับกฎทั้ง 83 gate อยู่นอก
+`source` ของ coverage มาตลอด (`source = ["app"]`) จึงเป็นโค้ดชุดเดียวในโปรเจกต์
+ที่ไม่มีเกณฑ์บังคับตัวเอง ทั้งที่มันคือสิ่งที่บังคับทุกอย่างที่เหลือ · วัดแยกไฟล์
+ข้อมูลโดยตั้งใจ: ยัด `scripts` เข้า `source` เมื่อไหร่ ตัวเลขรวมจะตกต่ำกว่า 97
+แล้วพื้นของแอปจะถูกลดด้วยผลข้างเคียง
+
 **audit รอบ 16 เพิ่มกองที่สอง: กันการ *ถอด*** (`[tool.todolist.removals]`) ·
 รอบนั้นวัดด้วยการลบของจริง 11 ครั้ง แล้วพบเส้นแบ่งที่คมกว่าที่คิด — ทะเบียนที่ถูก
 ตรวจกับ *ความจริง* (คอลัมน์ · route · ไฟล์ · job) ลบไม่ได้เงียบ ส่วนทะเบียนที่ถูก
@@ -43,6 +49,7 @@ from __future__ import annotations
 
 import ast
 import fnmatch
+import json
 import math
 import pathlib
 import re
@@ -67,6 +74,7 @@ SLACK = {
     "interrogate": 1.0,
     "mypy_strict_modules": 0.0,
     "enforced_prohibitions": 0.0,
+    "scripts_coverage": 1.0,
 }
 DEFAULT_SLACK = 1.0
 
@@ -74,6 +82,10 @@ DEFAULT_SLACK = 1.0
 # กับ interrogate ทำให้ของจริงตกใต้พื้นไม่ได้) — ที่นี่จึงดูแค่ทิศบน · ส่วนตัวที่
 # ไม่มีเจ้าของ ตัวตรวจนี้เป็นตัวเดียวที่เห็นการถอย จึงต้องดูทั้งสองทิศ
 OWNED_BY_A_TOOL = frozenset({"coverage", "interrogate"})
+
+# ผลวัด coverage ของ `scripts/` — เขียนโดยขั้นตอนแยกใน job `test` (audit รอบ 17)
+# **ต้องเป็นไฟล์คนละใบกับของแอป** ไม่งั้นตัวเลขรวมจะลากพื้นของแอปลง
+SCRIPTS_COVERAGE = ROOT / ".cov-scripts.json"
 
 # กองที่กันการ *ถอด* — โตได้อิสระ (ไม่มีเพดานบน) แต่หดแล้วแดง
 REMOVAL_GUARDS = ("gates_total", "cadence_rows", "risk_rows", "deferred_rows")
@@ -121,6 +133,7 @@ def declared() -> dict[str, float]:
         "enforced_prohibitions": float(
             config["tool"]["todolist"]["ratchets"]["enforced_prohibitions"]
         ),
+        "scripts_coverage": float(config["tool"]["todolist"]["ratchets"]["scripts_coverage"]),
     }
 
 
@@ -174,6 +187,22 @@ def strict_modules() -> int:
     return sum(any(fnmatch.fnmatch(module, pattern) for pattern in patterns) for module in modules)
 
 
+def scripts_coverage() -> float:
+    """coverage ของโค้ดที่บังคับกฎ — อ่านจากผลวัดที่ job `test` เขียนไว้
+
+    **ไม่รันเทสต์เอง** เพราะตัวตรวจที่รันชุดเทสต์ซ้ำคือตัวตรวจที่คนจะข้าม ·
+    ไม่มีไฟล์ = ขั้นตอนก่อนหน้าไม่ได้รัน ซึ่งต้องดังกว่าการเงียบแล้วผ่าน
+    """
+    if not SCRIPTS_COVERAGE.is_file():
+        raise RuntimeError(
+            f"ไม่มี {SCRIPTS_COVERAGE.name} — ขั้นตอน 'coverage ของโค้ดที่บังคับกฎ' "
+            "ยังไม่ได้รัน (ดู job `test` ใน ci.yml · บนเครื่องรัน pytest ชุดนั้นพร้อม "
+            "--cov=scripts --cov-report=json:.cov-scripts.json)"
+        )
+    data = json.loads(SCRIPTS_COVERAGE.read_text(encoding="utf-8"))
+    return float(data["totals"]["percent_covered"])
+
+
 def enforced_prohibitions() -> int:
     """นับข้อห้ามที่มีเครื่องบังคับจริง — อ่านจากทะเบียนของเทสต์ ไม่ใช่จากเอกสาร
 
@@ -213,6 +242,7 @@ def measured() -> dict[str, float]:
         "interrogate": float(found.group(1)),
         "mypy_strict_modules": float(strict_modules()),
         "enforced_prohibitions": float(enforced_prohibitions()),
+        "scripts_coverage": scripts_coverage(),
         **{name: float(value) for name, value in removal_counts().items()},
     }
 
