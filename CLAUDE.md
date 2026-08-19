@@ -26,7 +26,9 @@
   ที่ลอกไว้ (ADR 0060) · hook ก่อน commit ตรวจแค่ ruff/format/mypy — xenon ·
   interrogate · coverage floor · diff-cover อยู่ใน CI อย่างเดียว ซึ่งเป็นคลาส
   ที่ทำ PR แดงมาแล้วสองรอบติด · `--only lint` เอาเฉพาะที่เร็ว
-- ครั้งแรกหลัง clone: `pipenv run pre-commit install --hook-type pre-commit --hook-type commit-msg`
+- ครั้งแรกหลัง clone: `pipenv run pre-commit install --hook-type pre-commit --hook-type commit-msg --hook-type pre-push`
+  · **hook ก่อน push** ตรวจว่าไฟล์ที่ derive จาก `gates.yaml` ตรงกัน เฉพาะ push
+  ที่แตะไฟล์ต้นทาง (~9 วินาที · ข้าม `--no-verify` ได้) — คลาสนี้ทำ CI แดง 5/9 run ตอนรอบ 14
 - เพิ่ม dependency: `pipenv install <pkg>` (ห้ามใช้ `pip install` ตรง ๆ — Pipfile/Pipfile.lock จะไม่ sync)
 - สร้าง user: `pipenv run flask create-user <ชื่อ>` (ไม่มีหน้าสมัครสมาชิก โดยตั้งใจ)
 - ดู user: `pipenv run flask list-users`
