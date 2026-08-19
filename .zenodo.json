@@ -2,7 +2,12 @@
   "title": "flask-todolist — a small application carrying a large, machine-checked governance apparatus",
   "upload_type": "software",
   "license": "AGPL-3.0-or-later",
-  "creators": [{ "name": "Sriphua, Sayam" }],
+  "creators": [
+    {
+      "name": "Sriphua, Sayam",
+      "affiliation": "Burapha University"
+    }
+  ],
   "keywords": [
     "software governance",
     "AI-assisted development",

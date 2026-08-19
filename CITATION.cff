@@ -9,6 +9,7 @@ type: software
 authors:
   - family-names: Sriphua
     given-names: Sayam
+    affiliation: Burapha University
     orcid: null
 repository-code: https://github.com/sayam/flask-todolist
 url: https://github.com/sayam/flask-todolist
