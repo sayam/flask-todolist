@@ -79,14 +79,22 @@ jobs:
       # วัดแยกไฟล์ข้อมูล (`COVERAGE_FILE`) โดยตั้งใจ — ถ้ายัด `scripts` เข้า
       # `source` ของ run หลัก ตัวเลขรวมจะตกต่ำกว่า 97 แล้วพื้นของแอปจะถูกลด
       # ด้วยผลข้างเคียง ซึ่งเป็นสิ่งที่ทุกใบห้ามไว้ · ราคาที่จ่ายคือรันเทสต์ชุดที่
-      # แตะสคริปต์ซ้ำอีกรอบ (~35 วินาที) ซึ่งถูกกว่าการมีตัวบังคับที่ไม่มีใครวัด
+      # แตะสคริปต์ซ้ำอีกรอบ (~85 วินาที) ซึ่งถูกกว่าการมีตัวบังคับที่ไม่มีใครวัด
+      # **รายการไฟล์ derive มา ไม่ใช่พิมพ์มือ** (audit รอบ 17 ข้อ 2) — รายการที่
+      # ไม่มีการตรวจสมาชิก ครบเฉพาะวันที่มีคนนึกได้ · และ `COVERAGE_PROCESS_START`
+      # คือเหตุผลที่ตัวเลขนี้เชื่อได้: เทสต์ที่ยิงสคริปต์ **ผ่าน subprocess**
+      # (รูปที่ repo นี้บังคับเองว่าดีกว่า) ไม่ถูกนับเลยถ้าไม่ตั้งค่านี้ —
+      # เกณฑ์ที่ลงโทษวิธีทดสอบที่ดีกว่า คือเกณฑ์ที่จะถูกเลี่ยงด้วยการเขียนให้แย่ลง
       - name: coverage ของโค้ดที่บังคับกฎ (scripts/)
         run: |
-          pipenv run pytest -q --no-header \
-            tests/test_checker_logic.py tests/test_preflight.py \
-            tests/test_harness.py tests/test_asvs_probe.py \
-            --cov=scripts --cov-report=json:.cov-scripts.json --cov-fail-under=0
+          files=$(grep -lE 'from scripts[. ]|^import scripts|/ "scripts"' tests/*.py)
+          echo "วัดจากไฟล์เทสต์ $(echo "$files" | wc -l) ไฟล์"
+          pipenv run pytest -q --no-header $files \
+            --cov=scripts --cov-config=.coveragerc-scripts \
+            --cov-report=json:.cov-scripts.json --cov-fail-under=0
         env:
+          # สคริปต์ที่ถูกยิงผ่าน subprocess ต้องถูกนับด้วย — ดูคอมเมนต์ข้างบน
+          COVERAGE_PROCESS_START: .coveragerc-scripts
           # **ไฟล์ข้อมูลต้องอยู่นอก workspace** — `coverage combine` ที่ pytest-cov
           # เรียกให้ จับไฟล์ตามรูป `.coverage.*` ในไดเรกทอรีปัจจุบัน ผลคือข้อมูล
           # ของ run แรก (ของแอป) ถูกกลืนไปด้วย แล้วขั้นตอนถัดไปอ่าน coverage

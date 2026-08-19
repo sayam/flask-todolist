@@ -1,0 +1,4 @@
+[run]
+source = scripts
+branch = true
+parallel = true
