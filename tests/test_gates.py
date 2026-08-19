@@ -486,9 +486,11 @@ def test_every_promise_is_backed_by_a_mechanism_that_is_fast_enough(gates):
 # ระหว่างรอบ (หลักเดียวกับ ADR 0068: เพดานที่ไม่มีตัวทวง = เพดานที่ไม่ได้ตั้ง)
 
 ROADMAP_GOVERNANCE = ROOT / "docs" / "ROADMAP-GOVERNANCE.md"
-PILLAR_TALLY = re.compile(
-    r"วันนี้ \(หลัง r\d+\) เป็น ((?:\w+ \d+(?: · )?)+)\s*\n?\s*รวม (\d+) gate", re.MULTILINE
-)
+# **quantifier ตัวเดียว มีเพดาน และ lazy** — รุ่นแรกเขียนเป็น `(?:\w+ \d+(?: · )?)+`
+# ซึ่ง CodeQL จับเป็น `py/redos` (high) ทันทีใน PR แรก: quantifier ซ้อน quantifier
+# ทำให้ backtracking โตแบบเอ็กซ์โพเนนเชียล · การแยกคำทำทีหลังด้วย `str.split`
+# ปลอดภัยกว่าและอ่านง่ายกว่าการให้ regex ทำ
+PILLAR_TALLY = re.compile(r"วันนี้ \(หลัง r\d+\) เป็น (.{0,200}?) รวม (\d+) gate")
 
 
 def test_the_pillar_tally_in_the_roadmap_matches_reality(gates):
