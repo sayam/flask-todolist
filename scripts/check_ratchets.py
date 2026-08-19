@@ -13,12 +13,23 @@ coverage จริง 97.11% ขณะที่พื้นยังเป็น
 `# pragma: no cover` ครอบเพิ่ม/ลดหนึ่งจุด) แต่แคบพอที่การปรับปรุงจริงจะถูกเก็บไว้
 · ไม่ตั้งเป็น 0 เพราะเกณฑ์ที่ต้องขยับทุกครั้งที่ตัวเลขขยับ คือเกณฑ์ที่คนจะเลิกอ่าน
 
+**audit รอบ 14 เพิ่มทิศที่สองและ ratchet ตัวที่สาม**: ตัวตรวจรุ่นแรกอ่านเฉพาะพื้น
+ที่เป็น *ตัวเลข* ใน config ของเครื่องมือ — ratchet ที่เขียนเป็น *ประโยค* จึงรอดมาได้
+ทั้งใบ · strict list ของ mypy บอกว่า "ขยาย ห้ามหด" มาตั้งแต่ Phase 2 โดยไม่มีอะไร
+บังคับสักทาง และเป้าที่เขียนกำกับ ("ทั้งแอปภายใน Phase 2") หมดอายุไปสิบหกเฟส
+
+ratchet ที่นับเป็น *จำนวน* ต่างจากที่นับเป็น *เปอร์เซ็นต์* ตรงระยะที่ให้ลอยได้:
+เปอร์เซ็นต์ผันผวนเองได้จากบรรทัด `# pragma: no cover` ที่ขยับ แต่จำนวนโมดูล
+เปลี่ยนก็ต่อเมื่อมีคนแก้ลิสต์ — **ระยะจึงเป็น 0 และตรวจสองทิศ** (หดแล้วแดง
+เพราะไม่มีเครื่องมือตัวไหนบังคับทิศนั้นให้ · ขยายแล้วไม่ขยับพื้นก็แดง)
+
 ใช้ (ต้องรัน `pytest --cov` มาก่อนเพื่อให้มีข้อมูล coverage):
     python3 scripts/check_ratchets.py
 """
 
 from __future__ import annotations
 
+import fnmatch
 import pathlib
 import re
 import shutil
@@ -33,8 +44,17 @@ PYPROJECT = ROOT / "pyproject.toml"
 # `timeout=` รอตลอดกาล ซึ่งกลายเป็น job ที่ไม่มีวันจบเมื่อรันใน CI
 TOOL_TIMEOUT_SECONDS = 300
 
-# ระยะที่พื้นห่างจากของจริงได้ (จุดเปอร์เซ็นต์) — ดูเหตุผลที่หัวไฟล์
-SLACK_POINTS = 1.0
+# ระยะที่พื้นห่างจากของจริงได้ — ดูเหตุผลที่หัวไฟล์
+# **ตัวที่นับเป็นจำนวนใช้ 0** เพราะมันไม่ผันผวนเอง ต้องมีคนแก้ลิสต์เท่านั้น
+SLACK = {"coverage": 1.0, "interrogate": 1.0, "mypy_strict_modules": 0.0}
+DEFAULT_SLACK = 1.0
+
+# ratchet ที่ **เครื่องมือเจ้าของบังคับทิศลงให้อยู่แล้ว** (`fail_under` ของ coverage
+# กับ interrogate ทำให้ของจริงตกใต้พื้นไม่ได้) — ที่นี่จึงดูแค่ทิศบน · ส่วนตัวที่
+# ไม่มีเจ้าของ ตัวตรวจนี้เป็นตัวเดียวที่เห็นการถอย จึงต้องดูทั้งสองทิศ
+OWNED_BY_A_TOOL = frozenset({"coverage", "interrogate"})
+
+APP = ROOT / "app"
 
 INTERROGATE_ACTUAL = re.compile(r"actual:\s*([0-9.]+)%")
 
@@ -68,7 +88,33 @@ def declared() -> dict[str, float]:
     return {
         "coverage": float(config["tool"]["coverage"]["report"]["fail_under"]),
         "interrogate": float(config["tool"]["interrogate"]["fail-under"]),
+        "mypy_strict_modules": float(config["tool"]["todolist"]["ratchets"]["mypy_strict_modules"]),
     }
+
+
+def _strict_patterns(config: dict) -> list[str]:
+    """รายการ module ที่ประกาศ strict ไว้ใน override ของ mypy"""
+    for override in config["tool"]["mypy"]["overrides"]:
+        if override.get("disallow_untyped_defs"):
+            return list(override["module"])
+    raise RuntimeError("หา strict list ของ mypy ไม่เจอ — โครงของ pyproject เปลี่ยนไปแล้ว")
+
+
+def strict_modules() -> int:
+    """นับโมดูลใน `app/` ที่ตกอยู่ใต้ strict list จริง ๆ
+
+    **ไม่นับส่วนเสริมของ plugin** เพราะ mypy ตั้งชื่อโมดูลให้มันไม่ได้ (ไอดีมีขีดกลาง)
+    และ `exclude` ของ mypy ตัดทิ้งอยู่แล้ว — การนับมันจะทำให้พื้นขยับตามการวาง
+    ไดเรกทอรี ซึ่งไม่เกี่ยวกับความเข้มของ type check เลย
+    """
+    config = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
+    patterns = _strict_patterns(config)
+    modules = [
+        str(path.relative_to(ROOT).with_suffix("")).replace("/", ".").removesuffix(".__init__")
+        for path in sorted(APP.rglob("*.py"))
+        if "enhancements" not in path.parts and "__pycache__" not in path.parts
+    ]
+    return sum(any(fnmatch.fnmatch(module, pattern) for pattern in patterns) for module in modules)
 
 
 def measured() -> dict[str, float]:
@@ -88,19 +134,30 @@ def measured() -> dict[str, float]:
     found = INTERROGATE_ACTUAL.search(docs.stdout + docs.stderr)
     if not found:
         raise RuntimeError("อ่านผลของ interrogate ไม่ได้ — รูปแบบข้อความเปลี่ยนไปแล้ว")
-    return {"coverage": float(total.stdout.strip()), "interrogate": float(found.group(1))}
+    return {
+        "coverage": float(total.stdout.strip()),
+        "interrogate": float(found.group(1)),
+        "mypy_strict_modules": float(strict_modules()),
+    }
 
 
 def problems(floors: dict[str, float], actual: dict[str, float]) -> list[str]:
-    """พื้นที่ห่างจากของจริงเกินระยะที่ประกาศ = ratchet ที่ไม่มีใครหมุน"""
+    """สองทิศ — พื้นที่ลอยเหนือของจริง (ไม่มีใครหมุน) และของจริงที่ตกใต้พื้น (ถอย)"""
     found = []
     for name, floor in sorted(floors.items()):
         now = actual[name]
-        if now - floor > SLACK_POINTS:
+        slack = SLACK.get(name, DEFAULT_SLACK)
+        if now - floor > slack:
             found.append(
-                f"{name}: พื้น {floor} แต่ของจริง {now} — ห่าง {now - floor:.2f} จุด "
-                f"(เกิน {SLACK_POINTS}) · ขยับพื้นขึ้นไปที่ {int(now)} ใน PR เดียวกับที่ทำให้มันดีขึ้น "
+                f"{name}: พื้น {floor} แต่ของจริง {now} — ห่าง {now - floor:.2f} "
+                f"(เกิน {slack}) · ขยับพื้นขึ้นไปที่ {int(now)} ใน PR เดียวกับที่ทำให้มันดีขึ้น "
                 "ไม่งั้นที่ว่างที่เพิ่งได้จะถูกใช้คืนโดยไม่มีใครสังเกต"
+            )
+        if now < floor and name not in OWNED_BY_A_TOOL:
+            found.append(
+                f"{name}: ของจริง {now} ต่ำกว่าพื้นที่ประกาศไว้ {floor} — **นี่คือการถอย** "
+                "ratchet ตัวนี้ไม่มีเครื่องมือเจ้าของบังคับทิศลงให้ ตัวตรวจนี้จึงเป็นตัวเดียว "
+                "ที่เห็น · ทางที่ถูกคือคืนของที่ถอดออก ไม่ใช่ลดพื้น"
             )
     return found
 
@@ -118,12 +175,12 @@ def main() -> int:
 
     found = problems(floors, actual)
     if found:
-        print("ratchet ที่ลอยต่ำกว่าของจริงเกินระยะที่ประกาศ:", file=sys.stderr)
+        print("ratchet ที่ไม่ตรงกับของจริง (ลอยเหนือ หรือถอยลง):", file=sys.stderr)
         for line in found:
             print(f"  - {line}", file=sys.stderr)
         return 1
 
-    print(f"ทุกพื้นอยู่ใต้ของจริงไม่เกิน {SLACK_POINTS} จุด")
+    print("ทุกพื้นติดกับของจริงตามระยะที่ประกาศไว้")
     return 0
 
 
