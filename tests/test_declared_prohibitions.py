@@ -145,12 +145,18 @@ def _no_last_used_column() -> list[str]:
 
 
 def _test_config_inherits_the_real_config() -> list[str]:
-    """`TestConfig` ที่เขียนใหม่แบบ standalone ทำให้ค่าใหม่ของ `Config` หายไป"""
-    from config import Config
+    """`TestConfig` ที่เขียนใหม่แบบ standalone ทำให้ค่าใหม่ของ `Config` หายไป
+
+    **เทียบด้วยชื่อคลาสใน MRO ไม่ใช่ `issubclass`** — ในชุดเทสต์เต็ม `config`
+    ถูกโหลดได้มากกว่าหนึ่งครั้ง (คนละ path เดียวกัน คนละ object) แล้ว
+    `issubclass` ตอบ False ทั้งที่โค้ดถูก · ด่านที่แดงเพราะเรื่องของ import
+    ไม่ใช่เพราะกฎถูกละเมิด คือด่านที่จะถูกปิดเสียงในสัปดาห์ถัดไป
+    """
     from tests.conftest import TestConfig
 
-    if not issubclass(TestConfig, Config):
-        return ["tests/conftest.py — TestConfig ไม่ได้สืบทอด Config"]
+    bases = TestConfig.__mro__[1:]
+    if not any(base.__name__ == "Config" for base in bases):
+        return [f"tests/conftest.py — TestConfig สืบทอดจาก {[base.__name__ for base in bases]}"]
     return []
 
 
