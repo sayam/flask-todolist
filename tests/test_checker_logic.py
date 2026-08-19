@@ -895,6 +895,7 @@ def test_every_declared_floor_is_read_from_the_file_not_a_comment():
         "interrogate",
         "mypy_strict_modules",
         "enforced_prohibitions",
+        *check_ratchets.REMOVAL_GUARDS,
     }
     assert all(value > 0 for value in floors.values())
 
@@ -959,6 +960,49 @@ def test_the_register_of_enforced_prohibitions_only_grows():
 def test_the_prohibition_count_is_read_from_the_register_not_a_number_in_a_doc():
     """นับจากทะเบียนจริงใน `tests/test_declared_prohibitions.py` ไม่ใช่จากเอกสาร"""
     assert check_ratchets.enforced_prohibitions() >= 8
+
+
+# ------------------------ การถอดต้องเป็นคำตัดสิน (ADR 0069 · audit r16 · ข้อ 1–2)
+#
+# รอบ 16 วัดด้วยการลบของจริง 11 ครั้ง: ทะเบียนที่ถูกตรวจกับ *ความจริง* ลบไม่ได้เงียบ
+# ส่วนทะเบียนที่ถูกตรวจกับ *กระดาษอีกใบ* ลบได้เงียบสนิท เพราะการลบทั้งสองข้าง
+# พร้อมกันยังนับว่า "ตรงกัน" · ที่วัดได้: ถอด gate ทิ้งแล้ว CI เขียวครบถ้าเก็บกวาด
+# 6 ที่ · 37 แถวในสามทะเบียนกระดาษลบทิ้งได้โดยไม่มีอะไรฟ้อง
+
+
+@pytest.mark.parametrize("name", check_ratchets.REMOVAL_GUARDS)
+def test_something_removed_is_red(name):
+    """ทิศที่รอบ 16 เปิด — ของหายไปแล้วต้องมีคนรู้"""
+    found = check_ratchets.problems({name: 10.0}, {name: 9.0})
+
+    assert found, f"{name}: ของถูกถอดออกแล้วต้องแดง"
+    assert "ถูกถอดออกไป" in found[0], "ข้อความต้องบอกว่านี่คือการถอด ไม่ใช่การถอยของเกณฑ์"
+    assert "removals" in found[0], "ต้องบอกด้วยว่าถ้าตั้งใจถอดจริง ต้องไปแก้ที่ไหน"
+
+
+@pytest.mark.parametrize("name", check_ratchets.REMOVAL_GUARDS)
+def test_growing_freely_is_not_a_problem(name):
+    """**ต่างจาก ratchet ตรงนี้**: การเพิ่มถูกเฝ้าด้วยด่านอื่นครบแล้ว
+
+    ถ้าที่นี่บังคับให้ขยับเลขตอนเพิ่มด้วย ทุก PR ที่เพิ่ม gate จะต้องแก้ไฟล์เพิ่ม
+    อีกหนึ่งที่โดยไม่ได้อะไรกลับมา — และต้นทุนแบบนั้นคือสิ่งที่ทำให้คนเลิกอ่านด่าน
+    """
+    assert check_ratchets.problems({name: 10.0}, {name: 25.0}) == []
+
+
+def test_the_counts_are_read_from_the_source_files_not_from_a_summary():
+    """นับจากไฟล์ต้นทางจริง — และ**ใช้ตัวอ่านตัวเดียวกับที่มีอยู่แล้ว**
+
+    ตัวนับที่เขียนใหม่ที่นี่เคยได้ 24 ขณะที่ตัวอ่านจริงของ `whats_pending` ได้ 23
+    ในวันเดียวกัน — parser ตัวที่สองคือที่ที่ drift เกิดขึ้นเสมอ (ADR 0039)
+    """
+    counts = check_ratchets.removal_counts()
+
+    assert set(counts) == set(check_ratchets.REMOVAL_GUARDS)
+    assert counts["gates_total"] > 100, "นับ gate จาก gates.yaml ไม่ได้แล้ว"
+    assert counts["cadence_rows"] == len(whats_pending.cadence_rows())
+    assert counts["deferred_rows"] == len(whats_pending.deferred())
+    assert counts["risk_rows"] >= 5
 
 
 def test_a_coverage_floor_above_reality_is_still_not_this_test_s_problem():

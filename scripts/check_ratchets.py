@@ -23,6 +23,18 @@ ratchet ที่นับเป็น *จำนวน* ต่างจาก�
 เปลี่ยนก็ต่อเมื่อมีคนแก้ลิสต์ — **ระยะจึงเป็น 0 และตรวจสองทิศ** (หดแล้วแดง
 เพราะไม่มีเครื่องมือตัวไหนบังคับทิศนั้นให้ · ขยายแล้วไม่ขยับพื้นก็แดง)
 
+**audit รอบ 16 เพิ่มกองที่สอง: กันการ *ถอด*** (`[tool.todolist.removals]`) ·
+รอบนั้นวัดด้วยการลบของจริง 11 ครั้ง แล้วพบเส้นแบ่งที่คมกว่าที่คิด — ทะเบียนที่ถูก
+ตรวจกับ *ความจริง* (คอลัมน์ · route · ไฟล์ · job) ลบไม่ได้เงียบ ส่วนทะเบียนที่ถูก
+ตรวจกับ *กระดาษอีกใบ* ลบได้เงียบสนิท เพราะ **การลบทั้งสองข้างพร้อมกันยังนับว่า
+"ตรงกัน" อยู่ดี** · ที่วัดได้: ถอด gate ทิ้งแล้ว CI เขียวครบถ้าเก็บกวาด 6 ที่ ·
+37 แถวในสามทะเบียนกระดาษลบทิ้งได้โดยไม่มีอะไรฟ้อง
+
+กองนี้ต่างจาก ratchet ตรงทิศที่บังคับ: **โตได้อิสระ หดต้องมาแก้เลข** — การเพิ่ม
+ถูกเฝ้าด้วยด่านอื่นครบอยู่แล้ว (ลงทะเบียนไฟล์เทสต์ · overlay · หลักฐาน) ที่ขาดคือ
+การถอด · ผลคือการถอดกลายเป็นคำตัดสินที่มีคนเซ็นชื่อ แทนที่จะเป็นผลข้างเคียงของ
+การเก็บกวาดให้ CI เขียว
+
 ใช้ (ต้องรัน `pytest --cov` มาก่อนเพื่อให้มีข้อมูล coverage):
     python3 scripts/check_ratchets.py
 """
@@ -31,12 +43,15 @@ from __future__ import annotations
 
 import ast
 import fnmatch
+import math
 import pathlib
 import re
 import shutil
 import subprocess
 import sys
 import tomllib
+
+import yaml  # type: ignore[import-untyped]
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 PYPROJECT = ROOT / "pyproject.toml"
@@ -59,6 +74,13 @@ DEFAULT_SLACK = 1.0
 # กับ interrogate ทำให้ของจริงตกใต้พื้นไม่ได้) — ที่นี่จึงดูแค่ทิศบน · ส่วนตัวที่
 # ไม่มีเจ้าของ ตัวตรวจนี้เป็นตัวเดียวที่เห็นการถอย จึงต้องดูทั้งสองทิศ
 OWNED_BY_A_TOOL = frozenset({"coverage", "interrogate"})
+
+# กองที่กันการ *ถอด* — โตได้อิสระ (ไม่มีเพดานบน) แต่หดแล้วแดง
+REMOVAL_GUARDS = ("gates_total", "cadence_rows", "risk_rows", "deferred_rows")
+
+CADENCE = ROOT / "docs" / "SECURITY-CADENCE.md"
+RISK = ROOT / "docs" / "RISK-ASSESSMENT.md"
+GOVERNANCE = ROOT / "docs" / "GOVERNANCE.md"
 
 APP = ROOT / "app"
 
@@ -95,9 +117,35 @@ def declared() -> dict[str, float]:
         "coverage": float(config["tool"]["coverage"]["report"]["fail_under"]),
         "interrogate": float(config["tool"]["interrogate"]["fail-under"]),
         "mypy_strict_modules": float(config["tool"]["todolist"]["ratchets"]["mypy_strict_modules"]),
+        **{name: float(config["tool"]["todolist"]["removals"][name]) for name in REMOVAL_GUARDS},
         "enforced_prohibitions": float(
             config["tool"]["todolist"]["ratchets"]["enforced_prohibitions"]
         ),
+    }
+
+
+# **ใช้ตัวอ่านตัวเดียวกับที่มีอยู่แล้ว ไม่เขียนตัวที่สอง** (ADR 0039) —
+# `whats_pending` อ่านตารางตรวจตามรอบกับทะเบียนของที่เลื่อนอยู่แล้ว การเขียน
+# parser ตัวที่สองที่นี่ จะ drift ทันทีที่มีคนแก้รูปตารางฝั่งเดียว
+# (เจอกับตัวเองระหว่างเขียน: ตัวนับที่เขียนใหม่ได้ 24 ขณะที่ตัวจริงได้ 23)
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import whats_pending  # noqa: E402
+
+# แถวของทะเบียนความเสี่ยง — รูปเดียวกับที่ `tests/test_risk_assessment.py` ใช้
+RISK_ROW = re.compile(
+    r"^\|([^|]+)\|\s*(ต่ำ|กลาง|สูง)\s*\|\s*(ต่ำ|กลาง|สูง)\s*\|\s*(ต่ำ|กลาง|สูง)\s*\|([^|]*)\|([^|]*)\|\s*$",
+    re.MULTILINE,
+)
+
+
+def removal_counts() -> dict[str, int]:
+    """นับของจริงของทุกอย่างที่ถอดได้เงียบ — อ่านจากไฟล์ต้นทาง ไม่ใช่จากเอกสารสรุป"""
+    gates = yaml.safe_load((ROOT / "gates.yaml").read_text(encoding="utf-8"))["gates"]
+    return {
+        "gates_total": len(gates),
+        "cadence_rows": len(whats_pending.cadence_rows()),
+        "risk_rows": len(RISK_ROW.findall(RISK.read_text(encoding="utf-8"))),
+        "deferred_rows": len(whats_pending.deferred()),
     }
 
 
@@ -165,6 +213,7 @@ def measured() -> dict[str, float]:
         "interrogate": float(found.group(1)),
         "mypy_strict_modules": float(strict_modules()),
         "enforced_prohibitions": float(enforced_prohibitions()),
+        **{name: float(value) for name, value in removal_counts().items()},
     }
 
 
@@ -173,7 +222,8 @@ def problems(floors: dict[str, float], actual: dict[str, float]) -> list[str]:
     found = []
     for name, floor in sorted(floors.items()):
         now = actual[name]
-        slack = SLACK.get(name, DEFAULT_SLACK)
+        # กองกันการถอดโตได้อิสระ — การเพิ่มถูกเฝ้าด้วยด่านอื่นครบแล้ว
+        slack = math.inf if name in REMOVAL_GUARDS else SLACK.get(name, DEFAULT_SLACK)
         if now - floor > slack:
             found.append(
                 f"{name}: พื้น {floor} แต่ของจริง {now} — ห่าง {now - floor:.2f} "
@@ -181,11 +231,19 @@ def problems(floors: dict[str, float], actual: dict[str, float]) -> list[str]:
                 "ไม่งั้นที่ว่างที่เพิ่งได้จะถูกใช้คืนโดยไม่มีใครสังเกต"
             )
         if now < floor and name not in OWNED_BY_A_TOOL:
-            found.append(
-                f"{name}: ของจริง {now} ต่ำกว่าพื้นที่ประกาศไว้ {floor} — **นี่คือการถอย** "
-                "ratchet ตัวนี้ไม่มีเครื่องมือเจ้าของบังคับทิศลงให้ ตัวตรวจนี้จึงเป็นตัวเดียว "
-                "ที่เห็น · ทางที่ถูกคือคืนของที่ถอดออก ไม่ใช่ลดพื้น"
-            )
+            if name in REMOVAL_GUARDS:
+                found.append(
+                    f"{name}: ประกาศไว้ {int(floor)} แต่ของจริงเหลือ {int(now)} — "
+                    "**มีของถูกถอดออกไป** · ถ้าตั้งใจถอดจริง ให้ลดตัวเลขใน "
+                    "[tool.todolist.removals] ใน PR เดียวกันพร้อมเหตุผลใน commit — "
+                    "การถอดต้องเป็นคำตัดสินที่มีคนเซ็นชื่อ ไม่ใช่ผลข้างเคียงของการเก็บกวาด"
+                )
+            else:
+                found.append(
+                    f"{name}: ของจริง {now} ต่ำกว่าพื้นที่ประกาศไว้ {floor} — **นี่คือการถอย** "
+                    "ratchet ตัวนี้ไม่มีเครื่องมือเจ้าของบังคับทิศลงให้ ตัวตรวจนี้จึงเป็นตัวเดียว "
+                    "ที่เห็น · ทางที่ถูกคือคืนของที่ถอดออก ไม่ใช่ลดพื้น"
+                )
     return found
 
 

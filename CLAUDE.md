@@ -23,10 +23,10 @@
 - type check: `pipenv run mypy app scripts` (strict list ใน pyproject — ขยาย ห้ามหด)
 - **ก่อนเปิด PR: `pipenv run python scripts/preflight.py`** — เดินด่านของ CI
   (job `lint` + `test`) บนเครื่องโดย**อ่านคำสั่งจาก workflow จริง** ไม่ใช่รายการ
-  ที่ลอกไว้ (ADR 0060) · hook ก่อน commit ตรวจแค่ ruff/format/mypy · **hook ก่อน
-  push** ตรวจไฟล์ที่ derive จาก `gates.yaml` (ดูข้างล่าง) — xenon · interrogate ·
-  coverage floor · diff-cover อยู่ใน CI อย่างเดียว ซึ่งเป็นคลาสที่ทำ PR แดงมาแล้ว
-  สองรอบติด · `--only lint` เอาเฉพาะที่เร็ว
+  ที่ลอกไว้ (ADR 0060) · hook ก่อน commit ตรวจ ruff/format/mypy · **hook ก่อน push**
+  ตรวจไฟล์ที่ derive จาก `gates.yaml` — xenon · interrogate · coverage floor ·
+  diff-cover อยู่ใน CI อย่างเดียว ซึ่งเป็นคลาสที่ทำ PR แดงมาแล้วสองรอบติด ·
+  `--only lint` เอาเฉพาะที่เร็ว
 - ครั้งแรกหลัง clone: `pipenv run pre-commit install --hook-type pre-commit --hook-type commit-msg --hook-type pre-push`
   · **hook ก่อน push** ตรวจว่าไฟล์ที่ derive จาก `gates.yaml` ตรงกัน เฉพาะ push
   ที่แตะไฟล์ต้นทาง (~9 วินาที · ข้าม `--no-verify` ได้) — คลาสนี้ทำ CI แดง 5/9 run ตอนรอบ 14
@@ -222,8 +222,9 @@
 - `migrations/` — alembic migration scripts (commit ลง git ด้วย)
   `env.py` ตั้ง `version_table` เป็น `tdl_alembic_version` และเปลี่ยนชื่อตารางเวอร์ชันเก่าให้เอง
 - `tests/` — pytest, fixture จาก `conftest.py`
-- `pyproject.toml` — config กลางของ ruff/mypy/coverage/interrogate/pytest
-  (pytest.ini ถูกยุบเข้ามาแล้ว) threshold เป็น ratchet: ขยับขึ้นได้อย่างเดียว
+- `pyproject.toml` — config กลางของ ruff/mypy/coverage/interrogate/pytest ·
+  threshold เป็น ratchet ขยับขึ้นอย่างเดียว · `[tool.todolist.removals]` นับของที่
+  ถอดได้เงียบ (gate · แถวทะเบียนกระดาษ) **หดต้องแก้เลข** (ADR 0069)
 - `docs/adr/` — การตัดสินใจสำคัญทุกเรื่อง ตัดสินใจใหม่ต้องมี ADR
 - commit message เป็น Conventional Commits หัวไม่เกิน 72 ตัว (hook + CI บังคับ)
 

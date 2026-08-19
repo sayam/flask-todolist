@@ -74,3 +74,4 @@ ADR 0002–0008 เป็นการ backfill การตัดสินใจ
 | [0066](0066-severity-must-match-real-authority.md) | `severity` ของ gate ต้องตรงกับอำนาจจริง (blocking ได้เฉพาะ job ที่รันบน PR) · ที่บล็อกไม่ได้ต้องประกาศ `watched_by` ว่าใครเห็นภายในกี่วัน | accepted |
 | [0067](0067-every-job-declares-a-time-budget.md) | ทุก job ประกาศ `timeout-minutes` เอง — ค่าเริ่มต้น 6 ชม. ทำให้ "ค้าง" กับ "ช้า" แยกไม่ออก · เลขมาจากที่วัดได้ ไม่ใช่เลขกลม | accepted |
 | [0068](0068-ratchets-need-something-that-turns-them.md) | ratchet ต้องมีตัวทวงให้หมุน — พื้นที่ลอยต่ำกว่าของจริงเกิน 1 จุด = แดง · ขยับพื้นในคอมมิตเดียวกับที่ทำให้ตัวเลขดีขึ้น | accepted |
+| [0069](0069-removal-must-be-a-decision.md) | การถอดของออกจากระบบต้องเป็นคำตัดสิน ไม่ใช่ผลข้างเคียง | accepted |
