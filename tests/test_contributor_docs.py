@@ -217,9 +217,15 @@ def test_contributing_points_at_gates_that_exist():
 
 
 def test_contributing_states_the_licence_terms_for_contributions():
-    """ไม่มี CLA แปลว่า inbound = outbound ต้องเขียนไว้ ไม่ใช่ปล่อยให้เดา (ADR 0038)"""
+    """ไม่มี CLA แปลว่า inbound = outbound ต้องเขียนไว้ ไม่ใช่ปล่อยให้เดา (ADR 0070)
+
+    **อ่านชื่อ license จากไฟล์จริง ไม่ใช่ฝังคำว่า MIT ไว้ในเทสต์** — ตอนเปลี่ยนเป็น
+    AGPL เทสต์เดิมแดงเพราะมันตรึงชื่อไว้ ทั้งที่เอกสารถูกอัปเดตครบแล้ว · ด่านที่
+    ตรึงคำตอบไว้เอง คือด่านที่ต้องแก้ทุกครั้งที่คำตอบเปลี่ยนอย่างถูกต้อง
+    """
     text = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
-    assert "MIT" in text, "CONTRIBUTING ไม่ได้บอกว่าสิ่งที่ส่งมาถูกเผยแพร่ด้วย license อะไร"
+    for name in ("AGPL", "CC BY-SA"):
+        assert name in text, f"CONTRIBUTING ไม่ได้บอกว่าสิ่งที่ส่งมาเผยแพร่ด้วย {name}"
     assert "CLA" in text, "CONTRIBUTING ไม่ได้บอกว่ามี CLA หรือไม่ — คนส่ง PR ต้องรู้ก่อนส่ง"
 
 

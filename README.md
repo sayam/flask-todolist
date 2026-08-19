@@ -147,7 +147,7 @@ Written in Thai, because that is the language the thinking happened in.
 
 | | |
 |---|---|
-| [`docs/adr/`](docs/adr/) | 69 architecture decision records — every choice, the options rejected, and what would reverse it |
+| [`docs/adr/`](docs/adr/) | 70 architecture decision records — every choice, the options rejected, and what would reverse it |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | the first seven phases — the application itself — what each closed, and what was deliberately deferred |
 | [`docs/ROADMAP-INFRA.md`](docs/ROADMAP-INFRA.md) | phases 8–12 — the index, the exported skill, the overlay, the fail-fix harness, and the comparison experiment |
 | [`docs/GOVERNANCE.md`](docs/GOVERNANCE.md) | how the gate machinery itself works — the index and its two-way checks, red-evidence, layers, severity and watchers, the censuses, and what gets exported to other projects |
@@ -167,7 +167,8 @@ Written in Thai, because that is the language the thinking happened in.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — setup and the rules you would not guess
 - [`SECURITY.md`](SECURITY.md) — how to report a vulnerability privately
 - [`CHANGELOG.md`](CHANGELOG.md) — what changed and when
-- [MIT](LICENSE) — Copyright (c) 2026 Sayam Sriphua
+- [AGPL-3.0-or-later](LICENSE) for the software and [CC BY-SA 4.0](LICENSE-docs)
+  for the documentation — Copyright (c) 2026 Sayam Sriphua
 
 ## Stack
 
@@ -302,7 +303,7 @@ export และวัดผลแล้ว:
 
 ## เอกสาร
 
-[`docs/adr/`](docs/adr/) 69 ใบ (ทุกการตัดสินใจ ทางที่ไม่ได้เลือก และเงื่อนไข
+[`docs/adr/`](docs/adr/) 70 ใบ (ทุกการตัดสินใจ ทางที่ไม่ได้เลือก และเงื่อนไข
 ที่จะทำให้มันหมดอายุ) · [`docs/ROADMAP.md`](docs/ROADMAP.md) (เฟส 0–7 ของตัวแอป)
 · [`docs/ROADMAP-INFRA.md`](docs/ROADMAP-INFRA.md) (เฟส 8–12 ของ scaffolding) ·
 [`docs/ROADMAP-GOVERNANCE.md`](docs/ROADMAP-GOVERNANCE.md) (แผน G — ธรรมนูญ
@@ -333,11 +334,22 @@ org graph) · [`docs/PDPA.md`](docs/PDPA.md) (worksheet แบบเดียว
 
 ## License
 
-[MIT](LICENSE) — Copyright (c) 2026 Sayam Sriphua ·
-เหตุผลที่เลือกและสิ่งที่ตรวจก่อนตัดสินอยู่ใน
-[ADR 0038](docs/adr/0038-mit-license.md) · **ไลบรารีของ core เป็น permissive
-ทั้งหมด** ตัวที่มีภาระ copyleft ตัวเดียวคือ `ldap3` (LGPLv3) ซึ่งอยู่ใน category
-ของ plugin ที่ถอดทิ้งได้ (`tests/test_licensing.py` ตรึงไว้)
+**โค้ด: [AGPL-3.0-or-later](LICENSE) · เอกสารและ ADR: [CC BY-SA 4.0](LICENSE-docs)**
+— Copyright (c) 2026 Sayam Sriphua · เหตุผลอยู่ใน
+[ADR 0070](docs/adr/0070-relicense-to-agpl-and-cc-by-sa.md) ซึ่งแทนที่
+[ADR 0038](docs/adr/0038-mit-license.md)
+
+**ทุกอย่างที่เผยแพร่ถึง `v1.6.0` ยังเป็น MIT ตลอดไปสำหรับคนที่รับไปแล้ว** —
+สิทธิ์ที่ให้ไปแล้วเพิกถอนไม่ได้ และการเปลี่ยนครั้งนี้มีผลกับรุ่นถัดไปเท่านั้น
+
+สิ่งที่ AGPL เปลี่ยนในทางปฏิบัติ: เอาไปใช้ · แก้ · ให้บริการผ่านเครือข่ายได้
+**แต่ผู้รับบริการต้องได้ source ของรุ่นที่คุณรันด้วย** · ต้องการใช้แบบปิดโค้ด
+ให้ติดต่อขอ **ข้อยกเว้นเชิงพาณิชย์** ได้ที่เจ้าของลิขสิทธิ์ (ถือคนเดียว จึงให้ได้)
+
+**ไลบรารีของ core เป็น permissive ทั้งหมด** ตัวที่มีภาระ copyleft ตัวเดียวคือ
+`ldap3` (LGPLv3) ซึ่งอยู่ใน category ของ plugin ที่ถอดทิ้งได้
+(`tests/test_licensing.py` ตรึงไว้)
 
 [![version](https://img.shields.io/badge/version-v1.6.0-blue)](https://github.com/sayam/flask-todolist/releases)
-[![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
+[![License](https://img.shields.io/badge/License-AGPL--3.0-blue)](LICENSE)
+[![Docs License](https://img.shields.io/badge/Docs-CC%20BY--SA%204.0-lightgrey)](LICENSE-docs)

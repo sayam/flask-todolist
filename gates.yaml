@@ -823,7 +823,7 @@ gates:
       ใครตรวจหลักฐาน จะถูกใช้ตัดสินใจในวันที่มีเรื่องจริง ซึ่งสายเกินแก้
 
   - id: licensing-no-copyleft
-    title: core ต้องไม่มี dependency ที่แบกภาระ copyleft — และด่านห้ามผ่านเพราะอ่านไม่ได้
+    title: LICENSE เป็นของจริงตามที่ ADR ประกาศ · core ไม่มี dependency ที่แบกภาระ copyleft
     kind: test
     severity: blocking
     enforced_by: {job: test, tests: [tests/test_licensing.py]}
@@ -836,6 +836,11 @@ gates:
     born_from: >-
       ldap3 เป็น LGPLv3 และอยู่ใน category ของ plugin พอดี — การแยก supply
       chain แยกภาระทางกฎหมายไปด้วยโดยไม่มีใครออกแบบ · "ไม่พบ" ≠ "อ่านไม่ได้จึงไม่พบ"
+      · ADR 0070 (2026-08-19) เปลี่ยนสัญญาอนุญาตเป็น AGPL-3.0 + CC BY-SA 4.0 —
+      ด่านนี้จึงตรวจเนื้อของ AGPL (รวมข้อ 13 เรื่องการให้บริการผ่านเครือข่าย
+      ซึ่งเป็นเหตุผลทั้งหมดที่เลือกใบนั้น) และตรวจว่า LICENSE-docs มีจริง ·
+      **ส่วนที่ตรวจ copyleft ของ dependency ไม่เปลี่ยน** เพราะภาระนั้นเป็นของ
+      ผู้ใช้ปลายทาง ไม่ใช่ของเรา
 
   - id: security-policy-consistent
     title: ตัวเลขกรอบเวลาใน SECURITY.md ตรงกันทุกสำเนา และไม่มีอีเมลในไฟล์

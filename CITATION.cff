@@ -1,0 +1,33 @@
+cff-version: 1.2.0
+title: >-
+  flask-todolist — a small application carrying a large, machine-checked
+  governance apparatus
+message: >-
+  If you use this work (the software, the gate registry, or the method), please
+  cite it using the metadata below.
+type: software
+authors:
+  - family-names: Sriphua
+    given-names: Sayam
+    orcid: null
+repository-code: https://github.com/sayam/flask-todolist
+url: https://github.com/sayam/flask-todolist
+abstract: >-
+  A Flask to-do application used as the substrate for an experiment in
+  machine-checked project governance: every rule the project declares is
+  indexed in a registry (gates.yaml) that is verified in both directions,
+  each rule must carry evidence that it once failed for a real defect, the
+  portable subset is generated into an agent skill and an overlay that can be
+  applied to other projects, and the effect on generated code is measured
+  against controlled arms. Sixteen recorded audit rounds, each asking a
+  question the previous round could not, are part of the artefact.
+keywords:
+  - software governance
+  - AI-assisted development
+  - agent skills
+  - supply chain security
+  - ASVS
+  - ISO/IEC 27001
+  - spec-driven development
+license: AGPL-3.0-or-later
+license-url: https://github.com/sayam/flask-todolist/blob/main/LICENSE

@@ -1,9 +1,11 @@
-"""license ของโปรเจกต์ และภาระ copyleft ที่ core ห้ามรับไว้ (ADR 0038)
+"""license ของโปรเจกต์ และภาระ copyleft ที่ core ห้ามรับไว้ (ADR 0070 · 0038)
 
 สองเรื่องที่นี่คุม:
 
-1. **ไฟล์ `LICENSE` ต้องมีจริงและเป็น MIT** — ไม่มีไฟล์นี้แปลว่าคนอื่นไม่มีสิทธิ์
-   ใช้โค้ดนี้ตามกฎหมาย ไม่ใช่ "ใช้ได้ตามสบาย"
+1. **ไฟล์ `LICENSE` ต้องมีจริงและเป็น AGPL-3.0** (`LICENSE-docs` เป็น CC BY-SA 4.0)
+   — ไม่มีไฟล์นี้แปลว่าคนอื่นไม่มีสิทธิ์ใช้โค้ดนี้ตามกฎหมาย ไม่ใช่ "ใช้ได้ตามสบาย"
+   · ADR 0070 เปลี่ยนจาก MIT เมื่อ 2026-08-19 · **ของที่เผยแพร่ถึง `v1.6.0` ยัง
+   เป็น MIT ตลอดไปสำหรับคนที่รับไปแล้ว** — สิทธิ์ที่ให้ไปแล้วเพิกถอนไม่ได้
 2. **ไลบรารีของ core ต้องไม่มีภาระ copyleft** — วันที่มีคนเติม GPL/LGPL ลง
    `[packages]` เงื่อนไขการแจกจ่ายของทั้งโปรเจกต์เปลี่ยนทันทีโดยไม่มีอะไรส่งเสียง
    ADR 0038 บันทึกไว้ว่าตอนตรวจ (2026-08-12) core สะอาดทั้ง 34 ตัว และตัวเดียว
@@ -22,6 +24,7 @@ import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 LICENSE = ROOT / "LICENSE"
+DOCS_LICENSE = ROOT / "LICENSE-docs"
 LOCK = ROOT / "Pipfile.lock"
 
 # section ของล็อกที่ถือว่าเป็น "ของ core" — ติดตั้งเสมอเมื่อรันแอปจริง
@@ -72,30 +75,51 @@ def _packages_in(section: str) -> list[str]:
     return sorted(name.split("[")[0] for name in locked.get(section, {}))
 
 
-def test_the_license_file_exists_and_is_mit():
+def test_the_license_file_exists_and_is_agpl():
     assert LICENSE.is_file(), "ไม่มีไฟล์ LICENSE — คนอื่นไม่มีสิทธิ์ใช้โค้ดนี้ตามกฎหมาย"
 
     text = LICENSE.read_text(encoding="utf-8")
-    assert "MIT License" in text, "LICENSE ไม่ใช่ MIT แต่ ADR 0038 บอกว่าเป็น — ข้อไหนผิดต้องแก้ให้ตรงกัน"
+    assert "GNU AFFERO GENERAL PUBLIC LICENSE" in text, (
+        "LICENSE ไม่ใช่ AGPL แต่ ADR 0070 บอกว่าเป็น — ข้อไหนผิดต้องแก้ให้ตรงกัน"
+    )
 
-    # ประโยคที่ทำให้มันเป็น MIT จริง ๆ ไม่ใช่แค่หัวเรื่องที่เขียนว่า MIT
+    # ประโยคที่ทำให้มันเป็น AGPL จริง ๆ ไม่ใช่แค่หัวเรื่อง · ข้อ 13 คือข้อที่ทำให้
+    # การให้บริการผ่านเครือข่ายนับเป็นการแจกจ่าย ซึ่งเป็นเหตุผลทั้งหมดที่เลือกใบนี้
     for clause in (
-        "Permission is hereby granted, free of charge",
-        "without restriction",
-        "shall be included in all",
-        'AS IS", WITHOUT WARRANTY',
+        "Version 3, 19 November 2007",
+        "13. Remote Network Interaction",
+        "Corresponding Source",
+        "WITHOUT ANY WARRANTY",
     ):
-        assert clause in text, f"เนื้อ MIT ขาดวรรค: {clause!r}"
+        assert clause in text, f"เนื้อ AGPL ขาดวรรค: {clause!r}"
+
+
+def test_the_documentation_license_is_declared_separately():
+    """เอกสารอยู่ใต้ CC BY-SA 4.0 — สิ่งที่ถูกลอกจริงคือ*ถ้อยคำ*ของกฎกับ ADR
+
+    CC ออกแบบมาสำหรับเนื้อหา ส่วน AGPL ออกแบบมาสำหรับโปรแกรม · ShareAlike ให้ผล
+    เดียวกันคือส่วนต่อยอดต้องเปิดด้วย (ADR 0070)
+    """
+    assert DOCS_LICENSE.is_file(), "ไม่มีไฟล์ LICENSE-docs ทั้งที่ ADR 0070 ประกาศไว้"
+
+    text = DOCS_LICENSE.read_text(encoding="utf-8")
+    for clause in ("Attribution-ShareAlike 4.0 International", "ShareAlike", "docs/**"):
+        assert clause in text, f"เนื้อ LICENSE-docs ขาด: {clause!r}"
 
 
 def test_the_license_names_a_copyright_holder_and_year():
-    """MIT ที่ไม่ระบุว่าใครถือลิขสิทธิ์ คือ MIT ที่ยังไม่ได้ให้สิทธิ์ใคร"""
+    """สัญญาอนุญาตที่ไม่ระบุว่าใครถือลิขสิทธิ์ คือสัญญาที่ยังไม่ได้ให้สิทธิ์ใคร
+
+    ตัว AGPL เป็นเอกสารมาตรฐานที่ไม่มีชื่อเราอยู่ในนั้น — ชื่อผู้ถือลิขสิทธิ์จึง
+    ต้องอยู่ที่ `LICENSE-docs` กับ `README.md` และเทสต์นี้เป็นตัวที่ทำให้มันหายไป
+    เงียบ ๆ ไม่ได้
+    """
     holders = [
         line.strip()
-        for line in LICENSE.read_text(encoding="utf-8").splitlines()
+        for line in DOCS_LICENSE.read_text(encoding="utf-8").splitlines()
         if line.startswith("Copyright (c)")
     ]
-    assert holders, "LICENSE ไม่มีบรรทัด `Copyright (c) <ปี> <ชื่อ>`"
+    assert holders, "LICENSE-docs ไม่มีบรรทัด `Copyright (c) <ปี> <ชื่อ>`"
 
     for line in holders:
         remainder = line.removeprefix("Copyright (c)").strip()
