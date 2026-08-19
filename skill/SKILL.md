@@ -282,9 +282,9 @@ description: Universal production-discipline rules for web applications, distill
 
 ### `stack-images-pinned-and-moved`
 
-**กฎ:** image ของ stack ที่ CI ดึงมารัน ตรึงด้วย digest และมี Dependabot ขยับให้
+**กฎ:** image ของ stack ตรึงด้วย digest · มีตัวขยับ · และตัวขยับขอแค่ digest ไม่ใช่รุ่นใหม่
 
-**เกิดจาก:** audit รอบ 15 — โปรเจกต์มีด่านบังคับการ pin สามตัว (action → SHA · base image → digest · เครื่องมือ CI → hash) และไม่มีตัวไหนเปิดไฟล์ compose · วัดได้ 11 image ถูกดึงด้วย tag และรันใน 11 จาก 25 job ทุก push · ในนั้นมี ghcr.io/zaproxy/zaproxy:stable ซึ่งเป็น tag ลอยและเป็นตัวตัดสินผลด้าน ความปลอดภัย — ผลเขียวของ dast เมื่อสัปดาห์ก่อนจึงทำซ้ำไม่ได้ · Dependabot แยก docker-compose ออกจาก docker (ซึ่งอ่านแค่ Dockerfile) เราประกาศไว้แค่ตัวหลังมาตลอด การตรึงโดยไม่มีตัวขยับจึงจะเป็นการแช่ ช่องโหว่ ด่านนี้บังคับสองข้อคู่กัน
+**เกิดจาก:** audit รอบ 15 — โปรเจกต์มีด่านบังคับการ pin สามตัว (action → SHA · base image → digest · เครื่องมือ CI → hash) และไม่มีตัวไหนเปิดไฟล์ compose · วัดได้ 11 image ถูกดึงด้วย tag และรันใน 11 จาก 25 job ทุก push · ในนั้นมี ghcr.io/zaproxy/zaproxy:stable ซึ่งเป็น tag ลอยและเป็นตัวตัดสินผลด้าน ความปลอดภัย — ผลเขียวของ dast เมื่อสัปดาห์ก่อนจึงทำซ้ำไม่ได้ · Dependabot แยก docker-compose ออกจาก docker (ซึ่งอ่านแค่ Dockerfile) เราประกาศไว้แค่ตัวหลังมาตลอด การตรึงโดยไม่มีตัวขยับจึงจะเป็นการแช่ ช่องโหว่ ด่านนี้บังคับสองข้อคู่กัน · audit รอบ 16 เพิ่มข้อที่สาม: ตัวขยับ ต้อง ignore major/minor — ใบแรกที่ ecosystem นี้เปิดให้เสนอ mysql 8 → 26, redis 7 → 8, vault 1.18 → 2.0 พร้อมกันเก้าตัว · เหตุผลของการตั้ง ignore เคยอยู่ในคอมเมนต์อย่างเดียว และวัดแล้วว่าถอดออกได้โดยไม่มีอะไรฟ้อง
 
 **ตัวบังคับใน reference:** `tests/test_stack_image_pinning.py`
 

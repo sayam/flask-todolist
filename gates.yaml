@@ -540,7 +540,7 @@ gates:
           (แก้ quote ให้ไม่มีใน CLAUDE.md) ก็แดง
 
   - id: stack-images-pinned-and-moved
-    title: image ของ stack ที่ CI ดึงมารัน ตรึงด้วย digest และมี Dependabot ขยับให้
+    title: image ของ stack ตรึงด้วย digest · มีตัวขยับ · และตัวขยับขอแค่ digest ไม่ใช่รุ่นใหม่
     kind: test
     severity: blocking
     enforced_by: {job: test, tests: [tests/test_stack_image_pinning.py]}
@@ -558,7 +558,10 @@ gates:
       ความปลอดภัย — ผลเขียวของ dast เมื่อสัปดาห์ก่อนจึงทำซ้ำไม่ได้ ·
       Dependabot แยก docker-compose ออกจาก docker (ซึ่งอ่านแค่ Dockerfile)
       เราประกาศไว้แค่ตัวหลังมาตลอด การตรึงโดยไม่มีตัวขยับจึงจะเป็นการแช่
-      ช่องโหว่ ด่านนี้บังคับสองข้อคู่กัน
+      ช่องโหว่ ด่านนี้บังคับสองข้อคู่กัน · audit รอบ 16 เพิ่มข้อที่สาม: ตัวขยับ
+      ต้อง ignore major/minor — ใบแรกที่ ecosystem นี้เปิดให้เสนอ mysql 8 → 26,
+      redis 7 → 8, vault 1.18 → 2.0 พร้อมกันเก้าตัว · เหตุผลของการตั้ง ignore
+      เคยอยู่ในคอมเมนต์อย่างเดียว และวัดแล้วว่าถอดออกได้โดยไม่มีอะไรฟ้อง
     proved_by:
       - kind: mutation
         ref: pr/129
