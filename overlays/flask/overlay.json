@@ -444,6 +444,11 @@
       "kind": "suite",
       "title": "image ของ stack ที่ CI ดึงมารัน ตรึงด้วย digest และมี Dependabot ขยับให้",
       "note": "ต้องมีเทสต์ของโปรเจกต์เอง: อ่านทุกที่ที่สั่งดึง image (compose · service container · สคริปต์) แล้วบังคับ digest + ตัวขยับคู่กัน"
+    },
+    "scripts-declare-their-role": {
+      "kind": "suite",
+      "title": "สคริปต์ทุกตัวประกาศชนิดของตัวเอง · มีคนแตะ · และของที่ generate มายังใช้ได้จริง",
+      "note": "ต้องมีเทสต์ของโปรเจกต์เอง: ชนิดเป็นตัวกำหนดว่าหลักฐานที่ถูกต้องหน้าตาอย่างไร (decider = planted violation · generator = ผลลัพธ์ตรงกับที่ commit · reader = ตัวเลขตรงกับแหล่ง)"
     }
   }
 }

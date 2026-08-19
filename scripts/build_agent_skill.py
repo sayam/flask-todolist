@@ -8,6 +8,8 @@
 ใช้: `PYTHONPATH=. pipenv run python scripts/build_agent_skill.py`
 `tests/test_agent_skill.py` เทียบไฟล์ที่ commit กับผล generate ทุกครั้งที่รันเทสต์
 — รวมทั้งเซตไฟล์: ของแปลกปลอมใน `skill/` ทำให้เทสต์แดง ไม่ใช่ถูกเมิน
+
+บทบาท: generator — สร้างไฟล์ที่ commit ไว้ — หลักฐานคือผลลัพธ์ต้องตรงกับที่ commit (coverage ไม่ใช่ตัววัดของชนิดนี้)
 """
 
 from __future__ import annotations

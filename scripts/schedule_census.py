@@ -27,6 +27,8 @@ endpoint สาธารณะที่บอกว่ามันรันล�
 ใช้:
     python3 scripts/schedule_census.py                 # ถาม GitHub ผ่าน gh
     python3 scripts/schedule_census.py --input x.json  # ตัดสินจากไฟล์ (ออฟไลน์)
+
+บทบาท: reader — อ่านแล้วรายงาน — หลักฐานคือตัวเลขที่พิมพ์ต้องตรงกับแหล่ง · ห้ามตัดของทิ้งเงียบ
 """
 
 from __future__ import annotations

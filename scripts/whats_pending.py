@@ -16,6 +16,8 @@
 ใช้:
     python3 scripts/whats_pending.py
     python3 scripts/whats_pending.py --within 30   # แถวที่จะครบกำหนดใน 30 วัน
+
+บทบาท: reader — อ่านแล้วรายงาน — หลักฐานคือตัวเลขที่พิมพ์ต้องตรงกับแหล่ง · ห้ามตัดของทิ้งเงียบ
 """
 
 from __future__ import annotations

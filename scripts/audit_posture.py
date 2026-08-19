@@ -31,6 +31,8 @@ check ครบทุก job ที่รันบน pull request — **ทั�
 ใช้:
     python3 scripts/audit_posture.py                 # ถาม GitHub ผ่าน gh
     python3 scripts/audit_posture.py --input x.json  # ตัดสินจากไฟล์ (ออฟไลน์)
+
+บทบาท: decider — ตัดสินผ่าน/ไม่ผ่าน — หลักฐานคือเทสต์ที่ฝังความผิดแล้วต้องจับได้ · ของสะอาดต้องไม่ถูกจับ
 """
 
 from __future__ import annotations

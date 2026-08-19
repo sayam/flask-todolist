@@ -32,6 +32,8 @@ workflow · ไฟล์ที่มีทั้ง job ที่บล็อก
 ใช้:
     python3 scripts/red_streak_census.py                 # ดึงสดผ่าน gh
     python3 scripts/red_streak_census.py --input x.json  # ตัดสินจากไฟล์ (ออฟไลน์)
+
+บทบาท: reader — อ่านแล้วรายงาน — หลักฐานคือตัวเลขที่พิมพ์ต้องตรงกับแหล่ง · ห้ามตัดของทิ้งเงียบ
 """
 
 from __future__ import annotations

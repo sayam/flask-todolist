@@ -12,6 +12,8 @@
 
 รูปแบบในไฟล์ต้องตรงกับที่ `app/services/passwords.py` ใช้เทียบเป๊ะ
 (NFKC + casefold) — ตัว normalize จึง import มาจากที่นั่นตัวเดียว ไม่ก๊อปสูตรมาไว้ที่นี่
+
+บทบาท: generator — สร้างไฟล์ที่ commit ไว้ — หลักฐานคือผลลัพธ์ต้องตรงกับที่ commit (coverage ไม่ใช่ตัววัดของชนิดนี้)
 """
 
 import argparse
