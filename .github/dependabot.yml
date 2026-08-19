@@ -78,6 +78,24 @@ updates:
         patterns:
           - "*"
     open-pull-requests-limit: 3
+    # **ขอแค่ digest ใหม่ ไม่ใช่ยี่ห้อรุ่นใหม่** — เหตุผลเดียวกับ `python` ข้างบน
+    # ทุกตัวอักษร · PR ใบแรกที่ ecosystem นี้เปิดให้ (#132) เสนอขยับ 9 image พร้อมกัน
+    # โดยมี **mysql 8 → 26 · redis 7 → 8 · vault 1.18 → 2.0 · grafana 12 → 13**
+    # ปนอยู่ — ซึ่งไม่ใช่สิ่งที่การตรึง digest ต้องการเลย
+    #
+    # เลขรุ่นของยี่ห้อในไฟล์ compose เป็น **คำตัดสินว่าเรารองรับอะไร** (`mysql:8`
+    # กับ `mariadb:11` คือสิ่งที่ job `dialects` ทดสอบทุก push · `keycloak:26`
+    # คือ IdP ที่ `compose.sso.yaml` ผูกคอนฟิกไว้) การขึ้นรุ่นจึงเป็นการตัดสินใจ
+    # ที่ต้องขยับเอกสาร เทสต์ และคอนฟิกพร้อมกัน ไม่ใช่ของที่ควรมาถึงในรูป PR
+    # อัตโนมัติที่แก้เลขในไฟล์เดียว
+    #
+    # **security patch ยังมาเหมือนเดิม** เพราะ upstream ออก image ใหม่ทับ tag เดิม
+    # แล้ว Dependabot ขยับ digest ให้ — ซึ่งคือสิ่งเดียวที่เราต้องการจากตัวนี้
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
 
   # **เครื่องมือที่ CI ติดตั้งเอง ถูกตรึงด้วย hash ใน `pins/`** (ดู pins/README.md)
   # เหตุผลเดียวกับสองอันบน: `pip install pipenv` เปล่า ๆ หยิบรุ่นล่าสุดเสมอ ตรึง
