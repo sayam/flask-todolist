@@ -7,7 +7,7 @@
 
 The code, commit messages, and this file are in English. **Almost everything that
 explains *why* the code looks the way it does is in Thai** — [`CLAUDE.md`](CLAUDE.md)
-(the working notes), the 69 records in [`docs/adr/`](docs/adr/), and the rest of
+(the working notes), the 70 records in [`docs/adr/`](docs/adr/), and the rest of
 `docs/`. Machine translation handles them acceptably, but you should know that
 before you invest an afternoon.
 
@@ -213,8 +213,9 @@ explains itself; the failure it prevents usually does not.
 ## Continuity: if the maintainer disappears
 
 Nothing about this project's continuity depends on any private asset the
-maintainer holds. The repository is public and MIT-licensed, so a fork
-carries every right needed to continue. Everything the project produces
+maintainer holds. The repository is public and licensed under AGPL-3.0
+(documentation under CC BY-SA 4.0), so a fork carries every right needed
+to continue. Everything the project produces
 is reproduced from the repository itself: CI builds and signs release
 artifacts **keyless** (sigstore OIDC — there is no private signing key
 to lose), dependency updates arrive through Dependabot configuration
@@ -229,9 +230,16 @@ records what changes when a second regular contributor arrives).
 ## Licensing of contributions
 
 By opening a pull request you agree that your contribution is published under the
-[MIT License](LICENSE), the same terms as the rest of the project. **There is no
-CLA** and no copyright assignment — you keep the copyright in what you wrote. See
+same terms as the rest of the project: [AGPL-3.0-or-later](LICENSE) for code and
+[CC BY-SA 4.0](LICENSE-docs) for documentation. **There is no CLA** and no
+copyright assignment — you keep the copyright in what you wrote. See
+[ADR 0070](docs/adr/0070-relicense-to-agpl-and-cc-by-sa.md), which replaced
 [ADR 0038](docs/adr/0038-mit-license.md).
+
+One consequence worth stating plainly: because contributors keep their copyright
+and there is no CLA, **a second regular contributor makes the license effectively
+permanent** — changing it again would need everyone's agreement. That is a
+deliberate trade, and it is why the change was made now rather than later.
 
 ## Conduct
 
@@ -354,7 +362,7 @@ IdP, LDAP, Vault, ZAP แบบ login แล้ว และ Chromium สำห�
 ## ความต่อเนื่อง: ถ้าผู้ดูแลหายไป
 
 ความต่อเนื่องของโปรเจกต์ไม่พึ่งของส่วนตัวชิ้นไหนของผู้ดูแลเลย — repo
-สาธารณะ + MIT แปลว่า fork เดียวได้สิทธิ์ครบ · ทุกอย่างที่โปรเจกต์ผลิต
+สาธารณะ + AGPL-3.0 (เอกสาร CC BY-SA 4.0) แปลว่า fork เดียวได้สิทธิ์ครบ · ทุกอย่างที่โปรเจกต์ผลิต
 สร้างซ้ำได้จากตัว repo: CI เซ็น release แบบ **keyless** (ไม่มีคีย์ส่วนตัว
 ให้หาย) · Dependabot ตั้งค่าในไฟล์ที่ commit ไว้ · gate/เอกสาร/ไฟล์
 generate ทั้งหมดสร้างใหม่จาก source ที่ commit · ความลับตัวเดียวที่มีคือ
@@ -364,5 +372,10 @@ generate ทั้งหมดสร้างใหม่จาก source ที
 
 ## license ของสิ่งที่คุณส่งมา
 
-เปิด PR = ยอมให้เผยแพร่ภายใต้ [MIT](LICENSE) เหมือนส่วนที่เหลือ ·
-**ไม่มี CLA** และไม่มีการโอนลิขสิทธิ์ คุณยังถือลิขสิทธิ์ในสิ่งที่คุณเขียน
+เปิด PR = ยอมให้เผยแพร่ภายใต้เงื่อนไขเดียวกับส่วนที่เหลือ: [AGPL-3.0-or-later](LICENSE)
+สำหรับโค้ด และ [CC BY-SA 4.0](LICENSE-docs) สำหรับเอกสาร · **ไม่มี CLA** และไม่มี
+การโอนลิขสิทธิ์ คุณยังถือลิขสิทธิ์ในสิ่งที่คุณเขียน (ADR 0070 แทน ADR 0038)
+
+ผลที่ตามมาซึ่งควรพูดตรง ๆ: เพราะผู้ร่วมพัฒนาถือลิขสิทธิ์ของตัวเองและไม่มี CLA
+**พอมีผู้ร่วมพัฒนาประจำคนที่สอง สัญญาอนุญาตจะเปลี่ยนอีกไม่ได้โดยง่าย** —
+ต้องได้ความยินยอมจากทุกคน · นี่เป็นการแลกที่ตั้งใจ และเป็นเหตุผลที่เปลี่ยนตอนนี้

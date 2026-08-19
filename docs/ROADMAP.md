@@ -638,13 +638,13 @@ coverage **96.31%** (เพดาน 96) · interrogate **84.9%** (เพดา�
 เฟสตอบว่า *ระบบพร้อมไหม* ส่วนเช็คลิสต์ตอบว่า *เปิดให้คนอื่นเข้ามาได้หรือยัง*
 
 **license คือข้อที่ทุกข้อที่เหลือตั้งอยู่บนมัน** — ไม่มี license แปลว่าคนอื่น
-ไม่มีสิทธิ์ใช้ตามกฎหมาย · เลือกแล้วเป็น **MIT** ([ADR 0038](adr/0038-mit-license.md))
+ไม่มีสิทธิ์ใช้ตามกฎหมาย · เลือกแล้วเป็น **MIT** ([ADR 0038](adr/0038-mit-license.md)) · **เปลี่ยนเป็น AGPL-3.0 + CC BY-SA 4.0 เมื่อ 2026-08-19** ([ADR 0070](adr/0070-relicense-to-agpl-and-cc-by-sa.md))
 
 ### เช็คลิสต์ก่อนกด public (ทบทวนจริง 2026-08-12 หลังปิด Phase 7)
 
 | รายการ | สถานะ | หมายเหตุ |
 |---|---|---|
-| `LICENSE` | ✅ | MIT · [ADR 0038](adr/0038-mit-license.md) · `tests/test_licensing.py` |
+| `LICENSE` | ✅ | AGPL-3.0 + CC BY-SA 4.0 · [ADR 0070](adr/0070-relicense-to-agpl-and-cc-by-sa.md) แทน [0038](adr/0038-mit-license.md) · `tests/test_licensing.py` |
 | `SECURITY.md` (ช่องทางแจ้งช่องโหว่) | ✅ | private vulnerability reporting ของ GitHub · **ไม่มีอีเมลในไฟล์โดยตั้งใจ** · กรอบเวลาผูกกับ [SECURITY-CADENCE.md](SECURITY-CADENCE.md) ด้วยเทสต์ |
 | `CONTRIBUTING.md` + Code of Conduct | ✅ | Contributor Covenant 2.1 · ช่องทางรายงานแบบส่วนตัวระบุไว้ชัด รวมทางออกเมื่อเรื่องเป็นของคนดูแลเอง |
 | `CHANGELOG.md` | ✅ | Keep a Changelog · เลขรุ่นผูกกับ `app.__version__` ด้วยเทสต์ |
@@ -652,7 +652,7 @@ coverage **96.31%** (เพดาน 96) · interrogate **84.9%** (เพดา�
 | ตรวจ PII ใน history | ✅ | เขียนใหม่ทั้ง 134 commit เป็น `976721+sayam@users.noreply.github.com` · **ยืนยันจากฝั่ง GitHub แล้ว** ว่าไม่เหลืออีเมลเดิม · ดูข้อจำกัดข้างล่าง |
 | Secret scan ประวัติเต็มรอบสุดท้าย | ✅ 2026-08-12 | `scripts/secret_scan_history.sh` · เจอรายการเดียวคือค่าตัวอย่างของ RFC 6238 ซึ่งบันทึกเป็นข้อยกเว้นพร้อมเหตุผล |
 | Branch protection | ✅ 2026-08-13 (แก้ 2026-08-16) | บังคับ PR + **required checks ครบชุด (ปัจจุบัน 27 จาก 30)** + linear history · ห้าม force push และห้ามลบ branch · **`enforce_admins: true` ตั้งแต่ ADR 0053** — กฎมีผลกับเจ้าของด้วย (คำตัดสินเดิมที่ว่า "การบังคับ PR กับตัวเองคือความช้าที่ไม่ซื้ออะไร" ถูกกลับโดย ADR 0053 หลังการ bypass ถูกใช้จริง — ด่าน 27 ตัวต้องอยู่บนเส้นทางบังคับ) · ต้อง approve 0 คน เพราะคนเดียว approve PR ตัวเองไม่ได้ — ตั้ง 1 เมื่อมี contributor คนที่สอง (เงื่อนไขหมดอายุใน ADR) |
-| **กด public** | ✅ 2026-08-12 | repo เป็นสาธารณะแล้ว · GitHub ตรวจพบ license เป็น MIT · ยืนยันแบบไม่ล็อกอินแล้วว่าหน้าแรก/release/LICENSE เข้าถึงได้ |
+| **กด public** | ✅ 2026-08-12 | repo เป็นสาธารณะแล้ว · GitHub ตรวจพบ license เป็น MIT (ตอนนั้น — วันนี้เป็น AGPL-3.0 ตาม ADR 0070) · ยืนยันแบบไม่ล็อกอินแล้วว่าหน้าแรก/release/LICENSE เข้าถึงได้ |
 | private vulnerability reporting | ✅ 2026-08-12 | เปิดแล้ว — **ถ้าไม่เปิด ลิงก์ใน `SECURITY.md` และ `CODE_OF_CONDUCT.md` จะพาไปไหนไม่ได้** ทั้งสองไฟล์ชี้มาที่ช่องทางนี้ช่องทางเดียว |
 
 ### ของฟรีที่ปลดล็อกพร้อมการเป็น public

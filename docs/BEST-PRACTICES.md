@@ -24,8 +24,8 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 | `interact` MUST | ผ่าน | `README.md` มีวิธีติดตั้ง/รัน · `CONTRIBUTING.md` มีวิธีเสนอการเปลี่ยนแปลง · Issues เปิดอยู่ |
 | `contribution` MUST | ผ่าน | `CONTRIBUTING.md` — อธิบายว่าใช้ PR, ต้องผ่าน 27 required check (จาก 30 check — scorecard, `posture` และ job ของ workflow release ไม่รันบน PR จึงไม่บังคับ), merge ด้วย rebase, และกติกาลงทะเบียนไฟล์เทสต์ใน `gates.yaml` |
 | `contribution_requirements` SHOULD | ผ่าน | `CONTRIBUTING.md` — Conventional Commits (หัว ≤72), ruff/mypy, **กติกา mutation test ของเทสต์ใหม่** |
-| `floss_license` MUST | ผ่าน | `LICENSE` (MIT) · GitHub ตรวจพบเป็น `MIT` แล้ว |
-| `floss_license_osi` SUGGESTED | ผ่าน | MIT เป็นสัญญาอนุญาตที่ OSI รับรอง — [ADR 0038](adr/0038-mit-license.md) |
+| `floss_license` MUST | ผ่าน | `LICENSE` (AGPL-3.0-or-later — ADR 0070) · เอกสารอยู่ใต้ CC BY-SA 4.0 ที่ `LICENSE-docs` |
+| `floss_license_osi` SUGGESTED | ผ่าน | AGPL-3.0 เป็นสัญญาอนุญาตที่ OSI รับรอง — [ADR 0070](adr/0070-relicense-to-agpl-and-cc-by-sa.md) (เดิม MIT ตาม ADR 0038) |
 | `license_location` MUST | ผ่าน | `LICENSE` ที่รากของ repo |
 | `documentation_basics` MUST | ผ่าน | `README.md` + `docs/OPERATIONS.md` |
 | `documentation_interface` MUST | ผ่าน | `docs/openapi.json` — **generate จากโค้ด** และ job `openapi` ใน CI เทียบว่าตรงกับโค้ดทุก push |

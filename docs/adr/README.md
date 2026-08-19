@@ -43,7 +43,7 @@ ADR 0002–0008 เป็นการ backfill การตัดสินใจ
 | [0035](0035-audit-appends-queue-on-one-row.md) | ต่อคิวสาย audit ที่แถวเดียว ไม่ใช่ที่หางสาย | accepted — แทนที่ ADR 0032 ข้อ 1 |
 | [0036](0036-read-committed-isolation.md) | อ่านแบบ READ COMMITTED บนยี่ห้อที่มี MVCC | accepted |
 | [0037](0037-where-logs-go-and-what-shouts.md) | log ไปที่ Loki · กฎแจ้งเตือนอยู่ที่ ruler | accepted |
-| [0038](0038-mit-license.md) | เผยแพร่ด้วย MIT · core ต้องไม่มีภาระ copyleft | accepted |
+| [0038](0038-mit-license.md) | เผยแพร่ด้วย MIT · core ต้องไม่มีภาระ copyleft | accepted — **ถูกแทนโดย 0070** |
 | [0039](0039-gates-registry-verified-two-way.md) | `gates.yaml` เป็นดัชนี enforcement ตรวจสองทิศ — ไม่ generate CI ไม่ทับ ASVS.md | accepted |
 | [0040](0040-scaffolding-scope-cuts.md) | งาน scaffolding ตัดอะไรออกโดยตั้งใจ (CDC · cross-framework runtime · overlay อื่น) | accepted |
 | [0041](0041-migration-class-per-plugin.md) | migration class ประกาศต่อ plugin (`live`/`warm`/`cold`) พร้อมเกณฑ์ตัวเลข — บังคับตอนโหลด | accepted |
@@ -75,3 +75,4 @@ ADR 0002–0008 เป็นการ backfill การตัดสินใจ
 | [0067](0067-every-job-declares-a-time-budget.md) | ทุก job ประกาศ `timeout-minutes` เอง — ค่าเริ่มต้น 6 ชม. ทำให้ "ค้าง" กับ "ช้า" แยกไม่ออก · เลขมาจากที่วัดได้ ไม่ใช่เลขกลม | accepted |
 | [0068](0068-ratchets-need-something-that-turns-them.md) | ratchet ต้องมีตัวทวงให้หมุน — พื้นที่ลอยต่ำกว่าของจริงเกิน 1 จุด = แดง · ขยับพื้นในคอมมิตเดียวกับที่ทำให้ตัวเลขดีขึ้น | accepted |
 | [0069](0069-removal-must-be-a-decision.md) | การถอดของออกจากระบบต้องเป็นคำตัดสิน ไม่ใช่ผลข้างเคียง | accepted |
+| [0070](0070-relicense-to-agpl-and-cc-by-sa.md) | เปลี่ยนสัญญาอนุญาตเป็น AGPL-3.0 (โค้ด) + CC BY-SA 4.0 (เอกสาร) | accepted — แทนที่ 0038 |

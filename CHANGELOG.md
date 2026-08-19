@@ -20,6 +20,25 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Added
 
+- **The project is relicensed** — AGPL-3.0-or-later for the software,
+  CC BY-SA 4.0 for the documentation and decision records (ADR 0070,
+  replacing ADR 0038). The MIT decision rested on a stated assumption —
+  "there is nothing here that needs copyleft to protect it" — that
+  expired within a week: sixteen audit rounds turned the most valuable
+  part of this repository into a *method that machines can check*, and
+  the whole of it could be lifted with nothing coming back. AGPL closes
+  the shape that actually fits: the likely reuse is as a service, which
+  plain GPL does not reach. Staying OSI-approved was a condition of the
+  choice rather than a side-effect — a project whose every page argues
+  for checkable evidence cannot afford a false claim on its own front
+  page. **Everything published through `v1.6.0` remains MIT forever for
+  anyone who received it**; rights already granted cannot be withdrawn,
+  and this change binds only what follows. A commercial exception is
+  available from the copyright holder, who is still the only one.
+- **Citation metadata** — `CITATION.cff` and `.zenodo.json`, so a tagged
+  release can be archived with a DOI. A license governs reuse; it says
+  nothing about who published what first, and a dated public record is
+  the only thing that does.
 - **Removing a control is now a decision someone signs** — ADR 0069 and
   `[tool.todolist.removals]` (round-16 audit). Fifteen rounds had asked
   what was *added*; this one measured what happens when something is
@@ -984,7 +1003,7 @@ graph. Nothing in the `/api/v1` contract changed; it only gained fields.
 ## [1.0.0] — 2026-08-12
 
 First public release. Everything below arrived across seven planned phases of
-work; the reasoning for each decision lives in the 69 records in
+work; the reasoning for each decision lives in the 70 records in
 [`docs/adr/`](docs/adr/), and the phase-by-phase plan in
 [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
