@@ -75,6 +75,20 @@ jobs:
       # **ratchet ที่ไม่มีตัวทวง คือพื้นที่ค้างอยู่ที่เดิม** (ADR 0068 — audit รอบ 12)
       # พื้น coverage ค้างที่ 96 ตั้งแต่ 2026-08-12 ขณะที่ของจริงไต่ไป 97.11% —
       # ที่ว่าง 1.11 จุดคือโค้ดที่มีเทสต์คุมราว 54 บรรทัดซึ่งหายไปได้โดยไม่มีอะไรแดง
+      # **โค้ดที่บังคับกฎ ต้องอยู่ใต้เกณฑ์เดียวกับโค้ดที่มันคุ้ม** (audit รอบ 17)
+      # วัดแยกไฟล์ข้อมูล (`COVERAGE_FILE`) โดยตั้งใจ — ถ้ายัด `scripts` เข้า
+      # `source` ของ run หลัก ตัวเลขรวมจะตกต่ำกว่า 97 แล้วพื้นของแอปจะถูกลด
+      # ด้วยผลข้างเคียง ซึ่งเป็นสิ่งที่ทุกใบห้ามไว้ · ราคาที่จ่ายคือรันเทสต์ชุดที่
+      # แตะสคริปต์ซ้ำอีกรอบ (~35 วินาที) ซึ่งถูกกว่าการมีตัวบังคับที่ไม่มีใครวัด
+      - name: coverage ของโค้ดที่บังคับกฎ (scripts/)
+        run: |
+          pipenv run pytest -q --no-header \
+            tests/test_checker_logic.py tests/test_preflight.py \
+            tests/test_harness.py tests/test_asvs_probe.py \
+            --cov=scripts --cov-report=json:.cov-scripts.json --cov-fail-under=0
+        env:
+          COVERAGE_FILE: .coverage.scripts
+          SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
       - name: พื้นของ ratchet ต้องไม่ลอยต่ำกว่าของจริง
         run: pipenv run python scripts/check_ratchets.py
       - name: diff-cover (บรรทัดที่แก้ต้องมีเทสต์ 100%)

@@ -895,6 +895,7 @@ def test_every_declared_floor_is_read_from_the_file_not_a_comment():
         "interrogate",
         "mypy_strict_modules",
         "enforced_prohibitions",
+        "scripts_coverage",
         *check_ratchets.REMOVAL_GUARDS,
     }
     assert all(value > 0 for value in floors.values())
@@ -938,6 +939,27 @@ def test_a_strict_list_that_grew_without_moving_the_floor_is_red():
 
     assert found, "ลิสต์โตขึ้นแล้วพื้นไม่ตาม = ที่ว่างที่จะถูกใช้คืนเงียบ ๆ"
     assert "35" in found[0]
+
+
+def test_the_enforcement_code_carries_its_own_floor():
+    """โค้ดที่บังคับกฎ ต้องอยู่ใต้เกณฑ์เดียวกับโค้ดที่มันคุ้ม (audit r17 · ข้อ 1)
+
+    `[tool.coverage.run] source` ครอบแค่ `app/` มาตลอด — `scripts/` ซึ่งเป็นที่อยู่
+    ของตัวบังคับ 83 จาก 105 gate จึงเป็นโค้ดชุดเดียวที่ไม่มีเกณฑ์ของตัวเอง
+    """
+    floors = check_ratchets.declared()
+
+    assert floors["scripts_coverage"] > 0, "พื้นของ scripts/ ต้องมีค่าจริง"
+    shrank = check_ratchets.problems({"scripts_coverage": 43.0}, {"scripts_coverage": 41.0})
+    assert shrank, "coverage ของตัวบังคับที่ตกต่ำกว่าพื้นต้องแดง"
+
+
+def test_a_missing_scripts_measurement_is_loud(monkeypatch, tmp_path):
+    """ไม่มีไฟล์ผลวัด = ขั้นตอนก่อนหน้าไม่ได้รัน — ต้องดังกว่าการเงียบแล้วผ่าน"""
+    monkeypatch.setattr(check_ratchets, "SCRIPTS_COVERAGE", tmp_path / "ไม่มีอยู่.json")
+
+    with pytest.raises(RuntimeError, match="ยังไม่ได้รัน"):
+        check_ratchets.scripts_coverage()
 
 
 def test_the_register_of_enforced_prohibitions_only_grows():

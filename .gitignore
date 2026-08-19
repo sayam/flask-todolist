@@ -21,3 +21,7 @@ deploy/tls/
 .zap/out/
 .gate-rounds.jsonl
 secretdir/
+
+# ผลวัด coverage ของ scripts/ — ขั้นตอนแยกใน job `test` เขียนไว้ให้ check_ratchets อ่าน
+.cov-scripts.json
+.coverage.scripts
