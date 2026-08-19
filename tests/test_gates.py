@@ -476,3 +476,38 @@ def test_every_promise_is_backed_by_a_mechanism_that_is_fast_enough(gates):
         + "\n  ".join(unbacked)
         + "\nสร้างกลไกที่เร็วกว่าก่อน หรือขยับตัวเลขให้ตรงกับความจริง (ADR 0066 โน้ต 1)"
     )
+
+
+# ------------- ตัวเลขที่โฆษณาไว้ในแผน ต้องตรงกับ gates.yaml (audit รอบ 17)
+#
+# `ROADMAP-GOVERNANCE.md` เขียนสัดส่วน pillar ไว้เป็นหลักฐานว่าแผน G1 ให้ผลอะไร
+# และเขียนกำกับตัวเองว่า "ตัวเลขชุดนี้ไม่มีเทสต์คุม จึงต้องกวาดตอน doc sweep" —
+# ซึ่งค้างผิดมาแล้วสองรอบ · ตัวเลขที่ต้องรอให้มีคนกวาด คือตัวเลขที่ผิดอยู่เงียบ ๆ
+# ระหว่างรอบ (หลักเดียวกับ ADR 0068: เพดานที่ไม่มีตัวทวง = เพดานที่ไม่ได้ตั้ง)
+
+ROADMAP_GOVERNANCE = ROOT / "docs" / "ROADMAP-GOVERNANCE.md"
+# **quantifier ตัวเดียว มีเพดาน และ lazy** — รุ่นแรกเขียนเป็น `(?:\w+ \d+(?: · )?)+`
+# ซึ่ง CodeQL จับเป็น `py/redos` (high) ทันทีใน PR แรก: quantifier ซ้อน quantifier
+# ทำให้ backtracking โตแบบเอ็กซ์โพเนนเชียล · การแยกคำทำทีหลังด้วย `str.split`
+# ปลอดภัยกว่าและอ่านง่ายกว่าการให้ regex ทำ
+PILLAR_TALLY = re.compile(r"วันนี้ \(หลัง r\d+\) เป็น (.{0,200}?) รวม (\d+) gate")
+
+
+def test_the_pillar_tally_in_the_roadmap_matches_reality(gates):
+    """สัดส่วน pillar ที่แผนโฆษณาไว้ ต้องเท่ากับที่นับได้จาก `gates.yaml` จริง"""
+    text = ROADMAP_GOVERNANCE.read_text(encoding="utf-8")
+    found = PILLAR_TALLY.search(text.replace("\n  ", " "))
+    assert found, "หาแถวสัดส่วน pillar ใน ROADMAP-GOVERNANCE.md ไม่เจอ — รูปเปลี่ยนไปแล้ว"
+
+    claimed = {
+        name: int(count)
+        for name, count in (part.split() for part in found.group(1).strip().split(" · "))
+    }
+    actual: dict[str, int] = {}
+    for gate in gates:
+        actual[gate["pillar"]] = actual.get(gate["pillar"], 0) + 1
+
+    assert claimed == actual, f"แผนอ้าง {claimed} แต่ของจริงคือ {actual}"
+    assert int(found.group(2)) == len(gates), (
+        f"แผนอ้างรวม {found.group(2)} gate แต่ของจริง {len(gates)}"
+    )
