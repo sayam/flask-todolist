@@ -50,7 +50,7 @@ services:
     # ดึงไม่ได้แล้ว (manifest unknown) · เป็น directory สำหรับทดสอบเท่านั้น
     # การใช้ image ที่หยุดพัฒนาแล้วจึงรับได้ — ของจริงเป็น directory ขององค์กร
     # ที่ไม่ได้มาจากที่นี่อยู่แล้ว
-    image: bitnamilegacy/openldap:2.6
+    image: bitnamilegacy/openldap:2.6@sha256:687f14a22b5c74fb057a57221acdbe7b8c82e2d3619fc380db3af48ec4aa04ed
     environment:
       LDAP_ROOT: dc=example,dc=test
       LDAP_ADMIN_USERNAME: admin

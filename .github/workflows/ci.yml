@@ -41,7 +41,7 @@ jobs:
     # สิ่งเดียวกันเลย — โดยเฉพาะกับข้อที่ปิดหนี้เรื่องโควตาที่นับแยกต่อ process
     services:
       redis:
-        image: redis:7
+        image: redis:7@sha256:e9b2e45ecd47fbb69b877cf8d045d5cccaaaed52524b6e098b4abe8212994f73
         ports:
           - 6379:6379
         options: >-
@@ -106,11 +106,11 @@ jobs:
           # — เจอจริงตอน push แรกของ job นี้ และเครื่อง dev ไม่เจอเพราะ Debian package
           # ยังมี symlink ชื่อเก่าให้อยู่
           - name: mysql-8
-            image: mysql:8
+            image: mysql:8@sha256:b3b90af2a6552ae30c266fdb7d5dd55f3afb72404bb78d37fe8a23eb857fd3fb
             scheme: mysql+pymysql
             ping: mysqladmin
           - name: mariadb-11
-            image: mariadb:11
+            image: mariadb:11@sha256:1fe78d53850250aa2560aa0059e3088b4cd230a5db2230f530c70e4b87bcc30c
             scheme: mariadb+pymysql
             ping: mariadb-admin
     services:
@@ -852,7 +852,7 @@ jobs:
       # **ตัดชุดที่ไม่มี PFS ออกจริง ไม่ใช่แค่เลือกตัวที่ดีตอนต่อรอง** — nginx
       # ที่ไม่ประกาศ `ssl_ciphers` จะ *เลือก* ECDHE ให้เองอยู่แล้ว แต่ยัง *ยอมรับ*
       # ชุดที่แลกกุญแจด้วย RSA ถ้าไคลเอนต์ขอมา · วัดจริงก่อนแก้แล้วเจอแบบนั้น
-      # (nginx:1.27-alpine ยอมรับ `AES128-GCM-SHA256`) — ด่านที่ดูแค่ "ต่อรองแล้ว
+      # (nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10 ยอมรับ `AES128-GCM-SHA256`) — ด่านที่ดูแค่ "ต่อรองแล้ว
       # ได้อะไร" รายงานว่าผ่าน ทั้งที่ทางที่ไม่มี PFS ยังเปิดอยู่
       #
       # สคริปต์ยิง "ตัวคุม" ที่ต้องสำเร็จก่อนเสมอ ด้วยเหตุผลเดียวกับ step ข้างบน

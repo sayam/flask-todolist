@@ -280,6 +280,14 @@ description: Universal production-discipline rules for web applications, distill
 
 **ตัวบังคับใน reference:** `tests/test_declared_prohibitions.py`
 
+### `stack-images-pinned-and-moved`
+
+**กฎ:** image ของ stack ที่ CI ดึงมารัน ตรึงด้วย digest และมี Dependabot ขยับให้
+
+**เกิดจาก:** audit รอบ 15 — โปรเจกต์มีด่านบังคับการ pin สามตัว (action → SHA · base image → digest · เครื่องมือ CI → hash) และไม่มีตัวไหนเปิดไฟล์ compose · วัดได้ 11 image ถูกดึงด้วย tag และรันใน 11 จาก 25 job ทุก push · ในนั้นมี ghcr.io/zaproxy/zaproxy:stable ซึ่งเป็น tag ลอยและเป็นตัวตัดสินผลด้าน ความปลอดภัย — ผลเขียวของ dast เมื่อสัปดาห์ก่อนจึงทำซ้ำไม่ได้ · Dependabot แยก docker-compose ออกจาก docker (ซึ่งอ่านแค่ Dockerfile) เราประกาศไว้แค่ตัวหลังมาตลอด การตรึงโดยไม่มีตัวขยับจึงจะเป็นการแช่ ช่องโหว่ ด่านนี้บังคับสองข้อคู่กัน
+
+**ตัวบังคับใน reference:** `tests/test_stack_image_pinning.py`
+
 ### `adr-index-complete`
 
 **กฎ:** ดัชนี ADR ครอบทุกใบ เลขไม่ซ้ำไม่มีรู · และการแทนที่ถูกบันทึกสองทิศ

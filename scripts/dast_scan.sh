@@ -17,7 +17,11 @@ set -euo pipefail
 BASE="${1:?ต้องบอก base URL เช่น https://127.0.0.1:8443}"
 USERNAME="${TODOLIST_USER:?ต้องตั้ง TODOLIST_USER}"
 PASSWORD="${TODOLIST_PASSWORD:?ต้องตั้ง TODOLIST_PASSWORD}"
-ZAP_IMAGE="${ZAP_IMAGE:-ghcr.io/zaproxy/zaproxy:stable}"
+# **ตรึงด้วย digest ไม่ใช่ tag `stable`** (audit รอบ 15) — ตัวนี้เป็นตัว *ตัดสิน*
+# ผลด้านความปลอดภัยของทุก push · tag ลอยแปลว่าเขียวเมื่อวานกับเขียววันนี้อาจมา
+# จาก scanner คนละตัว และแดงพรุ่งนี้อาจไม่ใช่เพราะโค้ดเรา — ผลที่ทำซ้ำไม่ได้
+# ไม่ใช่หลักฐาน · Dependabot ecosystem `docker` ขยับ digest นี้ให้ (ดู dependabot.yml)
+ZAP_IMAGE="${ZAP_IMAGE:-ghcr.io/zaproxy/zaproxy:stable@sha256:781a2bdaea47324e7bab583e2263f21d257b0aee61ed51521a5be45f5f5081ef}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # **curl กับ ZAP ต้องเป็นเบราว์เซอร์ตัวเดียวกัน** — `session_protection="strong"`
