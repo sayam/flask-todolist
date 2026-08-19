@@ -44,7 +44,7 @@ services:
         condition: service_healthy
 
   redis:
-    image: redis:7@sha256:e9b2e45ecd47fbb69b877cf8d045d5cccaaaed52524b6e098b4abe8212994f73
+    image: redis:8@sha256:344e3945a0b431c8ff1eecd58c5573538126bd756f02fc7e218ddf1fc2546366
     # ไม่เปิด port ออกนอก stack — มีแต่ app ที่ต้องใช้ และการเปิดทิ้งไว้คือ
     # การเปิด store ที่ไม่มีรหัสผ่านให้ทั้งเครื่อง
     healthcheck:
