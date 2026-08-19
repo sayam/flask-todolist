@@ -33,7 +33,7 @@ services:
         condition: service_completed_successfully
 
   vault:
-    image: hashicorp/vault:1.18
+    image: hashicorp/vault:1.18@sha256:750bb37c1638fa194ab37053a81618c61bb0491ddec6fccac87c07a8e6cd8166
     # โหมด dev เก็บของไว้ในหน่วยความจำ ซึ่งต้องล็อกไม่ให้ swap ออกไปที่ดิสก์
     cap_add:
       - IPC_LOCK
@@ -48,7 +48,7 @@ services:
 
   vault-seed:
     # service ที่ทำงานครั้งเดียวแล้วจบ — เขียนความลับเข้า KV v2 ให้แอปอ่าน
-    image: hashicorp/vault:1.18
+    image: hashicorp/vault:1.18@sha256:750bb37c1638fa194ab37053a81618c61bb0491ddec6fccac87c07a8e6cd8166
     environment:
       VAULT_ADDR: http://vault:8200
       VAULT_TOKEN: ${VAULT_TOKEN:?ต้องตั้ง VAULT_TOKEN}

@@ -13,7 +13,7 @@
 
 services:
   prometheus:
-    image: prom/prometheus:v3.5.0
+    image: prom/prometheus:v3.5.0@sha256:63805ebb8d2b3920190daf1cb14a60871b16fd38bed42b857a3182bc621f4996
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.retention.time=15d
@@ -31,7 +31,7 @@ services:
 
   # หน้าจอสำหรับคน — ไม่ใช่ตัวที่ CI ใช้ตัดสิน (หลักเดียวกับ Grafana ของ siem)
   grafana:
-    image: grafana/grafana:12.0.2
+    image: grafana/grafana:12.0.2@sha256:b5b59bfc7561634c2d7b136c4543d702ebcc94a3da477f21ff26f89ffd4214fa
     environment:
       # ค่านี้มีผลเฉพาะตอน start ครั้งแรก — Grafana เก็บรหัสไว้ใน volume ของมัน
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:?ต้องตั้ง GRAFANA_PASSWORD ก่อน}

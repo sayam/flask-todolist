@@ -58,6 +58,27 @@ updates:
           - "version-update:semver-major"
           - "version-update:semver-minor"
 
+  # **image ของ stack ที่ CI ยิงจริง — คนละ ecosystem กับ `docker` ข้างบน**
+  # (audit รอบ 15) Dependabot แยก `docker` (อ่าน `Dockerfile`) ออกจาก
+  # `docker-compose` (อ่านไฟล์ compose) · เราประกาศไว้แค่ตัวแรกมาตลอด ผลคือ image
+  # 11 ตัวที่ 11 job ดึงมารันทุก push ไม่เคยถูกตรึงเลย — ตรงข้ามกับ action, base
+  # image และเครื่องมือของ CI ที่มีด่านบังคับการ pin คนละตัว
+  #
+  # **ตรึงแล้วต้องมีคนขยับ — บรรทัดนี้คือคนคนนั้น** ถ้าประกาศไว้แล้วยังไม่มี PR
+  # ทั้งที่มี digest ใหม่ แปลว่าชื่อไฟล์ของเราไม่เข้าเกณฑ์ที่มันอ่าน ซึ่งเป็น
+  # ข้อเท็จจริงที่ต้องวัด ไม่ใช่เดา — แถวตรวจอยู่ใน `docs/SECURITY-CADENCE.md`
+  - package-ecosystem: "docker-compose"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "build"
+    groups:
+      stack-images:
+        patterns:
+          - "*"
+    open-pull-requests-limit: 3
+
   # **เครื่องมือที่ CI ติดตั้งเอง ถูกตรึงด้วย hash ใน `pins/`** (ดู pins/README.md)
   # เหตุผลเดียวกับสองอันบน: `pip install pipenv` เปล่า ๆ หยิบรุ่นล่าสุดเสมอ ตรึง
   # แล้วต้องมีคนขยับ · ไฟล์พวกนี้เป็นผลของ `pip-compile --generate-hashes` ซึ่ง

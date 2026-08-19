@@ -17,7 +17,7 @@ services:
         condition: service_healthy
 
   db:
-    image: mariadb:11
+    image: mariadb:11@sha256:1fe78d53850250aa2560aa0059e3088b4cd230a5db2230f530c70e4b87bcc30c
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?ต้องตั้ง DB_ROOT_PASSWORD}
       MYSQL_DATABASE: todolist

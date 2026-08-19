@@ -43,6 +43,7 @@ supply chain เป็น**แกนอิสระ**ของชั้น secur
 | gate | คุมอะไร |
 |---|---|
 | `gate image-digest-pinned` | base image ตรึงด้วย digest ของ manifest index |
+| `gate stack-images-pinned-and-moved` | image ของ stack ที่ CI ดึงมารัน (compose · service container · สคริปต์) ตรึงด้วย digest **และ** มี ecosystem `docker-compose` ของ Dependabot ขยับให้ — audit รอบ 15 |
 | `gate actions-sha-pinned` | GitHub Action ทุกตัวตรึงด้วย commit SHA |
 | `gate dockerfile-linted` | Dockerfile ผ่าน hadolint ทุกระดับรวม info (ADR 0055) — ข้อยกเว้นอยู่ที่ `.hadolint.yaml` ที่เดียวพร้อมเหตุผล |
 | `gate image-os-cve-audit` | OS layer ของ image ถูกสแกน CVE (trivy ใน job `image` — ADR 0054) และตัดสินเทียบรายการยกเว้นสองทิศ |
@@ -83,7 +84,7 @@ supply chain เป็น**แกนอิสระ**ของชั้น secur
 | เครื่องมือสแกนที่เป็น action — aquasecurity/trivy-action, github/codeql-action, gitleaks/gitleaks-action, hadolint/hadolint-action, ossf/scorecard-action, grafana/setup-k6-action | ด่าน image, SAST, secret scan, lint ของ Dockerfile, คะแนน posture, tripwire ของ performance | job `image`, `codeql`, `secret-scan`, `lint`, `scorecard`, `perf-smoke` แดง — และรุ่นที่ตัดสินคือรุ่นใน action ไม่ใช่รุ่นบนเครื่อง (ADR 0055) |
 | Debian ผ่าน base image python:3.13-slim | ชั้น OS ของ image ที่ deploy จริง | `gate image-os-cve-audit` (trivy) + Dependabot ecosystem `docker` |
 | PyPI และ npm | ไลบรารีทุกชั้น: core, deploy, plugin, เครื่องมือของ CI | `gate core-deps-cve-audit`, `gate ci-tools-cve-audit`, `gate plugin-deps-cve-decided` |
-| Docker Hub และ quay.io — image ของ stack ที่ CI ยิงจริง (mysql, mariadb, redis, nginx, prom/prometheus, grafana/grafana, grafana/loki, grafana/alloy, hashicorp/vault, quay.io/keycloak/keycloak, bitnamilegacy/openldap) | stack จริงที่ job หลายตัวยิงใส่ทุก push | job `stack`, `sso`, `ldap`, `vault`, `siem`, `scrape`, `dast` แดงทันทีที่ดึง image ไม่ได้ |
+| Docker Hub และ quay.io — image ของ stack ที่ CI ยิงจริง (mysql, mariadb, redis, nginx, prom/prometheus, grafana/grafana, grafana/loki, grafana/alloy, hashicorp/vault, quay.io/keycloak/keycloak, bitnamilegacy/openldap) | stack จริงที่ job หลายตัวยิงใส่ทุก push (11 จาก 25 job) | **ความพร้อมใช้**: job แดงทันทีที่ดึง image ไม่ได้ · **ความสมบูรณ์และความทำซ้ำได้**: ตรึงด้วย digest ทุกตัวตั้งแต่ audit รอบ 15 (`gate stack-images-pinned-and-moved`) — ก่อนหน้านั้นเป็น tag ล้วน และ image ของ ZAP ซึ่งเป็น *ตัวตัดสิน* ผลด้านความปลอดภัย ใช้ tag ลอย (`stable`) ผลเขียวจึงทำซ้ำไม่ได้ |
 | bestpractices.dev (OpenSSF Best Practices) | badge สามระดับที่ `README.md` โฆษณา และใบตอบใน `docs/BEST-PRACTICES.md` | **ไม่มีเครื่องตรวจ** — มีแถวทบทวนประจำปีใน `docs/SECURITY-CADENCE.md` (ทบทวนคำตอบทั้ง 122 ช่อง) |
 
 **กรณีที่เกิดขึ้นจริงแล้วหนึ่งครั้ง**: Bitnami ย้าย image ที่เคยเปิดฟรีไป org
