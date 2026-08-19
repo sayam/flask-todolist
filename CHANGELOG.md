@@ -18,6 +18,15 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ## [Unreleased]
 
+## [2.0.0] — 2026-08-19
+
+**The version number changes for a legal reason, not a functional one.** The
+project moved from MIT to AGPL-3.0-or-later (documentation to CC BY-SA 4.0),
+which is a breaking change for anyone downstream even though no interface moved.
+Everything published through `v1.6.0` remains MIT forever for whoever received
+it. What else is in this release is sixteen rounds of governance audit — the
+detail is below.
+
 ### Added
 
 - **The project is relicensed** — AGPL-3.0-or-later for the software,
@@ -1101,7 +1110,8 @@ work; the reasoning for each decision lives in the 70 records in
 - WCAG 2.2 AA, checked both by a structural test suite and by pa11y-ci driving a
   real Chromium over dark mode, an alternate theme, and Thai.
 
-[Unreleased]: https://github.com/sayam/flask-todolist/compare/v1.6.0...HEAD
+[Unreleased]: https://github.com/sayam/flask-todolist/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/sayam/flask-todolist/compare/v1.6.0...v2.0.0
 [1.6.0]: https://github.com/sayam/flask-todolist/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/sayam/flask-todolist/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/sayam/flask-todolist/compare/v1.3.0...v1.4.0
