@@ -87,7 +87,11 @@ jobs:
             tests/test_harness.py tests/test_asvs_probe.py \
             --cov=scripts --cov-report=json:.cov-scripts.json --cov-fail-under=0
         env:
-          COVERAGE_FILE: .coverage.scripts
+          # **ไฟล์ข้อมูลต้องอยู่นอก workspace** — `coverage combine` ที่ pytest-cov
+          # เรียกให้ จับไฟล์ตามรูป `.coverage.*` ในไดเรกทอรีปัจจุบัน ผลคือข้อมูล
+          # ของ run แรก (ของแอป) ถูกกลืนไปด้วย แล้วขั้นตอนถัดไปอ่าน coverage
+          # ของแอปไม่ได้เลย — เจอจริงตอน PR ใบแรกของด่านนี้
+          COVERAGE_FILE: ${{ runner.temp }}/coverage-scripts
           SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
       - name: พื้นของ ratchet ต้องไม่ลอยต่ำกว่าของจริง
         run: pipenv run python scripts/check_ratchets.py
