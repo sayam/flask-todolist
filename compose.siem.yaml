@@ -11,7 +11,7 @@ services:
   # ใช้ ruler ของ Loki ไม่ใช่ alert ของ Grafana เพราะสถานะของกฎถามผ่าน API ได้ตรง ๆ
   # ด่านใน CI จึงถามว่า "กฎนี้ firing หรือยัง" ได้โดยไม่ต้องคลิกอะไรบนหน้าจอ
   loki:
-    image: grafana/loki:3.5.0@sha256:4c431d2e6b9b38718694b31c5d56be7c80dc69c513215fde1aeb5b02cd4e2665
+    image: grafana/loki:3.5.12@sha256:c2a6860c2f94ecc98fffce7c10e6c8b350cf25e2ea3daa255dff27d7c6a4dffc
     command: -config.file=/etc/loki/loki.yaml
     volumes:
       - ./deploy/loki.yaml:/etc/loki/loki.yaml:ro
@@ -27,7 +27,7 @@ services:
   # **ต่อ docker.sock แบบอ่านอย่างเดียว** เพื่อรู้ว่าไฟล์ไหนของ service ไหน
   # (ไม่มีมันจะได้ log ที่ไม่มี label บอกว่ามาจากใคร ซึ่งค้นตอนเกิดเหตุไม่ได้)
   logs:
-    image: grafana/alloy:v1.10.0@sha256:1bc130e909116a4bf950eb5187a346007d3b796f96832b529acb14a64e41230f
+    image: grafana/alloy:v1.10.2@sha256:bcf27f18c4402869af112fb39e35e1db3804a404686f4caa20bdf77814219223
     command:
       - run
       - --server.http.listen-addr=0.0.0.0:12345
@@ -44,7 +44,7 @@ services:
 
   # หน้าจอสำหรับคน — ไม่ใช่ตัวที่ CI ใช้ตัดสิน
   grafana:
-    image: grafana/grafana:12.0.2@sha256:b5b59bfc7561634c2d7b136c4543d702ebcc94a3da477f21ff26f89ffd4214fa
+    image: grafana/grafana:12.0.10@sha256:a89f6c4aacc4123fec9a850dc4db0ddbcf9a729ac00021f672288f51ac0ea23c
     environment:
       # **ค่านี้มีผลเฉพาะตอน start ครั้งแรก** — Grafana เก็บรหัสไว้ใน volume ของมัน
       # เปลี่ยนตัวแปรแล้ว restart จึงไม่เปลี่ยนอะไร (เสียเวลาไปแล้วหนึ่งรอบตอนทำ)
