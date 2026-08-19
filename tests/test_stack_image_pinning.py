@@ -131,3 +131,33 @@ def test_dependabot_moves_the_images_it_pins():
     )
     for entry in entries:
         assert entry.get("schedule", {}).get("interval"), "docker-compose: ไม่ได้ตั้งรอบ"
+
+
+def test_the_mover_asks_for_digests_not_new_brands():
+    """**ครึ่งที่สามของเหตุผลที่การตรึงยอมรับได้** (audit รอบ 16 ข้อ 4)
+
+    ใบแรกที่ ecosystem นี้เปิดให้เสนอ `mysql 8 → 26` · `redis 7 → 8` ·
+    `vault 1.18 → 2.0` พร้อมกันเก้าตัว — เลขรุ่นของยี่ห้อในไฟล์ compose เป็น
+    **คำตัดสินว่าเรารองรับอะไร** (`mysql:8` กับ `mariadb:11` คือสิ่งที่ job
+    `dialects` ทดสอบทุก push) ไม่ใช่ของที่ควรมาถึงในรูป PR อัตโนมัติที่แก้เลข
+    ในไฟล์เดียว · จึงตั้ง `ignore` ของ major/minor แบบเดียวกับ `python`
+
+    **เหตุผลนั้นเคยอยู่ในคอมเมนต์อย่างเดียว** และ audit รอบ 16 วัดแล้วว่าถอดบล็อก
+    นั้นออกได้โดยไม่มีอะไรฟ้อง — คำตัดสินที่มีเหตุผลกำกับแต่ไม่มีเครื่องยึด
+    คือคำตัดสินที่มีอายุเท่ากับความจำของคนที่ตั้งมัน
+    """
+    config = yaml.safe_load(DEPENDABOT.read_text(encoding="utf-8"))
+    entries = [e for e in config["updates"] if e["package-ecosystem"] == "docker-compose"]
+    required = {"version-update:semver-major", "version-update:semver-minor"}
+    for entry in entries:
+        ignored = {
+            update_type
+            for rule in entry.get("ignore", [])
+            for update_type in rule.get("update-types", [])
+        }
+        missing = sorted(required - ignored)
+        assert not missing, (
+            f"docker-compose: ไม่ได้ ignore {missing} — ตัวขยับจะเสนอขึ้นรุ่นยี่ห้อ "
+            "แทนที่จะขอแค่ digest ใหม่ · เลขรุ่นในไฟล์ compose เป็นคำตัดสินว่าเรา "
+            "รองรับอะไร ต้องขยับพร้อมเอกสาร เทสต์ และคอนฟิก ไม่ใช่มาเป็น PR ที่แก้ไฟล์เดียว"
+        )
