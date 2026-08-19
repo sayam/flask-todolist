@@ -18,6 +18,16 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ## [Unreleased]
 
+### Added
+
+- **The project has a DOI** — [10.5281/zenodo.22015133](https://doi.org/10.5281/zenodo.22015133),
+  minted by Zenodo when `v2.0.2` was published, with the author's
+  affiliation recorded from `.zenodo.json` rather than from whatever the
+  Zenodo profile said at that moment. The concept DOI always resolves to
+  the newest version; each release also receives its own. `v2.0.0` and
+  `v2.0.1` are not archived and never will be — Zenodo does not work
+  retroactively, and the release notes of each say so.
+
 ## [2.0.2] — 2026-08-19
 
 ### Changed
