@@ -889,8 +889,56 @@ def test_every_declared_floor_is_read_from_the_file_not_a_comment():
     """อ่านพื้นจาก `pyproject.toml` จริง — คอมเมนต์ที่เขียนกำกับคือสิ่งที่รอบนี้กำลังตรวจ"""
     floors = check_ratchets.declared()
 
-    assert set(floors) == {"coverage", "interrogate"}
+    assert set(floors) == {"coverage", "interrogate", "mypy_strict_modules"}
     assert all(value > 0 for value in floors.values())
+
+
+# ------------------------- ratchet ที่ไม่ใช่ตัวเลขของเครื่องมือ (audit r14 · ข้อ 3)
+#
+# ตัวตรวจรุ่นแรกอ่านเฉพาะพื้นที่เป็นตัวเลขใน config ของเครื่องมือ — strict list
+# ของ mypy ซึ่งบอกว่า "ขยาย ห้ามหด" มาตั้งแต่ Phase 2 จึงรอดมาทั้งใบ โดยที่เป้า
+# ที่เขียนกำกับไว้ ("ทั้งแอปภายใน Phase 2") หมดอายุไปสิบหกเฟส
+
+
+def test_the_strict_list_is_counted_from_the_files_that_exist():
+    """นับจากไฟล์จริงเทียบ pattern ไม่ใช่นับจำนวนบรรทัดในลิสต์
+
+    `app.services.*` บรรทัดเดียวครอบหลายโมดูล — การนับบรรทัดจะบอกว่า 12
+    ทั้งที่ของจริงคือ 34 แล้วพื้นจะกลายเป็นตัวเลขที่ไม่ได้วัดอะไรเลย
+    """
+    modules = [
+        path
+        for path in (check_ratchets.APP).rglob("*.py")
+        if "enhancements" not in path.parts and "__pycache__" not in path.parts
+    ]
+    counted = check_ratchets.strict_modules()
+
+    assert counted > 12, "นับได้เท่าจำนวนบรรทัดในลิสต์ = นับผิดตัว (`app.services.*` ครอบหลายโมดูล)"
+    assert counted < len(modules), "นับได้เท่าจำนวนโมดูลทั้งหมด = pattern ไม่ได้ถูกใช้กรองเลย"
+
+
+def test_a_strict_list_that_shrank_is_red():
+    """ทิศที่ไม่มีเครื่องมือตัวไหนบังคับให้ — ถอดโมดูลออกจากลิสต์ต้องแดง"""
+    found = check_ratchets.problems({"mypy_strict_modules": 34.0}, {"mypy_strict_modules": 33.0})
+
+    assert found, "strict list ที่หดลงต้องแดง — ไม่งั้นคำว่า 'ห้ามหด' เป็นแค่คอมเมนต์"
+    assert "ถอย" in found[0]
+
+
+def test_a_strict_list_that_grew_without_moving_the_floor_is_red():
+    """ระยะของตัวที่นับเป็นจำนวนคือ 0 — เพิ่มโมดูลแล้วต้องขยับพื้นใน PR เดียวกัน"""
+    found = check_ratchets.problems({"mypy_strict_modules": 34.0}, {"mypy_strict_modules": 35.0})
+
+    assert found, "ลิสต์โตขึ้นแล้วพื้นไม่ตาม = ที่ว่างที่จะถูกใช้คืนเงียบ ๆ"
+    assert "35" in found[0]
+
+
+def test_a_coverage_floor_above_reality_is_still_not_this_test_s_problem():
+    """ทิศลงของ coverage เป็นของ `fail_under` — ที่นี่ต้องไม่พูดซ้ำ
+
+    ถ้าที่นี่พูดด้วย คนอ่านจะได้ข้อความสองอันที่บอกให้ทำคนละอย่างกับปัญหาเดียว
+    """
+    assert check_ratchets.problems({"coverage": 99.0}, {"coverage": 97.11}) == []
 
 
 # ------------------- รายงานต้องไม่ขัดกับตัวเอง (audit r13 · ข้อ 1)
