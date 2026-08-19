@@ -11,7 +11,7 @@
 |---|---|---|
 | Code formatting & style | ruff เปิดทุกกฎ ข้อยกเว้นมีเหตุผลรายข้อ + ruff format | pre-commit + `ci:lint` (บล็อก merge) |
 | Type safety | mypy strict บนรายชื่อ module ที่**ขยายได้อย่างเดียว** | `pyproject.toml` + `ci:lint` |
-| Testing & coverage | เทสต์ใหม่ต้องผ่าน mutation test ก่อนถือว่าเสร็จ · coverage 97% แบบ ratchet · fuzz จาก OpenAPI spec | `CONTRIBUTING.md` กฎข้อ 1 · `ci:test` + diff-cover · `tests/test_api_fuzz.py` |
+| Testing & coverage | เทสต์ใหม่ต้องผ่าน mutation test ก่อนถือว่าเสร็จ · **ratchet สี่ตัวพร้อมตัวทวง** (coverage 97% · interrogate 85% · โมดูลใน strict list ของ mypy · ข้อห้ามที่มีเครื่องบังคับ) · fuzz จาก OpenAPI spec | `CONTRIBUTING.md` กฎข้อ 1 · `ci:test` + diff-cover · `tests/test_api_fuzz.py` |
 | Secure coding (OWASP) | ประเมิน ASVS 5.0 L2 ครบทุกข้อ · SAST สองตัว · DAST แบบ login แล้ว | `docs/ASVS.md` · `ci:security` · `ci:dast` · `ci:codeql` |
 | Security management & compliance | ISO/IEC 27001:2022 ครบ 116 ข้อ · แกน supply chain · ดัชนี legal รายประเทศ (ธรรมนูญ ADR 0051) | `docs/ISO27001.md` · `docs/SUPPLY-CHAIN.md` · `docs/COMPLIANCE.md` · `tests/test_iso27001.py` |
 | Bug tracking / issue management | GitHub Issues + template ที่บังคับข้อมูลจำเป็น (repro, expected, actual) | `.github/ISSUE_TEMPLATE/` · PR template ถามว่า "ถ้าไม่แก้จะพังอย่างไร" |

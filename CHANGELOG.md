@@ -20,6 +20,71 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Added
 
+- **Every control that is only a sentence is now counted** —
+  `tests/test_declared_prohibitions.py` (round-14 audit) and a floor on
+  the register (round-15). `CLAUDE.md` carries 61 distinct prohibitions;
+  10 of them ask for judgement a machine should not make, leaving 51 that
+  a machine could check and **19 that nothing checked**. What made this
+  urgent is that none of the 19 was being violated: the rules were held
+  by discipline, which is enough for the person who wrote them and not
+  for anyone else, including the same person six months later. Eleven now
+  have a mechanism, each paired with the exact sentence it enforces, and
+  the pairing is checked both ways — a rule that is withdrawn must take
+  its check with it, or the check becomes a rule nobody decided. The
+  first run found a real violation: a test built its own tables and never
+  dropped them, which on the MySQL and MariaDB jobs leaves rows behind
+  for whatever runs next.
+- **Images the CI actually runs are pinned by digest** —
+  `tests/test_stack_image_pinning.py` and the `docker-compose` Dependabot
+  ecosystem (round-15 audit). Three separate gates already required
+  pinning — actions to a SHA, the base image to a digest, CI tooling to
+  hashes — and none of them opened a compose file. Eleven third-party
+  images were pulled by moving tag across 11 of 25 jobs, including
+  `ghcr.io/zaproxy/zaproxy:stable`, the scanner whose verdict decides the
+  DAST gate; a green result from last week could not be reproduced,
+  because nothing recorded which bytes produced it. Pinning alone would
+  have been worse than nothing, so it ships with the mover: Dependabot
+  splits `docker-compose` from `docker`, which reads only `Dockerfile`,
+  and only the latter had ever been declared. Confirmed by measurement
+  rather than assumption — the new ecosystem opened its first PR within
+  minutes, proposing nine major-version jumps, which is why it is now
+  restricted to digests the same way the base image is.
+- **Ratchets that were prose are numbers now** — `check_ratchets.py`
+  gained the mypy strict list (round-14) and the prohibition register
+  (round-15). ADR 0068 had made every *numeric* floor carry something
+  that turns it, which left the ratchets written as sentences untouched:
+  "expand the strict list, never shrink it" had no number at all, and its
+  stated goal — the whole app, by Phase 2 — had expired sixteen phases
+  earlier while covering 34 of 72 modules. Counts differ from percentages
+  in two ways that matter: the slack is zero, because a count only moves
+  when someone edits a list, and the downward direction has to be checked
+  here, because no tool owns it the way `fail_under` owns coverage.
+- **A decision that was replaced now says so on its own page** —
+  `tests/test_adr_index.py` checks supersession three ways (round-14
+  audit). Every register in the repository has been verified both ways
+  since round 9 except the oldest and most cited one. ADR 0035 had
+  replaced part of ADR 0032 a week earlier; ADR 0032 said nothing, the
+  index listed it as plainly accepted, and the module docstring in
+  `app/audit.py` — the first thing anyone reads before touching that
+  mechanism — pointed at it as current, describing the exact locking
+  strategy `CLAUDE.md` forbids returning to.
+- **One page that answers what is pending** — `scripts/whats_pending.py`
+  (round-13 audit), corrected in round 14. Answering "what needs
+  attention" meant opening eight places. The reader holds no state of its
+  own; it reads the sources that already exist and prints one page. Its
+  first version over-reported by three of eight items, because the
+  section it reads mixed open work with decisions that were closed and
+  one feature that was finished — a reader that walks past its own
+  heading is one heading away from being wrong, on a day when nobody is
+  watching it.
+- **A register for decisions that were deliberately postponed**
+  (round-12 audit) — `docs/GOVERNANCE.md`. Deferring something was
+  previously recorded only inside whichever ADR happened to mention it,
+  so the set of open deferrals could not be read anywhere. The test that
+  enforces it caught the ADR written in the same round: it had used
+  "not closed yet" for something that was deliberately out of scope,
+  and a label used loosely makes the register grow with things that do
+  not belong in it.
 - **Every signal now names who receives it and by when** — `severity` in
   `gates.yaml` gained a third value and a companion field (ADR 0066,
   round-10 audit). The field had existed since ADR 0039 and 97 of 99
@@ -272,6 +337,25 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
   four days after round 5 added one.
 
 ### Changed
+
+- **Checks now run before the push, not only after it** (round-15
+  audit). Closing the round-14 gaps took nine CI runs, five of them red
+  and 77 minutes, and every one of the five failed on a test that runs
+  locally in seconds: a generated file not regenerated, a new gate absent
+  from the overlay, a count advertised in the README left behind. They
+  are one class — change one thing, three others must follow — and the
+  tool that knows the answer was already on the machine, with nothing
+  calling it while the answer was still cheap. A `pre-push` hook runs
+  that subset in about nine seconds, and only for pushes that touch the
+  files the class comes from: a hook that costs more than it saves is a
+  hook people learn to skip, after which it guards nothing.
+- **The count the badge worksheet advertises is now read from the
+  registry** in more places than one (documentation sweep after round
+  16). The supply-chain axis grew to 20 gates; a test kept
+  `docs/BEST-PRACTICES.md` honest, while `README.md` and
+  `docs/RISK-ASSESSMENT.md` carried the same number with nothing
+  checking them — the recurring shape where a fact lives in four files
+  and is enforced in one.
 
 - **Everything that waits now declares its own ceiling** (round-11
   audit, ADR 0067 note 1). The project has always insisted that values

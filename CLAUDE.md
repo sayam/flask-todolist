@@ -23,9 +23,10 @@
 - type check: `pipenv run mypy app scripts` (strict list ใน pyproject — ขยาย ห้ามหด)
 - **ก่อนเปิด PR: `pipenv run python scripts/preflight.py`** — เดินด่านของ CI
   (job `lint` + `test`) บนเครื่องโดย**อ่านคำสั่งจาก workflow จริง** ไม่ใช่รายการ
-  ที่ลอกไว้ (ADR 0060) · hook ก่อน commit ตรวจแค่ ruff/format/mypy — xenon ·
-  interrogate · coverage floor · diff-cover อยู่ใน CI อย่างเดียว ซึ่งเป็นคลาส
-  ที่ทำ PR แดงมาแล้วสองรอบติด · `--only lint` เอาเฉพาะที่เร็ว
+  ที่ลอกไว้ (ADR 0060) · hook ก่อน commit ตรวจแค่ ruff/format/mypy · **hook ก่อน
+  push** ตรวจไฟล์ที่ derive จาก `gates.yaml` (ดูข้างล่าง) — xenon · interrogate ·
+  coverage floor · diff-cover อยู่ใน CI อย่างเดียว ซึ่งเป็นคลาสที่ทำ PR แดงมาแล้ว
+  สองรอบติด · `--only lint` เอาเฉพาะที่เร็ว
 - ครั้งแรกหลัง clone: `pipenv run pre-commit install --hook-type pre-commit --hook-type commit-msg --hook-type pre-push`
   · **hook ก่อน push** ตรวจว่าไฟล์ที่ derive จาก `gates.yaml` ตรงกัน เฉพาะ push
   ที่แตะไฟล์ต้นทาง (~9 วินาที · ข้าม `--no-verify` ได้) — คลาสนี้ทำ CI แดง 5/9 run ตอนรอบ 14
