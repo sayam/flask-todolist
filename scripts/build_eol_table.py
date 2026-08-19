@@ -8,6 +8,8 @@ commit ไหนบอก — จึง fetch **ด้วยมือเป็�
 ใช้: `pipenv run python scripts/build_eol_table.py --fetch` แล้ว commit
 ไฟล์ที่เปลี่ยน · รันเปล่า ๆ = ตรวจว่าไฟล์ที่ตรึงยัง parse ได้และครอบ runtime
 ที่ใช้อยู่จริง (exit 1 ถ้าไม่ครอบ)
+
+บทบาท: generator — สร้างไฟล์ที่ commit ไว้ — หลักฐานคือผลลัพธ์ต้องตรงกับที่ commit (coverage ไม่ใช่ตัววัดของชนิดนี้)
 """
 
 from __future__ import annotations

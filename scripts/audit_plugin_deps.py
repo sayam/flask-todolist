@@ -25,6 +25,8 @@ ID ที่อยู่ในทะเบียนแต่ไม่โผล�
 ใช้:
     pip-audit --no-deps -r req-<category>.txt --format=json --output found-<category>.json
     python3 scripts/audit_plugin_deps.py found-*.json
+
+บทบาท: decider — ตัดสินผ่าน/ไม่ผ่าน — หลักฐานคือเทสต์ที่ฝังความผิดแล้วต้องจับได้ · ของสะอาดต้องไม่ถูกจับ
 """
 
 from __future__ import annotations

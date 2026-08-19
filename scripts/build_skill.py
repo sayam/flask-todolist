@@ -10,6 +10,8 @@
 
 ใช้: `pipenv run python scripts/build_skill.py` · `tests/test_skill.py`
 เทียบไฟล์ที่ commit กับผล generate ทุกครั้งที่รันเทสต์
+
+บทบาท: generator — สร้างไฟล์ที่ commit ไว้ — หลักฐานคือผลลัพธ์ต้องตรงกับที่ commit (coverage ไม่ใช่ตัววัดของชนิดนี้)
 """
 
 from __future__ import annotations

@@ -23,6 +23,8 @@ pip-audit ครอบไลบรารี python ทุกชั้นแล�
   มาคือ Dependabot ไม่ใช่ความแดงของด่าน
 
 รันเองบนเครื่อง (ต้องมีรายงานมาก่อน): `python3 scripts/audit_image.py <trivy.json>`
+
+บทบาท: decider — ตัดสินผ่าน/ไม่ผ่าน — หลักฐานคือเทสต์ที่ฝังความผิดแล้วต้องจับได้ · ของสะอาดต้องไม่ถูกจับ
 """
 
 from __future__ import annotations

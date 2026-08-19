@@ -14,6 +14,8 @@ loop การแก้โค้ดชนบ่อยที่สุด) · ช�
     pipenv run python scripts/run_gates.py --only <gate-id>   # เฉพาะตัว (ซ้ำได้)
     pipenv run python scripts/run_gates.py --root <worktree>  # ตรวจ tree อื่น
     ... --output report.json                                  # เขียนรายงานเต็ม
+
+บทบาท: decider — ตัดสินผ่าน/ไม่ผ่าน — หลักฐานคือเทสต์ที่ฝังความผิดแล้วต้องจับได้ · ของสะอาดต้องไม่ถูกจับ
 """
 
 from __future__ import annotations

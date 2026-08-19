@@ -272,6 +272,14 @@
 
 **ตัวบังคับใน reference:** `tests/test_stack_image_pinning.py`
 
+### `scripts-declare-their-role`
+
+**กฎ:** สคริปต์ทุกตัวประกาศชนิดของตัวเอง · มีคนแตะ · และของที่ generate มายังใช้ได้จริง
+
+**เกิดจาก:** audit รอบ 17 — 83 จาก 105 gate ตัดสินด้วยโค้ดใน scripts/ แต่ coverage ของ มันคือ 43.8% และ 14 ไฟล์อยู่ที่ 0% · ในนั้นมี run_gates.py ที่ถูกทดสอบผ่าน subprocess โดยตั้งใจ และ generator ที่ถูกตรวจที่ผลลัพธ์ — **coverage จึงเป็น เครื่องมือวัดที่ผิดชนิดสำหรับครึ่งหนึ่งของไฟล์** · การจำแนกชนิดทำให้เรียกร้อง หลักฐานได้ถูกแบบ และเผยว่ามีสามไฟล์ที่ไม่มีเทสต์ ไม่มี workflow ไม่มี hook แตะเลย (build_eol_table · build_password_blocklist · measure_generated)
+
+**ตัวบังคับใน reference:** `tests/test_script_roles.py` · `tests/test_generated_tables.py` · `tests/test_measure_generated.py`
+
 ### `adr-index-complete`
 
 **กฎ:** ดัชนี ADR ครอบทุกใบ เลขไม่ซ้ำไม่มีรู · และการแทนที่ถูกบันทึกสองทิศ

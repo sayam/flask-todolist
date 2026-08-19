@@ -29,6 +29,8 @@ HTTP 503 ของ GitHub เอง — ตัวนับอ่านว่า 
     python3 scripts/rerun_census.py --limit 200          # ดึงสดจาก GitHub ผ่าน gh
     python3 scripts/rerun_census.py --input runs.json    # ตัดสินจากไฟล์ (ออฟไลน์)
     python3 scripts/rerun_census.py --max-hidden 0       # ใช้เป็นด่านตอนทบทวนตามรอบ
+
+บทบาท: reader — อ่านแล้วรายงาน — หลักฐานคือตัวเลขที่พิมพ์ต้องตรงกับแหล่ง · ห้ามตัดของทิ้งเงียบ
 """
 
 from __future__ import annotations

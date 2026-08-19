@@ -11,6 +11,8 @@
 
 ต้องมี PYTHONPATH=. เพราะ repo ไม่ได้ติดตั้งเป็น package (pytest ตั้งให้เองผ่าน
 `pythonpath` ใน pyproject.toml แต่ `python` เปล่า ๆ ไม่รู้)
+
+บทบาท: helper — ตัวช่วยของสภาพแวดล้อม ไม่ตัดสินและไม่ถูกอ้างเป็นหลักฐาน
 """
 
 import os

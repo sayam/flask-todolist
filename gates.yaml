@@ -574,6 +574,29 @@ gates:
           reference ที่ไม่มี tag หลุดจากรายการแทนที่จะถูกฟ้อง ด่านจึงเขียว
           เพราะมองไม่เห็นของที่ผิด
 
+  - id: scripts-declare-their-role
+    title: สคริปต์ทุกตัวประกาศชนิดของตัวเอง · มีคนแตะ · และของที่ generate มายังใช้ได้จริง
+    kind: test
+    severity: blocking
+    enforced_by:
+      job: test
+      tests:
+        - tests/test_script_roles.py
+        - tests/test_generated_tables.py
+        - tests/test_measure_generated.py
+    standard: []
+    requires: []
+    portable: true
+    layer: baseline
+    pillar: devx
+    born_from: >-
+      audit รอบ 17 — 83 จาก 105 gate ตัดสินด้วยโค้ดใน scripts/ แต่ coverage ของ
+      มันคือ 43.8% และ 14 ไฟล์อยู่ที่ 0% · ในนั้นมี run_gates.py ที่ถูกทดสอบผ่าน
+      subprocess โดยตั้งใจ และ generator ที่ถูกตรวจที่ผลลัพธ์ — **coverage จึงเป็น
+      เครื่องมือวัดที่ผิดชนิดสำหรับครึ่งหนึ่งของไฟล์** · การจำแนกชนิดทำให้เรียกร้อง
+      หลักฐานได้ถูกแบบ และเผยว่ามีสามไฟล์ที่ไม่มีเทสต์ ไม่มี workflow ไม่มี hook
+      แตะเลย (build_eol_table · build_password_blocklist · measure_generated)
+
   - id: adr-index-complete
     title: ดัชนี ADR ครอบทุกใบ เลขไม่ซ้ำไม่มีรู · และการแทนที่ถูกบันทึกสองทิศ
     kind: test

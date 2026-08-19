@@ -11,6 +11,8 @@
 restore จาก backup → ตรวจ integrity + เทียบตาราง/จำนวนแถวกับต้นฉบับ
 วิธี backup/restore ฉบับเต็ม (รวม MySQL/MariaDB และคีย์ encrypt) อยู่ใน
 docs/RUNBOOK-BACKUP.md
+
+บทบาท: decider — ตัดสินผ่าน/ไม่ผ่าน — หลักฐานคือเทสต์ที่ฝังความผิดแล้วต้องจับได้ · ของสะอาดต้องไม่ถูกจับ
 """
 
 from __future__ import annotations

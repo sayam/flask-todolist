@@ -19,6 +19,8 @@ advisory บอกจึงทำไม่ได้จนกว่า upstream �
 และ **ยกเว้นของที่ไม่เจอแล้ว = แดง**
 
 รันเองบนเครื่อง: `PYTHONPATH=. pipenv run python scripts/audit_pins.py`
+
+บทบาท: decider — ตัดสินผ่าน/ไม่ผ่าน — หลักฐานคือเทสต์ที่ฝังความผิดแล้วต้องจับได้ · ของสะอาดต้องไม่ถูกจับ
 """
 
 from __future__ import annotations

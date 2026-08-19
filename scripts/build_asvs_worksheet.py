@@ -13,6 +13,8 @@
 รัน:
     PYTHONPATH=. pipenv run python scripts/build_asvs_worksheet.py            # รีเฟรชตาราง
     PYTHONPATH=. pipenv run python scripts/build_asvs_worksheet.py --fetch    # ดึงมาตรฐานใหม่
+
+บทบาท: generator — สร้างไฟล์ที่ commit ไว้ — หลักฐานคือผลลัพธ์ต้องตรงกับที่ commit (coverage ไม่ใช่ตัววัดของชนิดนี้)
 """
 
 from __future__ import annotations

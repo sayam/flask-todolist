@@ -14,6 +14,8 @@
 สคริปต์นี้** ตัวเลขเปล่า ๆ เท่านั้น การตีความอยู่ใน `docs/comparison/`
 
 ใช้: `pipenv run python scripts/measure_generated.py <apps-root> [--output x.json]`
+
+บทบาท: reader — อ่านแล้วรายงาน — หลักฐานคือตัวเลขที่พิมพ์ต้องตรงกับแหล่ง · ห้ามตัดของทิ้งเงียบ
 """
 
 from __future__ import annotations

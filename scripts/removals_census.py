@@ -21,6 +21,8 @@ git log อย่างเดียวแล้วพิมพ์ออกมา
 ใช้:
     python3 scripts/removals_census.py                 # 30 วันล่าสุด
     python3 scripts/removals_census.py --since 90.days # ช่วงอื่น
+
+บทบาท: reader — อ่านแล้วรายงาน — หลักฐานคือตัวเลขที่พิมพ์ต้องตรงกับแหล่ง · ห้ามตัดของทิ้งเงียบ
 """
 
 from __future__ import annotations
