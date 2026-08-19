@@ -350,6 +350,6 @@ org graph) · [`docs/PDPA.md`](docs/PDPA.md) (worksheet แบบเดียว
 `ldap3` (LGPLv3) ซึ่งอยู่ใน category ของ plugin ที่ถอดทิ้งได้
 (`tests/test_licensing.py` ตรึงไว้)
 
-[![version](https://img.shields.io/badge/version-v2.0.1-blue)](https://github.com/sayam/flask-todolist/releases)
+[![version](https://img.shields.io/badge/version-v2.0.2-blue)](https://github.com/sayam/flask-todolist/releases)
 [![License](https://img.shields.io/badge/License-AGPL--3.0-blue)](LICENSE)
 [![Docs License](https://img.shields.io/badge/Docs-CC%20BY--SA%204.0-lightgrey)](LICENSE-docs)

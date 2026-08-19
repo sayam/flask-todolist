@@ -18,6 +18,21 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ## [Unreleased]
 
+## [2.0.2] — 2026-08-19
+
+### Changed
+
+- **The release runbook now verifies the archive connection instead of
+  assuming it** — `docs/RELEASE.md` gains a one-line check
+  (`gh api repos/:owner/:repo/hooks --jq 'length'`) that must return 1
+  before a release is created. Signing up for Zenodo and switching on a
+  *specific repository* are two different steps, and only the second
+  installs the webhook. Two releases were tagged on the belief that the
+  first step implied the second; Zenodo does not archive retroactively,
+  so neither is citable. The signal was available in one command the
+  whole time — the same shape this project keeps finding: not missing
+  data, missing the habit of looking.
+
 ## [2.0.1] — 2026-08-19
 
 ### Changed
@@ -1128,7 +1143,8 @@ work; the reasoning for each decision lives in the 70 records in
 - WCAG 2.2 AA, checked both by a structural test suite and by pa11y-ci driving a
   real Chromium over dark mode, an alternate theme, and Thai.
 
-[Unreleased]: https://github.com/sayam/flask-todolist/compare/v2.0.1...HEAD
+[Unreleased]: https://github.com/sayam/flask-todolist/compare/v2.0.2...HEAD
+[2.0.2]: https://github.com/sayam/flask-todolist/compare/v2.0.1...v2.0.2
 [2.0.1]: https://github.com/sayam/flask-todolist/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/sayam/flask-todolist/compare/v1.6.0...v2.0.0
 [1.6.0]: https://github.com/sayam/flask-todolist/compare/v1.5.0...v1.6.0
