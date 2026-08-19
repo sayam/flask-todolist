@@ -272,6 +272,14 @@ description: Universal production-discipline rules for web applications, distill
 
 **ตัวบังคับใน reference:** `tests/test_asvs.py`
 
+### `declared-prohibitions-enforced`
+
+**กฎ:** ข้อห้ามที่เครื่องตรวจได้ ต้องมีเครื่องตรวจ — และด่านต้องอ้างกฎที่ยังมีอยู่จริง
+
+**เกิดจาก:** audit รอบ 14 นับข้อห้ามใน CLAUDE.md ได้ 61 ข้อ · 51 ข้อเครื่องตรวจได้ · 19 ข้อมีแค่ประโยค — และทั้ง 19 ข้อยังไม่ถูกละเมิด แปลว่ากติกาถูกทำตามด้วย วินัยไม่ใช่กลไก ซึ่งพอสำหรับคนที่เขียนกฎเอง ไม่พอสำหรับคนถัดไป · ด่านชุดแรกจับของจริงตั้งแต่รันครั้งแรก: tests/test_metrics_multiproc.py สร้างตารางเองแล้วไม่มี teardown ซึ่งบน job dialects คือการทิ้งแถวค้างไว้ ให้เทสต์ตัวถัดไป
+
+**ตัวบังคับใน reference:** `tests/test_declared_prohibitions.py`
+
 ### `adr-index-complete`
 
 **กฎ:** ดัชนี ADR ครอบทุกใบ เลขไม่ซ้ำไม่มีรู
