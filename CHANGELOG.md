@@ -20,6 +20,21 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Added
 
+- **Removing a control is now a decision someone signs** — ADR 0069 and
+  `[tool.todolist.removals]` (round-16 audit). Fifteen rounds had asked
+  what was *added*; this one measured what happens when something is
+  *taken away*, by deleting real things eleven times and watching what
+  turned red. The split was sharper than expected: registers checked
+  against reality — a column, a route, a file, a job — cannot be removed
+  quietly, while registers checked against another document can, because
+  deleting both sides at once still counts as "matching". A whole gate
+  and its test file could be removed with CI fully green after six
+  tidying steps, each of which the previous check's error message asked
+  for, ending with one number edited in the README; 37 rows across three
+  paper registers could be deleted with nothing objecting at all. The
+  counts may grow freely — adding is already governed — but shrinking
+  means editing a number, which is what turns a deletion from a
+  side-effect of cleanup into something with a name attached to it.
 - **Every control that is only a sentence is now counted** —
   `tests/test_declared_prohibitions.py` (round-14 audit) and a floor on
   the register (round-15). `CLAUDE.md` carries 61 distinct prohibitions;
@@ -969,7 +984,7 @@ graph. Nothing in the `/api/v1` contract changed; it only gained fields.
 ## [1.0.0] — 2026-08-12
 
 First public release. Everything below arrived across seven planned phases of
-work; the reasoning for each decision lives in the 68 records in
+work; the reasoning for each decision lives in the 69 records in
 [`docs/adr/`](docs/adr/), and the phase-by-phase plan in
 [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
