@@ -27,11 +27,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import pathlib
 import re
 import shutil
 import subprocess
 import sys
+import tempfile
 
 # pyyaml มากับ dev tools และไม่มี stub — เหตุผลเดียวกับ build_gates_crosswalk.py
 import yaml  # type: ignore[import-untyped]
@@ -54,6 +56,11 @@ SKIP_RUNS = (
 )
 
 EXPRESSION = re.compile(r"\$\{\{[^}]*\}\}")
+
+
+def _substitute(text: str, base: str, temp: str) -> str:
+    """แทนค่า expression ของ CI ที่มีของเทียบเท่าบนเครื่อง — ที่เหลือปล่อยให้ผู้เรียกข้าม"""
+    return text.replace("${{ github.base_ref }}", base).replace("${{ runner.temp }}", temp)
 
 
 def _label(step: dict) -> str:
@@ -85,13 +92,20 @@ def wanted_jobs(root: pathlib.Path, chosen: list[str]) -> tuple[str, ...]:
     return DEFAULT_JOBS
 
 
-def plan(workflow: dict, jobs: tuple[str, ...], base: str) -> list[dict]:
+def plan(workflow: dict, jobs: tuple[str, ...], base: str, temp: str | None = None) -> list[dict]:
     """แปลง step ของ job ที่เลือก เป็นรายการ 'รัน' หรือ 'ข้ามพร้อมเหตุผล'
 
     ทุก step ต้องปรากฏในผลลัพธ์พอดีหนึ่งครั้ง — preflight ที่ทิ้ง step เงียบ ๆ
     ให้ความมั่นใจผิดชนิดเดียวกับ harness ที่รายงานผ่านตอนเทสต์แดง
+
+    **`env:` ของ step เป็นส่วนหนึ่งของคำสั่ง ไม่ใช่ของประกอบ** (audit รอบ 17) —
+    ตอนที่ยังทิ้งไป step ที่วัด coverage ของ `scripts/` เขียนทับ `.coverage` ของ
+    แอปบนเครื่อง ทั้งที่ CI ตั้ง `COVERAGE_FILE` ไว้นอก workspace เพื่อกันเรื่องนี้
+    โดยเฉพาะ · preflight ที่รันคำสั่งเดียวกันใน**สภาพแวดล้อมคนละชุด** คือ preflight
+    ที่ตอบคำถามอื่นกับที่ CI ถาม
     """
-    made = []
+    temp = tempfile.gettempdir() if temp is None else temp
+    made: list[dict] = []
     for job in jobs:
         for step in workflow["jobs"][job]["steps"]:
             entry = {"job": job, "label": _label(step)}
@@ -105,12 +119,20 @@ def plan(workflow: dict, jobs: tuple[str, ...], base: str) -> list[dict]:
             if skip:
                 made.append({**entry, "skip": skip})
                 continue
-            resolved = command.replace("${{ github.base_ref }}", base)
+            resolved = _substitute(command, base, temp)
             left = EXPRESSION.search(resolved)
             if left:
                 made.append({**entry, "skip": f"มี expression ของ CI ที่แทนค่าไม่ได้: {left.group(0)}"})
                 continue
-            made.append({**entry, "run": resolved})
+            declared = (step.get("env") or {}).items()
+            env = {str(k): _substitute(str(v), base, temp) for k, v in declared}
+            unresolved = next((m for v in env.values() if (m := EXPRESSION.search(v))), None)
+            if unresolved:
+                made.append(
+                    {**entry, "skip": f"env มี expression ที่แทนค่าไม่ได้: {unresolved.group(0)}"}
+                )
+                continue
+            made.append({**entry, "run": resolved, "env": env})
     return made
 
 
@@ -129,7 +151,11 @@ def execute(entries: list[dict], root: pathlib.Path) -> int:
             print(f"–  {head}\n   ข้าม: {entry['skip']}")
             continue
         result = subprocess.run(  # noqa: S603 — คำสั่งมาจาก workflow ของ repo เอง ซึ่งมีด่านคุมอยู่
-            [bash, "-e", "-c", entry["run"]], cwd=root, check=False, timeout=STEP_TIMEOUT_SECONDS
+            [bash, "-e", "-c", entry["run"]],
+            cwd=root,
+            check=False,
+            timeout=STEP_TIMEOUT_SECONDS,
+            env={**os.environ, **entry.get("env", {})},
         )
         if result.returncode == 0:
             print(f"✓  {head}")

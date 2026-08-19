@@ -147,3 +147,66 @@ def test_jobs_are_found_across_every_workflow_file(tmp_path):
     )
 
     assert set(jobs_on_disk(tmp_path)) == {"lint", "posture"}
+
+
+# ------------- `env:` ของ step เป็นส่วนหนึ่งของคำสั่ง (audit รอบ 17 · ข้อ 3)
+#
+# เจอตอนที่ D1 ของรอบนี้เพิ่ม step วัด coverage ของ `scripts/` เข้า job `test`:
+# CI ตั้ง `COVERAGE_FILE` ไว้นอก workspace เพราะ `coverage combine` จะกลืนข้อมูล
+# ของแอปไปด้วย แต่ preflight ทิ้ง `env:` ทั้งก้อน ผลคือคำสั่งเดียวกันบนเครื่อง
+# ทับ `.coverage` ของแอป — **ด่านบนเครื่องกับด่านใน CI ตอบคนละคำถาม**
+
+
+def test_the_env_of_a_step_reaches_the_command(tmp_path):
+    """ทิศ "ผ่านเมื่อควรผ่าน" — ค่าที่ประกาศไว้ต้องไปถึงคำสั่งจริง"""
+    result = _run(
+        tmp_path,
+        [
+            {
+                "name": "อ่านค่าจาก env",
+                "run": '[ "$FROM_WORKFLOW" = "ถึงแล้ว" ]',
+                "env": {"FROM_WORKFLOW": "ถึงแล้ว"},
+            }
+        ],
+    )
+
+    assert result.returncode == 0, result.stdout
+
+
+def test_a_step_without_its_env_is_not_reported_as_passing(tmp_path):
+    """ทิศ "แดงเมื่อควรแดง" — ถ้า env ไม่ถูกส่ง คำสั่งที่พึ่งมันต้องแดง ไม่ใช่เขียว
+
+    เป็นการพิสูจน์ว่าเทสต์ข้างบนวัดการส่ง env จริง ไม่ใช่วัดว่า `true` คืน 0
+    """
+    result = _run(tmp_path, [{"name": "ไม่มี env ให้", "run": '[ -n "$FROM_WORKFLOW" ]'}])
+
+    assert result.returncode == 1, result.stdout
+
+
+def test_the_temp_dir_of_the_runner_is_substituted_not_left_literal():
+    """`${{ runner.temp }}` มีของเทียบเท่าบนเครื่อง — ปล่อยไว้ดิบ ๆ = เขียนลง repo"""
+    workflow = {
+        "jobs": {
+            "x": {"steps": [{"run": "true", "env": {"COVERAGE_FILE": "${{ runner.temp }}/cov"}}]}
+        }
+    }
+
+    (entry,) = plan(workflow, ("x",), "main", temp="/ที่ทิ้งของ")
+
+    assert entry["env"]["COVERAGE_FILE"] == "/ที่ทิ้งของ/cov", entry
+
+
+def test_an_env_value_that_cannot_be_resolved_skips_the_step():
+    """ค่าที่แทนไม่ได้ต้องทำให้ข้ามพร้อมเหตุผล — ไม่ใช่รันด้วยค่าที่เพี้ยน
+
+    หลักเดียวกับ `run` ที่มี expression: การรันคำสั่งที่ **สภาพแวดล้อมไม่ครบ**
+    ให้คำตอบที่ต่างจาก CI โดยไม่มีอะไรบอก
+    """
+    workflow = {
+        "jobs": {"x": {"steps": [{"run": "true", "env": {"TOKEN": "${{ secrets.TOKEN }}"}}]}}
+    }
+
+    (entry,) = plan(workflow, ("x",), "main")
+
+    assert "skip" in entry, entry
+    assert "secrets.TOKEN" in entry["skip"], entry
