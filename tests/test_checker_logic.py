@@ -31,6 +31,7 @@ from scripts import (
     audit_posture,
     check_ratchets,
     check_semgrep,
+    lint_commits,
     red_streak_census,
     removals_census,
     rerun_census,
@@ -1325,3 +1326,114 @@ def test_the_report_prints_the_pile_it_chose_not_to_count(monkeypatch):
 
     assert "การแก้ข้อความ" in text
     assert "ไม่นับเป็นการถอด" in text
+
+
+# ------------- ตัวตัดสินทุกตัวต้องอยู่ในรายการนี้ (audit r17 · ข้อ 3)
+#
+# gate `checkers-proven-two-way` (จาก r4) บังคับว่าไฟล์นี้ต้องมีเทสต์ planted
+# violation ให้ทุกตัว**ที่อยู่ในนั้น** — แต่ไม่มีอะไรบังคับว่าตัวตัดสินตัวใหม่ต้อง
+# เข้ามาอยู่ · ผลคือ `lint_commits.py` ซึ่ง **บล็อกทุก commit (hook `commit-msg`)
+# และทุก PR (job `commit-lint`)** อยู่นอกรายการมาตลอด โดยมี coverage 0%
+#
+# รายการที่ไม่มีการตรวจสมาชิก คือรายการที่ครบเฉพาะวันที่มีคนนึกได้
+
+
+CLEAN_TITLES = [
+    "feat(auth): เพิ่มปัจจัยที่สอง",
+    "fix: แก้ตัวกรองวันที่ที่ย่อยไม่ได้",
+    "docs(adr): บันทึกคำตัดสินเรื่อง license",
+    "refactor(gates)!: ยกชั้นของ gate ใหม่ทั้งชุด",
+]
+
+DIRTY_TITLES = [
+    ("แก้บั๊ก", "ไม่มี type นำหน้า"),
+    ("feat เพิ่มของ", "ไม่มีเครื่องหมาย :"),
+    ("wip: ลองดู", "type ที่ไม่อยู่ในรายการ"),
+    ("feat: ", "หัวเรื่องว่าง"),
+    # **ต้องผ่าน regex ให้ได้ก่อน** ไม่งั้นรูปแบบเป็นตัวจับ แล้วการตรวจความยาว
+    # จะถูกถอดออกได้โดยไม่มีเทสต์ไหนแดง (เจอตอน mutation ของรอบนี้เอง)
+    ("feat: " + "ก" * 71, "ยาวเกิน 72 ตัว ทั้งที่รูปแบบถูก"),
+    ("feat: " + "ก" * 80, "ยาวเกินและรูปแบบก็ไม่ผ่าน"),
+]
+
+
+@pytest.mark.parametrize("title", CLEAN_TITLES)
+def test_a_well_formed_subject_is_not_punished(title):
+    """ทิศ "ผ่านเมื่อควรผ่าน" — ตัวตัดสินที่จับของถูกด้วย คือตัวที่คนจะปิดเสียง"""
+    assert lint_commits.check_title(title) == [], f"หัวที่ถูกต้องถูกจับ: {title!r}"
+
+
+@pytest.mark.parametrize(("title", "why"), DIRTY_TITLES)
+def test_a_broken_subject_is_caught(title, why):
+    """ทิศ "พังเมื่อควรพัง" — ฝังความผิดทีละแบบแล้วต้องจับได้"""
+    assert lint_commits.check_title(title), f"ไม่จับ: {why} ({title!r})"
+
+
+def test_the_length_limit_is_measured_in_characters_not_bytes():
+    """หัวเรื่องภาษาไทยยาว 3 ไบต์ต่อตัว — นับไบต์เมื่อไหร่ commit ปกติจะถูกปฏิเสธ
+
+    เป็นกับดักที่ repo นี้เสี่ยงที่สุดเพราะ commit ทุกใบเป็นภาษาไทย
+    """
+    thai = "feat: " + "ก" * 60  # 66 ตัวอักษร · 186 ไบต์
+
+    assert len(thai) <= lint_commits.MAX_TITLE
+    assert lint_commits.check_title(thai) == [], "นับเป็นไบต์แทนตัวอักษร"
+
+
+# ตัวตัดสินที่พิสูจน์ไว้ที่อื่นแล้ว — **ต้องบอกว่าที่ไหน และด้วยวิธีอะไร** ·
+# ตรวจสองทิศเหมือนทะเบียนข้อยกเว้นทุกใบ คือไฟล์ที่อ้างต้องมีจริง
+# และต้องเอ่ยถึงสคริปต์นั้นจริง
+PROVEN_ELSEWHERE = {
+    "run_gates": (
+        "tests/test_harness.py",
+        (
+            "ยิงผ่าน subprocess พร้อม fixture ที่พังจริงและที่สะอาดจริง — เหมือนที่ "
+            "loop ของ agent ใช้ ซึ่งเป็นรูปที่ import แล้วเรียกฟังก์ชันพิสูจน์ไม่ได้"
+        ),
+    ),
+    "n1_smoke": (
+        ".github/workflows/ci.yml",
+        (
+            "job `n-1` รันมันด้วยโค้ดของ tag ล่าสุดทับ schema ของ HEAD ทุก push — "
+            "การพิสูจน์คือสัญญา N-1 ที่ยิงกับของจริงสองรุ่น ไม่ใช่ตรรกะที่ mock ได้"
+        ),
+    ),
+}
+
+
+@pytest.mark.parametrize(("script", "where"), sorted(PROVEN_ELSEWHERE.items()))
+def test_a_decider_proven_elsewhere_really_is(script, where):
+    """ทิศกลับของข้อยกเว้น — ที่ที่อ้างต้องมีอยู่จริงและต้องพูดถึงสคริปต์นั้นจริง"""
+    path, reason = where
+    target = pathlib.Path(__file__).resolve().parent.parent / path
+
+    assert target.is_file(), f"{script}: อ้าง {path} ที่ไม่มีอยู่"
+    assert script in target.read_text(encoding="utf-8"), f"{script}: {path} ไม่ได้เอ่ยถึงมันแล้ว"
+    assert len(reason) > 40, f"{script}: เหตุผลสั้นเกินกว่าจะตัดสินได้"
+
+
+def test_every_deciding_script_is_in_this_file():
+    """**การตรวจสมาชิก** — ตัวตัดสินตัวใหม่ต้องเข้ามาอยู่ ไม่ใช่รอให้มีคนนึกได้
+
+    หลักเดียวกับ "ทุกไฟล์ใต้ `tests/` ต้องเป็นของ gate เดียว" ที่ `gates.yaml`
+    ใช้อยู่แล้ว — partition เต็ม ไม่ใช่รายการที่ใครนึกได้ก็ใส่
+    """
+    here = pathlib.Path(__file__).read_text(encoding="utf-8")
+    scripts_dir = pathlib.Path(__file__).resolve().parent.parent / "scripts"
+
+    missing = []
+    for path in sorted(scripts_dir.glob("*.py")):
+        source = path.read_text(encoding="utf-8")
+        if "บทบาท: decider" not in source:
+            continue
+        # ตัวที่มีไฟล์เทสต์ของตัวเองอยู่แล้ว ถือว่าพิสูจน์ที่นั่น
+        own = (scripts_dir.parent / "tests" / f"test_{path.stem}.py").is_file()
+        if own or f"    {path.stem},\n" in here or path.stem in PROVEN_ELSEWHERE:
+            continue
+        missing.append(path.stem)
+
+    assert not missing, (
+        f"สคริปต์ชนิด decider ที่ไม่มีเทสต์ตรรกะที่ไหนเลย: {missing}\n"
+        "เพิ่มเข้า import ของไฟล์นี้พร้อมเทสต์ planted violation + clean input "
+        "หรือสร้าง tests/test_<ชื่อ>.py ของตัวเอง"
+    )
