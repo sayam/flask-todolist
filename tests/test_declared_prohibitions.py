@@ -46,6 +46,7 @@ INSTRUCTIONS = ROOT / "CLAUDE.md"
 APP = ROOT / "app"
 TESTS = ROOT / "tests"
 SCRIPTS = ROOT / "scripts"
+SCRIPTS_DIR = SCRIPTS
 
 
 def _python_files(root: pathlib.Path) -> list[pathlib.Path]:
@@ -203,6 +204,62 @@ def _shell_scripts_capture_exit_codes_safely() -> list[str]:
     return found
 
 
+RAW_COLOR = re.compile(r"#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(")
+
+
+def _base_css_has_no_raw_colors() -> list[str]:
+    """สีทั้งหมดต้องมาจากตัวแปรของธีม — สีดิบใน `base.css` ธีมทับไม่ได้
+
+    อาการเวลาละเมิด: สลับธีมแล้วมีสีของธีมก่อนหน้าค้างอยู่บางจุด ซึ่งไม่มี
+    เทสต์ตัวไหนของ core จับได้ เพราะหน้าเว็บยัง render ผ่านทุกอย่าง
+    """
+    path = APP / "static" / "base.css"
+    return [
+        f"app/static/base.css:{number} — {line.strip()[:60]}"
+        for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1)
+        if RAW_COLOR.search(line) and "var(--" not in line
+    ]
+
+
+def _the_scanner_user_agent_survives_argument_splitting() -> list[str]:
+    """`-z` ของ ZAP แยกอาร์กิวเมนต์ด้วยช่องว่าง — UA ที่มีช่องว่างจะพังเงียบ
+
+    อาการคือ 302 ทุกหน้า เพราะ `session_protection="strong"` ทิ้ง session ทั้งใบ
+    เมื่อ User-Agent ไม่ตรงกับตอน login แล้วรายงานออกมาว่า "ไม่เจออะไร"
+    """
+    source = (SCRIPTS_DIR / "dast_scan.sh").read_text(encoding="utf-8")
+    found = re.search(r'^USER_AGENT="([^"]*)"', source, re.MULTILINE)
+    if not found:
+        return ["scripts/dast_scan.sh — หา USER_AGENT ไม่เจอ (ชื่อตัวแปรเปลี่ยนไปแล้ว?)"]
+    problems = []
+    if " " in found.group(1):
+        problems.append(f"scripts/dast_scan.sh — User-Agent มีช่องว่าง: {found.group(1)!r}")
+    # **ข้ามบรรทัดคอมเมนต์** — สคริปต์อธิบายกฎข้อนี้ไว้ในคอมเมนต์ของตัวเอง
+    # (เชลล์ไม่มี AST ให้พึ่งเหมือนฝั่ง python) ถ้าไม่ข้าม ด่านจะจับ*คำอธิบาย*
+    # ของกฎว่าเป็นการละเมิดกฎ ซึ่งเป็นกับดักที่ไฟล์นี้เตือนไว้เองที่หัวไฟล์
+    code = [line for line in source.splitlines() if not line.lstrip().startswith("#")]
+    if any("\\(" in line or "\\)" in line for line in code):
+        problems.append("scripts/dast_scan.sh — มี backslash หน้าวงเล็บ ซึ่ง `-z` ของ ZAP รับไม่ได้")
+    return problems
+
+
+def _audit_purge_cuts_from_the_head_only() -> list[str]:
+    """ตัดสาย audit ด้วย `WHERE created_at < cutoff` เฉย ๆ = เจาะรูกลางสาย
+
+    นาฬิกาที่ถูกปรับย้อนหลัง (NTP) ทำให้มีแถวเก่าไปแทรกกลางสาย · purge ครั้งถัดไป
+    จะลบมันแล้ว `audit-verify` ไม่ผ่านตลอดกาลโดยไม่มีทางย้อนกลับ
+    """
+    source = (APP / "purge.py").read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name == "_expired_audit":
+            body = ast.get_source_segment(source, node) or ""
+            if "func.min" not in body:
+                return ["app/purge.py::_expired_audit — ไม่ได้หาแถวแรกที่ยังไม่หมดอายุก่อนตัด"]
+            return []
+    return ["app/purge.py — ไม่มีฟังก์ชัน _expired_audit แล้ว"]
+
+
 # ---------------------------------------------------------------- ทะเบียน
 
 
@@ -259,6 +316,21 @@ RULES = (
         quote="ในสคริปต์ห้ามรับ exit code แบบ `if ! cmd; then status=$?` เด็ดขาด",
         check=_shell_scripts_capture_exit_codes_safely,
         hint="`$?` ในกิ่งนั้นเป็น 0 เสมอ งานที่ล้มเหลวจะรายงานว่าสำเร็จ",
+    ),
+    Rule(
+        quote="เลย์เอาต์ของ core **ห้ามมีสีดิบ**",
+        check=_base_css_has_no_raw_colors,
+        hint="สีดิบใน base.css ธีมทับไม่ได้ — สลับธีมแล้วมีสีของธีมก่อนหน้าค้าง",
+    ),
+    Rule(
+        quote="ค่า User-Agent **ห้ามมีช่องว่าง**",
+        check=_the_scanner_user_agent_survives_argument_splitting,
+        hint="`-z` ของ ZAP แยกอาร์กิวเมนต์ด้วยช่องว่าง — สแกนได้ 302 ทุกหน้าอย่างเงียบ ๆ",
+    ),
+    Rule(
+        quote="ห้ามเปลี่ยนเป็น `WHERE created_at < cutoff` เฉย ๆ",
+        check=_audit_purge_cuts_from_the_head_only,
+        hint="นาฬิกาที่ถูกปรับย้อนหลังจะทำให้เจาะรูกลางสาย แล้ว verify ไม่ผ่านตลอดกาล",
     ),
 )
 

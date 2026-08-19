@@ -889,7 +889,12 @@ def test_every_declared_floor_is_read_from_the_file_not_a_comment():
     """อ่านพื้นจาก `pyproject.toml` จริง — คอมเมนต์ที่เขียนกำกับคือสิ่งที่รอบนี้กำลังตรวจ"""
     floors = check_ratchets.declared()
 
-    assert set(floors) == {"coverage", "interrogate", "mypy_strict_modules"}
+    assert set(floors) == {
+        "coverage",
+        "interrogate",
+        "mypy_strict_modules",
+        "enforced_prohibitions",
+    }
     assert all(value > 0 for value in floors.values())
 
 
@@ -931,6 +936,28 @@ def test_a_strict_list_that_grew_without_moving_the_floor_is_red():
 
     assert found, "ลิสต์โตขึ้นแล้วพื้นไม่ตาม = ที่ว่างที่จะถูกใช้คืนเงียบ ๆ"
     assert "35" in found[0]
+
+
+def test_the_register_of_enforced_prohibitions_only_grows():
+    """ถอดด่านของข้อห้ามออก = ถอยกลับไปเป็น "กฎที่มีแต่ประโยค" (audit r15 · ข้อ 4)
+
+    audit รอบ 14 ปิดไป 8 จาก 19 · รอบ 15 ปิดเพิ่ม 3 · **แต่ไม่มีอะไรทำให้กอง
+    ที่เหลือหดลงเอง** และไม่มีอะไรกันการถอยกลับ — ADR 0068 เรียกสภาพนี้ว่า
+    เพดานที่ไม่มีตัวทวง
+    """
+    shrank = check_ratchets.problems(
+        {"enforced_prohibitions": 11.0}, {"enforced_prohibitions": 10.0}
+    )
+    assert shrank, "ทะเบียนที่หดลงต้องแดง"
+    assert "ถอย" in shrank[0]
+
+    grew = check_ratchets.problems({"enforced_prohibitions": 11.0}, {"enforced_prohibitions": 12.0})
+    assert grew, "เพิ่มด่านแล้วไม่ขยับพื้น = ที่ว่างที่จะถูกใช้คืนเงียบ ๆ"
+
+
+def test_the_prohibition_count_is_read_from_the_register_not_a_number_in_a_doc():
+    """นับจากทะเบียนจริงใน `tests/test_declared_prohibitions.py` ไม่ใช่จากเอกสาร"""
+    assert check_ratchets.enforced_prohibitions() >= 8
 
 
 def test_a_coverage_floor_above_reality_is_still_not_this_test_s_problem():

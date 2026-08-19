@@ -29,6 +29,7 @@ ratchet ที่นับเป็น *จำนวน* ต่างจาก�
 
 from __future__ import annotations
 
+import ast
 import fnmatch
 import pathlib
 import re
@@ -46,7 +47,12 @@ TOOL_TIMEOUT_SECONDS = 300
 
 # ระยะที่พื้นห่างจากของจริงได้ — ดูเหตุผลที่หัวไฟล์
 # **ตัวที่นับเป็นจำนวนใช้ 0** เพราะมันไม่ผันผวนเอง ต้องมีคนแก้ลิสต์เท่านั้น
-SLACK = {"coverage": 1.0, "interrogate": 1.0, "mypy_strict_modules": 0.0}
+SLACK = {
+    "coverage": 1.0,
+    "interrogate": 1.0,
+    "mypy_strict_modules": 0.0,
+    "enforced_prohibitions": 0.0,
+}
 DEFAULT_SLACK = 1.0
 
 # ratchet ที่ **เครื่องมือเจ้าของบังคับทิศลงให้อยู่แล้ว** (`fail_under` ของ coverage
@@ -89,6 +95,9 @@ def declared() -> dict[str, float]:
         "coverage": float(config["tool"]["coverage"]["report"]["fail_under"]),
         "interrogate": float(config["tool"]["interrogate"]["fail-under"]),
         "mypy_strict_modules": float(config["tool"]["todolist"]["ratchets"]["mypy_strict_modules"]),
+        "enforced_prohibitions": float(
+            config["tool"]["todolist"]["ratchets"]["enforced_prohibitions"]
+        ),
     }
 
 
@@ -117,6 +126,23 @@ def strict_modules() -> int:
     return sum(any(fnmatch.fnmatch(module, pattern) for pattern in patterns) for module in modules)
 
 
+def enforced_prohibitions() -> int:
+    """นับข้อห้ามที่มีเครื่องบังคับจริง — อ่านจากทะเบียนของเทสต์ ไม่ใช่จากเอกสาร
+
+    **import ไม่ได้** เพราะสคริปต์นี้ถูกเรียกจาก job ที่ไม่มี pytest เสมอไป และ
+    การ import ไฟล์เทสต์เพื่อจะนับของในนั้น จะลากทั้ง fixture มาด้วย · นับจาก
+    โครงของไฟล์แทน ซึ่งเป็นสิ่งที่เปลี่ยนก็ต่อเมื่อมีคนเพิ่ม/ถอดแถวจริง ๆ
+    """
+    source = (ROOT / "tests" / "test_declared_prohibitions.py").read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign) and any(
+            isinstance(t, ast.Name) and t.id == "RULES" for t in node.targets
+        ):
+            return len(node.value.elts)  # type: ignore[attr-defined]
+    raise RuntimeError("หาทะเบียน RULES ใน tests/test_declared_prohibitions.py ไม่เจอ")
+
+
 def measured() -> dict[str, float]:
     """ค่าจริงวันนี้ — รันเครื่องมือเอง เพราะคอมเมนต์ที่เขียนกำกับไว้คือสิ่งที่กำลังตรวจ"""
     # `--ignore-errors` เฉพาะที่นี่ — เทสต์บางตัวสร้าง plugin ชั่วคราวแล้วลบทิ้ง
@@ -138,6 +164,7 @@ def measured() -> dict[str, float]:
         "coverage": float(total.stdout.strip()),
         "interrogate": float(found.group(1)),
         "mypy_strict_modules": float(strict_modules()),
+        "enforced_prohibitions": float(enforced_prohibitions()),
     }
 
 
