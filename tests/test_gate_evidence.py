@@ -119,6 +119,19 @@ def gates() -> list[dict]:
     return yaml.safe_load(GATES.read_text(encoding="utf-8"))["gates"]
 
 
+# **runner ของ CI เดินตาม UTC ส่วนคนเขียนไม่ได้เดินตาม** — วันที่ที่ถูกต้อง
+# ตามปฏิทินของผู้เขียน (UTC+7) เป็น "อนาคต" ในสายตา runner ตลอดเจ็ดชั่วโมงแรก
+# ของทุกวัน · เจอจริงตอน PR ของ audit รอบ 17 ซึ่งแดงด้วยเรื่องที่ไม่เกี่ยวกับ
+# เนื้อ PR เลย · โซนเวลาบนโลกอยู่ในช่วง UTC-12..UTC+14 ทั้งหมด **หนึ่งวัน**
+# จึงเป็นระยะที่พอดี ไม่ใช่การผ่อนเกณฑ์: การลงวันที่ล่วงหน้าจริง ๆ ยังถูกจับ
+CLOCK_SKEW = datetime.timedelta(days=1)
+
+
+def _latest_allowed() -> datetime.date:
+    """วันที่ล่าสุดที่หลักฐานลงได้ — วันนี้ตาม UTC บวกระยะของโซนเวลา"""
+    return datetime.datetime.now(datetime.UTC).date() + CLOCK_SKEW
+
+
 def _problems_with(item: object) -> list[str]:
     """ตรวจหลักฐานหนึ่งรายการ — คืนรายการปัญหา (ว่าง = ใช้ได้)"""
     if not isinstance(item, dict) or set(item) != FIELDS:
@@ -136,7 +149,7 @@ def _problems_with(item: object) -> list[str]:
     except ValueError:
         found.append(f"date {item['date']!r} ไม่ใช่ YYYY-MM-DD")
     else:
-        if when > datetime.date.today():
+        if when > _latest_allowed():
             found.append(f"date {when} อยู่ในอนาคต")
 
     if len(str(item["caught"]).strip()) < 20:
@@ -157,6 +170,36 @@ def test_every_piece_of_evidence_is_wellformed(gates):
             continue
         broken += [f"{gid}: {problem}" for item in evidence for problem in _problems_with(item)]
     assert not broken, "\n  ".join(["หลักฐานที่ใช้ไม่ได้:", *broken])
+
+
+def _evidence(**overrides: object) -> dict:
+    """หลักฐานที่ใช้ได้หนึ่งชิ้น — ผู้เรียกแก้เฉพาะช่องที่อยากให้ผิด"""
+    return {
+        "kind": "mutation",
+        "ref": "pr/1",
+        "date": "2026-08-01",
+        "caught": "พังโค้ดที่ด่านนี้อ้างว่าคุ้ม แล้วมันแดงจริง",
+        **overrides,
+    }
+
+
+def test_evidence_dated_in_the_future_is_rejected():
+    """ลงวันที่ล่วงหน้า = อ้างการพิสูจน์ที่ยังไม่เกิด — ต้องจับได้"""
+    ahead = datetime.datetime.now(datetime.UTC).date() + datetime.timedelta(days=5)
+
+    assert _problems_with(_evidence(date=ahead.isoformat())), f"ปล่อยวันที่ {ahead} ผ่าน"
+
+
+def test_the_authors_calendar_day_is_not_treated_as_the_future():
+    """runner เดินตาม UTC ส่วนคนเขียนอยู่ UTC+7 — วันนี้ของเขาต้องไม่ถูกปฏิเสธ
+
+    เจอจริง: PR ของรอบ 17 แดงเพราะหลักฐานลงวันที่ตามปฏิทินไทย ซึ่ง runner
+    ยังนับเป็นพรุ่งนี้ · ด่านที่แดงด้วยเรื่องที่ไม่เกี่ยวกับ PR คือด่านที่คนจะ
+    เรียนรู้ที่จะข้าม
+    """
+    theirs = datetime.datetime.now(datetime.UTC).date() + datetime.timedelta(days=1)
+
+    assert _problems_with(_evidence(date=theirs.isoformat())) == []
 
 
 def test_a_gate_without_evidence_must_be_on_the_declared_list(gates):
