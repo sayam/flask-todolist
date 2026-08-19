@@ -198,8 +198,12 @@ def scripts_coverage() -> float:
     if not SCRIPTS_COVERAGE.is_file():
         raise RuntimeError(
             f"ไม่มี {SCRIPTS_COVERAGE.name} — ขั้นตอน 'coverage ของโค้ดที่บังคับกฎ' "
-            "ยังไม่ได้รัน (ดู job `test` ใน ci.yml · บนเครื่องรัน pytest ชุดนั้นพร้อม "
-            "--cov=scripts --cov-report=json:.cov-scripts.json)"
+            "ยังไม่ได้รัน (ดู job `test` ใน ci.yml) · บนเครื่องรัน:\n"
+            "  COVERAGE_FILE=/tmp/coverage-scripts pipenv run pytest -q "
+            "tests/test_checker_logic.py tests/test_preflight.py tests/test_harness.py "
+            "tests/test_asvs_probe.py --cov=scripts "
+            "--cov-report=json:.cov-scripts.json --cov-fail-under=0\n"
+            "**ไฟล์ข้อมูลต้องอยู่นอก repo** ไม่งั้น coverage combine จะกลืนข้อมูลของแอปไปด้วย"
         )
     data = json.loads(SCRIPTS_COVERAGE.read_text(encoding="utf-8"))
     return float(data["totals"]["percent_covered"])
