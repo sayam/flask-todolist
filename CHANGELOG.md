@@ -20,6 +20,10 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ## [2.0.0] — 2026-08-19
 
+*Released with 8 SBOMs (one per dependency category) signed keyless with cosign
+and 8 signature bundles attached by the release workflow, plus SLSA build
+provenance. Archived on Zenodo for citation.*
+
 **The version number changes for a legal reason, not a functional one.** The
 project moved from MIT to AGPL-3.0-or-later (documentation to CC BY-SA 4.0),
 which is a breaking change for anyone downstream even though no interface moved.
