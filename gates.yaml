@@ -525,6 +525,17 @@ gates:
       ด่านชุดแรกจับของจริงตั้งแต่รันครั้งแรก: tests/test_metrics_multiproc.py
       สร้างตารางเองแล้วไม่มี teardown ซึ่งบน job dialects คือการทิ้งแถวค้างไว้
       ให้เทสต์ตัวถัดไป
+    proved_by:
+      - kind: mutation
+        ref: pr/126
+        date: 2026-08-19
+        caught: >-
+          พังกฎทีละข้อครบทั้งแปด — ใส่ session.permanent = True · ย้าย
+          with_for_update ไปล็อกหางสายแทนแถวล็อก · ใส่ importorskip ในเทสต์ ·
+          ใส่ db.get_or_404 ในแอป · เพิ่มคอลัมน์ last_used_at · ทำ TestConfig
+          เป็น standalone · คืนไฟล์ multiproc ที่สร้างตารางเอง · เขียน
+          if ! cmd; then status=$? ในสคริปต์ — แดงตรงข้อทุกครั้ง และทิศกลับ
+          (แก้ quote ให้ไม่มีใน CLAUDE.md) ก็แดง
 
   - id: adr-index-complete
     title: ดัชนี ADR ครอบทุกใบ เลขไม่ซ้ำไม่มีรู
