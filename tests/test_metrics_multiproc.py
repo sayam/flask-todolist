@@ -21,7 +21,7 @@ from app.metrics import (
     merged_series,
     render,
 )
-from tests.conftest import TestConfig, bearer_client, issue_token
+from tests.conftest import TestConfig, _app_with_tables, bearer_client, issue_token
 
 
 def _multiproc_config(tmp_path, workers=2):
@@ -60,11 +60,18 @@ def test_an_unwritable_dir_refuses_to_start(tmp_path):
 
 
 def test_metrics_aggregate_across_workers(tmp_path):
-    app = create_app(_multiproc_config(tmp_path))
+    # **สร้างแอปผ่าน `_app_with_tables()` ไม่ใช่ `create_all()` เอง** — เดิมทำเอง
+    # แล้วไม่มี teardown ซึ่งบน job `dialects` (MySQL/MariaDB) แปลว่าตารางกับแถว
+    # `scraper` ค้างไว้ให้เทสต์ตัวถัดไป · ยังไม่เคยระเบิดเพราะชื่อไม่ชนใคร แต่เป็น
+    # คลาสเดียวกับ `Duplicate entry 'tester'` ที่ทำให้ P5-04 แดง (audit รอบ 14 ข้อ 2)
+    for app in _app_with_tables(_multiproc_config(tmp_path)):
+        _aggregate_across_workers(app, tmp_path)
+
+
+def _aggregate_across_workers(app, tmp_path):
     from app import db
 
     with app.app_context():
-        db.create_all()
         from app.models import User
 
         user = User(username="scraper")
