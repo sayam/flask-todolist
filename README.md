@@ -169,6 +169,8 @@ Written in Thai, because that is the language the thinking happened in.
 - [`CHANGELOG.md`](CHANGELOG.md) — what changed and when
 - [AGPL-3.0-or-later](LICENSE) for the software and [CC BY-SA 4.0](LICENSE-docs)
   for the documentation — Copyright (c) 2026 Sayam Sriphua
+- [`CITATION.cff`](CITATION.cff) — archived on Zenodo, DOI [10.5281/zenodo.22015133](https://doi.org/10.5281/zenodo.22015133)
+  (that DOI always resolves to the newest version; each release also gets its own)
 
 ## Stack
 
@@ -339,6 +341,10 @@ org graph) · [`docs/PDPA.md`](docs/PDPA.md) (worksheet แบบเดียว
 [ADR 0070](docs/adr/0070-relicense-to-agpl-and-cc-by-sa.md) ซึ่งแทนที่
 [ADR 0038](docs/adr/0038-mit-license.md)
 
+**อ้างอิงงานนี้**: DOI [10.5281/zenodo.22015133](https://doi.org/10.5281/zenodo.22015133) — ชี้ไปที่รุ่นล่าสุด
+เสมอ (แต่ละรุ่นมี DOI ของตัวเองด้วย) · ข้อมูลอ้างอิงอยู่ใน [`CITATION.cff`](CITATION.cff)
+· **รุ่นแรกที่ถูก archive คือ `v2.0.2`** — Zenodo ไม่ archive ย้อนหลัง
+
 **ทุกอย่างที่เผยแพร่ถึง `v1.6.0` ยังเป็น MIT ตลอดไปสำหรับคนที่รับไปแล้ว** —
 สิทธิ์ที่ให้ไปแล้วเพิกถอนไม่ได้ และการเปลี่ยนครั้งนี้มีผลกับรุ่นถัดไปเท่านั้น
 
@@ -351,5 +357,6 @@ org graph) · [`docs/PDPA.md`](docs/PDPA.md) (worksheet แบบเดียว
 (`tests/test_licensing.py` ตรึงไว้)
 
 [![version](https://img.shields.io/badge/version-v2.0.2-blue)](https://github.com/sayam/flask-todolist/releases)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22015133.svg)](https://doi.org/10.5281/zenodo.22015133)
 [![License](https://img.shields.io/badge/License-AGPL--3.0-blue)](LICENSE)
 [![Docs License](https://img.shields.io/badge/Docs-CC%20BY--SA%204.0-lightgrey)](LICENSE-docs)
