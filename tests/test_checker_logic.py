@@ -1023,6 +1023,45 @@ def test_closed_items_do_not_inflate_the_pile():
     assert not any(item.startswith("~~") for item in pending)
 
 
+def test_the_reader_stops_at_the_next_heading(tmp_path, monkeypatch):
+    """ตัวอ่านต้องมีขอบเขตของตัวเอง — audit รอบ 14 ข้อ 4
+
+    รุ่นแรกอ่านยาวจนจบไฟล์ · ตัวเลขที่ได้ถูกโดยบังเอิญ เพราะหัวข้อถัด ๆ ไปไม่มี
+    bullet ระดับบนสุด — **ตัวอ่านที่อ่านเลยหัวข้อของตัวเอง ห่างจากการรายงานผิด
+    อยู่หัวข้อเดียว** และมันจะผิดในวันที่ไม่มีใครกำลังดูมันอยู่
+    """
+    fake = tmp_path / "CLAUDE.md"
+    fake.write_text(
+        "## ยังไม่ได้ทำ\n"
+        "- ของที่ค้างจริง\n"
+        "\n### ไม่ได้ค้าง — ตัดสินแล้วว่าไม่ทำ\n"
+        "- ของที่ตัดสินแล้วว่าไม่ทำ\n"
+        "\n## หัวข้ออื่นของไฟล์\n"
+        "- bullet ของหัวข้ออื่นที่ไม่เกี่ยวอะไรเลย\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(whats_pending, "INSTRUCTIONS", fake)
+
+    pending = whats_pending.undone()
+
+    assert pending == ["ของที่ค้างจริง"], f"อ่านเลยขอบเขตของตัวเอง: {pending}"
+
+
+def test_decided_and_finished_items_are_not_counted_as_pending():
+    """ของที่ปิดแล้วซึ่งนอนอยู่ใต้หัวข้อ "ยังไม่ได้ทำ" ทำให้กองดูใหญ่กว่าความจริง
+
+    วัดจริงตอน audit รอบ 14: 3 จาก 8 ข้อไม่ใช่ของค้าง — `?next=` เป็นคำตัดสิน
+    ที่ปิดแล้ว · "ปัจจัยหลักมีสองรูปแบบ" เป็นคำอธิบายของสิ่งที่มีอยู่ · และ
+    "OIDC เสร็จแล้วตั้งแต่ P5-13" เป็นของที่ทำเสร็จไปแล้ว
+    """
+    pending = whats_pending.undone()
+
+    for closed in ("OIDC เสร็จแล้ว", "?next=", "ปัจจัยหลักมีสองรูปแบบ"):
+        assert not any(closed in item for item in pending), (
+            f"ของที่ปิดแล้วถูกนับเป็นของค้าง: {closed} — ย้ายไปใต้หัวข้อย่อย 'ไม่ได้ค้าง' ของ CLAUDE.md"
+        )
+
+
 def test_the_report_reads_every_source_it_claims_to():
     """รายงานที่หัวข้อครบแต่เนื้อว่าง คือรายงานที่อ่านแหล่งไม่ได้แล้วเงียบ"""
     text = whats_pending.report(TODAY, within=400)
