@@ -12,6 +12,10 @@
 > [`ROADMAP-FEATURES.md`](ROADMAP-FEATURES.md) · และแผน G (governance ตาม
 > ธรรมนูญ ADR 0051 — ปิดครบทั้งใบ 2026-08-16) อยู่ใน
 > [`ROADMAP-GOVERNANCE.md`](ROADMAP-GOVERNANCE.md)
+> · **งาน governance หลังปิดแผน G ไม่ได้มาจากแผนล่วงหน้าอีกแล้ว แต่มาจากรอบ
+> audit** (r1–r15 ปิดครบ · r16 ออกรายงานแล้ว) — ตารางรายรอบและผลของแต่ละรอบ
+> อยู่ท้าย [`ROADMAP-GOVERNANCE.md`](ROADMAP-GOVERNANCE.md) และวิธีทำให้แต่ละรอบ
+> มีค่าอยู่ใน [`SECURITY-CADENCE.md`](SECURITY-CADENCE.md)
 >
 > หมวดที่ตัดออกโดยเจตนา (บันทึกไว้ แต่ไม่ทำใน app นี้):
 > - **Reliability & Availability** — SLA/RTO/RPO/backup 3-2-1 ผูกกับ infra จริง
@@ -395,8 +399,10 @@ DoD ของ SSO คือ **"login ผ่าน OIDC ได้จริงก�
   แทนที่จะเป็นความตั้งใจในเอกสาร (เทสต์ที่ต้องใช้ไลบรารีจริงมาร์ก `plugin_deps`
   — **ไม่ใช้ `importorskip`** ซึ่งจะทำให้ job `test` ข้ามเงียบ ๆ ตอนไลบรารีหาย)
 - **pip-audit/SBOM แยกตาม category ✅** — CVE ของของที่ถอดได้ **ไม่ทำให้ job ของ
-  core แดง** แต่ยิง `::warning::` + สรุปของ run · artifact แยก `sbom-core.json`
-  กับ `sbom-<category>.json` จึงตอบได้ว่าถอด plugin ตัวนี้แล้ว component ไหนหายไป
+  core แดง** · artifact แยก `sbom-core.json` กับ `sbom-<category>.json` จึงตอบได้ว่า
+  ถอด plugin ตัวนี้แล้ว component ไหนหายไป · **อัปเดต (audit รอบ 13 · ADR 0025
+  โน้ต 1)**: job `plugin-audit` เองแดงได้แล้ว เกณฑ์คือ "ยังไม่มีใครตัดสิน" ไม่ใช่
+  "มี CVE" — การเตือนใส่ annotation ของ job ที่เขียวอยู่ วัดแล้วว่าไม่มีใครอ่าน
 
 **ผลที่วัดได้:** CI 11 job · โหมด bare 730 passed / 5 deselected ·
 `segno` ไม่อยู่ใน SBOM ของ core อีกแล้ว (118 components) แต่ยังถูก audit ในสายของมันเอง

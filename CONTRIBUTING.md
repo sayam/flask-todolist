@@ -131,6 +131,18 @@ file without an entry turns CI red on purpose. You have two options:
   [`overlays/flask/`](overlays/flask/) are generated from, so the entry has to
   carry its own reason for existing.
 
+**Before you push**, a `pre-push` hook runs the subset that checks files derived
+from `gates.yaml` (about nine seconds), and only for pushes that touch those
+sources — install it with the command in [Setup](#setup); `--no-verify` skips it
+when you deliberately want CI to answer.
+
+**Writing a new prohibition into `CLAUDE.md`?** Ask whether a machine could check
+it. If it could, add a row to
+[`tests/test_declared_prohibitions.py`](tests/test_declared_prohibitions.py)
+quoting the rule's own words — it is verified both ways, so a rule that is
+withdrawn takes its check with it — and move `enforced_prohibitions` in
+`pyproject.toml` in the same pull request.
+
 ### 9. UI work starts from the design document
 
 Read [`docs/DESIGN.md`](docs/DESIGN.md) before touching anything under
@@ -257,7 +269,11 @@ pipenv run flask create-user <ชื่อ>
    เทสต์ที่ยังเขียวตอนลบพฤติกรรมที่มันเอ่ยชื่อออก ไม่ใช่เทสต์ที่อ่อน แต่ไม่ใช่เทสต์
 2. **การตัดสินใจต้องมี ADR** — สิ่งที่ต้องเขียนคือทางเลือกที่*ไม่ได้เลือก*
    และเงื่อนไขที่จะทำให้คำตัดสินนั้นหมดอายุ
-3. **เพดานคุณภาพขยับขึ้นทางเดียว** — ลดเพื่อให้งานผ่านไม่ใช่ตัวเลือกที่มีอยู่
+3. **เพดานคุณภาพขยับขึ้นทางเดียว** — ลดเพื่อให้งานผ่านไม่ใช่ตัวเลือกที่มีอยู่ ·
+   **และมีตัวทวงให้ขยับแล้ว** (ADR 0068 · `scripts/check_ratchets.py` ใน job `test`):
+   coverage · interrogate · จำนวนโมดูลใน strict list ของ mypy · จำนวนข้อห้ามที่มี
+   เครื่องบังคับ — พื้นที่ลอยห่างจากของจริงเกินระยะที่ประกาศ = แดงเหมือนกัน
+   เพราะเพดานที่ไม่มีใครหมุนคือเพดานที่ไม่ได้ตั้ง
 4. **ตรรกะอยู่ใน `app/services/`** route เป็น adapter บาง ๆ (มี AST scan บังคับ)
 5. **ไฟล์ที่ generate มาห้ามแก้ด้วยมือ** — `docs/openapi.json`,
    `app/password_blocklist.txt`, `app/sun_data.py`, ไฟล์ `.mo`, `SKILL.md`,
@@ -280,6 +296,15 @@ pipenv run flask create-user <ชื่อ>
    บน `pull_request` · ที่เหลือเป็น `watched`/`warning` และต้องมี `watched_by:`
    (ใคร · ภายในกี่วัน · ด้วยกลไกอะไร) · รายละเอียดของกลไกทั้งหมดอยู่ใน
    [`docs/GOVERNANCE.md`](docs/GOVERNANCE.md)
+
+   **ก่อน push**: hook `pre-push` จะรันชุดที่ตรวจไฟล์ที่ derive จาก `gates.yaml`
+   (~9 วินาที) ให้เอง ถ้า push นั้นแตะไฟล์ต้นทาง — ติดตั้งด้วยคำสั่งในหัวข้อ
+   [หัวข้อ "ตั้งเครื่อง"](#ตั้งเครื่อง) · ข้ามด้วย `--no-verify` ได้เมื่อจงใจให้ CI เป็นคนตอบ
+
+   **เขียนข้อห้ามใหม่ลง `CLAUDE.md` ให้ถามต่อว่าเครื่องตรวจได้ไหม** — ถ้าได้
+   ให้เพิ่มแถวใน [`tests/test_declared_prohibitions.py`](tests/test_declared_prohibitions.py)
+   พร้อมข้อความจริงของกฎ (ตรวจสองทิศ: ละเมิด = แดง · อ้างข้อความที่ไม่มีแล้ว = แดง)
+   แล้วขยับ `enforced_prohibitions` ใน `pyproject.toml` ใน PR เดียวกัน
 9. **งาน UI เริ่มจาก [`docs/DESIGN.md`](docs/DESIGN.md)** — อ่านก่อนแตะ
    `app/templates/` หรือ `app/static/base.css` และประกาศว่าเป็น **refine**
    (ค่าเริ่มต้น — รักษาตัวตนตามเอกสาร) หรือ **redesign** (เปลี่ยนตัวตน —

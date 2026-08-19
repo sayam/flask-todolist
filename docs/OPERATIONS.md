@@ -327,6 +327,12 @@ docker compose -f compose.yaml -f compose.sso.yaml up       # + Keycloak (สำ
 ส่วน Keycloak ต้องมี `KEYCLOAK_ADMIN_PASSWORD` — **ทุกตัวไม่มีค่าเริ่มต้น**
 compose จะไม่ start พร้อมบอกว่าขาดอะไร แทนที่จะขึ้นมาด้วยรหัสที่ทุกคนรู้
 
+**image ทุกตัวในไฟล์ compose ถูกตรึงด้วย digest** (audit รอบ 15 —
+`gate stack-images-pinned-and-moved`) จึงเป็นไบต์ชุดเดียวกันทุกเครื่องทุกครั้ง ·
+ตัวขยับคือ ecosystem `docker-compose` ของ Dependabot ซึ่ง **ขอแค่ digest ใหม่
+ไม่ใช่ยี่ห้อรุ่นใหม่** (`ignore` ของ major/minor ตั้งไว้แบบเดียวกับ base image) ·
+การขึ้นรุ่นยี่ห้อเป็นคำตัดสินที่ต้องขยับเอกสาร เทสต์ และคอนฟิกพร้อมกัน
+
 **เลือกยี่ห้อด้วยไฟล์ override ไม่ใช่ตัวแปร** เพราะการเลือกต้องเปลี่ยนสองอย่าง
 พร้อมกัน (service ที่ start กับ `DATABASE_URL` ที่ app ใช้) แยกเป็นสองตัวแปร
 เมื่อไหร่ วันหนึ่งจะมีคนแก้ตัวเดียวแล้วได้ stack ที่ start MySQL ขึ้นมาแต่ app

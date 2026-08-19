@@ -133,10 +133,15 @@
   ทั้งชุด) · 3 แขน แขนละ 5 แอป · battery เดียวกัน (`scripts/measure_generated.py`
   + `scripts/asvs_probe.py`) · ผลกับข้อมูลดิบอยู่คู่กัน และ `tests/test_asvs_probe.py`
   **บังคับว่าตัวเลขในรายงานต้องตรงกับ JSON** และรายงานต้องบันทึกโมเดล+วันที่+spec
-  · **probe ถูกตรวจสองทิศด้วย fixture สามสำนวน** — มันเคยลงโทษโครงที่ *ดีกว่า*
-  มาแล้วสี่ครั้ง (helper กลาง · `session.get()` ของ Flask · `SECRET_KEY` ใน
-  conftest · `@login_required` ที่อยู่บนบรรทัด decorator ซึ่งไม่อยู่ใน
-  `ast.get_source_segment()` ของ FunctionDef)
+  · **probe ถูกตรวจสองทิศด้วย fixture สามสำนวน** — เคยลงโทษโครงที่ *ดีกว่า* มาแล้ว
+  สี่ครั้ง (helper กลาง · `session.get()` · `SECRET_KEY` ใน conftest ·
+  `@login_required` ที่ไม่อยู่ใน `ast.get_source_segment()` ของ FunctionDef)
+
+- **กฎที่เครื่องตรวจได้ ต้องมีเครื่อง** (audit รอบ 14–15) —
+  `tests/test_declared_prohibitions.py` ถือกฎกับตัวตรวจไว้ด้วยกัน สองทิศ (ละเมิด =
+  แดง · อ้างข้อความที่ไม่มีใน `CLAUDE.md` แล้ว = แดง) · จำนวนที่มีเครื่องเป็น ratchet
+  ตัวหนึ่งใน `[tool.todolist.ratchets]` คู่กับ coverage · interrogate · strict list
+  ของ mypy (`scripts/check_ratchets.py` — ADR 0068)
 
 ## เริ่มอ่านจากตรงไหน ถ้ากลับมาหลังหายไปนาน
 

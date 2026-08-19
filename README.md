@@ -111,8 +111,8 @@ Not "we have tests" — this is what runs on every push:
 | | |
 |---|---|
 | Test suite | on SQLite, **and again on real MySQL 8 and MariaDB 11**, and once more with no plugin libraries installed at all |
-| Static analysis | ruff with every rule enabled and exceptions justified one by one, mypy strict on a list that only grows, complexity and docstring floors that ratchet upward |
-| Security | `pip-audit` on core, an SBOM, full-history secret scanning, and an **authenticated OWASP ZAP scan against the running app** |
+| Static analysis | ruff with every rule enabled and exceptions justified one by one, mypy strict on a list that only grows, complexity and docstring floors that ratchet upward — **four of those thresholds carry something that turns them**, so a floor drifting below reality fails too |
+| Security | `pip-audit` on core, an SBOM, full-history secret scanning, and an **authenticated OWASP ZAP scan against the running app** — every third-party image the CI runs is pinned by digest, with Dependabot moving them |
 | Accessibility | pa11y-ci driving real Chromium over dark mode, an alternate theme, and Thai — because contrast differs in each |
 | Integration | the whole stack behind nginx with two replicas, TLS, a real OIDC provider, a real LDAP directory, a real Vault, a real systemd timer |
 | Contracts | the OpenAPI file, the database schema, and the ASVS worksheet are regenerated and compared against what is committed |
@@ -153,7 +153,7 @@ Written in Thai, because that is the language the thinking happened in.
 | [`docs/GOVERNANCE.md`](docs/GOVERNANCE.md) | how the gate machinery itself works — the index and its two-way checks, red-evidence, layers, severity and watchers, the censuses, and what gets exported to other projects |
 | [`docs/ASVS.md`](docs/ASVS.md) | OWASP ASVS 5.0 Level 2 self-assessment — all 253 in-scope requirements answered, including the 48 that do not pass |
 | [`docs/ISO27001.md`](docs/ISO27001.md) | ISO/IEC 27001:2022 self-assessment — all 116 items answered (clauses 4–10 and every Annex A control) — and since 2026-08-16, all of them pass or are justified n/a |
-| [`docs/SUPPLY-CHAIN.md`](docs/SUPPLY-CHAIN.md) | the supply-chain axis — five layers of the chain and the 19 gates that guard them, kept honest against `gates.yaml` both ways |
+| [`docs/SUPPLY-CHAIN.md`](docs/SUPPLY-CHAIN.md) | the supply-chain axis — five layers of the chain and the 20 gates that guard them, kept honest against `gates.yaml` both ways |
 | [`docs/COMPLIANCE.md`](docs/COMPLIANCE.md) | the per-country legal index — Thailand (PDPA) today, and the contract for adding a country additively |
 | [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) | measured numbers, including the ones that hurt |
 | [`docs/DATA-CLASSIFICATION.md`](docs/DATA-CLASSIFICATION.md) | what is stored, how sensitive it is, how long it is kept |
@@ -263,8 +263,9 @@ core ห้ามรู้จักชื่อ plugin ตัวใดตัว�
 
 ไม่ใช่ "มีเทสต์" แต่คือของพวกนี้รันทุก push: ชุดเทสต์บน SQLite **และบน MySQL 8
 กับ MariaDB 11 ของจริง** และอีกรอบในสภาพที่ไม่มีไลบรารีของ plugin เลย ·
-ruff ที่เปิดทุกกฎ · mypy strict ที่ขยายได้อย่างเดียว · `pip-audit` · SBOM ·
-secret scan ทั้งประวัติ · **ZAP ที่ login แล้วยิงใส่แอปที่รันอยู่จริง** ·
+ruff ที่เปิดทุกกฎ · mypy strict ที่ขยายได้อย่างเดียว **และมีตัวทวงให้ขยับ** ·
+`pip-audit` · SBOM · secret scan ทั้งประวัติ · **ZAP ที่ login แล้วยิงใส่แอปที่รัน
+อยู่จริง** (image ของ scanner ตรึงด้วย digest — ผลที่ทำซ้ำไม่ได้ไม่ใช่หลักฐาน) ·
 pa11y-ci บน Chromium จริงทั้งโหมดมืด ธีมอื่น และภาษาไทย · stack เต็มหลัง nginx
 ที่มีสอง replica, TLS, IdP จริง, LDAP จริง, Vault จริง, systemd timer จริง ·
 **โค้ดของ release ก่อนหน้ารันทับ schema ใหม่ทุก push** (สัญญา N-1 — job `n-1`)
@@ -316,7 +317,7 @@ org graph) · [`docs/PDPA.md`](docs/PDPA.md) (worksheet แบบเดียว
 และการบังคับสองทิศ · หลักฐานว่าด่านเคยแดง · ชั้นและผู้เฝ้า · สำมะโน ·
 และของที่ export ไปให้โปรเจกต์อื่น) ·
 [`docs/SUPPLY-CHAIN.md`](docs/SUPPLY-CHAIN.md) (แกน supply chain — ห้าชั้น
-19 gate ตรวจกับ gates.yaml สองทิศ) ·
+20 gate ตรวจกับ gates.yaml สองทิศ) ·
 [`docs/COMPLIANCE.md`](docs/COMPLIANCE.md) (ดัชนี legal รายประเทศ +
 สัญญาการเพิ่มประเทศแบบ additive) ·
 [`docs/RISK-ASSESSMENT.md`](docs/RISK-ASSESSMENT.md) (วิธีประเมินความเสี่ยง
