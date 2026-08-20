@@ -10,9 +10,11 @@
 """
 
 import hashlib
+import os
 import pathlib
 
-from sqlalchemy import text
+import pytest
+from sqlalchemy import select, text
 
 from app import db
 from app.models import Category, Todo, User
@@ -42,7 +44,9 @@ def _fingerprint() -> str:
     """ลายนิ้วมือของทุกตารางที่มีข้อมูล — ใช้พิสูจน์ว่าไม่มีอะไรถูกเขียน"""
     digest = hashlib.sha256()
     for table in sorted(db.metadata.sorted_tables, key=lambda t: t.name):
-        rows = db.session.execute(text(f"SELECT * FROM {table.name}")).fetchall()  # noqa: S608
+        # `select(table)` ไม่ใช่ `text(f"SELECT * FROM {name}")` — semgrep จับตัวหลัง
+        # ได้ถูกแล้ว (`avoid-sqlalchemy-text`) และตัวแรกก็อ่านง่ายกว่าด้วย
+        rows = db.session.execute(select(table)).fetchall()
         digest.update(repr(sorted(map(repr, rows))).encode("utf-8"))
     return digest.hexdigest()
 
@@ -86,6 +90,13 @@ def test_a_truncated_audit_chain_is_found(app, user_id):
     assert "audit-anchor" in {finding.kind for finding in report.findings}
 
 
+@pytest.mark.skipif(
+    os.environ.get("TEST_DATABASE_URL", "sqlite").startswith(("mysql", "mariadb")),
+    reason=(
+        "MySQL/MariaDB เทียบ unique index ด้วย collation ที่ไม่สนตัวพิมพ์ — "
+        "สภาพ 'ชนกันอยู่แล้ว' สร้างไม่ได้บนยี่ห้อนั้นตามนิยาม (ฐานกันให้ตั้งแต่แรก)"
+    ),
+)
 def test_colliding_usernames_are_found(app, user_id):
     """ของที่ชนกันอยู่แล้วก่อนกฎของข้อ 2 เกิด ต้องมีคนบอก"""
     with app.app_context():
