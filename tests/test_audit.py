@@ -324,6 +324,75 @@ def test_removing_an_entry_from_the_middle_breaks_the_chain(client, app):
             audit.verify_chain()
 
 
+# ---------------- ตัดท้ายสาย — สิ่งที่การเดินแถวที่เหลือมองไม่เห็น (audit รอบ 19)
+#
+# แถวที่เหลือหลังตัดท้าย **ยังต่อกันครบทุกข้อ** ตัวเดินสายจึงตอบว่า OK ตามนิยาม
+# ของมันเอง · วัดจริงบนฐานที่ migrate สด: ลบแถวสุดท้ายได้ "OK — 5 entries" และ
+# ลบทั้งตารางได้ "OK — 0 entries" พร้อม exit 0
+#
+# สมอคือ `tdl_audit_lock.last_hash` ที่ ADR 0035 ใส่ไว้เพื่อกัน deadlock —
+# หลักฐานที่ระบบมีอยู่แล้ว แต่ตัวตรวจไม่เคยอ่าน
+
+
+def test_deleting_the_newest_entry_is_caught_by_the_anchor(client, app):
+    """ตัดท้ายสายต้องแดง — และต้องเป็นคนละชนิดกับ "แถวถูกแก้" """
+    client.post("/add", data={"title": "ซื้อนม"})
+    client.post("/add", data={"title": "ซื้อขนม"})
+    with app.app_context():
+        newest = _events(app)[-1].id
+        db.session.execute(text("DELETE FROM tdl_audit WHERE id = :id"), {"id": newest})
+        db.session.commit()
+
+        with pytest.raises(audit.AnchorError) as broken:
+            audit.verify_chain()
+
+    assert broken.value.rows >= 1
+
+
+def test_deleting_the_whole_table_is_caught_by_the_anchor(client, app):
+    """ล้างทั้งตารางเคยได้คำตอบว่า OK — 0 entries ซึ่งเป็นคำตอบที่แย่ที่สุดที่เป็นไปได้"""
+    client.post("/add", data={"title": "ซื้อนม"})
+    with app.app_context():
+        db.session.execute(text("DELETE FROM tdl_audit"))
+        db.session.commit()
+
+        with pytest.raises(audit.AnchorError) as broken:
+            audit.verify_chain()
+
+    assert broken.value.rows == 0
+
+
+def test_losing_the_anchor_row_itself_is_caught(client, app):
+    """สมอหายไปทั้งแถว = ตรวจไม่ได้ ซึ่งต้องดังกว่าการตอบว่าผ่าน"""
+    client.post("/add", data={"title": "ซื้อนม"})
+    with app.app_context():
+        db.session.execute(text("DELETE FROM tdl_audit_lock"))
+        db.session.commit()
+
+        with pytest.raises(audit.AnchorError):
+            audit.verify_chain()
+
+
+def test_an_untouched_chain_still_passes(client, app):
+    """ทิศ "เขียวเมื่อควรเขียว" — สมอที่แดงใส่ของปกติ คือสมอที่จะถูกถอด"""
+    client.post("/add", data={"title": "ซื้อนม"})
+    with app.app_context():
+        assert audit.verify_chain() == len(_events(app))
+
+
+def test_an_empty_table_on_a_fresh_database_passes(app):
+    """ฐานที่ยังไม่มีใครเขียนอะไร: 0 แถว + สมอเป็น genesis = ถูกต้อง"""
+    with app.app_context():
+        db.session.execute(text("DELETE FROM tdl_audit"))
+        db.session.execute(
+            text("UPDATE tdl_audit_lock SET last_hash = :genesis"),
+            {"genesis": audit.GENESIS_HASH},
+        )
+        db.session.commit()
+
+        assert audit.verify_chain() == 0
+
+
 def test_replacing_an_entry_with_a_self_consistent_forgery_still_breaks(client, app):
     """ปลอมแถวเดียวให้ hash ตัวเองถูกต้องก็ยังไม่พอ เพราะแถวถัดไปชี้มาที่ hash เดิม"""
     client.post("/add", data={"title": "ซื้อนม"})
