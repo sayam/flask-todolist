@@ -28,7 +28,9 @@ NEXT_SECTION = "## กรอบเวลาแก้ช่องโหว่"
 
 DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 # เงื่อนไขต้องขึ้นต้นด้วย "เมื่อ" เพื่อให้แยกออกจากคำว่า "ยังไม่รู้" ที่ตัดสินอะไรไม่ได้
-CONDITION = re.compile(r"^เมื่อ\s*\S")
+# · นำหน้าด้วยเครื่องหมายว่าใครเป็นคนตัดสินได้ (audit รอบ 20 ข้อ 4)
+JUDGE = re.compile(r"^\*\*\((คนตัดสิน|เครื่องตรวจ: [^)]+)\)\*\*\s*")
+CONDITION = re.compile(r"^(?:\*\*\((?:คนตัดสิน|เครื่องตรวจ: [^)]+)\)\*\*\s*)?เมื่อ\s*\S")
 LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 
 # เผื่อไว้ให้งานปกติเดินได้ ไม่ใช่ให้ปล่อยผ่าน — เลยกำหนดวันแรก CI ยังไม่แดง
@@ -211,3 +213,66 @@ def test_the_number_that_has_never_recurred_is_visible_not_counted_by_hand(rows)
     reader = (ROOT / "scripts" / "whats_pending.py").read_text(encoding="utf-8")
 
     assert "ยังไม่เคยทำซ้ำ" in reader, "scripts/whats_pending.py ไม่ได้รายงานจำนวนแถวที่ยังไม่เคยครบรอบ"
+
+
+# ------------- เงื่อนไขที่เครื่องตัดสินได้ ต้องให้เครื่องตัดสิน (รอบ 20 ข้อ 4)
+#
+# ตารางมีแถวที่ผูกกับเงื่อนไขแทนวันที่อยู่สี่แถว · สองแถวเครื่องตัดสินไม่ได้จริง ๆ
+# (pentest โดยคนนอก · ซ้อมใช้ runbook ตอนข้อมูลรั่ว) แต่แถว "เมื่อจะออก release
+# ถัดไป" เทียบกับรุ่นล่าสุดที่ประกาศไว้ได้ตรง ๆ — ถ้าออก release แล้วแถวยังบอก
+# รุ่นเก่า ไม่มีอะไรทักเลย
+#
+# **จำนวนแถวที่คนต้องดูเอง ต้องเป็นตัวเลขที่เห็นได้ ไม่ใช่สิ่งที่ต้องนับเอง**
+
+CHANGELOG = ROOT / "CHANGELOG.md"
+RELEASED = re.compile(r"^## \[(\d+\.\d+\.\d+)\]", re.MULTILINE)
+
+
+def test_every_conditional_review_says_who_can_judge_it(rows):
+    """แถวเงื่อนไขทุกแถวต้องประกาศว่าเครื่องตรวจให้ หรือคนต้องดูเอง"""
+    silent = [row[0][:52] for row in rows if CONDITION.match(row[3]) and not JUDGE.match(row[3])]
+
+    assert not silent, (
+        f"แถวเงื่อนไขที่ไม่ได้บอกว่าใครตัดสิน: {silent}\n"
+        "เขียน **(คนตัดสิน)** หรือ **(เครื่องตรวจ: …)** นำหน้าเงื่อนไข"
+    )
+
+
+def test_the_release_row_knows_the_newest_release(rows):
+    """ออก release แล้วแถวต้องตามทัน — เงื่อนไขที่ประเมินได้ ต้องถูกประเมิน
+
+    เทียบกับ `CHANGELOG.md` ไม่ใช่กับ git tag เพราะ checkout ของ CI ไม่ได้ดึง tag
+    มาด้วย · ด่านที่ข้ามตัวเองเมื่อข้อมูลไม่มา คือด่านที่เขียวโดยไม่ได้ตรวจ
+    """
+    newest = RELEASED.search(CHANGELOG.read_text(encoding="utf-8"))
+    assert newest, "อ่านรุ่นล่าสุดจาก CHANGELOG ไม่ได้ — รูปหัวข้อเปลี่ยนไปแล้ว"
+
+    release_rows = [row for row in rows if "release" in row[0].lower()]
+    assert release_rows, "ไม่มีแถวของงานชุด release ในตารางแล้ว"
+
+    version = newest.group(1)
+    stale = [row[0][:40] for row in release_rows if version not in row[2]]
+    assert not stale, (
+        f"CHANGELOG ประกาศรุ่น {version} แล้ว แต่แถวงานชุด release ยังไม่ได้อัปเดต: {stale}\n"
+        "ทำงานชุด release ให้ครบแล้วขยับช่อง 'ครั้งล่าสุด' ให้ตรงรุ่น"
+    )
+
+
+def test_the_number_of_rows_a_human_must_watch_is_counted_not_guessed(rows):
+    """ตัวอ่านต้องแยกได้จริงว่าแถวไหนคนต้องดูเอง — ไม่ใช่แค่มีคำนั้นอยู่ในไฟล์
+
+    เทสต์นับเองจากตาราง แล้วเทียบกับที่ตัวอ่านนับ · เขียนรอบแรกเป็นการค้นหาคำ
+    ในซอร์ส แล้ว mutation ที่ทำให้ตัวนับตอบ 0 เสมอ **ไม่แดง** เพราะคำนั้นยังอยู่
+    ในคอมเมนต์ — คำสัญญาที่วัดได้จริงคือ "นับตรงกัน" ไม่ใช่ "มีคำนี้อยู่"
+    """
+    from scripts.whats_pending import human_judged
+
+    conditional = [row[3] for row in rows if not DATE.match(row[3])]
+    expected = sum(1 for due in conditional if "คนตัดสิน" in due)
+
+    manual, total = human_judged([(row[0], row[1], row[3]) for row in rows])
+
+    assert (manual, total) == (expected, len(conditional)), (
+        f"ตัวอ่านนับได้ {manual}/{total} แต่ตารางมี {expected}/{len(conditional)}"
+    )
+    assert manual < total, "ไม่มีแถวไหนที่เครื่องตรวจให้เลย — เครื่องหมายไม่ได้ทำอะไร"

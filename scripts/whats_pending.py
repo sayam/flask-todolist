@@ -100,6 +100,16 @@ def conditional_rows(rows: list[tuple[str, str, str]]) -> list[str]:
     )
 
 
+def human_judged(rows: list[tuple[str, str, str]]) -> tuple[int, int]:
+    """(แถวเงื่อนไขที่คนต้องดูเอง, แถวเงื่อนไขทั้งหมด)
+
+    **เงื่อนไขที่เครื่องประเมินได้ ไม่ควรถูกปล่อยให้คนดูโดยบังเอิญ** (audit รอบ 20)
+    — ตัวเลขคู่นี้ทำให้ความต่างมองเห็นได้ แทนที่จะต้องไล่อ่านทีละแถว
+    """
+    conditional = [due for _title, _period, due in rows if not DATE.match(due)]
+    return sum(1 for due in conditional if "คนตัดสิน" in due), len(conditional)
+
+
 def deferred() -> list[str]:
     """แถวในทะเบียนของที่จงใจเลื่อน (docs/GOVERNANCE.md)"""
     text = GOVERNANCE.read_text(encoding="utf-8")
@@ -173,7 +183,9 @@ def report(today: datetime.date, within: int) -> str:
         lines.append("    (ยังไม่มีรอบไหนหมุนครบสักรอบ — 'เลยกำหนด 0' จึงยังไม่ได้แปลว่ากระบวนการเดิน)")
 
     waiting = conditional_rows(rows)
+    manual, conditional = human_judged(rows)
     lines += ["", f"## รอเงื่อนไข ไม่ใช่รอวันที่ — {len(waiting)} แถว"]
+    lines.append(f"  · คนตัดสิน {manual} จาก {conditional} แถว (ที่เหลือมีเครื่องตรวจให้)")
     lines += [f"  {item}" for item in waiting] or ["  (ไม่มี)"]
 
     postponed = deferred()
