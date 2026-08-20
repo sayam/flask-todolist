@@ -527,6 +527,9 @@ HEALTHY = {
     "allow_force_pushes": False,
     "allow_deletions": False,
     "allow_auto_merge": True,
+    "delete_branch_on_merge": True,
+    "allow_merge_commit": False,
+    "allow_rebase_merge": True,
     "sha_pinning_required": True,
 }
 ON_PR = {"lint", "test"}
@@ -545,6 +548,9 @@ def test_posture_passes_when_the_platform_matches_what_we_declared():
         ({"allow_force_pushes": True}, "เขียนทับประวัติได้"),
         ({"allow_deletions": True}, "ลบ branch หลักได้"),
         ({"allow_auto_merge": False}, "วิธี merge มาตรฐานของทุก PR หายไป"),
+        ({"delete_branch_on_merge": False}, "branch ที่ merge แล้วจะกองค้างอีกครั้ง"),
+        ({"allow_merge_commit": True}, "ประวัติแตกสายได้ ทั้งที่ประกาศว่าเส้นเดียว"),
+        ({"allow_rebase_merge": False}, "ทางเดียวที่ ADR 0053 รับ ถูกปิด"),
         ({"sha_pinning_required": False}, "แพลตฟอร์มเลิกบังคับสิ่งที่เทสต์เราบังคับอยู่"),
         ({"required_checks": ["lint"]}, "job ที่รันบน PR หลุดจากรายการบังคับ"),
         ({"required_checks": ["lint", "test", "ผี"]}, "บังคับ check ที่ไม่มีใครสร้างได้"),
@@ -1723,3 +1729,37 @@ def test_no_answer_from_the_api_is_not_treated_as_a_failure():
     หลักเดียวกับที่ `--input` ของสคริปต์นี้ทำให้รันโดยไม่ต่อเน็ตได้
     """
     assert audit_posture.description_problems(None) == []
+
+
+def test_every_merge_setting_declares_a_value_and_a_reason():
+    """**ทะเบียนที่บอกแค่ว่า "อ่านไม่ได้" คือทะเบียนที่ไม่มีเจ้าของ** (5-Why 2026-08-21)
+
+    `delete_branch_on_merge` หลุดจากแผนที่ไปทั้งใบเพราะมันอยู่ในคลาสที่ token
+    สิทธิ์ต่ำสุดอ่านไม่ได้ — ของเดิมบันทึกว่าเครื่องมองไม่เห็นอะไร แต่ไม่มีที่ไหน
+    บันทึกว่าค่าที่ควรเป็นคืออะไร · ผลคือกติกาถูกบังคับด้วยความจำ แล้ว branch
+    ที่ merge แล้วกองค้าง 64 ใบโดยไม่มีอะไรทัก
+    """
+    assert audit_posture.MERGE_SETTINGS, "ทะเบียน merge setting ว่าง"
+
+    for flag, declared in audit_posture.MERGE_SETTINGS.items():
+        want, why = declared
+        assert isinstance(want, bool), f"{flag} ไม่ได้ประกาศค่าที่ควรเป็น"
+        assert len(why) > 20, f"{flag} มีค่าแต่ไม่มีเหตุผลที่อ่านแล้วตัดสินได้: {why!r}"
+
+
+def test_the_note_for_an_unreadable_setting_says_what_it_should_be():
+    """รายงานที่บอกแค่ "อ่านไม่ได้" ทำให้คนอ่านไม่รู้ว่าต้องไปตั้งค่าอะไร"""
+    invisible = {**HEALTHY, "delete_branch_on_merge": None}
+
+    notes = audit_posture.unreadable(invisible)
+
+    assert any("delete_branch_on_merge" in note for note in notes), "ไม่ได้รายงานว่ามองไม่เห็น"
+    assert any("True" in note for note in notes), "รายงานแล้วแต่ไม่ได้บอกว่าค่าที่ควรเป็นคืออะไร"
+
+
+def test_a_readable_merge_setting_that_drifted_is_a_problem_not_a_note():
+    """อ่านได้แล้วผิด = ปัญหา · อ่านไม่ได้ = หมายเหตุ — สองอย่างนี้ห้ามสลับกัน"""
+    drifted = {**HEALTHY, "delete_branch_on_merge": False}
+
+    assert audit_posture.compare(drifted, ON_PR, 2, None), "อ่านได้แล้วผิด ต้องเป็นปัญหา"
+    assert audit_posture.unreadable(drifted) == [], "อ่านได้แล้วต้องไม่มีหมายเหตุค้าง"

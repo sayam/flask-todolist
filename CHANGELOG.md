@@ -55,6 +55,20 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Changed
 
+- **Repository settings the checker cannot read now still have a declared
+  value.** `scripts/audit_posture.py` kept a register of merge-related
+  settings that GitHub withholds from a least-privilege token, but the
+  register recorded only *what the machine cannot see* — never *what the
+  value ought to be*. A setting that cannot be verified therefore had no
+  owner, and a setting with no owner had no default: `delete_branch_on_merge`
+  sat off since the repository was created, so every merged branch stayed
+  behind, and `git branch --merged` could not see them either, because
+  rebase merges rewrite the commits. Sixty-four of them had accumulated.
+  The register now carries the intended value and the reason beside each
+  flag; the checker compares them when it can read them and reports what
+  they *should* be when it cannot, and a quarterly row in
+  `docs/SECURITY-CADENCE.md` gives the unreadable ones a human owner.
+
 - **The release checklist now verifies the DOI where the answer lives.**
   Counting webhooks (`gh api repos/:owner/:repo/hooks --jq 'length'`)
   answers whether the wire is connected, not whether the release was

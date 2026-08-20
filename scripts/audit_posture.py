@@ -252,9 +252,15 @@ def compare(
         for flag, want in EXPECTED_FLAGS.items()
         if state.get(flag) != want
     )
+    # **เทียบเฉพาะที่อ่านได้** — `None` แปลว่าสิทธิ์ไม่พอ ไม่ใช่ว่าปิดอยู่
+    problems.extend(
+        f"{flag} = {state.get(flag)!r} แต่ทะเบียน merge setting ประกาศไว้ว่า {want!r}"
+        for flag, (want, _why) in MERGE_SETTINGS.items()
+        if state.get(flag) is not None and state.get(flag) != want
+    )
     problems.extend(
         f"{flag} = {state.get(flag)!r} — ต้องเปิด (ADR 0061)"
-        for flag in ("allow_auto_merge", "sha_pinning_required")
+        for flag in ("sha_pinning_required",)
         if state.get(flag) is False
     )
 
@@ -272,8 +278,38 @@ def compare(
 # *เขียนโค้ด* แก่ตัวตรวจที่มีหน้าที่อ่านอย่างเดียว แพงกว่าค่าที่ได้จากบูลีนตัวเดียว
 # มาก (ADR 0061 โน้ต 2026-08-18) → รายงานเป็น "ตรวจด้วยเครื่องไม่ได้" ไม่ใช่
 # "ปิดอยู่" เพราะสองอย่างนั้นต่างกันคนละขั้ว และการรายงานผิดฝั่งคือการโกหก
+#
+# **แต่ "อ่านไม่ได้ที่นี่" ไม่ใช่เหตุผลที่จะไม่ประกาศว่าค่าควรเป็นอะไร** (5-Why
+# ของ branch ค้าง 64 ใบ · 2026-08-21): `delete_branch_on_merge` ตกจากแผนที่ไป
+# ทั้งใบเพราะมันอยู่ในคลาสนี้ — ทะเบียนเดิมบันทึกว่า *เครื่องมองไม่เห็นอะไร*
+# แต่ไม่มีที่ไหนบันทึกว่า *ค่าที่ควรเป็นคืออะไร* setting ที่พิสูจน์ไม่ได้จึงไม่มี
+# เจ้าของ และ setting ที่ไม่มีเจ้าของก็ไม่มีค่าตั้งต้น · ผลคือกติกาข้อ 7 ของ
+# CONTRIBUTING ถูกบังคับด้วยความจำของคนคนเดียว แล้วลืมไป 30 กว่าครั้งติดกัน
+#
+# ทะเบียนนี้จึงถือ **ค่าที่ควรเป็น** ด้วย · ตัวตัดสินใช้มันสองจังหวะ: เทียบจริง
+# เมื่ออ่านได้ (คนที่มีสิทธิ์รันเอง) และรายงานว่า "ควรเป็นอะไร" เมื่ออ่านไม่ได้
+# (CI ที่สิทธิ์ต่ำสุด) — ค่าที่ประกาศไว้จึงมีคนตรวจได้เสมอ แค่ไม่ใช่ทุกที่
+#
+# ที่ *ไม่* อยู่ในทะเบียนโดยตั้งใจ: `merge_commit_title`/`merge_commit_message`
+# (มีผลเฉพาะเมื่อเปิด merge commit ซึ่งปิดอยู่) · `squash_merge_commit_*` และ
+# `use_squash_pr_title_as_default` (มีผลเฉพาะเมื่อเปิด squash) ·
+# `allow_update_branch` (ไม่มีกติกาข้อไหนพึ่งมัน)
+MERGE_SETTINGS = {
+    "allow_auto_merge": (True, "วิธี merge มาตรฐานของทุก PR (CONTRIBUTING ข้อ 7)"),
+    "delete_branch_on_merge": (
+        True,
+        (
+            "ปิดแล้ว branch ที่ merge ไปกองค้าง — และ `git branch --merged` มองไม่เห็น "
+            "เพราะ rebase เขียน commit ใหม่ ทำให้ไม่มีใครสังเกตจนกองถึง 64 ใบ"
+        ),
+    ),
+    "allow_merge_commit": (False, "ประวัติต้องเป็นเส้นเดียว (คู่กับ required_linear_history)"),
+    "allow_rebase_merge": (True, "ทางเดียวที่ ADR 0053 กับ CONTRIBUTING ข้อ 7 รับ"),
+}
+
 UNREADABLE_AT_LEAST_PRIVILEGE = {
-    "allow_auto_merge": "ต้องการ contents:write จึงจะเห็น — ตรวจด้วยมือตามรอบ cadence",
+    flag: f"ต้องการ contents:write จึงจะเห็น — ควรเป็น {want!r} ({why})"
+    for flag, (want, why) in MERGE_SETTINGS.items()
 }
 
 
@@ -379,7 +415,7 @@ def fetch() -> dict:
         "required_linear_history": (protection.get("required_linear_history") or {}).get("enabled"),
         "allow_force_pushes": (protection.get("allow_force_pushes") or {}).get("enabled"),
         "allow_deletions": (protection.get("allow_deletions") or {}).get("enabled"),
-        "allow_auto_merge": repo.get("allow_auto_merge"),
+        **{flag: repo.get(flag) for flag in MERGE_SETTINGS},
         "sha_pinning_required": actions.get("sha_pinning_required"),
         "description": repo.get("description") or "",
     }
