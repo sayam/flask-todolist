@@ -33,7 +33,8 @@
         "set field #username to a11y",
         "set field #password to A11yProbe!2026",
         "click element button[type=submit]",
-        "wait for path to be /"
+        "wait for path to be /",
+        "navigate to http://127.0.0.1:5099/"
       ]
     },
     {
@@ -142,7 +143,8 @@
         "set field #username to a11y",
         "set field #password to A11yProbe!2026",
         "click element button[type=submit]",
-        "wait for path to be /"
+        "wait for path to be /",
+        "navigate to http://127.0.0.1:5099/teams"
       ]
     },
     {
@@ -152,7 +154,8 @@
         "set field #username to a11y",
         "set field #password to A11yProbe!2026",
         "click element button[type=submit]",
-        "wait for path to be /"
+        "wait for path to be /",
+        "navigate to http://127.0.0.1:5099/teams/1"
       ]
     },
     {
@@ -165,7 +168,96 @@
         "set field #username to a11y",
         "set field #password to A11yProbe!2026",
         "click element button[type=submit]",
-        "wait for path to be /"
+        "wait for path to be /",
+        "navigate to http://127.0.0.1:5099/admin"
+      ]
+    },
+    {
+      "url": "http://127.0.0.1:5099/admin/users",
+      "actions": [
+        "navigate to http://127.0.0.1:5099/login",
+        "set field #username to a11y",
+        "set field #password to A11yProbe!2026",
+        "click element button[type=submit]",
+        "wait for path to be /",
+        "navigate to http://127.0.0.1:5099/admin/users"
+      ]
+    },
+    {
+      "url": "http://127.0.0.1:5099/admin/users?mode=dark",
+      "actions": [
+        "navigate to http://127.0.0.1:5099/login",
+        "set field #username to a11y",
+        "set field #password to A11yProbe!2026",
+        "click element button[type=submit]",
+        "wait for path to be /",
+        "navigate to http://127.0.0.1:5099/admin/users?mode=dark"
+      ]
+    },
+    {
+      "url": "http://127.0.0.1:5099/admin/teams",
+      "actions": [
+        "navigate to http://127.0.0.1:5099/login",
+        "set field #username to a11y",
+        "set field #password to A11yProbe!2026",
+        "click element button[type=submit]",
+        "wait for path to be /",
+        "navigate to http://127.0.0.1:5099/admin/teams"
+      ]
+    },
+    {
+      "url": "http://127.0.0.1:5099/admin/environment",
+      "actions": [
+        "navigate to http://127.0.0.1:5099/login",
+        "set field #username to a11y",
+        "set field #password to A11yProbe!2026",
+        "click element button[type=submit]",
+        "wait for path to be /",
+        "navigate to http://127.0.0.1:5099/admin/environment"
+      ]
+    },
+    {
+      "url": "http://127.0.0.1:5099/admin/lifecycle",
+      "actions": [
+        "navigate to http://127.0.0.1:5099/login",
+        "set field #username to a11y",
+        "set field #password to A11yProbe!2026",
+        "click element button[type=submit]",
+        "wait for path to be /",
+        "navigate to http://127.0.0.1:5099/admin/lifecycle"
+      ]
+    },
+    {
+      "url": "http://127.0.0.1:5099/admin/observability",
+      "actions": [
+        "navigate to http://127.0.0.1:5099/login",
+        "set field #username to a11y",
+        "set field #password to A11yProbe!2026",
+        "click element button[type=submit]",
+        "wait for path to be /",
+        "navigate to http://127.0.0.1:5099/admin/observability"
+      ]
+    },
+    {
+      "url": "http://127.0.0.1:5099/admin/sbom",
+      "actions": [
+        "navigate to http://127.0.0.1:5099/login",
+        "set field #username to a11y",
+        "set field #password to A11yProbe!2026",
+        "click element button[type=submit]",
+        "wait for path to be /",
+        "navigate to http://127.0.0.1:5099/admin/sbom"
+      ]
+    },
+    {
+      "url": "http://127.0.0.1:5099/admin/sbom?mode=dark",
+      "actions": [
+        "navigate to http://127.0.0.1:5099/login",
+        "set field #username to a11y",
+        "set field #password to A11yProbe!2026",
+        "click element button[type=submit]",
+        "wait for path to be /",
+        "navigate to http://127.0.0.1:5099/admin/sbom?mode=dark"
       ]
     },
     {
@@ -175,7 +267,8 @@
         "set field #username to a11y",
         "set field #password to A11yProbe!2026",
         "click element button[type=submit]",
-        "wait for path to be /"
+        "wait for path to be /",
+        "navigate to http://127.0.0.1:5099/teams/1/info"
       ]
     }
   ]
