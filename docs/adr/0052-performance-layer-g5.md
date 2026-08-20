@@ -10,7 +10,7 @@
 1. **multi-worker**: วัดจริงแล้ว workers=2 ลด tail latency ~ครึ่งที่ 25–50
    VUs และเพิ่ม throughput ~66% แต่**คง 1 worker** เพราะ `/metrics` เป็น
    per-process (ADR 0031) — หลาย worker ทำให้ตัวนับสลับตัวทุก scrape
-   ตัวเลขที่ Prometheus เห็นกลายเป็นมั่ว · ทาง scale ปัจจุบัน = เพิ่ม replica
+   ตัวเลขที่ Prometheus เห็นกลายเป็นที่ไม่ถูกต้อง · ทาง scale ปัจจุบัน = เพิ่ม replica
 2. **caching**: มี seam อยู่แล้ว (plugin ชนิด `cache` — noop/redis ใช้กับ
    rate-limit counter) แต่ยังไม่เคยตัดสินว่า cache *ข้อมูลของแอป* อะไรบ้าง
    — และผลวัดเฟส 6 บอกว่า**คอขวดคือจำนวน process ไม่ใช่ query**
@@ -37,7 +37,7 @@
   ที่ไม่อยากรัน compose scale
 - **config ครึ่ง ๆ = ไม่ start** (หลัก fail-loud ของธรรมนูญ):
   `WEB_CONCURRENCY > 1` (ปุ่มเดียวที่รองรับ) โดยไม่มี multiproc dir → refuse พร้อมข้อความบอกทาง
-  ไม่ใช่เงียบ ๆ แล้วให้ตัวเลขมั่ว
+  ไม่ใช่เงียบ ๆ แล้วให้ตัวเลขที่ไม่ถูกต้อง
 - ADR 0031 ถูกแก้เฉพาะข้อ "ค่าเป็นของ process เดียว" โดยชี้มา ADR นี้ —
   ด่าน token ของ `/metrics` และ label เป็น endpoint **ไม่แตะ**
 - ด่านใหม่: เทสต์พิสูจน์ว่า (ก) โหมด multiproc รวมตัวเลขข้าม worker ถูกจริง

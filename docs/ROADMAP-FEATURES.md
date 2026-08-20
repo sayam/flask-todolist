@@ -36,7 +36,7 @@
 | ข้อ | รูปที่รับ | สิ่งที่ตัดออกจากข้อนั้น |
 |---|---|---|
 | 1. benchmark plugin ใน admin | หน้า observability (อ่าน `/metrics` ของ process ตัวเอง + ป้ายกำกับ ADR 0031) — เฟส 14 | ตัวรัน benchmark จากหน้าเว็บ — Phase 6: ตัวเลขที่ตัดสินต้องมาจากฝั่ง client การยิงโหลดจากในแอปวัดผิดโดยนิยาม |
-| 5. active SBOM + timeline | runtime SBOM จาก `importlib.metadata` เทียบ lock (จับ drift) + ระบุเจ้าของต่อ plugin (ADR 0025) · EOL ใช้ตาราง generate+ตรึงแบบ `asvs-5.0.0.json` — เฟส 14 | fetch ข้อมูลสดตอนรัน — หน้า/ด่านที่ต้องต่อเน็ตคือหน้า/ด่านที่พังเพราะเน็ต |
+| 5. active SBOM + timeline | runtime SBOM จาก `importlib.metadata` เทียบ lock (จับ drift) + ระบุเจ้าของต่อ plugin (ADR 0025) · EOL ใช้ตาราง generate+ตรึงแบบ `asvs-5.0.0.json` — เฟส 14 | fetch ข้อมูลสดตอนรัน — หน้า/ด่านที่ต้องต่อเน็ตคือหน้า/ด่านที่ล้มเหลวเพราะเน็ต |
 | 6. bytecode / multi-CPU / cache tiers | gunicorn workers (ของค้างเดิม — ปรับแล้ววัดใหม่) — เฟส 16 | fragment cache: **เลื่อนจนกว่าการวัดจะชี้** (Phase 6 วัดแล้ว คอขวดคือจำนวน process ไม่ใช่ query) · bytecode: Python คอมไพล์ `.pyc` อยู่แล้ว |
 | 9. enforce policy แบบ SOA | มีเกือบครบ (`ASVS.md` = SOA · `GATES-ASVS.md` = หลักฐานเชื่อม) · เติม: การแยกชั้นที่บังคับด้วย partition + ใบ business ต้องประกาศ baseline เป็น prerequisite — เฟส 13 | เอกสาร SOA ใบใหม่แยกต่างหาก — ที่ที่สามคือที่ให้ drift |
 | 11+17. encryption | **at rest**: `EncryptedType` ตามชั้นข้อมูล คีย์จาก secrets source (ADR 0030) · KMS-ready ตาม seam ใน backlog — เฟส 15 · **in transit**: มีแล้ว (TLS+PFS วัดจริง) | **in process** — ไม่มีกลไกจริงใน Python webapp เคลมไปคือคำขวัญ (ลง ADR ตัด) |
@@ -93,7 +93,7 @@ business skill แยกใบ · ชั้น legal เป็น overlay ที
 
 **DoD**: gate ทุกตัวมี layer และเทสต์บังคับทิศ · `SKILL.md`+`SKILL-TODOLIST.md`
 generate สดตรงกับดัชนี · PDPA worksheet หลักฐานจริงทุก backtick ·
-เอกสารใหม่ทุกใบมีเทสต์กันเน่า (หลัก Phase 7: เอกสารที่ไม่มีเทสต์คุม = เน่า)
+เอกสารใหม่ทุกใบมีเทสต์กันล้าสมัย (หลัก Phase 7: เอกสารที่ไม่มีเทสต์คุม = ล้าสมัย)
 
 ## Phase 14 — Admin ยกเครื่อง
 
@@ -159,7 +159,7 @@ generate สดตรงกับดัชนี · PDPA worksheet หลัก�
 | ขั้น | งาน |
 |---|---|
 | 17-01 | ADR 0047: named profiles — plugin เดียว หลาย config instance (`ldap:corp`, `ldap:partner`) · ลำดับลองต้อง**ประกาศ** · ไม่มี fallback เงียบ · ปิด profile เดียวได้โดยไม่กระทบตัวอื่น |
-| 17-02 | registry รองรับ instance + เทสต์ (รวมเคส: profile แรกตาย → พฤติกรรมตามที่ประกาศเท่านั้น) |
+| 17-02 | registry รองรับ instance + เทสต์ (รวมเคส: profile แรกใช้การไม่ได้ → พฤติกรรมตามที่ประกาศเท่านั้น) |
 | 17-03 | ผูกหลาย identity เข้าผู้ใช้เดียว (ปิดของค้าง "ผูกหลาย IdP") |
 
 ## Phase 18 — Org todo graph (เฟสธง)

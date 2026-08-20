@@ -72,7 +72,7 @@ audit 1 ปี — **เป็นแค่ตัวเลขในเอกส�
 > ที่ยังรันอยู่ระหว่าง rolling — วินัยคือ *expand–contract* (เพิ่มก่อน ·
 > เลิกใช้ · ค่อย drop ในรุ่นถัดไป) · job `n-1` พิสูจน์ทุก push ด้วยการรัน
 > โค้ดของ tag ล่าสุดทับ schema ใหม่จริง · gunicorn มี `--graceful-timeout 30`
-> คำขอที่ค้างอยู่ได้จบก่อนโปรเซสตาย
+> คำขอที่ค้างอยู่ได้จบก่อนโปรเซสหยุดทำงาน
 
 ```
 pipenv sync                                 # ไลบรารีของ core
@@ -221,8 +221,8 @@ unit อยู่ที่ `deploy/systemd/` **เป็นไฟล์จริ
 ```
 systemctl list-timers todolist-purge.timer   # นับถอยหลังอยู่ไหม
 systemctl start todolist-purge.service       # สั่งเดี๋ยวนี้เลย
-systemctl is-failed todolist-purge.service   # รอบล่าสุดพังไหม
-journalctl -u todolist-purge.service         # พังเพราะอะไร
+systemctl is-failed todolist-purge.service   # รอบล่าสุดล้มเหลวไหม
+journalctl -u todolist-purge.service         # ล้มเหลวเพราะอะไร
 ```
 
 **`Persistent=true` สำคัญกว่าที่เห็น** — เครื่องที่ปิดอยู่ตอนถึงเวลาจะรันให้
@@ -297,8 +297,8 @@ USER todolist
 **หลาย worker ในหนึ่ง container (opt-in — ADR 0052)**: ตั้ง
 `WEB_CONCURRENCY=N` คู่กับ `METRICS_MULTIPROC_DIR` เสมอ — ไม่ตั้งคู่
 แอป refuse ตอน start (ไม่งั้นตัวเลข `/metrics` สลับตัวนับต่อ scrape) ·
-dir ต้องเป็นที่ที่**ตายพร้อม container** (เช่น `/tmp/metrics` บน tmpfs)
-เพราะไฟล์ตัวนับของ boot เก่าไม่ควรรอด restart · ไฟล์ของ worker ที่ตาย
+dir ต้องเป็นที่ที่**หายไปพร้อม container** (เช่น `/tmp/metrics` บน tmpfs)
+เพราะไฟล์ตัวนับของ boot เก่าไม่ควรรอด restart · ไฟล์ของ worker ที่หยุดทำงาน
 ระหว่างรันถูกนับต่อโดยตั้งใจ (counter สะสม) · ค่าเริ่มต้นยังเป็น worker
 เดียว และทาง scale หลักยังเป็น replica ตามเดิม (ADR 0048)
 
@@ -349,10 +349,10 @@ docker compose -f compose.yaml -f compose.mysql.yaml run --rm app flask create-u
 ให้ image ตามยี่ห้อที่เลือก (เช่น `plugin-cache-redis plugin-db-mysql`)
 image พื้นฐานไม่มีของพวกนี้ตาม ADR 0025 และ backend ที่ถูกเลือกจะ `import`
 ไลบรารีของมันตอนโหลด — **ไม่มีของ = แอปไม่ start** ซึ่งตั้งใจให้เป็นแบบนั้น
-เพราะผู้ดูแลตั้งใจชี้ config มาที่ยี่ห้อนั้น การเงียบแล้วไม่ใช้ให้คือการโกหก
+เพราะผู้ดูแลตั้งใจชี้ config มาที่ยี่ห้อนั้น การเงียบแล้วไม่ใช้ให้คือการให้ข้อมูลเท็จ
 
 **ที่ CI ตรวจให้ทุก push (`job: stack`)**: stack ขึ้นครบและ healthy ทุก service ·
-ตารางยังไม่มีก่อนสั่ง migrate (พิสูจน์ว่า image ไม่แอบ migrate) · สร้าง user แล้ว
+ตารางยังไม่มีก่อนสั่ง migrate (พิสูจน์ว่า image ไม่ migrate ให้เองโดยไม่ได้สั่ง) · สร้าง user แล้ว
 login ผ่าน CSRF ได้ 302 · ข้อมูลลงฐานข้อมูลของ stack จริงไม่ใช่ SQLite ใน image
 
 ## รันหลาย replica (Phase 5 · P5-11)
@@ -645,7 +645,7 @@ journalctl -u todolist-purge.service --grep TDL_PURGE_FAILED
 แตะหน่วยที่ทำงานจริง · ส่วนการไปดูว่ารอบล่าสุดเดินจริงไหม เป็นแถวทุก 3 เดือน
 ใน `docs/SECURITY-CADENCE.md` แล้ว
 
-## CI แดง — ตัดสินก่อนกด rerun ว่า "ของเราพัง" หรือ "โลกพัง" (audit r8 · D2)
+## CI แดง — ตัดสินก่อนกด rerun ว่า "ของเราล้มเหลว" หรือ "โลกภายนอกล้มเหลว" (audit r8 · D2)
 
 **การกด rerun เป็นการตัดสินใจ ไม่ใช่ปฏิกิริยา** — และเป็นการตัดสินใจที่ลบหลักฐาน
 ของตัวเองทิ้ง: `gh run list` รายงานผลของ attempt สุดท้ายเท่านั้น ความล้มเหลวที่

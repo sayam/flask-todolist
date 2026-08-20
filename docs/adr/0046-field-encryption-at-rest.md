@@ -21,7 +21,7 @@ alembic โดยออกแบบ (ADR 0023) · ผู้ deploy บน MySQL 
 | คอลัมน์ | ทำไหม | เหตุผล |
 |---|---|---|
 | `tdl_auth_totp_secret.totp_secret` | **ทำ (ตัวแรกและตัวเดียวของรอบนี้)** | ความลับที่ต้องอ่านคืนได้โดยนิยาม — encrypt แล้ว dump DB ใบเดียวไม่พอเปิด MFA |
-| `password_hash` / `token_hash` | ไม่ทำ | เป็น one-way อยู่แล้ว — encrypt ซ้ำไม่เพิ่มอะไรนอกจากจุดพังใหม่ |
+| `password_hash` / `token_hash` | ไม่ทำ | เป็น one-way อยู่แล้ว — encrypt ซ้ำไม่เพิ่มอะไรนอกจากจุดล้มเหลวใหม่ |
 | เนื้อหางาน (C3: title ฯลฯ) | ไม่ทำในเฟสนี้ | field-encrypt แล้ว `LIKE` ของช่องค้นหาตายทั้งฟีเจอร์ — at-rest ของเนื้อหาเป็นเรื่องของ disk/DB-level encryption ฝั่ง deploy (บันทึกใน OPERATIONS) · **เงื่อนไขทบทวน**: มี requirement จริงที่ยอมแลกการค้นหา |
 
 ### กลไก

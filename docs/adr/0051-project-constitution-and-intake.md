@@ -81,7 +81,7 @@ ADR ที่ระบุเงื่อนไขหมดอายุ
   คือการประเมิน ไม่ใช่การข้าม) + เทสต์ตรวจหลักฐานแบบ `test_asvs.py`
 - **G3**: **ดัชนีแกน supply chain** (`docs/SUPPLY-CHAIN.md`) — รวมของที่มี
   (pins/SBOM/category/Scorecard/Dependabot/accepted-advisories) เป็นแกน
-  เดียวที่ชี้ gate จริง + เทสต์กันเน่า
+  เดียวที่ชี้ gate จริง + เทสต์กันล้าสมัย
 - **G4**: **โครง compliance รายประเทศ** — `docs/COMPLIANCE.md` เป็นดัชนี
   (ไทย = PDPA ที่มีแล้ว · ประเทศใหม่ = เพิ่มไฟล์แบบ additive ไม่แตะของเดิม)
 - **G5 (ชั้น 2 — หลัง G1–G4)**: multi-worker ที่ไม่ลดด่าน (ทางที่บันทึกไว้:

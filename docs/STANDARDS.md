@@ -15,7 +15,7 @@
 
 ### 1.1 Table prefix (แบบ `wp_` ของ WordPress / `mdl_` ของ Moodle)
 
-**ที่มาของธรรมเนียมนี้:** ยุค shared hosting ที่หลายแอปยัดลง database เดียว
+**ที่มาของธรรมเนียมนี้:** ยุค shared hosting ที่หลายแอปใช้ database เดียวร่วมกัน
 และ MySQL ไม่มี schema แยกภายใน database — prefix คือ namespace เดียวที่มี
 สำหรับแอปสมัยใหม่ที่มี database ของตัวเอง โดยทั่วไปถือว่า**ไม่จำเป็นแล้ว**
 
@@ -185,7 +185,7 @@ gitlint / pip-audit / SBOM / migration lint / semgrep `p/flask`
 ### เข้า Phase 2 ด่านแรก (รอบ "schema identity" — migration เดียวจบ)
 prefix `tdl_*` ทุกตาราง + `tdl_alembic_version` / SQLAlchemy `naming_convention` /
 `done` → `is_done` / rewrite model เป็น SQLAlchemy 2.0 typed style
-→ **ผลพลอยได้: landmine reserved word `user` ตายถาวร** (ดี กว่ารอ squash Phase 5)
+→ **ผลพลอยได้: landmine reserved word `user` หมดไปถาวร** (ดี กว่ารอ squash Phase 5)
 
 ### ตามเฟสที่เกี่ยวข้อง
 Flask-Talisman + djlint → Phase 1 / hypothesis → เริ่ม Phase 2 (ใช้กับ tz/filters

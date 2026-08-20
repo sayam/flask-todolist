@@ -69,7 +69,7 @@ ADR 0002–0008 เป็นการ backfill การตัดสินใจ
 | [0061](0061-platform-posture-verified.md) | ท่าทีฝั่งแพลตฟอร์ม (branch protection · required check · auto-merge · sha pinning) ถูกเครื่องตรวจ · อ่านไม่ได้ = แดง ไม่ใช่ข้าม | accepted |
 | [0062](0062-expiry-for-gates-that-never-fired.md) | เกณฑ์ล่วงหน้าสำหรับด่านที่ยังไม่เคยจับอะไร — ไม่แดง 12 เดือน **และ** โค้ดที่คุ้มไม่ถูกแตะ = ย้ายไปรันตามรอบ (ไม่ใช่ถอด) | accepted |
 | [0063](0063-overlay-ships-the-preflight-tool.md) | overlay ส่งออก*เครื่องมือ*ไม่ใช่แค่กฎ — preflight ตัวเดียวกับที่เราใช้เอง (เทียบไบต์) · เลิกผูกกับชื่อ job ของ repo นี้ | accepted |
-| [0064](0064-who-broke-it-is-read-from-the-message.md) | "ของเราพัง vs โลกพัง" อ่านจากข้อความของความล้มเหลว ไม่ใช่ชื่อ step · สามคลาส (ที่จำแนกไม่ได้ต้องมีคนอ่าน) · ขั้นตอนก่อนกด rerun | accepted |
+| [0064](0064-who-broke-it-is-read-from-the-message.md) | "ของเราล้มเหลว vs โลกล้มเหลว" อ่านจากข้อความของความล้มเหลว ไม่ใช่ชื่อ step · สามคลาส (ที่จำแนกไม่ได้ต้องมีคนอ่าน) · ขั้นตอนก่อนกด rerun | accepted |
 | [0065](0065-instruction-file-ceiling.md) | `CLAUDE.md` มีเพดานแบบ ratchet (บรรทัด+คำ) — เต็มแล้วย้ายเนื้อออก ไม่ใช่ขยับเพดาน · เพดานลอยเหนือของจริงไม่ได้ | accepted |
 | [0066](0066-severity-must-match-real-authority.md) | `severity` ของ gate ต้องตรงกับอำนาจจริง (blocking ได้เฉพาะ job ที่รันบน PR) · ที่บล็อกไม่ได้ต้องประกาศ `watched_by` ว่าใครเห็นภายในกี่วัน | accepted |
 | [0067](0067-every-job-declares-a-time-budget.md) | ทุก job ประกาศ `timeout-minutes` เอง — ค่าเริ่มต้น 6 ชม. ทำให้ "ค้าง" กับ "ช้า" แยกไม่ออก · เลขมาจากที่วัดได้ ไม่ใช่เลขกลม | accepted |
