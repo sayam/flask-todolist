@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-15 17:17+0700\n"
+"POT-Creation-Date: 2026-08-20 10:06+0700\n"
 "PO-Revision-Date: 2026-08-02 16:44+0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -196,13 +196,13 @@ msgstr ""
 msgid "Users"
 msgstr ""
 
-#: app/plugins/auth/ldap/factor.py:62 app/plugins/auth/ldap/factor.py:86
-#: app/plugins/auth/ldap/factor.py:137
+#: app/plugins/auth/ldap/factor.py:70 app/plugins/auth/ldap/factor.py:94
+#: app/plugins/auth/ldap/factor.py:150
 msgid "The directory is not configured"
 msgstr ""
 
-#: app/plugins/auth/ldap/factor.py:122 app/plugins/auth/ldap/factor.py:150
-#: app/plugins/auth/ldap/factor.py:182
+#: app/plugins/auth/ldap/factor.py:135 app/plugins/auth/ldap/factor.py:163
+#: app/plugins/auth/ldap/factor.py:195
 msgid "Could not reach the directory"
 msgstr ""
 
@@ -417,6 +417,18 @@ msgstr ""
 
 #: app/services/tokens.py:97
 msgid "Token not found"
+msgstr ""
+
+#: app/services/usernames.py:56
+#, python-format
+msgid "A user named %(name)s already exists."
+msgstr ""
+
+#: app/services/usernames.py:61
+#, python-format
+msgid ""
+"The name %(wanted)s clashes with the existing user %(existing)s — they "
+"differ only in case, and the login rate limit counts them as one account."
 msgstr ""
 
 #: app/templates/_admin_nav.html:4

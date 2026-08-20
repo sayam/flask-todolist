@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-15 17:17+0700\n"
+"POT-Creation-Date: 2026-08-20 10:06+0700\n"
 "PO-Revision-Date: 2026-08-02 16:44+0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -196,13 +196,13 @@ msgstr "%(name)s กลับมาใช้งานได้แล้ว"
 msgid "Users"
 msgstr "ผู้ใช้"
 
-#: app/plugins/auth/ldap/factor.py:62 app/plugins/auth/ldap/factor.py:86
-#: app/plugins/auth/ldap/factor.py:137
+#: app/plugins/auth/ldap/factor.py:70 app/plugins/auth/ldap/factor.py:94
+#: app/plugins/auth/ldap/factor.py:150
 msgid "The directory is not configured"
 msgstr "ยังไม่ได้ตั้งค่าไดเรกทอรีผู้ใช้"
 
-#: app/plugins/auth/ldap/factor.py:122 app/plugins/auth/ldap/factor.py:150
-#: app/plugins/auth/ldap/factor.py:182
+#: app/plugins/auth/ldap/factor.py:135 app/plugins/auth/ldap/factor.py:163
+#: app/plugins/auth/ldap/factor.py:195
 msgid "Could not reach the directory"
 msgstr "ติดต่อไดเรกทอรีผู้ใช้ไม่ได้"
 
@@ -421,6 +421,20 @@ msgstr "อายุต้องไม่เป็นค่าติดลบ"
 #: app/services/tokens.py:97
 msgid "Token not found"
 msgstr "ไม่พบ token"
+
+#: app/services/usernames.py:56
+#, python-format
+msgid "A user named %(name)s already exists."
+msgstr "มีผู้ใช้ชื่อ “%(name)s” อยู่แล้ว"
+
+#: app/services/usernames.py:61
+#, python-format
+msgid ""
+"The name %(wanted)s clashes with the existing user %(existing)s — they "
+"differ only in case, and the login rate limit counts them as one account."
+msgstr ""
+"ชื่อ “%(wanted)s” ชนกับผู้ใช้ “%(existing)s” ที่มีอยู่แล้ว — ต่างกันแค่ตัวพิมพ์ "
+"และโควตากันเดารหัสผ่านนับสองชื่อนี้เป็นบัญชีเดียวกัน"
 
 #: app/templates/_admin_nav.html:4
 msgid "Admin sections"
