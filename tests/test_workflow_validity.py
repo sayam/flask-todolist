@@ -29,6 +29,8 @@ import pathlib
 import pytest
 import yaml
 
+from scripts import workflows as gha
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 WORKFLOWS = sorted((ROOT / ".github" / "workflows").glob("*.y*ml"))
 
@@ -89,10 +91,8 @@ def test_every_permission_scope_is_one_github_accepts(path):
 def test_every_workflow_declares_a_trigger(path):
     """ไฟล์ที่ไม่มีทริกเกอร์ = ด่านที่ไม่มีวันรัน ซึ่งอ่านจากภายนอกเหมือนด่านที่ผ่าน"""
     workflow = _load(path)
-    # PyYAML แปลงคีย์ `on` เป็น True ตาม YAML 1.1
-    triggers = workflow.get(True, workflow.get("on"))
 
-    assert triggers, f"{path.name} ไม่มี `on:` — ไม่มีเหตุการณ์ไหนทำให้มันรันได้เลย"
+    assert gha.triggers(workflow), f"{path.name} ไม่มี `on:` — ไม่มีเหตุการณ์ไหนทำให้มันรันได้เลย"
 
 
 @pytest.mark.parametrize("path", WORKFLOWS, ids=lambda p: p.name)

@@ -40,6 +40,7 @@ from scripts import (
     rerun_census,
     schedule_census,
     whats_pending,
+    workflows,
 )
 
 
@@ -1537,3 +1538,75 @@ def test_subprocess_children_are_counted_or_the_number_punishes_the_better_test(
     )
     assert config.is_file(), f"ชี้ไปไฟล์ config ที่ไม่มีอยู่: {config}"
     assert "scripts" in config.read_text(encoding="utf-8"), "config ของลูกไม่ได้วัด scripts/"
+
+
+# ------------- ตัวอ่าน workflow ตัวเดียวของ repo (audit รอบ 18 · ข้อ 2)
+#
+# `on:` ถูกต้องสามรูป · สำนวนเดิม (`{triggers: None}`) รองรับสองรูปที่ hashable
+# แล้ว **ระเบิดกับรูปลิสต์** ซึ่งเป็นรูปที่ตัวอย่างในเอกสารของ GitHub ใช้มากที่สุด
+# · สำนวนนั้นถูกลอกไว้ห้าที่ และสามที่พังแบบเดียวกัน
+#
+# บั๊กหลับอยู่เพราะ workflow ทุกไฟล์ของ repo นี้ใช้รูป dict — ด่านที่ไม่เคยเจอ
+# อินพุตรูปอื่น คือด่านที่เราไม่รู้ว่ามันตอบอะไรกับอินพุตรูปอื่น
+
+TRIGGER_FORMS = [
+    ("on: push\njobs: {}\n", {"push"}),
+    ("on: [push, pull_request]\njobs: {}\n", {"push", "pull_request"}),
+    ("on:\n  pull_request:\n    branches: [main]\njobs: {}\n", {"pull_request"}),
+    ("on:\n  push: null\n  schedule:\n    - cron: '0 3 * * 1'\njobs: {}\n", {"push", "schedule"}),
+    ("jobs: {}\n", set()),
+]
+
+
+@pytest.mark.parametrize(("text", "expected"), TRIGGER_FORMS)
+def test_every_legal_shape_of_on_is_understood(text, expected):
+    """สามรูปของ `on:` ต้องอ่านได้เท่ากัน — ไม่ใช่รูปที่เราบังเอิญใช้อยู่รูปเดียว"""
+    assert workflows.triggers(yaml.safe_load(text)) == expected
+
+
+@pytest.mark.parametrize(("text", "expected"), TRIGGER_FORMS)
+def test_asking_about_an_event_never_raises(text, expected):
+    """`runs_on()` ต้องตอบ ไม่ใช่โยน — ตัวตัดสินที่ระเบิดคือตัวที่ไม่ได้ตัดสิน"""
+    workflow = yaml.safe_load(text)
+
+    assert workflows.runs_on(workflow, "pull_request") == ("pull_request" in expected)
+
+
+def test_the_list_shape_is_the_one_that_used_to_crash():
+    """ทิศที่บั๊กเคยอยู่ — เขียนแยกไว้เพื่อให้ชื่อเทสต์บอกว่าทำไมมันถึงมี"""
+    workflow = yaml.safe_load("on: [push, pull_request]\njobs:\n  a: {}\n")
+
+    assert workflows.runs_on(workflow, "pull_request") is True
+    assert set(workflows.jobs(workflow)) == {"a"}
+
+
+def test_cron_lines_are_read_from_the_shape_github_actually_uses():
+    """`on.schedule` เป็น **ลิสต์ของ dict** — อ่านผิดรูปแล้วตารางเวลาหายไปเงียบ ๆ"""
+    workflow = yaml.safe_load(
+        "on:\n  schedule:\n    - cron: '0 3 * * 1'\n    - cron: '30 4 1 * *'\njobs: {}\n"
+    )
+
+    assert workflows.schedules(workflow) == ["0 3 * * 1", "30 4 1 * *"]
+    assert workflows.schedules(yaml.safe_load("on: [schedule]\njobs: {}\n")) == []
+
+
+def test_nobody_parses_the_trigger_shape_on_their_own_anymore():
+    """**การตรวจสมาชิก** — สำนวนที่พังต้องไม่กลับมาเกิดใหม่ที่ไหนอีก
+
+    หลักเดียวกับ ADR 0039 (ห้ามเก็บคำสั่งไว้สองที่): ตัวแยกวิเคราะห์ก็เป็นคำสั่ง
+    ชนิดหนึ่ง · หลักฐานว่าสำเนา drift จริงคือ ตอนเจอบั๊กมีสามสำเนาที่ไม่กันตัวเอง
+    และหนึ่งสำเนาที่กันด้วย `isinstance` — คนละพฤติกรรมจากโค้ดที่ลอกกันมา
+    """
+    root = pathlib.Path(__file__).resolve().parent.parent
+    guilty = []
+    for path in [*sorted((root / "scripts").glob("*.py")), *sorted((root / "tests").glob("*.py"))]:
+        if path.name in {"workflows.py", pathlib.Path(__file__).name}:
+            continue
+        source = path.read_text(encoding="utf-8")
+        if "get(True)" in source or "get(True," in source:
+            guilty.append(str(path.relative_to(root)))
+
+    assert not guilty, (
+        f"ไฟล์ที่ยังแกะรูปของ `on:` เอง: {guilty}\n"
+        "ใช้ scripts/workflows.py (triggers · runs_on · schedules · jobs) แทน"
+    )

@@ -19,6 +19,7 @@ import re
 import pytest
 import yaml
 
+from scripts import workflows as gha
 from tests.test_asvs import _unresolved
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -81,11 +82,10 @@ def blocking_jobs() -> set[str]:
     """
     found: set[str] = set()
     for path in sorted(WORKFLOW_DIR.glob("*.y*ml")):
-        workflow = yaml.safe_load(path.read_text(encoding="utf-8"))
-        triggers = workflow.get(True) or workflow.get("on") or {}
-        if "pull_request" not in (triggers if isinstance(triggers, dict) else {triggers: None}):
+        workflow = gha.load(path)
+        if not gha.runs_on(workflow, "pull_request"):
             continue
-        found |= set(workflow.get("jobs", {}))
+        found |= set(gha.jobs(workflow))
     assert found, "ไม่มี job ไหนรันบน pull_request เลย — ตัวดึงพังหรือ workflow เปลี่ยนรูป"
     return found
 

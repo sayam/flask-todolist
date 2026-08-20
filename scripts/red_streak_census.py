@@ -51,6 +51,9 @@ import typing
 # pyyaml มากับ dev tools และไม่มี stub — เหตุผลเดียวกับ build_gates_crosswalk.py
 import yaml  # type: ignore[import-untyped]
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import workflows
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 # **เพดานเวลาของคำสั่งที่เรายิงออกไป** (ADR 0067) — `subprocess.run` ที่ไม่มี
@@ -88,23 +91,22 @@ def promised_days() -> dict[str, int]:
     """
     owner: dict[str, str] = {}
     for path in sorted(WORKFLOWS.glob("*.y*ml")):
-        workflow = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-        triggers = workflow.get(True) or workflow.get("on") or {}
+        workflow = workflows.load(path)
         # ไฟล์ที่รันบน pull_request มี job ที่บล็อกได้ปนอยู่ — ผลของ run เป็นของ
         # ทั้งไฟล์ ตัวเลขจึงตอบคำถามของ job ที่ถูกเฝ้าไม่ได้ (ดูหัวไฟล์)
-        if "pull_request" in (triggers if isinstance(triggers, dict) else {triggers: None}):
+        if workflows.runs_on(workflow, "pull_request"):
             continue
-        for job in workflow.get("jobs") or {}:
+        for job in workflows.jobs(workflow):
             owner[job] = f".github/workflows/{path.name}"
 
     promised: dict[str, int] = {}
     for gate in yaml.safe_load(GATES.read_text(encoding="utf-8"))["gates"]:
         watcher = gate.get("watched_by")
-        job = (gate.get("enforced_by") or {}).get("job")
-        if not watcher or job not in owner:
+        watched = (gate.get("enforced_by") or {}).get("job")
+        if not watcher or watched not in owner:
             continue
         days = int(watcher["within_days"])
-        promised[owner[job]] = min(promised.get(owner[job], days), days)
+        promised[owner[watched]] = min(promised.get(owner[watched], days), days)
     return promised
 
 
