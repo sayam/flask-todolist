@@ -52,7 +52,8 @@
   (หน้าเว็บปิดได้เฉพาะของคนที่ login อยู่ ซึ่งคือคนที่ login ไม่ได้พอดี)
 - ตรวจ audit: `pipenv run flask audit-verify` / อ่าน audit: `pipenv run flask audit-log`
 - ตรวจสุขภาพข้อมูลที่อยู่ในฐานตอนนี้: `pipenv run flask data-doctor`
-  (แถวกำพร้า · สาย audit กับสมอ · ชื่อผู้ใช้ที่ชนกันแบบ casefold · ของที่พ้นระยะ)
+  (แถวกำพร้า · สาย audit กับสมอ · ชื่อผู้ใช้ที่ชนกันแบบ casefold · ของที่พ้นระยะ
+  · credential ที่ยังใช้ได้บนบัญชี/token ที่ปิดไปแล้ว)
   **อ่านอย่างเดียว ไม่แก้อะไร** — เครื่องมือที่ซ่อมเองคือเครื่องมือที่ไม่มีใครกล้ารันกับฐานจริง
 - เปลี่ยน schema: `pipenv run flask db migrate -m "..."` แล้ว `pipenv run flask db upgrade`
 - อัปเดตสัญญา API: `PYTHONPATH=. pipenv run python scripts/generate_openapi.py`
