@@ -154,6 +154,28 @@ def _retention(report: Report) -> None:
         )
 
 
+def _closed_accounts(report: Report) -> None:
+    """บัญชีที่ปิดไปแล้ว ต้องไม่มี password_hash หลงเหลือ (ตั้งเป็น DISABLED_SECRET)"""
+    from app.models import User, DISABLED_SECRET
+
+    report.checks += 1
+    unsecured = db.session.scalars(
+        select(User).where(
+            User.deleted_at.is_not(None),
+            User.password_hash != DISABLED_SECRET
+        )
+    ).all()
+    
+    for user in unsecured:
+        report.findings.append(
+            Finding(
+                kind="credential-not-cleared",
+                where=f"tdl_user id={user.id}",
+                detail="บัญชีถูกปิดแล้ว (deleted) แต่ password_hash ยังไม่ถูกล้าง",
+            )
+        )
+
+
 def examine() -> Report:
     """ตรวจทุกข้อ แล้วคืนรายงาน — **ไม่เขียนอะไรลงฐานเลย**"""
     report = Report()
@@ -161,4 +183,5 @@ def examine() -> Report:
     _audit_chain(report)
     _username_collisions(report)
     _retention(report)
+    _closed_accounts(report)
     return report
