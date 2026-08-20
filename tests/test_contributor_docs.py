@@ -37,7 +37,12 @@ LINK = re.compile(r"\[[^\]]+\]\((?!https?:|mailto:|#)([^)\s]+)\)")
 # `20 jobs (21 checks)` และ `20 job (21 check)`
 JOB_CLAIM = re.compile(r"(\d+)\s+jobs?\s*\((\d+)\s+checks?\)")
 
-DOCS_CLAIMING_JOB_COUNTS = ("CONTRIBUTING.md", "CLAUDE.md", "docs/DEVELOPMENT.md")
+DOCS_CLAIMING_JOB_COUNTS = (
+    "CONTRIBUTING.md",
+    "CLAUDE.md",
+    "docs/DEVELOPMENT.md",
+    "docs/ROADMAP.md",
+)
 
 # ใบตอบ badge เป็นเอกสารที่คนนอกอ่าน (ลิงก์จาก README) และเต็มไปด้วยตัวเลข
 # ที่ไม่มีใครรัน — เน่าไปแล้วสามจุดก่อนจะมีเทสต์ชุดนี้
@@ -269,3 +274,74 @@ def test_the_install_command_covers_every_declared_stage(doc):
             f"{doc}: คำสั่งติดตั้งไม่ครอบ stage {missing}\n  {line.strip()}\n"
             "hook ที่ประกาศไว้แต่ไม่ถูกติดตั้ง คือ hook ที่ไม่มีอยู่จริงสำหรับคนที่ clone ใหม่"
         )
+
+
+# --------------- เลข "required N จาก M" ที่ถูกประกาศไว้หลายที่ (audit r21 ข้อค้าง)
+#
+# วัดเมื่อ 2026-08-21: คู่เลขนี้ถูกเขียนไว้ **11 ที่ใน 6 ไฟล์** ด้วยถ้อยคำเจ็ดแบบ
+# และมีเครื่องอ่านคู่กับความจริงอยู่ **ที่เดียว** (`ci:posture` อ่านของ
+# `docs/SECURITY-CADENCE.md`) · สิบที่ที่เหลือจึงเน่าได้เงียบ ๆ ทุกครั้งที่เพิ่ม job
+#
+# **แบ่งหน้าที่กันสองชั้น ไม่ใช่ให้ทุกที่ต่อเน็ต**: ที่นี่บังคับว่าทุกที่พูดเลข
+# *ชุดเดียวกัน* (ออฟไลน์ · เร็ว · รันทุก push) ส่วน `ci:posture` บังคับว่าชุดนั้น
+# ตรงกับแพลตฟอร์มจริง — ยืนยันที่เดียวจึงยืนยันครบ เพราะที่เหลือถูกบังคับให้ตรงกับมัน
+
+# `required check **27 จาก 30**` — ต้นทางเดียวที่ `ci:posture` อ่าน
+REQUIRED_SOURCE = re.compile(r"required check \*\*(\d+) จาก (\d+)\*\*")
+
+# ถ้อยคำอื่นที่พูดเรื่องเดียวกัน — เพิ่มรูปใหม่ต้องมาเพิ่มที่นี่ ไม่งั้นมันรอด
+REQUIRED_CLAIMS = (
+    # `\*{0,2}` ไม่ใช่ `\*\*?` — อันหลังบังคับให้ต้องมีดอกจันอย่างน้อยหนึ่งตัว
+    # จึงพลาดรูปที่เขียนโดยไม่ทำตัวหนา (ISO27001 เขียนแบบนั้น · จับได้ตอน mutation)
+    re.compile(r"required checks? \*{0,2}(\d+) จาก (\d+)\*{0,2}"),
+    re.compile(r"\((\d+) จาก (\d+)\)"),
+    re.compile(r"(\d+) จาก (\d+) check"),
+)
+REQUIRED_ALONE = re.compile(r"(\d+) required check")
+CHECKS_THEN_REQUIRED = re.compile(r"(\d+) check \((\d+) บังคับ\)")
+
+DOCS_CLAIMING_REQUIRED_COUNTS = (
+    "docs/SECURITY-CADENCE.md",
+    "docs/BEST-PRACTICES.md",
+    "docs/ISO27001.md",
+)
+
+
+@pytest.fixture(scope="module")
+def declared_pair() -> tuple[int, int]:
+    """(required, checks) จากต้นทางเดียวที่ถูกตรวจกับแพลตฟอร์มจริง"""
+    text = (ROOT / "docs" / "SECURITY-CADENCE.md").read_text(encoding="utf-8")
+    found = REQUIRED_SOURCE.search(text)
+
+    assert found, "อ่านคู่เลข required จาก SECURITY-CADENCE ไม่ได้ — รูปประโยคเปลี่ยนไปแล้ว"
+    return int(found.group(1)), int(found.group(2))
+
+
+def test_the_advertised_check_total_matches_the_workflows(declared_pair, ci_jobs):
+    """ตัวหลัง (จำนวน check ทั้งหมด) ตรวจออฟไลน์ได้ — ไม่ต้องรอ `ci:posture`"""
+    _required, claimed_checks = declared_pair
+    _defined, real_checks = ci_jobs
+
+    assert claimed_checks == real_checks, (
+        f"เอกสารบอกว่ามี {claimed_checks} check แต่ workflow สร้างจริง {real_checks}"
+    )
+
+
+@pytest.mark.parametrize("name", DOCS_CLAIMING_REQUIRED_COUNTS)
+def test_every_copy_of_the_required_count_says_the_same_thing(name, declared_pair):
+    """สำเนาทุกใบต้องพูดเลขชุดเดียวกับต้นทาง — สิบที่ที่ไม่มีใครอ่านคือสิบที่ที่เน่าได้"""
+    required, checks = declared_pair
+    text = (ROOT / name).read_text(encoding="utf-8")
+
+    pairs = [(int(a), int(b)) for probe in REQUIRED_CLAIMS for a, b in probe.findall(text)]
+    pairs += [(int(b), int(a)) for a, b in CHECKS_THEN_REQUIRED.findall(text)]
+    alone = [int(value) for value in REQUIRED_ALONE.findall(text)]
+
+    assert pairs or alone, (
+        f"{name} ไม่ได้อ้างจำนวน required check แล้ว — "
+        "ถ้าตั้งใจถอดออก ให้เอาชื่อไฟล์ออกจาก DOCS_CLAIMING_REQUIRED_COUNTS ด้วย"
+    )
+    wrong = [pair for pair in pairs if pair != (required, checks)]
+    wrong += [f"{value} required" for value in alone if value != required]
+
+    assert not wrong, f"{name} อ้าง {wrong} แต่ต้นทางประกาศไว้ว่า {required} จาก {checks}"

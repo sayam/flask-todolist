@@ -100,7 +100,9 @@ jobs:
         with:
           python-version: "3.13"
       - run: pip install --require-hashes -r pins/pipenv/requirements.txt
+        timeout-minutes: 5
       - run: pipenv sync --dev
+        timeout-minutes: 5
       - name: ท่าทีของ repo ต้องตรงกับที่ ADR 0053 ประกาศ
         run: pipenv run python scripts/audit_posture.py
         env:
