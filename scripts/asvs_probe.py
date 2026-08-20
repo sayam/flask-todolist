@@ -16,6 +16,15 @@
 ถูกตรวจสองทิศด้วย fixture คู่ใน `tests/test_asvs_probe.py` (สกปรกต้องตก
 สะอาดต้องผ่าน) ตามวินัยเดียวกับด่านอื่นของ repo นี้
 
+**ต้นไม้ที่มันคาดหวัง** (audit รอบ 18 — เดิมไม่ได้เขียนไว้ที่ไหนเลย): ไดเรกทอรี
+ที่มีแต่โค้ดของโปรเจกต์ · `NOT_OUR_CODE` ตัดสภาพแวดล้อมกับของ vendor ออก
+เพราะยิงใส่ repo นี้เองครั้งแรกแล้วมันอ่านไฟล์ 4,299 ไฟล์ ซึ่ง 4,171 เป็นซอร์ส
+ของไลบรารีใน `.venv/` แล้วตอบว่าตกสามข้อด้วยหลักฐานของคนอื่น
+
+**สิ่งที่มันยังไม่รู้จัก** (ประกาศไว้ ไม่ใช่ซ่อนไว้): route ที่ประกาศบน `MethodView`
+ของ flask-smorest — แอปที่ใช้รูปนั้นจะได้ `None` ที่ข้อ V13.2.1 ไม่ใช่ผ่านหรือไม่ผ่าน
+· เพิ่มได้เมื่อมี fixture ที่เดินเส้นนั้นจริง ไม่ใช่ก่อนหน้านั้น
+
 บทบาท: decider — ตัดสินผ่าน/ไม่ผ่าน — หลักฐานคือเทสต์ที่ฝังความผิดแล้วต้องจับได้ · ของสะอาดต้องไม่ถูกจับ
 """
 
@@ -55,21 +64,89 @@ def _is_test(path: pathlib.Path) -> bool:
     return path.name.startswith("test_") or path.name == "conftest.py" or "tests" in path.parts
 
 
+# **ไดเรกทอรีที่ไม่ใช่ผลงานของโปรเจกต์** (audit รอบ 18) — probe ตัด `__pycache__`
+# กับไฟล์เทสต์มาตั้งแต่แรก แต่ไม่เคยตัดสภาพแวดล้อม เพราะแอปที่ agent สร้างใน
+# การทดลองไม่เคยพก virtualenv มาด้วย · ยิงใส่ repo นี้เองครั้งแรกในรอบ 18 แล้ว
+# **4,171 จาก 4,299 ไฟล์ที่มันอ่านเป็นซอร์สของไลบรารี** — คำตอบสามข้อพลิกเป็น
+# "ไม่ผ่าน" ด้วยหลักฐานอย่าง `SECRET_KEY = 'development key'` ของ Flask
+# **เงื่อนไขก่อนใช้ที่ไม่ได้เขียนลงไปไหน คือเงื่อนไขที่จะถูกละเมิดวันที่มีคนใช้จริง**
+NOT_OUR_CODE = frozenset(
+    {
+        ".venv",
+        "venv",
+        "env",
+        ".env",
+        "site-packages",
+        "node_modules",
+        ".git",
+        ".tox",
+        ".mypy_cache",
+        ".pytest_cache",
+        ".ruff_cache",
+        "__pycache__",
+        "build",
+        "dist",
+        "vendor",
+        "third_party",
+    }
+)
+
+
+def _ours(path: pathlib.Path) -> bool:
+    """ไฟล์นี้เป็นผลงานของโปรเจกต์ ไม่ใช่ของที่ติดตั้ง/build/vendor มา"""
+    return NOT_OUR_CODE.isdisjoint(path.parts)
+
+
 def _python_files(root: pathlib.Path) -> list[pathlib.Path]:
-    """โค้ดของแอปเท่านั้น — ไม่รวมไฟล์เทสต์และของที่ build มา"""
-    return [
-        p for p in sorted(root.rglob("*.py")) if "__pycache__" not in p.parts and not _is_test(p)
-    ]
+    """โค้ดของแอปเท่านั้น — ไม่รวมไฟล์เทสต์ ของที่ build มา และสภาพแวดล้อม"""
+    return [p for p in sorted(root.rglob("*.py")) if _ours(p) and not _is_test(p)]
 
 
 def _templates(root: pathlib.Path) -> list[pathlib.Path]:
-    """เทมเพลตทุกไฟล์ (ที่ไหนก็ได้ในโปรเจกต์ — โครงต่างกันได้)"""
-    return sorted(root.rglob("*.html"))
+    """เทมเพลตของโปรเจกต์ (ที่ไหนก็ได้ในโครง — แต่ไม่ใช่ของไลบรารีใน venv)"""
+    return [p for p in sorted(root.rglob("*.html")) if _ours(p)]
 
 
 def _read(paths: list[pathlib.Path]) -> str:
     """ต่อเนื้อไฟล์ทั้งหมดเป็นก้อนเดียวสำหรับข้อที่ตรวจแบบข้อความ"""
     return "\n".join(p.read_text(encoding="utf-8", errors="replace") for p in paths)
+
+
+def _code_only(source: str) -> str:
+    """เนื้อที่รันจริง — ตัดคอมเมนต์กับ docstring ทิ้งก่อนตรวจแบบข้อความ
+
+    **การเขียนถึงสิ่งต้องห้าม ไม่ใช่การทำมัน** — หลักเดียวกับที่ `_debug_run`
+    ใช้ AST แทน regex มาตั้งแต่ต้น · audit รอบ 18 พบว่าข้อที่ตรวจด้วยข้อความ
+    ยังไม่ได้หลักนี้: ยิง probe ใส่ repo ของตัวเองแล้ว **คอมเมนต์ของ probe เอง**
+    ที่อธิบายว่า `SECRET_KEY = 'development key'` เป็นตัวอย่างที่ไม่ดี
+    ถูกนับเป็นความลับที่ฝังไว้ในโค้ด
+    """
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return source  # ไฟล์ที่ย่อยไม่ได้ ให้ตรวจแบบดิบไว้ก่อน ดีกว่ามองไม่เห็น
+    spans = {
+        (node.value.lineno, node.value.end_lineno)
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Expr)
+        and isinstance(node.value, ast.Constant)
+        and isinstance(node.value.value, str)
+    }
+    drop = {n for start, end in spans for n in range(start, (end or start) + 1)}
+    return "\n".join(
+        ""
+        if number in drop
+        else line.split("#")[0]
+        if "#" in line and _outside_string(line)
+        else line
+        for number, line in enumerate(source.splitlines(), 1)
+    )
+
+
+def _outside_string(line: str) -> bool:
+    """`#` ตัวแรกของบรรทัดนี้อยู่นอกเครื่องหมายคำพูดไหม (ประมาณพอสำหรับการตัดคอมเมนต์)"""
+    head = line.split("#", maxsplit=1)[0]
+    return head.count('"') % 2 == 0 and head.count("'") % 2 == 0
 
 
 def _functions(code: str) -> list[ast.FunctionDef]:
@@ -81,6 +158,35 @@ def _functions(code: str) -> list[ast.FunctionDef]:
     return [n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
 
 
+def _enclosing(code: str, func: ast.FunctionDef) -> str:
+    """ซอร์สของขอบเขตที่ห่อฟังก์ชันนี้อยู่ (ตัวมันเองถ้าอยู่ระดับบนสุด)
+
+    **ฟังก์ชันซ้อนต้องถูกตัดสินพร้อมขอบเขตที่ห่อมัน** (audit รอบ 18) — closure
+    ที่อยู่ในฟังก์ชันซึ่งกรองเจ้าของไว้แล้ว ไม่ได้ "ลืมนึกถึงเจ้าของ" มันอยู่
+    หลังด่านนั้นโดยโครงสร้าง · ตัดสินมันโดด ๆ คือการลงโทษการแยกฟังก์ชันย่อย
+    ซึ่งเป็นโครงที่อ่านง่ายกว่า (เจอกับ `dependencies.chain_is_risky` ของ repo นี้)
+    """
+    mine = ast.get_source_segment(code, func) or ""
+    try:
+        tree = ast.parse(code)
+    except SyntaxError:
+        return mine
+    # **เทียบด้วยช่วงบรรทัด ไม่ใช่ด้วย identity** — ผู้เรียกส่ง node ที่มาจากการ
+    # parse คนละครั้ง `is` จึงไม่มีวันตรงกัน (เขียนแบบนั้นรอบแรกแล้วมันเงียบ:
+    # คืนตัวเอง ซึ่งทำให้ทั้งฟังก์ชันนี้ไม่มีผลอะไรเลย)
+    holders = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.FunctionDef)
+        and node.lineno < func.lineno
+        and (node.end_lineno or node.lineno) >= (func.end_lineno or func.lineno)
+    ]
+    if not holders:
+        return mine
+    innermost = max(holders, key=lambda node: node.lineno)
+    return ast.get_source_segment(code, innermost) or mine
+
+
 #: การหาแถวจากฐานข้อมูลด้วย id — **ไม่รวม `session.get(...)` เปล่า ๆ**
 #: ซึ่งคือการอ่าน session ของ Flask คนละเรื่องกันโดยสิ้นเชิง (probe รอบแรก
 #: จับผิดตัวนี้แล้วรายงานว่าทุกแอปที่มี session timeout ลืมตรวจความเป็นเจ้าของ)
@@ -88,10 +194,31 @@ DB_LOOKUP = re.compile(r"db\.session\.get\(|\.query\.get\(|get_or_404\(")
 
 OWNER_WORDS = ("user_id", "current_user", "owner")
 
+# **การอนุญาตไม่ได้มีรูปเดียว** (audit รอบ 18) — ครั้งที่ห้าที่ probe ลงโทษโครงที่
+# *ดีกว่า* · ยิงใส่ repo นี้แล้วมันจับผู้เรียก `by_id()` ห้าตัวว่า "ไม่ได้นึกถึง
+# เจ้าของ" ทั้งที่ทุกตัวมีด่านของตัวเอง เพียงแต่เป็นด่านคนละชนิด: บทบาท
+# (`require_admin`) · การเป็นสมาชิก (`visible_team`) · การมองเห็น (`can_see_todo`)
+# — โครงที่แยกการอนุญาตออกมาเป็นฟังก์ชันชื่อชัด ๆ ดีกว่าโครงที่เทียบ `user_id`
+# เองทุกที่ ถ้าเครื่องวัดให้คะแนนต่ำกว่า มันกำลังสอนให้เขียนแย่ลง
+AUTHZ_WORDS = (
+    "require_admin",
+    "require_role",
+    "is_member",
+    "membership",
+    "can_see",
+    "visible_",
+    "permission",
+    "authorize",
+    "compare_digest",
+)
+
 
 def _mentions_owner(body: str) -> bool:
-    """โค้ดก้อนนี้พูดถึงความเป็นเจ้าของไหม (ไม่ตัดสินว่าใช้ถูกหรือไม่)"""
-    return any(word in body for word in OWNER_WORDS)
+    """โค้ดก้อนนี้ตัดสินใจเรื่องสิทธิ์ไหม — เจ้าของ บทบาท หรือการเป็นสมาชิก
+
+    ไม่ตัดสินว่าใช้ถูกหรือไม่ · พิสูจน์แค่ว่า **ไม่ได้ลืมนึกถึง**
+    """
+    return any(word in body for word in (*OWNER_WORDS, *AUTHZ_WORDS))
 
 
 def _ownership(py_files: list[pathlib.Path]) -> bool | None:
@@ -115,7 +242,7 @@ def _ownership(py_files: list[pathlib.Path]) -> bool | None:
             if not DB_LOOKUP.search(body):
                 continue
             seen_any = True
-            if _mentions_owner(body):
+            if _mentions_owner(body) or _mentions_owner(_enclosing(code, func)):
                 continue
             parameters = {arg.arg for arg in func.args.args}
             generic = any(
@@ -151,7 +278,7 @@ def _helper_callers_check_ownership(helper: str, py_files: list[pathlib.Path]) -
             if not re.search(rf"\b{re.escape(helper)}\(", body):
                 continue
             callers += 1
-            if not _mentions_owner(body):
+            if not _mentions_owner(body) and not _mentions_owner(_enclosing(code, func)):
                 return False
     return callers > 0
 
@@ -254,6 +381,57 @@ def _api_auth(py_files: list[pathlib.Path]) -> bool | None:
     return result
 
 
+SQL_CALLS = ("execute", "text", "executescript", "raw")
+
+
+def _interpolates_a_variable(node: ast.AST) -> bool:
+    """ก้อนนี้เอา *ค่าที่ไม่ใช่ค่าคงที่* มาต่อเป็นสตริงไหม
+
+    `f"... {ISOLATION_LEVEL}"` ที่ต่อจากค่าคงที่ระดับโมดูล ไม่ใช่การต่อจาก input —
+    ตัวเดิมเป็น regex จึงแยกไม่ออก แล้วลงโทษ DDL ที่ปลอดภัยของทุกโปรเจกต์ที่โตพอ
+    จะมีค่าคงที่ (เจอกับ repo ของตัวเองในรอบ 18: สี่จุด ไม่มีจุดไหนแตะคำขอเลย)
+    """
+    if isinstance(node, ast.JoinedStr):
+        return any(
+            not (isinstance(part.value, ast.Name) and part.value.id.isupper())
+            for part in node.values
+            if isinstance(part, ast.FormattedValue)
+        )
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add | ast.Mod):
+        # **ต้องเดินทั้งต้นไม้ ไม่ใช่ดูแค่ฝั่งซ้าย** — `"a" + q + "b"` ผูกเป็น
+        # `("a" + q) + "b"` ฝั่งซ้ายของตัวนอกสุดจึงเป็น BinOp ไม่ใช่สตริง
+        # (เขียนแบบดูฝั่งเดียวรอบแรก แล้ว fixture ที่ละเมิดครบกลับผ่านข้อนี้)
+        parts = list(ast.walk(node))
+        literal = any(isinstance(n, ast.Constant) and isinstance(n.value, str) for n in parts)
+        variable = any(
+            isinstance(n, ast.Name | ast.Call | ast.Attribute | ast.Subscript) for n in parts
+        )
+        return literal and variable
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+        return node.func.attr == "format" and isinstance(node.func.value, ast.Constant)
+    return False
+
+
+def _sql_from_variables(py_files: list[pathlib.Path]) -> bool:
+    """มีการยิง SQL ที่สร้างจากสตริงซึ่งต่อจากค่าที่ไม่ใช่ค่าคงที่ไหม"""
+    for path in py_files:
+        try:
+            tree = ast.parse(path.read_text(encoding="utf-8", errors="replace"))
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call) or not node.args:
+                continue
+            name = (
+                node.func.attr
+                if isinstance(node.func, ast.Attribute)
+                else getattr(node.func, "id", "")
+            )
+            if name in SQL_CALLS and _interpolates_a_variable(node.args[0]):
+                return True
+    return False
+
+
 def _debug_run(py_files: list[pathlib.Path]) -> bool:
     """มี `.run(debug=True)` จริงไหม — **อ่านจาก AST ไม่ใช่จากข้อความ**
 
@@ -285,7 +463,9 @@ def _debug_run(py_files: list[pathlib.Path]) -> bool:
 def probe(root: pathlib.Path) -> dict[str, bool | None]:
     """ตรวจทั้ง 10 ข้อกับแอปหนึ่งตัว — คืน True/False/None ต่อข้อ"""
     py_files = _python_files(root)
-    py_text = _read(py_files)
+    py_text = "\n".join(
+        _code_only(path.read_text(encoding="utf-8", errors="replace")) for path in py_files
+    )
     template_text = _read(_templates(root))
 
     secret_lines = [ln for ln in py_text.splitlines() if "SECRET_KEY" in ln]
@@ -307,9 +487,7 @@ def probe(root: pathlib.Path) -> dict[str, bool | None]:
         "V4.1.1-ownership-filter": _ownership(py_files),
         "V5.3.3-output-escaping": "|safe" not in template_text
         and "autoescape false" not in template_text.lower(),
-        "V5.3.4-no-sql-string-building": not re.search(
-            r"""(execute|text)\(\s*(f["']|["'][^"']*["']\s*[+%]|["'][^"']*["']\.format)""", py_text
-        ),
+        "V5.3.4-no-sql-string-building": not _sql_from_variables(py_files),
         "V6.4.1-secret-not-hardcoded": (None if not secret_lines else not hardcoded),
         "V13.2.1-api-requires-auth": _api_auth(py_files),
         "V14.1.3-no-debug-console": not _debug_run(py_files),

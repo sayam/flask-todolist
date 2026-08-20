@@ -31,7 +31,7 @@ from typing import Any
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
-from asvs_probe import CHECKS, probe
+from asvs_probe import CHECKS, _ours, probe
 
 # **เพดานเวลาของคำสั่งที่เรายิงออกไป** (audit รอบ 11 · ADR 0067) — `subprocess.run`
 # ที่ไม่มี `timeout=` รอตลอดกาล ซึ่งกลายเป็น job ที่ไม่มีวันจบเมื่อรันใน CI
@@ -137,16 +137,19 @@ def measure(
     """วัดแอปเดียวครบทั้งสามแกน — บนสำเนาที่ตัดของ overlay ออกแล้ว"""
     original = app_dir
     app_dir = staged(app_dir, into)
+    ours = [path for path in app_dir.rglob("*.py") if _ours(path)]
     asvs = probe(app_dir)
     gates = run_scans(app_dir)
     return {
         "side": side,
         "app": original.name,
         "overlay_installed": (original / "tools" / "overlay.json").is_file(),
-        "py_files": len(list(app_dir.rglob("*.py"))),
+        # **นับเฉพาะไฟล์ที่ probe อ่านจริง** (audit รอบ 18) — ตัวนับกับตัววัดต้อง
+        # มองต้นไม้ก้อนเดียวกัน ไม่งั้น "บรรทัดที่ agent เขียน" จะรวม virtualenv
+        # ที่ใครสักคนเผลอทิ้งไว้ในไดเรกทอรีของแอป แล้วสองฝั่งเทียบกันไม่ได้เลย
+        "py_files": len(ours),
         "py_lines": sum(
-            len(p.read_text(encoding="utf-8", errors="replace").splitlines())
-            for p in app_dir.rglob("*.py")
+            len(path.read_text(encoding="utf-8", errors="replace").splitlines()) for path in ours
         ),
         "gates": gates,
         "gate_findings": sum(v for v in gates.values() if isinstance(v, int)),
