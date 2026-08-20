@@ -50,6 +50,9 @@ import typing
 # pyyaml มากับ dev tools และไม่มี stub — เหตุผลเดียวกับ build_gates_crosswalk.py
 import yaml  # type: ignore[import-untyped]
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import workflows as gha
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 # **เพดานเวลาของคำสั่งที่เรายิงออกไป** (audit รอบ 11 · ADR 0067) — `subprocess.run`
@@ -157,10 +160,9 @@ def pull_request_checks(workflows: dict[str, dict]) -> set[str]:
     """ชื่อ check ที่ *จะ* ขึ้นบน pull request — matrix นับตามจำนวนแถวเหมือนที่ GitHub ทำ"""
     names: set[str] = set()
     for workflow in workflows.values():
-        triggers = workflow.get(True) or workflow.get("on") or {}
-        if "pull_request" not in (triggers if isinstance(triggers, dict) else {triggers: None}):
+        if not gha.runs_on(workflow, "pull_request"):
             continue
-        for key, job in workflow.get("jobs", {}).items():
+        for key, job in gha.jobs(workflow).items():
             base = job.get("name") or key
             strategy = job.get("strategy") or {}
             matrix = strategy.get("matrix") if isinstance(strategy, dict) else None

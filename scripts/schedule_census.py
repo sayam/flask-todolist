@@ -45,6 +45,9 @@ import typing
 # pyyaml มากับ dev tools และไม่มี stub — เหตุผลเดียวกับ build_gates_crosswalk.py
 import yaml  # type: ignore[import-untyped]
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import workflows
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 # **เพดานเวลาของคำสั่งที่เรายิงออกไป** (audit รอบ 11 · ADR 0067) — `subprocess.run`
@@ -101,15 +104,7 @@ def declared_schedules() -> dict[str, int]:
     """ไฟล์ workflow → รอบที่สั้นที่สุดที่มันประกาศไว้ (ชั่วโมง)"""
     found: dict[str, int] = {}
     for path in sorted(WORKFLOWS.glob("*.y*ml")):
-        workflow = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-        triggers = workflow.get(True) or workflow.get("on") or {}
-        if not isinstance(triggers, dict):
-            continue
-        crons = [
-            entry["cron"]
-            for entry in (triggers.get("schedule") or [])
-            if isinstance(entry, dict) and entry.get("cron")
-        ]
+        crons = workflows.schedules(workflows.load(path))
         if crons:
             found[path.name] = min(period_hours(cron) for cron in crons)
     return found
