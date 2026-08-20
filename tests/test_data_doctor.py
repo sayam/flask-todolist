@@ -12,6 +12,7 @@
 import hashlib
 import os
 import pathlib
+from datetime import datetime
 
 import pytest
 from sqlalchemy import func, select, text
@@ -19,7 +20,7 @@ from sqlalchemy import func, select, text
 from app import db
 from app.audit import AuditEntry
 from app.models import Category, Todo, User
-from app.services import data_doctor
+from app.services import data_doctor, personal_data, tokens
 from tests.conftest import PASSWORD
 
 
@@ -202,3 +203,119 @@ def test_a_tampered_audit_row_is_reported_as_a_chain_break(client, app, user_id)
         report = data_doctor.examine()
 
     assert "audit-chain" in {finding.kind for finding in report.findings}
+
+
+# ------------- credential ที่ยังใช้ได้บนแถวที่ปิดไปแล้ว (ใบ #171)
+
+
+def _close(user):
+    """ปิดบัญชีตามเส้นทางเดียวที่ถูก แล้วคืน id — ทางอื่นคือทางที่ ADR 0034 ห้ามไว้"""
+    personal_data.close_account(user)
+    return user.id
+
+
+def test_a_closed_account_that_kept_its_password_is_found(app, user_id):
+    """ปิดบัญชีแล้วเขียน hash ที่ใช้ได้กลับเข้าไป — ต้องเห็น"""
+    with app.app_context():
+        victim = User(username="ปิดแล้วแต่ยังเข้าได้")
+        victim.set_password(PASSWORD)
+        db.session.add(victim)
+        db.session.commit()
+        closed_id = _close(victim)
+
+        # **ต้องเขียนด้วย SQL ตรง ๆ** — เส้นทางของแอปไม่มีทางสร้างสถานะนี้ได้
+        # ซึ่งเป็นเหตุผลที่ตัวตรวจมีอยู่: ของแบบนี้มาจาก backup เก่า/มือคน
+        db.session.execute(
+            text("UPDATE tdl_user SET password_hash = :h WHERE id = :i"),
+            {"h": "scrypt:32768:8:1$fake$deadbeef", "i": closed_id},
+        )
+        db.session.commit()
+
+        report = data_doctor.examine()
+
+    kinds = {finding.kind for finding in report.findings}
+    assert "live-credential-on-closed-row" in kinds, [f.detail for f in report.findings]
+
+
+def test_a_revoked_token_that_kept_its_hash_is_found(app, user_id):
+    """เพิกถอนแล้วเขียน hash กลับเข้าไป — ต้องเห็น"""
+    with app.app_context():
+        owner = db.session.get(User, user_id)
+        tokens.issue(owner, "ของเครื่องพิมพ์")
+        issued = tokens.list_tokens(owner)[0]
+        tokens.revoke(owner, issued.id)
+
+        db.session.execute(
+            text("UPDATE tdl_api_token SET token_hash = :h WHERE id = :i"),
+            {"h": "0" * 64, "i": issued.id},
+        )
+        db.session.commit()
+
+        report = data_doctor.examine()
+
+    assert "live-credential-on-closed-row" in {f.kind for f in report.findings}
+
+
+def test_closing_an_account_the_normal_way_reports_nothing(app, user_id):
+    """เส้นทางปกติต้องเงียบ — ตัวตรวจที่ดังกับของปกติจะถูกถอดภายในสัปดาห์เดียว"""
+    with app.app_context():
+        leaving = User(username="ลาออกตามระเบียบ")
+        leaving.set_password(PASSWORD)
+        db.session.add(leaving)
+        db.session.commit()
+        _close(leaving)
+
+        report = data_doctor.examine()
+
+    assert report.healthy, [finding.detail for finding in report.findings]
+
+
+def test_a_token_that_only_expired_is_not_reported(app, user_id):
+    """หมดอายุ ≠ ถูกเพิกถอน — `revoke()` เท่านั้นที่ล้าง hash
+
+    ใบที่หมดอายุแต่ยังไม่ถูกเพิกถอนยังถือ hash ไว้อย่างถูกต้อง รอ `purge-expired`
+    มาเก็บ · ถ้าตัวตรวจนับมันเป็นความผิด ฐานที่สุขภาพดีทุกฐานที่เคยออก token
+    จะรายงานว่าป่วย
+    """
+    with app.app_context():
+        owner = db.session.get(User, user_id)
+        tokens.issue(owner, "ใบที่ปล่อยให้หมดอายุ")
+        issued = tokens.list_tokens(owner)[0]
+        db.session.execute(
+            text("UPDATE tdl_api_token SET expires_at = :t WHERE id = :i"),
+            {"t": datetime(2020, 1, 1), "i": issued.id},
+        )
+        db.session.commit()
+
+        report = data_doctor.examine()
+
+    assert report.healthy, [finding.detail for finding in report.findings]
+
+
+def test_the_check_reads_rows_the_soft_delete_filter_hides(app, user_id):
+    """ถามตรง ๆ โดยไม่ขอ `INCLUDE_DELETED` จะได้ศูนย์แถวเสมอ แล้วด่านเขียวเปล่า
+
+    เทสต์นี้วัด *กลไก* ไม่ใช่ผลลัพธ์: แถวที่ปลูกไว้ต้องมองไม่เห็นด้วย query
+    ธรรมดา — ถ้าวันหนึ่งมันเห็นได้เอง แปลว่าตัวกรองหลุด และเทสต์ข้างบนก็จะ
+    ผ่านด้วยเหตุผลที่ไม่ใช่ของมัน
+    """
+    with app.app_context():
+        victim = User(username="ซ่อนอยู่หลังตัวกรอง")
+        victim.set_password(PASSWORD)
+        db.session.add(victim)
+        db.session.commit()
+        closed_id = _close(victim)
+        db.session.execute(
+            text("UPDATE tdl_user SET password_hash = :h WHERE id = :i"),
+            {"h": "scrypt:32768:8:1$fake$deadbeef", "i": closed_id},
+        )
+        db.session.commit()
+
+        visible = db.session.scalar(
+            select(func.count()).select_from(User).where(User.id == closed_id)
+        )
+        assert visible == 0, "ตัวกรอง soft delete ไม่ได้ซ่อนแถวนี้ — เทสต์ตัวอื่นวัดผิดที่แล้ว"
+
+        report = data_doctor.examine()
+
+    assert "live-credential-on-closed-row" in {f.kind for f in report.findings}
