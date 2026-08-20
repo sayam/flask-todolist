@@ -640,15 +640,45 @@ class ChainError(Exception):
         self.reason = reason
 
 
+class AnchorError(Exception):
+    """**หางสายไม่ตรงกับสมอ** — คนละอาการกับ `ChainError` และแก้คนละทาง
+
+    `ChainError` = แถวที่ยังอยู่ถูกแก้หรือถูกเจาะกลาง · `AnchorError` = แถวหาย
+    ไปจาก*ท้าย* สาย ซึ่งการเดินแถวที่เหลือมองไม่เห็นตามนิยาม (มันยังต่อกันครบ)
+    · แยกชนิดไว้เพราะข้อความที่บอกว่า "แถวไหนถูกแก้" จะพาคนไปหาผิดที่
+    """
+
+    def __init__(self, expected: str, found: str, rows: int) -> None:
+        super().__init__(
+            "หางของสาย audit ไม่ตรงกับสมอที่บันทึกไว้ — มีแถวหายไปจากท้ายสาย "
+            f"(สมอชี้ {expected[:16]}… · หางที่เหลือ {found[:16]}… · {rows} แถว)"
+        )
+        self.expected = expected
+        self.found = found
+        self.rows = rows
+
+
 def verify_chain() -> int:
     """เดินสายทั้งเส้น คืนจำนวนแถวที่ตรวจแล้ว — ไม่ผ่านให้ raise `ChainError`
 
     จุดเริ่มของสายรับได้สองแบบ: แถวปฐมกำเนิด (`prev_hash` เป็นศูนย์ล้วน)
     หรือแถวที่ต่อจากช่วงที่ purge ไปแล้ว ซึ่งมี checkpoint รับรองไว้
 
-    **ความซื่อสัตย์กับข้อจำกัด:** ผ่านแปลว่า "แถวที่ยังอยู่ไม่ถูกแก้" เท่านั้น
-    ไม่ได้แปลว่า "ไม่มีใครตัดประวัติทิ้ง" — คนที่คุมทั้ง purge job และฐานข้อมูล
-    เขียน checkpoint ปลอมได้ การกันจริงต้องใช้ storage แบบ write-once ภายนอก
+    **สมอของหางสาย** (audit รอบ 19) — เดินแถวที่เหลืออย่างเดียวมองไม่เห็นการตัด
+    *ท้าย* สาย เพราะสิ่งที่เหลือยังต่อกันครบทุกข้อ · วัดจริงแล้ว: ลบแถวสุดท้าย
+    ทิ้งได้คำตอบ "OK — 5 entries" และลบทั้งตารางได้ "OK — 0 entries" ·
+    `tdl_audit_lock.last_hash` ที่ ADR 0035 ใส่ไว้เพื่อกัน deadlock **เป็นสมอ
+    ที่ทำให้เรื่องนี้ตรวจจับได้ฟรี** — มันถูกเขียนทุกครั้งที่มีการต่อสาย และไม่มี
+    เส้นทางไหนของแอปแตะมันโดยไม่เขียนแถวคู่กัน
+
+    กติกาที่วัดมาแล้วว่าไม่มีข้อยกเว้นบนเส้นทางที่ถูกต้อง (รวม purge ที่ลบยกตาราง
+    ซึ่งเขียน checkpoint เป็นแถวใหม่ให้เสมอ): **มีแถว → สมอต้องเท่ากับ `row_hash`
+    ของแถวสุดท้าย · ไม่มีแถว → สมอต้องเป็น genesis**
+
+    **ความซื่อสัตย์กับข้อจำกัด:** ผ่านแปลว่า "แถวที่ยังอยู่ไม่ถูกแก้ และไม่มีแถว
+    หายไปจากท้ายสาย" — ยังไม่ได้แปลว่า "ไม่มีใครตัดประวัติทิ้ง" เพราะคนที่คุมทั้ง
+    purge job และฐานข้อมูลเขียน checkpoint ปลอมได้ (และตอนนี้ต้องแก้สมอให้ตรงด้วย
+    ซึ่งแพงขึ้นแต่ไม่ใช่กันได้) การกันจริงต้องใช้ storage แบบ write-once ภายนอก
     ซึ่งเกินความจำเป็นของ scale นี้ (ADR 0014)
     """
     rows = db.session.query(AuditEntry).order_by(AuditEntry.id).all()
@@ -680,4 +710,16 @@ def verify_chain() -> int:
         if recomputed != row.row_hash:
             raise ChainError(row.id, "เนื้อหาของแถวถูกแก้ (คำนวณ hash ใหม่แล้วไม่ตรง)")
         expected = row.row_hash
+
+    _verify_anchor(rows)
     return len(rows)
+
+
+def _verify_anchor(rows: list[AuditEntry]) -> None:
+    """สมอที่บันทึกไว้ต้องชี้ไปที่หางสายจริง — ดูหัวข้อในหัวของ `verify_chain`"""
+    anchor = db.session.get(AuditChainLock, LOCK_ROW_ID)
+    if anchor is None:
+        raise AnchorError(GENESIS_HASH, "(ไม่มีแถวสมอ)", len(rows))
+    tail = rows[-1].row_hash if rows else GENESIS_HASH
+    if anchor.last_hash != tail:
+        raise AnchorError(anchor.last_hash, tail, len(rows))

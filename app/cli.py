@@ -540,7 +540,7 @@ def audit_verify():
     """Walk the audit hash chain and report whether it is intact."""
     try:
         checked = audit.verify_chain()
-    except audit.ChainError as broken:
+    except (audit.ChainError, audit.AnchorError) as broken:
         raise click.ClickException(str(broken)) from broken
     click.echo(f"Audit chain OK — {checked} entries verified.")
 
