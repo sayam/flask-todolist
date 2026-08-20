@@ -14,7 +14,7 @@ import pathlib
 
 import pytest
 
-from scripts.asvs_probe import CHECKS, probe
+from scripts.asvs_probe import CHECKS, NOT_OUR_CODE, _python_files, probe
 
 INSECURE_APP = {
     "run.py": "from app import create_app\n\napp = create_app()\napp.run(debug=True)\n",
@@ -421,3 +421,136 @@ def test_an_empty_directory_answers_not_applicable(tmp_path):
     assert result["V4.2.2-csrf"] is None
     assert result["V13.2.1-api-requires-auth"] is None
     assert result["V6.4.1-secret-not-hardcoded"] is None
+
+
+# ---------------- ต้นไม้ที่ probe คาดหวัง — และของที่ต้องไม่ถูกอ่าน (audit รอบ 18)
+#
+# ยิง probe ใส่ repo ของตัวเองครั้งแรกในรอบ 18 แล้ว **4,171 จาก 4,299 ไฟล์ที่มันอ่าน
+# เป็นซอร์สของไลบรารีใน `.venv/`** · คำตอบสามข้อพลิกเป็น "ไม่ผ่าน" ด้วยหลักฐาน
+# อย่าง `SECRET_KEY = 'development key'` ของ Flask กับ `text(f'` ของ SQLAlchemy
+#
+# แอปที่ agent สร้างในการทดลองไม่เคยพก virtualenv มาด้วย เงื่อนไขก่อนใช้ข้อนี้
+# จึงไม่เคยถูกเขียนลงไปไหน — และ **ความบังเอิญไม่ใช่กลไก**
+
+VENDORED = {
+    ".venv/lib/python3.13/site-packages/flask/sansio/app.py": (
+        "class Flask:\n"
+        "    def make_config(self):\n"
+        "        SECRET_KEY = 'development key'\n"
+        "        return SECRET_KEY\n"
+    ),
+    ".venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py": (
+        "def go(conn, name):\n    return conn.execute(f'SELECT * FROM {name}')\n"
+    ),
+    "node_modules/pkg/tool.py": 'SECRET_KEY = "leaked-from-a-dependency"\n',
+}
+
+
+def test_a_virtualenv_in_the_tree_changes_no_answer(tmp_path):
+    """โค้ดของไลบรารีต้องไม่ถูกนับเป็นผลงานของโปรเจกต์ — ไม่ว่าข้อไหน"""
+    before = probe(_plant(tmp_path / "clean", SECURE_APP))
+    after = probe(_plant(tmp_path / "vendored", {**SECURE_APP, **VENDORED}))
+
+    assert after == before, f"คำตอบขยับเพราะของที่ไม่ใช่โค้ดของแอป: {before} → {after}"
+
+
+def test_the_probe_reads_only_the_projects_own_files(tmp_path):
+    """ทิศตรง — ไฟล์ที่ถูกอ่านต้องไม่มีตัวไหนอยู่ใต้ไดเรกทอรีของสภาพแวดล้อม"""
+    root = _plant(tmp_path / "vendored", {**SECURE_APP, **VENDORED})
+
+    read = _python_files(root)
+
+    assert read, "ไม่ได้อ่านอะไรเลย — เท่ากับด่านที่เขียวเพราะไม่มีข้อมูล"
+    assert all(NOT_OUR_CODE.isdisjoint(p.parts) for p in read), sorted(str(p) for p in read)
+
+
+def test_writing_about_a_hardcoded_secret_in_a_comment_is_not_having_one(tmp_path):
+    """คอมเมนต์ที่*เล่าเรื่อง*ความลับ ไม่ใช่ความลับ
+
+    เจอกับตัวเอง: `scripts/asvs_probe.py` อธิบายในคอมเมนต์ว่า
+    `SECRET_KEY = 'development key'` เป็นตัวอย่างที่ไม่ดี แล้ว probe จับคอมเมนต์
+    ของตัวเองเป็นหลักฐานว่า repo นี้ฝังความลับไว้ในโค้ด
+    """
+    app = dict(SECURE_APP)
+    app["app/notes.py"] = (
+        '"""ห้ามเขียน SECRET_KEY = \'dev\' ลงไปตรง ๆ — ใช้ตัวแปรแวดล้อมแทน"""\n\n'
+        "# ตัวอย่างที่ผิด: SECRET_KEY = 'hardcoded'\n"
+        "TITLE = 'notes'\n"
+    )
+
+    assert probe(_plant(tmp_path / "prose", app))["V6.4.1-secret-not-hardcoded"] is not False
+
+
+# ---------------- โครงที่ *ดีกว่า* ต้องไม่ถูกลงโทษ — ครั้งที่ห้า หก และเจ็ด
+#
+# สามเคสข้างล่างมาจาก repo นี้เองทั้งหมด (audit รอบ 18) · ไม่ใช่กรณีสมมุติ:
+# ตัววัดตอบว่า repo ที่มี ASVS worksheet 253 ข้อ ตกสามข้อ แล้วพอไล่ดูทีละข้อ
+# ปรากฏว่าสิ่งที่มันไม่รู้จักคือ *สำนวนที่ดีกว่า* ทุกครั้ง
+
+ROLE_GUARDED = {
+    "app/__init__.py": "SECRET_KEY = __import__('os').environ['SECRET_KEY']\n",
+    "app/lookup.py": (
+        "from . import db\n\n\n"
+        "def by_id(model, raw_id):\n"
+        "    return db.session.get(model, raw_id)\n"
+    ),
+    "app/admin.py": (
+        "from .lookup import by_id\nfrom .models import Team\n"
+        "from .roles import require_admin\n\n\n"
+        "def get_team(actor, team_id):\n"
+        "    require_admin(actor)\n"
+        "    return by_id(Team, team_id)\n"
+    ),
+}
+
+NESTED_SCOPE = {
+    "app/__init__.py": "SECRET_KEY = __import__('os').environ['SECRET_KEY']\n",
+    "app/lookup.py": (
+        "from . import db\n\n\n"
+        "def by_id(model, raw_id):\n"
+        "    return db.session.get(model, raw_id)\n"
+    ),
+    "app/risk.py": (
+        "from .lookup import by_id\nfrom .models import Todo\n\n\n"
+        "def at_risk(owner):\n"
+        "    mine = Todo.query.filter_by(user_id=owner.id).all()\n\n"
+        "    def walk(todo_id):\n"
+        "        todo = by_id(Todo, todo_id)\n"
+        "        return todo is not None\n\n"
+        "    return [t for t in mine if walk(t.id)]\n"
+    ),
+}
+
+
+def test_a_role_check_counts_as_thinking_about_authorization(tmp_path):
+    """`require_admin(actor)` คือด่าน — ไม่ใช่การลืมตรวจเจ้าของ
+
+    โครงที่แยกการอนุญาตออกมาเป็นฟังก์ชันชื่อชัด ๆ ดีกว่าโครงที่เทียบ `user_id`
+    เองทุกที่ · เครื่องวัดที่ให้คะแนนต่ำกว่า กำลังสอนให้เขียนแย่ลง
+    """
+    result = probe(_plant(tmp_path / "roles", ROLE_GUARDED))
+
+    assert result["V4.1.1-ownership-filter"] is not False, result
+
+
+def test_a_closure_inherits_the_guard_of_the_scope_that_holds_it(tmp_path):
+    """ฟังก์ชันซ้อนอยู่หลังด่านของฟังก์ชันแม่โดยโครงสร้าง — ตัดสินโดด ๆ ไม่ได้"""
+    result = probe(_plant(tmp_path / "nested", NESTED_SCOPE))
+
+    assert result["V4.1.1-ownership-filter"] is not False, result
+
+
+def test_sql_built_from_a_constant_is_not_sql_built_from_input(tmp_path):
+    """`f"... {ISOLATION_LEVEL}"` ต่อจากค่าคงที่ ไม่ใช่การต่อจากคำขอ
+
+    ทิศกลับอยู่ใน `test_the_insecure_app_fails_every_check` ซึ่งใช้
+    `"SELECT ..." + q + "..."` — ถ้าข้อนี้หลวมจนปล่อยทิศนั้นผ่าน เทสต์ตัวนั้นแดง
+    """
+    app = dict(SECURE_APP)
+    app["app/tuning.py"] = (
+        'ISOLATION_LEVEL = "READ COMMITTED"\n\n\n'
+        "def tune(cursor):\n"
+        '    cursor.execute(f"SET SESSION TRANSACTION ISOLATION LEVEL {ISOLATION_LEVEL}")\n'
+    )
+
+    assert probe(_plant(tmp_path / "constant-sql", app))["V5.3.4-no-sql-string-building"] is True

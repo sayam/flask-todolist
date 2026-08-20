@@ -307,3 +307,24 @@ def test_an_asvs_item_with_nothing_to_judge_is_not_counted_as_a_failure(tmp_path
     assert row["asvs_pass"] + len(row["asvs_fail"]) + len(row["asvs_na"]) == len(row["asvs"]), (
         "สามกองรวมกันไม่เท่าจำนวนข้อทั้งหมด — มีข้อที่ถูกนับซ้ำหรือหายไป"
     )
+
+
+def test_a_virtualenv_inside_an_app_is_not_counted_as_the_agents_work(tmp_path):
+    """ตัวนับกับตัววัดต้องมองต้นไม้ก้อนเดียวกัน (audit รอบ 18)
+
+    `probe()` เลิกอ่าน `.venv/` แล้ว แต่ `py_files`/`py_lines` เคยนับด้วย
+    `rglob` ของตัวเอง — ถ้าปล่อยไว้ ตัวเลข "บรรทัดที่ agent เขียน" ของฝั่งที่
+    เผลอทิ้ง virtualenv ไว้จะพุ่งเป็นพัน แล้วสองฝั่งเทียบกันไม่ได้เลย
+    """
+    app = _app(tmp_path, "ctrl", "app1")
+    (app / "main.py").write_text("x = 1\n", encoding="utf-8")
+    vendored = app / ".venv" / "lib" / "python3.13" / "site-packages" / "flask"
+    vendored.mkdir(parents=True)
+    (vendored / "app.py").write_text("y = 2\n" * 400, encoding="utf-8")
+
+    output = tmp_path / "result.json"
+    assert _run(tmp_path, output).returncode == 0
+
+    (row,) = json.loads(output.read_text(encoding="utf-8"))
+    assert row["py_lines"] == 1, f"นับโค้ดของไลบรารีเป็นผลงานของ agent: {row['py_lines']}"
+    assert row["py_files"] == 1
