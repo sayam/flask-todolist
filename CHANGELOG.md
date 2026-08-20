@@ -62,6 +62,28 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
   the export query) require numbers first, in keeping with how
   `docs/PERFORMANCE.md` has decided everything else.
 
+- **Round 20 asked what the calendar has actually done** — nineteen rounds had
+  asked questions answerable from the files at hand. This one asked the first
+  question that requires waiting: *how many times has anything the project
+  promises to do "periodically" actually run?* Three kinds of promise turned out
+  to be proven very unequally — the ones bound to a push (652 workflow runs, red
+  immediately), the ones bound to the platform's own schedule (weekly Scorecard,
+  Dependabot; watched by `schedule_census`), and the ones bound to a human
+  calendar: **zero**. Every dated row in the review table carried a "last done"
+  equal to the day the row was written, and the first genuine due date is
+  2026-11-09. "0 overdue" was a statement about the project's age.
+
+  Nothing can make time pass faster, so the round added the distinction rather
+  than a mechanism: each row now declares `(ตั้งต้น)` or `(ครั้งที่ N)`, and
+  `whats_pending.py` prints `ยังไม่เคยทำซ้ำเลย 22 จาก 22 แถว` on every run — a
+  number that falls on its own as the reviews recur. Alongside it: the runtime's
+  end-of-life date got an owner (a 180-day runway threshold and a freshness limit
+  on the pinned table, where before it was a number shown on an admin page that
+  no rule consumed); `flask data-doctor` — built in round 19 to answer a question
+  that only means anything when asked repeatedly — got a three-month row; and
+  conditional rows now declare whether a machine or a person decides them, with
+  the release row checked against the newest version in this file.
+
 - **Round 19 asked the data itself** — eighteen rounds had audited code,
   configuration, documents, CI and registers; all of it lives in git and can be
   rechecked by reading files. The data is the only part of the system that is

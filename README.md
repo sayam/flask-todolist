@@ -156,6 +156,7 @@ Written in Thai, because that is the language the thinking happened in.
 | [`docs/SUPPLY-CHAIN.md`](docs/SUPPLY-CHAIN.md) | the supply-chain axis — five layers of the chain and the 20 gates that guard them, kept honest against `gates.yaml` both ways |
 | [`docs/COMPLIANCE.md`](docs/COMPLIANCE.md) | the per-country legal index — Thailand (PDPA) today, and the contract for adding a country additively |
 | [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) | measured numbers, including the ones that hurt |
+| [`docs/DATABASE-REVIEW.md`](docs/DATABASE-REVIEW.md) | the schema reviewed against relational-design and high-performance practice across eight axes — nine hold, ten gaps are written down with the condition that brings each into scope |
 | [`docs/DATA-CLASSIFICATION.md`](docs/DATA-CLASSIFICATION.md) | what is stored, how sensitive it is, how long it is kept |
 | [`docs/DESIGN.md`](docs/DESIGN.md) | the UI's identity and a per-page mode table, both enforced by a test |
 | [`docs/OPERATIONS.md`](docs/OPERATIONS.md) | running it for real |
@@ -328,6 +329,8 @@ org graph) · [`docs/PDPA.md`](docs/PDPA.md) (worksheet แบบเดียว
 [`docs/RUNBOOK-BACKUP.md`](docs/RUNBOOK-BACKUP.md) (backup/restore ที่การ
 ซ้อมเป็นเทสต์ทุก push) ·
 [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) ·
+[`docs/DATABASE-REVIEW.md`](docs/DATABASE-REVIEW.md) (ทบทวนสคีมาเทียบแนวปฏิบัติ
+แปดแกน — ผ่านเก้าข้อ · บันทึกช่องว่างสิบข้อพร้อมเงื่อนไขที่ทำให้ถึงคิว) ·
 [`docs/DATA-CLASSIFICATION.md`](docs/DATA-CLASSIFICATION.md) ·
 [`docs/DESIGN.md`](docs/DESIGN.md) (ตัวตนของ UI + ตารางโหมดต่อหน้า มีเทสต์คุม) ·
 [`docs/OPERATIONS.md`](docs/OPERATIONS.md) ·

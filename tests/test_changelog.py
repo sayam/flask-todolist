@@ -90,3 +90,38 @@ def test_the_link_targets_at_the_bottom_cover_every_release(text, releases):
 
     missing = sorted(needed - defined)
     assert not missing, f"หัวข้อที่ไม่มีปลายทางของลิงก์: {missing}"
+
+
+# ------------- ที่อื่นที่บอกเวอร์ชันกับโลกภายนอก ต้องพูดตรงกัน (2026-08-20)
+#
+# หัวไฟล์นี้เขียนไว้ว่า "เวอร์ชันเดียวกันอยู่สามที่คนละชนิด" — ตอนนั้นจริง
+# วันนี้มีอีกสองที่ที่**คนนอกอ่าน**และเก่าได้เงียบ ๆ: badge บน `README.md`
+# (สิ่งแรกที่คนเห็น) และ `CITATION.cff` (สิ่งที่ Zenodo กับโปรแกรมอ้างอิงอ่าน)
+#
+# ทั้งคู่ไม่มีอะไรบังคับมาก่อน — และ `CITATION.cff` ยังไม่มีช่อง `version` เลย
+# จนถึงวันนี้ ทั้งที่มันคือ *บัตรประจำตัวของงานชิ้นนี้*
+
+README = ROOT / "README.md"
+CITATION = ROOT / "CITATION.cff"
+BADGE = re.compile(r"badge/version-v(\d+\.\d+\.\d+)-")
+CFF_VERSION = re.compile(r"^version:\s*(\d+\.\d+\.\d+)\s*$", re.MULTILINE)
+
+
+def test_the_badge_people_see_first_says_the_real_version():
+    """badge บน README คือสิ่งแรกที่คนเห็น — เก่าแล้วคือคำประกาศที่ผิด"""
+    found = BADGE.search(README.read_text(encoding="utf-8"))
+
+    assert found, "README ไม่มี badge เวอร์ชันแล้ว — ถ้าตั้งใจถอด ให้ลบเทสต์นี้ด้วย"
+    assert found.group(1) == app_package.__version__, (
+        f"badge บอก v{found.group(1)} แต่โค้ดเป็น {app_package.__version__}"
+    )
+
+
+def test_the_citation_record_says_the_real_version():
+    """`CITATION.cff` คือบัตรประจำตัวที่ Zenodo และโปรแกรมอ้างอิงอ่าน"""
+    found = CFF_VERSION.search(CITATION.read_text(encoding="utf-8"))
+
+    assert found, "CITATION.cff ไม่มีช่อง `version:` — Zenodo จะไม่รู้ว่าอ้างรุ่นไหน"
+    assert found.group(1) == app_package.__version__, (
+        f"CITATION.cff บอก {found.group(1)} แต่โค้ดเป็น {app_package.__version__}"
+    )
