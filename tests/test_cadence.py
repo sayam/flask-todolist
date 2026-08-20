@@ -276,3 +276,34 @@ def test_the_number_of_rows_a_human_must_watch_is_counted_not_guessed(rows):
         f"ตัวอ่านนับได้ {manual}/{total} แต่ตารางมี {expected}/{len(conditional)}"
     )
     assert manual < total, "ไม่มีแถวไหนที่เครื่องตรวจให้เลย — เครื่องหมายไม่ได้ทำอะไร"
+
+
+# ------------- เครื่องมือที่ตอบคำถามตามเวลา ต้องมีเวลาเป็นเจ้าของ (รอบ 20 ข้อ 3)
+#
+# `flask data-doctor` ของรอบ 19 ตรวจว่า "ข้อมูลที่พ้นระยะเก็บรักษาแล้วยังอยู่ไหม"
+# ซึ่งเป็นคำถามที่**มีความหมายก็ต่อเมื่อถามซ้ำตามเวลา** — แต่ก่อนรอบ 20 คำว่า
+# `data-doctor` ไม่ปรากฏในตารางนี้แม้แต่ครั้งเดียว
+#
+# ตรวจสองทิศเหมือนทะเบียนทุกใบ: เครื่องมือที่ต้องมีเจ้าของต้องอยู่ในตาราง ·
+# และคำสั่งที่ตารางอ้างถึงต้องมีอยู่จริงใน CLI
+
+CLI = ROOT / "app" / "cli.py"
+FLASK_COMMAND = re.compile(r"flask ([a-z][a-z-]*)")
+TOOLS_THAT_NEED_AN_OWNER = ("data-doctor",)
+
+
+@pytest.mark.parametrize("tool", TOOLS_THAT_NEED_AN_OWNER)
+def test_a_tool_that_answers_a_time_question_appears_in_the_table(tool):
+    """เครื่องมือที่ถามคำถามตามเวลา ต้องมีแถวสั่งให้รันตามเวลา"""
+    assert tool in DOC.read_text(encoding="utf-8"), (
+        f"`flask {tool}` ตอบคำถามที่มีความหมายเมื่อถามซ้ำตามเวลา แต่ไม่มีแถวไหนในตารางสั่งให้รันมัน"
+    )
+
+
+def test_every_command_the_table_names_really_exists():
+    """ทิศกลับ — ตารางที่สั่งให้รันคำสั่งที่ไม่มีอยู่ คือตารางที่ทำตามไม่ได้"""
+    registered = set(re.findall(r'click\.command\("([a-z-]+)"', CLI.read_text(encoding="utf-8")))
+    named = set(FLASK_COMMAND.findall(DOC.read_text(encoding="utf-8")))
+
+    ghosts = sorted(named - registered)
+    assert not ghosts, f"ตารางอ้างคำสั่งที่ไม่มีใน CLI: {ghosts}"
