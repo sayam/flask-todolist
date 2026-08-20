@@ -1,4 +1,4 @@
-"""ข้อห้ามที่เครื่องตรวจได้ ต้องมีเครื่องตรวจ — audit รอบ 14 ข้อ 2
+"""กฎที่เครื่องตรวจได้ ต้องมีเครื่องตรวจ — audit รอบ 14 ข้อ 2 · ขยายในรอบ 18
 
 `CLAUDE.md` มีบรรทัดที่ใช้คำว่า "ห้าม" 62 บรรทัด · แยกเป็นข้อห้ามที่ต่างกันได้
 61 ข้อ · ในนั้น **10 ข้อเป็นวิจารณญาณของคนแก้** (เช่น "ห้ามลด assert เหลือแค่
@@ -25,6 +25,16 @@ audit รอบ 13 วัดได้ว่าปัญหาของระบ�
   ด่านต้องถูกถอนตาม ไม่ใช่ค้างอยู่เป็นกฎผีที่ไม่มีใครตัดสินใจให้ (หลักเดียวกับ
   ทะเบียนข้อยกเว้นทุกใบของ repo นี้ตั้งแต่ audit รอบ 9)
 
+## กฎมีสองรูป — รอบ 14 เก็บรูปเดียว
+
+รอบ 18 พบว่าทะเบียนนี้ครอบแค่ประโยคที่ขึ้นต้นด้วย **"ห้าม"** · `CLAUDE.md`
+ยังมีข้อบังคับอีกรูปหนึ่งคือ **"ทุก X ต้อง Y"** (18 บรรทัด) ซึ่งไม่เคยถูกนับ ·
+ปลูกจริงในสำเนาของ repo แล้วสามข้อ *ผ่านทุกด่านที่มีอยู่*: ตาราง core ที่ไม่มี
+prefix `tdl_` · ฟอร์ม POST ที่ไม่มี `csrf_field()` · กฎ alert ที่ไม่มี runbook
+
+เก็บไว้ในทะเบียนใบเดียวกันด้วยเหตุผลเดียวกับข้างบน — และเพราะทั้งสองรูปตอบ
+คำถามเดียวกัน: *กฎข้อนี้มีเครื่องบังคับหรือมีแต่ประโยค*
+
 ## ที่นี่ไม่ครอบอะไร
 
 ข้อห้ามที่ต้องอ่าน*เจตนา*ของคนแก้ (`ห้ามแก้เทสต์ให้เงียบ`) และข้อที่ถ้อยคำยัง
@@ -40,6 +50,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 import pytest
+import yaml
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 INSTRUCTIONS = ROOT / "CLAUDE.md"
@@ -260,6 +271,88 @@ def _audit_purge_cuts_from_the_head_only() -> list[str]:
     return ["app/purge.py — ไม่มีฟังก์ชัน _expired_audit แล้ว"]
 
 
+# ---------------------------------------------------------------- ข้อบังคับรูป "ทุก X ต้อง Y"
+#
+# **ทะเบียนของรอบ 14 ครอบแค่ครึ่งเดียวของกฎ** (audit รอบ 18) — มันเก็บประโยคที่
+# ขึ้นต้นด้วย "ห้าม" (64 บรรทัดใน `CLAUDE.md`) แต่ไม่เคยนับข้อบังคับอีกรูปหนึ่ง
+# คือ "ทุก X ต้อง Y" (18 บรรทัด) · ปลูกจริงในสำเนาของ repo แล้วพบว่าสามข้อ
+# ข้างล่างนี้ **ผ่านทุกด่านที่มีอยู่** ทั้งที่ละเมิดกฎที่เขียนไว้ชัดเจน
+
+
+def _every_table_carries_the_prefix() -> list[str]:
+    """ตารางทุกตัวขึ้นต้น `tdl_` — prefix เคยถูกบังคับเฉพาะตารางของ plugin
+
+    core ไม่เคยมีเครื่องตรวจเลย · ปลูก `__tablename__ = "lab_row"` ลงใน
+    `app/models.py` แล้วด่านเดียวที่แดงคือ `dialect-discipline` ซึ่งทักเรื่อง
+    ชนิดของคอลัมน์ ไม่ใช่ชื่อตาราง · ชื่อที่ไม่มี prefix พากลับไปสู่ landmine
+    ของ reserved word ที่ ADR 0013 ปิดไปแล้ว (`user` เป็นคำสงวนของ PostgreSQL)
+    """
+    found = []
+    for path in sorted(APP.rglob("*.py")):
+        try:
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Assign):
+                continue
+            names = {t.id for t in node.targets if isinstance(t, ast.Name)}
+            if "__tablename__" not in names:
+                continue
+            value = node.value
+            if isinstance(value, ast.Constant) and not str(value.value).startswith("tdl_"):
+                found.append(f"{path.relative_to(ROOT)}:{node.lineno} → {value.value!r}")
+    return found
+
+
+def _every_post_form_carries_a_csrf_field() -> list[str]:
+    """ฟอร์ม POST ทุกอันมี `csrf_field()` หรือ hidden `csrf_token`
+
+    `CSRFProtect` คุมทั้งแอป ฟอร์มที่ลืมใส่จะได้ 400 ทันที — แต่เห็นก็ต่อเมื่อ
+    มีคนกดมันหรือมีเทสต์ยิงเข้าไป · `tests/test_csrf.py` ยิงเฉพาะ route ที่มัน
+    รู้จัก จึงไม่ใช่การสแกน · ฟอร์มใหม่ที่ไม่มีเทสต์ของตัวเองจะส่งขึ้น production
+    แล้วพังเงียบ ๆ (ปลูกจริงแล้วทั้ง `csrf-guards-every-form` และ `csp-no-inline` ผ่าน)
+    """
+    opening = re.compile(r"<form\b[^>]*method\s*=\s*[\"\']post[\"\'][^>]*>", re.IGNORECASE)
+    found = []
+    for path in sorted((APP / "templates").rglob("*.html")):
+        text = path.read_text(encoding="utf-8")
+        for match in opening.finditer(text):
+            closing = text.find("</form>", match.end())
+            body = text[match.end() : closing if closing != -1 else len(text)]
+            if "csrf_field()" not in body and "csrf_token" not in body:
+                line = text[: match.start()].count("\n") + 1
+                found.append(f"{path.relative_to(ROOT)}:{line} — ฟอร์ม POST ที่ไม่มี CSRF field")
+    return found
+
+
+def _every_alert_rule_carries_a_runbook() -> list[str]:
+    """กฎแจ้งเตือนทุกข้อมี annotation `runbook`
+
+    ADR 0037 เขียนเหตุผลไว้แล้ว: กฎที่ดังแล้วไม่มีใครรู้ว่าต้องทำอะไรต่อ จะถูก
+    ปิดเสียงภายในสองสัปดาห์ แล้วกฎที่เหลือก็ถูกมองข้ามไปด้วย · วันนี้ครบทั้งสาม
+    ข้อ — แต่ไม่มีไฟล์เทสต์ไหนอ้างถึง `deploy/loki-rules.yaml` เลย
+    """
+    path = ROOT / "deploy" / "loki-rules.yaml"
+    if not path.is_file():
+        return ["deploy/loki-rules.yaml หายไป — ADR 0037 บอกว่ากฎต้องอยู่ในไฟล์ ไม่ใช่ใน UI"]
+    document = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    found = []
+    for group in document.get("groups") or []:
+        for rule in group.get("rules") or []:
+            if not rule.get("alert"):
+                continue
+            if not (rule.get("annotations") or {}).get("runbook"):
+                found.append(f"loki-rules.yaml → alert {rule['alert']!r} ไม่มี annotation runbook")
+    if not found and not any(
+        rule.get("alert")
+        for group in document.get("groups") or []
+        for rule in group.get("rules") or []
+    ):
+        return ["deploy/loki-rules.yaml ไม่มีกฎ alert เหลือแล้ว — ด่านนี้จะเขียวเปล่า"]
+    return found
+
+
 # ---------------------------------------------------------------- ทะเบียน
 
 
@@ -331,6 +424,24 @@ RULES = (
         quote="ห้ามเปลี่ยนเป็น `WHERE created_at < cutoff` เฉย ๆ",
         check=_audit_purge_cuts_from_the_head_only,
         hint="นาฬิกาที่ถูกปรับย้อนหลังจะทำให้เจาะรูกลางสาย แล้ว verify ไม่ผ่านตลอดกาล",
+    ),
+    # --- ข้อบังคับรูป "ทุก X ต้อง Y" (audit รอบ 18) ---
+    Rule(
+        quote="**ทุกตารางขึ้นต้น `tdl_`**",
+        check=_every_table_carries_the_prefix,
+        hint="prefix ถูกบังคับเฉพาะตารางของ plugin — core ไม่เคยมีเครื่องตรวจเลย (ADR 0013)",
+    ),
+    Rule(
+        quote=(
+            '**ทุก `<form method="post">` ต้องมี `{{ csrf_field() }}` หรือ hidden input `csrf_token`**'
+        ),
+        check=_every_post_form_carries_a_csrf_field,
+        hint="ฟอร์มที่ลืมใส่ได้ 400 เฉพาะตอนมีคนกด — เทสต์ CSRF ยิงเฉพาะ route ที่มันรู้จัก",
+    ),
+    Rule(
+        quote="**ทุกกฎต้องมี annotation `runbook`**",
+        check=_every_alert_rule_carries_a_runbook,
+        hint="กฎที่ดังแล้วไม่มีใครรู้ว่าต้องทำอะไรต่อ จะถูกปิดเสียงภายในสองสัปดาห์ (ADR 0037)",
     ),
 )
 
