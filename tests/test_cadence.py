@@ -17,6 +17,7 @@
 import datetime
 import pathlib
 import re
+import sys
 
 import pytest
 
@@ -307,3 +308,53 @@ def test_every_command_the_table_names_really_exists():
 
     ghosts = sorted(named - registered)
     assert not ghosts, f"ตารางอ้างคำสั่งที่ไม่มีใน CLI: {ghosts}"
+
+
+# ---------- ทุกทะเบียนข้อยกเว้นต้องมีคนทบทวน ไม่ใช่แค่มีตัวตรวจสองทิศ (audit r21)
+#
+# ทะเบียนทั้งแปดแฟ้มถูกตรวจสองทิศอยู่แล้ว แต่ทิศที่ตัวตรวจนั้นจับได้คือ
+# **"ของที่ยกเว้นไว้หายไปแล้ว → ถอดบรรทัดออก"** ซึ่งเป็นทิศที่ปลอดภัยโดยตัวมันเอง
+# · ทิศที่ไม่มีใครจับคือ **"ของที่ยกเว้นไว้ยังอยู่"** — บรรทัดนั้นทำให้ด่านเขียว
+# ต่อไปเรื่อย ๆ และไม่มีอะไรสั่งให้ใครกลับมาตัดสินใหม่
+#
+# วัดตอนตั้งด่านนี้ (2026-08-21): 46 บรรทัดใน 8 แฟ้ม · **0 บรรทัดมีวันที่** ·
+# มีเพียง 5 บรรทัดที่อยู่ใต้แถวตรวจตามรอบ อีก 41 บรรทัดไม่มีเจ้าของเลย
+
+
+def _registers() -> list[str]:
+    """แฟ้มทะเบียนตามที่ `scripts/whats_pending.py` ประกาศ — ไม่ลอกรายการมาไว้ที่นี่
+
+    ลอกไว้สองที่เมื่อไหร่ การเพิ่มแฟ้มที่สามจะผ่านด่านนี้ได้โดยไม่มีใครสังเกต
+    (บทเรียน r18: ตัวอ่าน `on:` ลอกไว้ 5 ที่ และ 3 ที่พังคนละแบบ)
+    """
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import whats_pending
+
+    return list(whats_pending.REGISTERS)
+
+
+def test_every_exception_register_is_named_by_a_review_row(rows):
+    """แฟ้มทะเบียนทุกใบต้องถูกเอ่ยชื่อในแถวตรวจตามรอบอย่างน้อยหนึ่งแถว"""
+    table = "\n".join(row[0] + row[4] for row in rows)
+    orphans = [name for name in _registers() if name not in table]
+
+    assert not orphans, (
+        f"ทะเบียนข้อยกเว้นที่ไม่มีใครทบทวนตามรอบ: {orphans}\n"
+        "ตัวตรวจสองทิศจับได้เฉพาะตอนของที่ยกเว้นหายไป — บรรทัดที่ยังอยู่ต้องมีคน"
+        "กลับมาตัดสินใหม่ตามรอบ ไม่งั้นมันเขียวไปตลอดกาลโดยไม่มีใครถาม"
+    )
+
+
+def test_a_review_row_does_not_name_a_register_that_is_gone(rows):
+    """อ้างแฟ้มที่ไม่มีอยู่แล้ว = แถวที่ทบทวนของว่างเปล่า (ทิศที่สอง)"""
+    table = "\n".join(row[0] + row[4] for row in rows)
+    # นับเฉพาะสิ่งที่เขียนเป็น *เส้นทาง* — `ci.yml` ที่ถูกอ้างในข้อความเป็นชื่อ
+    # workflow ไม่ใช่ไฟล์ที่รากของ repo และไม่ใช่ของที่แถวนี้มีหน้าที่ทบทวน
+    named = [
+        name
+        for name in re.findall(r"`([\w./-]+\.(?:txt|tsv|yaml|yml))`", table)
+        if "/" in name or name.startswith(".")
+    ]
+    missing = sorted({name for name in named if not (ROOT / name).exists()})
+
+    assert not missing, f"แถวตรวจอ้างแฟ้มที่ไม่มีอยู่: {missing}"
