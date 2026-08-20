@@ -1823,3 +1823,26 @@ HASH = "#"
 def test_the_reason_is_judged_apart_from_the_rule_code(line, is_suppression, has_reason):
     """ "ปิดกฎไหน" กับ "ทำไม" เป็นคนละคำถาม — ยอดรวมพิสูจน์ข้อนี้ไม่ได้"""
     assert check_ratchets.classify_suppression(line) == (is_suppression, has_reason)
+
+
+# ------------- หน้าที่สร้างมาให้เลิกนับด้วยมือ ต้องไม่มีเลขที่นับด้วยมือ (audit r21 ข้อ 3)
+
+PAGE_CLAIM = re.compile(r"แถวตรวจตามรอบ (\d+) แถว ·\s*\n?ทะเบียนข้อยกเว้น (\d+) แฟ้ม")
+
+
+def test_the_single_pending_page_agrees_with_what_it_reads():
+    """เลขในหัวไฟล์ต้องตรงกับของจริงที่ตัวมันเองอ่านได้
+
+    r13 สร้างหน้านี้เพราะต้องเปิด 8 ที่ถึงจะรู้ว่าอะไรค้าง · r14 พบว่ามันรายงาน
+    ของที่ไม่ได้ค้าง 3 จาก 8 · r21 พบว่า **หัวไฟล์ของมันเองเป็นเลขที่นับด้วยมือ
+    และผิดทั้งสองตัว** (บอก 24 แถว / 7 แฟ้ม ขณะที่ของจริงคือ 26 / 8)
+    """
+    page = pathlib.Path(__file__).resolve().parent.parent / "scripts" / "whats_pending.py"
+    source = page.read_text(encoding="utf-8")
+    claim = PAGE_CLAIM.search(source)
+
+    assert claim, "หัวไฟล์ whats_pending.py ไม่ได้ประกาศขนาดของสองกองแรกแล้ว"
+    assert (int(claim.group(1)), int(claim.group(2))) == (
+        len(whats_pending.cadence_rows()),
+        len(whats_pending.REGISTERS),
+    ), "เลขที่หัวไฟล์ประกาศ ไม่ตรงกับที่ตัวมันเองอ่านได้"
