@@ -344,6 +344,28 @@ def claimed_counts() -> tuple[int, int] | None:
     return (int(found.group(1)), int(found.group(2))) if found else None
 
 
+def description_problems(description: str | None) -> list[str]:
+    """คำโฆษณาบนช่อง About ของ repo ต้องบอกรุ่นปัจจุบัน
+
+    **ช่องนี้คือสิ่งแรกที่คนเห็นก่อนกดเข้ามา** และมันไม่ได้อยู่ใน git จึงไม่มี
+    diff ไหนทำให้ใครสังเกตว่ามันเก่า — วัดเมื่อ 2026-08-20: ยังเขียนว่า v2.0.0
+    ขณะที่รุ่นจริงคือ v2.0.2 (และเลข gate กับจำนวนรอบ audit ก็ค้างมาสองรอบ)
+
+    ตรวจแค่ *เลขรุ่น* อย่างเดียวโดยตั้งใจ — เลขอื่นในประโยคนั้นเปลี่ยนบ่อยและ
+    ไม่มีสัญญาว่าจะอยู่ในรูปไหน การบังคับทุกเลขจะกลายเป็นด่านที่แดงเพราะถ้อยคำ
+    """
+    if description is None:
+        return []
+    version = (ROOT / "app" / "__init__.py").read_text(encoding="utf-8")
+    found = re.search(r'__version__ = "([^"]+)"', version)
+    if not found:
+        return ["อ่าน __version__ จาก app/__init__.py ไม่ได้"]
+    current = found.group(1)
+    if f"v{current}" in description:
+        return []
+    return [(f"ช่อง About ของ repo ไม่ได้บอกรุ่นปัจจุบัน (v{current}) — ตอนนี้เขียนว่า: {description[:90]!r}")]
+
+
 def fetch() -> dict:
     """รวมท่าทีจากสี่ endpoint ให้เป็นก้อนเดียวที่ตัวตัดสินอ่านได้"""
     protection = _gh("repos/:owner/:repo/branches/main/protection")
@@ -359,6 +381,7 @@ def fetch() -> dict:
         "allow_deletions": (protection.get("allow_deletions") or {}).get("enabled"),
         "allow_auto_merge": repo.get("allow_auto_merge"),
         "sha_pinning_required": actions.get("sha_pinning_required"),
+        "description": repo.get("description") or "",
     }
 
 
@@ -397,6 +420,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     problems += unrequired_problems(all_checks(workflows), set(state.get("required_checks") or []))
     problems += alert_problems(state.get("alerts"), accepted_alerts())
+    problems += description_problems(state.get("description"))
     if problems:
         print("ท่าทีของแพลตฟอร์มไม่ตรงกับสิ่งที่ประกาศไว้:", file=sys.stderr)
         for line in problems:

@@ -1683,3 +1683,43 @@ def test_no_gate_watched_by_those_jobs_depends_on_a_governance_file():
                 stranded.append(f"{gate['id']} → {name}")
 
     assert not stranded, f"gate ที่ job ของมันจะไม่รันเทสต์นั้นอีกแล้ว: {stranded}"
+
+
+# ------------- คำโฆษณาบนช่อง About ของ repo (2026-08-20)
+#
+# ช่องนั้น **ไม่ได้อยู่ใน git** — ไม่มี diff ไหนทำให้ใครสังเกตว่ามันเก่า ·
+# วัดเมื่อ 2026-08-20: เขียนว่า v2.0.0 · 105 gate · 16 รอบ audit ขณะที่ของจริง
+# คือ v2.0.2 · 107 · 20 · เป็นคำโฆษณาบรรทัดแรกที่คนเห็นก่อนกดเข้ามา
+#
+# ตัวตัดสินตรวจ **เลขรุ่นอย่างเดียว** โดยตั้งใจ — เลขอื่นเปลี่ยนบ่อยและไม่มี
+# สัญญาว่าจะอยู่ในรูปไหน การบังคับทุกเลขจะกลายเป็นด่านที่แดงเพราะถ้อยคำ
+
+
+def test_a_stale_version_in_the_about_box_is_caught():
+    """ทิศ "แดงเมื่อควรแดง" — คำโฆษณาที่ค้างรุ่นเก่าต้องถูกจับ"""
+    stale = audit_posture.description_problems("… v1.6.0 (AGPL-3.0): 105 machine-checked gates …")
+
+    assert stale, "คำโฆษณาที่บอกรุ่นเก่ากลับผ่าน"
+
+
+def test_an_about_box_that_names_the_current_version_passes():
+    """ทิศ "ผ่านเมื่อควรผ่าน" — ต้องอ่าน `__version__` จริง ไม่ใช่เลขที่ฝังไว้
+
+    อ่านเลขรุ่นจาก *ไฟล์* ไม่ใช่ `import app` — ไฟล์นี้เป็นเทสต์ชั้นกติกาที่
+    job `bare`/`dialect` ตัดออก (audit รอบ 18) การ import แอปจะทำให้มันหลุด
+    ออกจากกลุ่มนั้นทันที และด่านของรอบ 18 ก็จับได้จริงตอนเขียนเทสต์นี้
+    """
+    source = (pathlib.Path(__file__).resolve().parent.parent / "app" / "__init__.py").read_text(
+        encoding="utf-8"
+    )
+    current = re.search(r'__version__ = "([^"]+)"', source).group(1)
+
+    assert audit_posture.description_problems(f"… v{current} (AGPL-3.0) …") == []
+
+
+def test_no_answer_from_the_api_is_not_treated_as_a_failure():
+    """`None` = ไม่ได้ถามหรือถามไม่ได้ — คนละเรื่องกับ "ตอบแล้วผิด"
+
+    หลักเดียวกับที่ `--input` ของสคริปต์นี้ทำให้รันโดยไม่ต่อเน็ตได้
+    """
+    assert audit_posture.description_problems(None) == []
