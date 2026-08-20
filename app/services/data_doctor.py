@@ -77,9 +77,9 @@ def _orphans(report: Report) -> None:
             continue
         for constraint in table.foreign_key_constraints:
             for element in constraint.elements:
+                # ปลายทางของ FK เป็นตารางของ core เสมอ (ของ plugin ชี้ออกไปหา
+                # `tdl_user` ไม่มีใครชี้เข้ามา) — ถ้าลูกมีอยู่ พ่อแม่ก็มีอยู่ด้วย
                 child, parent = element.parent, element.column
-                if parent.table.name not in present:
-                    continue
                 report.checks += 1
                 missing = db.session.scalar(
                     select(func.count())

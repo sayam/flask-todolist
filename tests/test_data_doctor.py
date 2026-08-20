@@ -14,9 +14,10 @@ import os
 import pathlib
 
 import pytest
-from sqlalchemy import select, text
+from sqlalchemy import func, select, text
 
 from app import db
+from app.audit import AuditEntry
 from app.models import Category, Todo, User
 from app.services import data_doctor
 from tests.conftest import PASSWORD
@@ -82,7 +83,10 @@ def test_an_orphan_row_is_found(app, user_id):
 def test_a_truncated_audit_chain_is_found(app, user_id):
     """ต่อจากข้อ 1 ของรอบเดียวกัน — ตัวตรวจสุขภาพต้องเห็นสมอที่ไม่ตรงด้วย"""
     with app.app_context():
-        db.session.execute(text("DELETE FROM tdl_audit WHERE id = (SELECT MAX(id) FROM tdl_audit)"))
+        # **อ่าน id มาก่อนแล้วค่อยลบ** — MySQL ปฏิเสธ subquery ที่อ่านตารางเดียวกับ
+        # ที่กำลังลบ (error 1093) · เจอตอน job `dialects` แดงใน PR ของข้อนี้เอง
+        newest = db.session.scalar(select(func.max(AuditEntry.id)))
+        db.session.execute(text("DELETE FROM tdl_audit WHERE id = :id"), {"id": newest})
         db.session.commit()
 
         report = data_doctor.examine()
@@ -170,3 +174,31 @@ def test_the_command_is_registered_where_operators_will_look():
     )
 
     assert "app.cli.add_command(data_doctor)" in source
+
+
+def test_a_plugin_table_that_is_not_installed_is_skipped(app, user_id):
+    """models ของ plugin อยู่ใน metadata ตั้งแต่ import แต่ตารางเกิดตอน plugin-install
+
+    ถามหาข้อมูลในตารางที่ยังไม่มี = ล้มทั้งคำสั่ง ทั้งที่คำตอบที่ถูกคือ
+    "ไม่มีข้อมูลให้ตรวจ" (หลักเดียวกับที่ core เช็ค `is_installed()` ก่อนใช้)
+    """
+    with app.app_context():
+        plugin_tables = [t for t in db.metadata.sorted_tables if t.name.startswith("tdl_auth_")]
+        assert plugin_tables, "ไม่มีตารางของ plugin ใน metadata — เทสต์นี้วัดผิดที่แล้ว"
+        plugin_tables[0].drop(db.session.get_bind())
+
+        report = data_doctor.examine()
+
+    assert report.healthy, [finding.detail for finding in report.findings]
+
+
+def test_a_tampered_audit_row_is_reported_as_a_chain_break(client, app, user_id):
+    """สองอาการของสาย audit ต้องแยกกันในรายงานด้วย ไม่ใช่รวมเป็นข้อเดียว"""
+    client.post("/add", data={"title": "ซื้อนม"})
+    with app.app_context():
+        db.session.execute(text("UPDATE tdl_audit SET actor_id = 999 WHERE id = 1"))
+        db.session.commit()
+
+        report = data_doctor.examine()
+
+    assert "audit-chain" in {finding.kind for finding in report.findings}
