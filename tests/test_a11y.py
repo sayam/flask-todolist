@@ -8,8 +8,10 @@
 อ้างอิงเกณฑ์: WCAG 2.2 AA (= ISO/IEC 40500:2025)
 """
 
+import json
 import pathlib
 import re
+import urllib.parse
 
 import pytest
 
@@ -243,3 +245,109 @@ def test_the_task_checkbox_is_big_enough_to_hit(app):
         assert found, f"ไม่ได้กำหนด {axis} ของ checkbox"
         pixels = float(found.group(1)) * 16
         assert pixels >= 24, f"{axis} ของ checkbox = {pixels}px ซึ่งเล็กกว่าเกณฑ์ 24px"
+
+
+# --------------------------------------------------------- ความครอบคลุมของ `ci:a11y`
+#
+# `tests/test_a11y.py` ตรวจโครงสร้างจาก HTML ได้ แต่ contrast จริงหลัง CSS ต้องมี
+# browser — ตัวที่ตรวจคือ job `a11y` ซึ่งสแกน**เฉพาะ URL ที่อยู่ใน `.pa11yci.json`**
+# หน้าที่ไม่มีชื่ออยู่ในไฟล์นั้นจึงไม่เคยถูกตรวจเลย โดยไม่มีอะไรฟ้อง
+
+PA11Y_CONFIG = pathlib.Path(__file__).resolve().parent.parent / ".pa11yci.json"
+
+# หน้าเต็มทุกใบต้องถูกตัดสิน: สแกนที่ path ไหน หรือไม่สแกนเพราะอะไร
+# (รูปเดียวกับ `NOT_EXPORTED` ใน `tests/test_personal_data.py` — การตกหล่นต้อง
+#  เป็นไปไม่ได้ ส่วนการยกเว้นต้องมีเหตุผลที่อ่านได้)
+SCANNED_AT = {
+    "index.html": "/",
+    "categories.html": "/categories",
+    "edit_todo.html": "/edit/1",
+    "settings.html": "/settings",
+    "login.html": "/login",
+    "privacy.html": "/privacy",
+    "teams.html": "/teams",
+    "team_detail.html": "/teams/1",
+    "team_info.html": "/teams/1/info",
+    "admin_index.html": "/admin",
+    "admin_users.html": "/admin/users",
+    "admin_teams.html": "/admin/teams",
+    "admin_environment.html": "/admin/environment",
+    "admin_lifecycle.html": "/admin/lifecycle",
+    "admin_observability.html": "/admin/observability",
+    "admin_sbom.html": "/admin/sbom",
+}
+
+# ยกเว้นต้องบอก path ที่มัน *จะ* อยู่ด้วย ไม่ใช่แค่เหตุผล — ไม่งั้นด่านที่บังคับ
+# ว่า "ยกเว้นแล้วต้องไม่ถูกสแกน" จะไปเทียบกับ path ที่ไม่มีวันมีอยู่จริง แล้วเขียวเปล่า
+# (ร่างแรกของไฟล์นี้เดา `/login_verify` จากชื่อไฟล์ ทั้งที่ของจริงคือ `/login/verify`)
+NOT_SCANNED = {
+    "login_verify.html": (
+        "/login/verify",
+        "ต้องอยู่ในสถานะครึ่งทางของ MFA ซึ่งสร้างด้วย action ของ pa11y ไม่ได้",
+    ),
+    "token_created.html": (
+        "/settings/tokens",
+        "ตอบจาก POST เท่านั้น และถือความลับที่แสดงได้หนเดียว",
+    ),
+}
+
+
+def _full_pages():
+    """ไฟล์ที่เป็น *หน้า* จริง — วัดจากการ extend base.html ไม่ใช่จากชื่อไฟล์"""
+    root = pathlib.Path(__file__).resolve().parent.parent / "app" / "templates"
+    return {
+        path.name
+        for path in root.glob("*.html")
+        if 'extends "base.html"' in path.read_text(encoding="utf-8")
+    }
+
+
+def _scanned_paths():
+    urls = json.loads(PA11Y_CONFIG.read_text(encoding="utf-8"))["urls"]
+    return {urllib.parse.urlparse(entry["url"]).path for entry in urls}
+
+
+def test_every_full_page_is_decided_for_the_real_browser_scan():
+    """หน้าเต็มทุกใบต้องอยู่ในรายการสแกน หรืออยู่ในรายการยกเว้นพร้อมเหตุผล"""
+    decided = set(SCANNED_AT) | set(NOT_SCANNED)
+    pages = _full_pages()
+
+    assert not (pages - decided), (
+        f"หน้าเต็มที่ยังไม่ถูกตัดสินว่าจะสแกนหรือไม่: {sorted(pages - decided)} — "
+        "เพิ่ม URL ใน .pa11yci.json แล้วลง SCANNED_AT หรือใส่เหตุผลใน NOT_SCANNED"
+    )
+    assert not (decided - pages), f"รายการอ้างถึงเทมเพลตที่ไม่มีอยู่แล้ว: {sorted(decided - pages)}"
+
+
+def test_every_page_that_claims_to_be_scanned_is_in_the_config():
+    """ประกาศว่าสแกนที่ path ไหน แล้ว path นั้นต้องอยู่ใน `.pa11yci.json` จริง"""
+    scanned = _scanned_paths()
+    missing = {name: path for name, path in SCANNED_AT.items() if path not in scanned}
+
+    assert not missing, f"ประกาศว่าสแกนแต่ไม่มีใน .pa11yci.json: {missing}"
+
+
+def test_a_page_excluded_on_purpose_is_really_not_scanned():
+    """ยกเว้นไว้แล้วต้องไม่โผล่ในไฟล์ — ไม่งั้นเหตุผลที่เขียนไว้กลายเป็นเท็จ"""
+    scanned = _scanned_paths()
+    contradicted = {name: path for name, (path, _reason) in NOT_SCANNED.items() if path in scanned}
+
+    assert not contradicted, f"อยู่ในรายการยกเว้นแต่ถูกสแกนจริง: {contradicted}"
+
+
+def test_every_entry_ends_on_the_page_it_names():
+    """**action ของ pa11y รันก่อนทดสอบ และหน้าที่ถูกตรวจคือหน้าที่ค้างอยู่ตอนจบ**
+
+    entry ที่ต้อง login ก่อน จะพา browser ออกไปที่ `/login` แล้วกลับมาที่ `/`
+    ถ้าไม่สั่ง `navigate to` ปิดท้าย มันจะ**ตรวจหน้าแรกแทนหน้าที่ตั้งชื่อไว้** ·
+    เกิดจริงกับสี่ entry (`/admin` · `/teams` · `/teams/1` · `/teams/1/info`)
+    ซึ่งเขียวมาตลอดโดยไม่เคยแตะหน้าที่มันอ้างเลย
+    """
+    urls = json.loads(PA11Y_CONFIG.read_text(encoding="utf-8"))["urls"]
+    stranded = [
+        entry["url"]
+        for entry in urls
+        if entry.get("actions") and entry["actions"][-1] != f"navigate to {entry['url']}"
+    ]
+
+    assert not stranded, f"entry ที่ action ตัวสุดท้ายไม่ได้พากลับมาที่หน้าของตัวเอง (จึงสแกนหน้าอื่น): {stranded}"
