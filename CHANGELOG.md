@@ -20,6 +20,42 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Added
 
+- **Two more governance audit rounds, and the first regression recheck** —
+  round 17 asked what checks the checking code itself, round 18 stopped
+  reading declarations and ran an experiment: twelve real defects planted
+  in a `git worktree` copy of `main`, then measured who caught what.
+  Standard tools alone (ruff, mypy, gitleaks) caught 4 of 12, and the one
+  rule that looked redundant with ours — ruff's `S201`, "debug=True in
+  Flask app" — turns out to be blind to the app-factory pattern this
+  project uses and recommends. The rounds produced: a `scripts_coverage`
+  floor for the code that enforces every other floor; `บทบาท:` on every
+  script so the right kind of evidence is demanded of each; a membership
+  check so a new decider cannot stay outside the register that requires
+  logic tests (`lint_commits.py`, which blocks every commit and every PR,
+  had been outside it all along); one workflow reader instead of five
+  copies of an idiom that crashes on `on: [push]`; requirement-shaped
+  rules ("every X must Y") joining the prohibition register; and a
+  `governance` marker, derived from the files rather than typed by hand,
+  that stops 480 file-reading tests from running four times per push.
+  Every closed finding from rounds 1–18 was then rechecked against
+  today's tree — 57 of 57 still hold, and the method is written down in
+  `docs/GATE-LOG.md` with a six-month cadence row so it repeats.
+
+- **The measuring instrument of the comparison experiment was measured** —
+  `scripts/asvs_probe.py` had been reading `.venv/`: 4,171 of the 4,299
+  Python files it scanned in this repository belonged to libraries, and
+  it reported three ASVS items as failing on the strength of Flask's own
+  `SECRET_KEY = 'development key'`. The published numbers in
+  `docs/comparison/` are unaffected — the measured apps carry at most 35
+  Python files each — but what protected them was luck, not a mechanism.
+  Chasing the three items down exposed three more ways the probe punished
+  the better structure: prose about a secret counted as a secret, an
+  authorization check had to spell `user_id` (not `require_admin` or a
+  membership call), a closure was judged apart from the scope that
+  already guarded it, and SQL interpolating a module constant counted the
+  same as SQL interpolating a request.
+
+
 - **The project has a DOI** — [10.5281/zenodo.22015133](https://doi.org/10.5281/zenodo.22015133),
   minted by Zenodo when `v2.0.2` was published, with the author's
   affiliation recorded from `.zenodo.json` rather than from whatever the
