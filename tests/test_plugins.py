@@ -25,6 +25,10 @@ BASE_CSS = pathlib.Path(__file__).resolve().parent.parent / "app" / "static" / "
 
 PALETTE_BLOCKS = (":root", ':root[data-theme="dark"]')
 
+# hex ที่ CSS รับจริงมีสี่ความยาวเท่านั้น — **`{3,8}` รับ 5 กับ 7 ด้วย ซึ่งไม่ใช่สี**
+# (`#f0a86` ผ่านด่านเดิมได้ทั้งที่เบราว์เซอร์ทิ้งบรรทัดนั้น เหมือนกรณีตก `#` เป๊ะ)
+HEX_COLOUR = re.compile(r"#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})")
+
 
 @pytest.fixture
 def temp_theme():
@@ -175,15 +179,34 @@ def test_every_theme_defines_the_same_variables():
 
 
 def test_theme_colour_values_are_valid_hex():
+    """ตัวแปรสีทุกตัวต้องเป็น hex ที่ถูกรูป — **ทุกค่า ไม่ใช่เฉพาะค่าที่ขึ้นต้นด้วย `#`**
+
+    เดิมด่านนี้ตรวจเฉพาะค่าที่ *เป็น hex อยู่แล้ว* ว่ารูปถูกไหม แล้วข้ามที่เหลือ
+    เงียบ ๆ ชื่อของมันบอกว่า "colour values are valid" แต่สิ่งที่บังคับจริงคือ
+    "ค่าที่เป็น hex รูปถูก" ซึ่งเป็นคนละประโยค
+
+    ช่องที่เปิดค้างไว้: `--accent: f0a868;` (ตก `#`) เป็น custom property ที่
+    **ถูกต้องตอน parse** เพราะ custom property รับ token อะไรก็ได้ · มันไปตายตอน
+    ถูกแทนค่า — `color: var(--accent)` กลายเป็น `color: f0a868` ซึ่ง invalid at
+    computed-value time สมบัติจึงตกเป็น `unset` แล้ว element ไป inherit สีของแม่
+    · นั่นคือความล้มเหลวแบบเดียวกับที่ `test_every_theme_defines_the_same_variables`
+    ตั้งมากันพอดี — ธีมที่ไม่ได้ส่งสีมาจริง — แต่ตัวนั้นเทียบแค่ *ชื่อ* ตัวแปร
+    จึงเขียวไปด้วย และ pa11y ก็เขียว เพราะลิงก์ที่ใส่สีตัวหนังสือปกติ contrast ผ่าน
+
+    ทั้งสามธีมบนดิสก์ใช้ hex ล้วนอยู่แล้ว การบังคับตรง ๆ จึงไม่ตัดของที่มีอยู่ทิ้ง
+    และตรงกับกติกาข้างเคียงที่ว่า `base.css` ห้ามมีสีดิบเลย — hex ในธีมคือที่
+    เดียวในระบบที่สีถูกเขียน · ถ้าวันหนึ่งมีธีมที่ต้องใช้ `oklch()` การขยายคือ
+    การเพิ่มรูปที่รับได้หนึ่งบรรทัด ไม่ใช่การถอดด่าน
+    """
     for theme in plugins.themes().values():
         css = theme.file(theme.stylesheet).read_text()
         for selector in PALETTE_BLOCKS:
             for name, raw_value in _declarations(css, selector).items():
                 value = raw_value.strip()
-                if value.startswith("#"):
-                    assert re.fullmatch(r"#[0-9a-fA-F]{3,8}", value), (
-                        f"{theme.id} {name} = {value!r}"
-                    )
+                assert HEX_COLOUR.fullmatch(value), (
+                    f"{theme.id} บล็อก {selector}: {name} = {value!r} "
+                    "— ตัวแปรสีต้องเป็น hex 3/4/6/8 หลัก (#rgb · #rgba · #rrggbb · #rrggbbaa)"
+                )
 
 
 def test_base_css_has_no_raw_colours():
