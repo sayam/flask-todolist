@@ -11,8 +11,10 @@
 (ซึ่งเป็นสภาพที่ script เขียนทับด้วยผลลัพธ์ที่ล้มเหลวได้โดยไม่มีใครรู้)
 """
 
+import datetime
 import json
 import pathlib
+import sys
 
 import pytest
 
@@ -84,3 +86,67 @@ def test_the_generator_and_its_output_still_point_at_each_other(script, constant
         f"{script}.py ไม่ได้ชี้ไปที่ {produced.name} แล้ว — ไฟล์ที่ commit ไว้กับตัวสร้างหลุดจากกัน"
     )
     assert produced.is_file()
+
+
+# ------------- ตัวเลขที่ตารางบอก ต้องมีคนรับ (audit รอบ 20 ข้อ 2)
+#
+# ระบบรู้ว่า runtime ที่มันรันอยู่หมดอายุเมื่อไหร่ และแสดง "เหลือกี่วัน" บนหน้า
+# ผู้ดูแล — แต่ก่อนรอบ 20 **ไม่มีแถวในตารางตรวจตามรอบและไม่มี gate ที่เปลี่ยน
+# ตัวเลขนั้นเป็นการกระทำ** · ตัวเลขที่เปลี่ยนทุกวันโดยไม่มีเกณฑ์ ไม่ต่างจาก
+# ตัวเลขที่ไม่ได้เก็บ
+#
+# สองด่านข้างล่างจะแดงเองเมื่อเวลาผ่านไป — ตั้งใจให้เป็นแบบนั้น เหมือน
+# `tests/test_cadence.py` · แก้ได้สองทาง: ขยับรุ่น หรือเลื่อนอย่างเปิดเผย
+
+RUNWAY_DAYS = 180  # ต้องเหลือเวลาพอวางแผนขยับรุ่น ไม่ใช่รู้ตอนหมดอายุแล้ว
+FETCH_STALE_DAYS = 190  # 6 เดือน + ระยะผ่อน — ตรงกับแถวในตารางตรวจตามรอบ
+
+
+def test_the_runtime_we_run_on_still_has_runway():
+    """python ที่รันอยู่ต้องเหลืออายุพอที่จะวางแผนขยับรุ่นได้
+
+    **ค่าที่ตัดสินคือรอบที่ interpreter ของ CI รันอยู่จริง** ไม่ใช่รอบที่ใหม่ที่สุด
+    ในตาราง — ตารางรู้จัก python 3.14 อยู่แล้ว แต่ถ้าเรายังรัน 3.13 อยู่
+    ความเสี่ยงเป็นของ 3.13
+    """
+    running = f"{sys.version_info.major}.{sys.version_info.minor}"
+    table = json.loads(EOL_TABLE.read_text(encoding="utf-8"))
+    row = next((r for r in table.get("python", []) if r.get("cycle") == running), None)
+
+    assert row, f"ตาราง EOL ไม่รู้จัก python {running} ที่กำลังรันอยู่ — ดึงตารางใหม่"
+
+    left = (datetime.date.fromisoformat(row["eol"]) - datetime.date.today()).days
+    assert left >= RUNWAY_DAYS, (
+        f"python {running} หมดอายุ {row['eol']} — เหลือ {left} วัน (เกณฑ์ {RUNWAY_DAYS})\n"
+        "ขยับรุ่นของ Dockerfile/CI/pyproject หรือเลื่อนอย่างเปิดเผยพร้อมเหตุผลใน "
+        "docs/SECURITY-CADENCE.md — ห้ามลดเกณฑ์ให้เงียบ"
+    )
+
+
+def test_the_pinned_table_declares_when_it_was_fetched_and_is_not_stale():
+    """ตารางที่ตรึงไว้ต้องมีกฎว่าจะดึงใหม่เมื่อไหร่
+
+    การตรึงถูกแล้ว (ด่านที่ต้องต่อเน็ตคือด่านที่แดงเพราะเน็ต — หลักเดียวกับ
+    `docs/asvs-5.0.0.json`) แต่ **ของที่ตรึงไว้โดยไม่มีวันหมดอายุ คือของที่จะ
+    ค้างอยู่จนไม่มีใครรู้ว่ามันเก่าแค่ไหน**
+    """
+    table = json.loads(EOL_TABLE.read_text(encoding="utf-8"))
+    fetched = table.get("_fetched_on")
+
+    assert fetched, "ตาราง EOL ไม่ได้บอกว่าดึงมาเมื่อไหร่"
+
+    age = (datetime.date.today() - datetime.date.fromisoformat(fetched)).days
+    assert age <= FETCH_STALE_DAYS, (
+        f"ตาราง EOL ดึงมาตั้งแต่ {fetched} ({age} วันที่แล้ว · เกณฑ์ {FETCH_STALE_DAYS})\n"
+        "รัน `python3 scripts/build_eol_table.py` แล้ว commit ผลลัพธ์"
+    )
+
+
+def test_the_cadence_table_owns_this():
+    """เกณฑ์ข้างบนต้องมีแถวในตารางตรวจตามรอบเป็นเจ้าของ — ไม่ใช่ลอยอยู่ในเทสต์
+
+    ด่านที่แดงเองตามเวลาโดยไม่มีใครรับผิดชอบ คือด่านที่จะถูกปิดเสียงในวันที่มันแดง
+    """
+    cadence = (ROOT / "docs" / "SECURITY-CADENCE.md").read_text(encoding="utf-8")
+
+    assert "eol-pinned.json" in cadence, "ไม่มีแถวในตารางตรวจตามรอบที่เป็นเจ้าของวันหมดอายุของ runtime"
