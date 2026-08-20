@@ -530,6 +530,7 @@ HEALTHY = {
     "delete_branch_on_merge": True,
     "allow_merge_commit": False,
     "allow_rebase_merge": True,
+    "allow_squash_merge": False,
     "sha_pinning_required": True,
 }
 ON_PR = {"lint", "test"}
@@ -551,6 +552,7 @@ def test_posture_passes_when_the_platform_matches_what_we_declared():
         ({"delete_branch_on_merge": False}, "branch ที่ merge แล้วจะกองค้างอีกครั้ง"),
         ({"allow_merge_commit": True}, "ประวัติแตกสายได้ ทั้งที่ประกาศว่าเส้นเดียว"),
         ({"allow_rebase_merge": False}, "ทางเดียวที่ ADR 0053 รับ ถูกปิด"),
+        ({"allow_squash_merge": True}, "ปุ่มที่ CONTRIBUTING ข้อ 7 ห้ามไว้ กลับมาให้กดได้"),
         ({"sha_pinning_required": False}, "แพลตฟอร์มเลิกบังคับสิ่งที่เทสต์เราบังคับอยู่"),
         ({"required_checks": ["lint"]}, "job ที่รันบน PR หลุดจากรายการบังคับ"),
         ({"required_checks": ["lint", "test", "ผี"]}, "บังคับ check ที่ไม่มีใครสร้างได้"),
