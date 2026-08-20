@@ -910,6 +910,7 @@ def test_every_declared_floor_is_read_from_the_file_not_a_comment():
         "enforced_prohibitions",
         "scripts_coverage",
         *check_ratchets.REMOVAL_GUARDS,
+        *check_ratchets.CEILINGS,
     }
     assert all(value > 0 for value in floors.values())
 
@@ -1765,3 +1766,60 @@ def test_a_readable_merge_setting_that_drifted_is_a_problem_not_a_note():
 
     assert audit_posture.compare(drifted, ON_PR, 2, None), "อ่านได้แล้วผิด ต้องเป็นปัญหา"
     assert audit_posture.unreadable(drifted) == [], "อ่านได้แล้วต้องไม่มีหมายเหตุค้าง"
+
+
+# ------------------------------- เพดานของการปิดเครื่องตรวจรายบรรทัด (audit r21 ข้อ 2)
+#
+# ทุก ratchet ในไฟล์นี้เดินขึ้น · กองนี้เดินลง และนั่นคือเหตุผลที่มันต้องมีตรรกะ
+# ของตัวเอง: "ของจริงต่ำกว่าที่ประกาศ" เป็น**ข่าวดี**ที่ต้องบันทึก ไม่ใช่การถอย
+
+
+def test_a_new_suppression_is_a_decision_not_a_side_effect():
+    """เกินเพดาน = แดง พร้อมบอกว่าต้องไปขยับที่ไหน"""
+    found = check_ratchets._ceiling_problems("suppressions", 99, 100)
+
+    assert found, "เพิ่มข้อยกเว้นแล้วต้องแดง"
+    assert "ceilings" in found[0], "แดงแล้วแต่ไม่ได้บอกว่าต้องไปแก้ที่ไหน"
+
+
+def test_a_freed_slot_must_be_recorded_not_left_open():
+    """ลดลงแล้วไม่ลดเพดานตาม = ที่ว่างถูกถมกลับเงียบ ๆ (ทิศที่คนลืมเสมอ)"""
+    found = check_ratchets._ceiling_problems("suppressions", 99, 90)
+
+    assert found, "ของจริงลดลงแล้วเพดานต้องตามลงมา"
+    assert "90" in found[0], "ต้องบอกตัวเลขใหม่ที่ควรเป็น"
+
+
+def test_a_ceiling_that_matches_reality_is_silent():
+    """ทิศ "ผ่านเมื่อควรผ่าน" — ตัวตรวจที่ดังกับของปกติจะถูกปิดเสียง"""
+    assert check_ratchets._ceiling_problems("suppressions", 99, 99) == []
+
+
+def test_the_counter_reads_real_files():
+    """อ่านของจริง ไม่ใช่ค่าคงที่"""
+    counts = check_ratchets.suppression_counts()
+
+    assert counts["suppressions"] > 0, "นับไม่เจอเลย — ตัวอ่านพังหรือขอบเขตผิด"
+    assert counts["suppressions_without_reason"] <= counts["suppressions"]
+
+
+# ตัวอย่างต้องประกอบขึ้นตอนรัน **ห้ามเขียนเป็นข้อความตรง ๆ** — ไฟล์นี้อยู่ในขอบเขต
+# ที่ตัวนับสแกน ตัวอย่างที่เขียนตรง ๆ จะถูกนับเป็นข้อยกเว้นจริงแล้วดันเพดานขึ้น
+# (เกิดขึ้นจริงตอนเขียน: ตัวอย่างใน docstring ของตัวนับเองทำให้เพดานเด้งเป็น 100)
+HASH = "#"
+
+
+@pytest.mark.parametrize(
+    ("line", "is_suppression", "has_reason"),
+    [
+        (f"x = 1  {HASH} noqa: F401", True, False),
+        (f"x = 1  {HASH} noqa: F401 นำเข้าเพื่อผูก event ไม่ได้ใช้ชื่อ", True, True),
+        (f"x = 1  {HASH} type: ignore[arg-type]", True, False),
+        (f"x = 1  {HASH} type: ignore[arg-type] ไลบรารีไม่มี stub", True, True),
+        (f"x = 1  {HASH} คอมเมนต์ธรรมดา", False, False),
+        ("x = 1", False, False),
+    ],
+)
+def test_the_reason_is_judged_apart_from_the_rule_code(line, is_suppression, has_reason):
+    """ "ปิดกฎไหน" กับ "ทำไม" เป็นคนละคำถาม — ยอดรวมพิสูจน์ข้อนี้ไม่ได้"""
+    assert check_ratchets.classify_suppression(line) == (is_suppression, has_reason)

@@ -92,6 +92,27 @@ SCRIPTS_COVERAGE = ROOT / ".cov-scripts.json"
 # กองที่กันการ *ถอด* — โตได้อิสระ (ไม่มีเพดานบน) แต่หดแล้วแดง
 REMOVAL_GUARDS = ("gates_total", "cadence_rows", "risk_rows", "deferred_rows")
 
+# กองที่กันการ *เพิ่ม* — ตรงข้ามกับ ratchet ทั้งหมดข้างบน (audit r21 ข้อ 2)
+#
+# คำสั่ง `noqa` กับ `type: ignore` คือการปิดเครื่องตรวจที่บรรทัดนั้น · ruff (`RUF100`)
+# กับ mypy (`warn_unused_ignores`) จับให้แล้วว่าอันไหน**ค้าง** จึงไม่ใช่หนี้เงียบ
+# แบบล้าสมัย — แต่**ไม่มีตัวเลขไหนเห็นมันโต** ขณะที่ repo มี ratchet คุมคุณภาพ
+# ขึ้นทางเดียว และมี `[tool.todolist.removals]` คุมการถอด · วัดตอนตั้งเพดาน
+# (2026-08-21): 99 บรรทัด และ 53 ในนั้นไม่มีเหตุผลกำกับ ทั้งที่กติกาเดียวกัน
+# ถูกบังคับกับ 46 บรรทัดในทะเบียนแฟ้มมาตลอด
+#
+# **สองทิศเหมือนเพดานของ `CLAUDE.md`**: เกินเพดาน = ต้องเป็นคำตัดสิน · ลดลงแล้ว
+# ไม่ลดเพดานตาม = ที่ว่างจะถูกถมกลับเงียบ ๆ
+CEILINGS = ("suppressions", "suppressions_without_reason")
+
+SUPPRESSION_SOURCES = ("app/**/*.py", "scripts/*.py", "tests/*.py")
+# `app/sun_data.py` generate มา · `migrations/` กับ `skill/` อยู่นอกขอบเขต ruff อยู่แล้ว
+SUPPRESSION_SKIP = ("sun_data.py",)
+SUPPRESSION = (
+    re.compile(r"#\s*noqa(?::\s*[A-Z]+[0-9]+(?:\s*,\s*[A-Z]+[0-9]+)*)?(?P<rest>.*)$"),
+    re.compile(r"#\s*type:\s*ignore(?:\[[^\]]*\])?(?P<rest>.*)$"),
+)
+
 CADENCE = ROOT / "docs" / "SECURITY-CADENCE.md"
 RISK = ROOT / "docs" / "RISK-ASSESSMENT.md"
 GOVERNANCE = ROOT / "docs" / "GOVERNANCE.md"
@@ -132,6 +153,7 @@ def declared() -> dict[str, float]:
         "interrogate": float(config["tool"]["interrogate"]["fail-under"]),
         "mypy_strict_modules": float(config["tool"]["todolist"]["ratchets"]["mypy_strict_modules"]),
         **{name: float(config["tool"]["todolist"]["removals"][name]) for name in REMOVAL_GUARDS},
+        **{name: float(config["tool"]["todolist"]["ceilings"][name]) for name in CEILINGS},
         "enforced_prohibitions": float(
             config["tool"]["todolist"]["ratchets"]["enforced_prohibitions"]
         ),
@@ -162,6 +184,45 @@ def removal_counts() -> dict[str, int]:
         "risk_rows": len(RISK_ROW.findall(RISK.read_text(encoding="utf-8"))),
         "deferred_rows": len(whats_pending.deferred()),
     }
+
+
+def classify_suppression(line: str) -> tuple[bool, bool]:
+    """(เป็นการปิดเครื่องตรวจไหม, มีเหตุผลกำกับไหม) ของบรรทัดเดียว
+
+    แยกออกมาเป็นฟังก์ชันเพราะ **ยอดรวมพิสูจน์ตรรกะนี้ไม่ได้** — เทสต์ที่ดูแต่
+    ตัวเลขรวมยังเขียวอยู่ได้แม้จะเลิกแยก "ปิดกฎไหน" ออกจาก "ทำไม" ไปเลย
+    (จับได้ตอน mutation ระหว่างเขียน audit r21)
+    """
+    for probe in SUPPRESSION:
+        found = probe.search(line)
+        if found:
+            return True, bool(found.group("rest").strip(" -—·:"))
+    return False, False
+
+
+def suppression_counts() -> dict[str, int]:
+    """นับการปิดเครื่องตรวจรายบรรทัด — ทั้งหมด และที่ไม่มีเหตุผลกำกับ
+
+    "มีเหตุผล" คือมีข้อความต่อท้ายรหัสกฎ · คำสั่งที่มีแต่รหัส (เช่น `noqa: F401`
+    เปล่า ๆ) บอกว่ากฎไหนถูกปิด แต่ไม่บอกว่าทำไม ซึ่งเป็นคนละคำถามกัน — และเป็น
+    คำถามที่ทะเบียนแฟ้มทุกใบในโปรเจกต์นี้บังคับให้ตอบมาตลอด
+
+    **ตัวนับนี้นับไฟล์ของตัวเองด้วย** และเคยนับ*ตัวอย่าง*ในเอกสารของตัวเองมาแล้ว
+    ตอนเขียน (เพดานเด้งเป็น 100 ทันทีที่ commit แรก) — เขียนถึงคำสั่งพวกนี้ในโค้ด
+    ที่นี่ ต้องเขียนโดยไม่ใส่เครื่องหมาย `#` นำหน้า ไม่งั้นทั้งตัวนับและ ruff เอง
+    จะอ่านมันเป็นคำสั่งจริง
+    """
+    total = bare = 0
+    for pattern in SUPPRESSION_SOURCES:
+        for path in sorted(ROOT.glob(pattern)):
+            if path.name in SUPPRESSION_SKIP or "migrations" in path.parts:
+                continue
+            for line in path.read_text(encoding="utf-8").splitlines():
+                found, with_reason = classify_suppression(line)
+                if found:
+                    total += 1
+                    bare += not with_reason
+    return {"suppressions": total, "suppressions_without_reason": bare}
 
 
 def _strict_patterns(config: dict) -> list[str]:
@@ -250,7 +311,29 @@ def measured() -> dict[str, float]:
         "enforced_prohibitions": float(enforced_prohibitions()),
         "scripts_coverage": scripts_coverage(),
         **{name: float(value) for name, value in removal_counts().items()},
+        **{name: float(value) for name, value in suppression_counts().items()},
     }
+
+
+def _ceiling_problems(name: str, ceiling: float, now: float) -> list[str]:
+    """เพดานเดินทางเดียวเหมือน ratchet แต่กลับทิศ — ขึ้นต้องเป็นคำตัดสิน ลงต้องตามทันที"""
+    if now > ceiling:
+        return [
+            (
+                f"{name}: เพดาน {int(ceiling)} แต่ของจริง {int(now)} — **มีข้อยกเว้นเพิ่มขึ้น** · "
+                "ถ้าจำเป็นจริง ให้ขยับเพดานใน [tool.todolist.ceilings] ใน PR เดียวกัน "
+                "พร้อมเหตุผลใน commit — การปิดเครื่องตรวจต้องเป็นคำตัดสินที่มีคนเซ็นชื่อ"
+            )
+        ]
+    if ceiling - now > 0:
+        return [
+            (
+                f"{name}: เพดาน {int(ceiling)} แต่ของจริงเหลือ {int(now)} — "
+                f"ลดเพดานลงไปที่ {int(now)} ใน PR เดียวกับที่ทำให้มันดีขึ้น "
+                "ไม่งั้นที่ว่างที่เพิ่งได้จะถูกถมกลับโดยไม่มีใครสังเกต"
+            )
+        ]
+    return []
 
 
 def problems(floors: dict[str, float], actual: dict[str, float]) -> list[str]:
@@ -258,6 +341,9 @@ def problems(floors: dict[str, float], actual: dict[str, float]) -> list[str]:
     found = []
     for name, floor in sorted(floors.items()):
         now = actual[name]
+        if name in CEILINGS:
+            found.extend(_ceiling_problems(name, floor, now))
+            continue
         # กองกันการถอดโตได้อิสระ — การเพิ่มถูกเฝ้าด้วยด่านอื่นครบแล้ว
         slack = math.inf if name in REMOVAL_GUARDS else SLACK.get(name, DEFAULT_SLACK)
         if now - floor > slack:
@@ -292,7 +378,8 @@ def main() -> int:
         return 2
 
     for name in sorted(floors):
-        print(f"  {name:12s} พื้น {floors[name]:6.1f} · ของจริง {actual[name]:6.2f}")
+        kind = "เพดาน" if name in CEILINGS else "พื้น  "
+        print(f"  {name:28s} {kind} {floors[name]:6.1f} · ของจริง {actual[name]:6.2f}")
 
     found = problems(floors, actual)
     if found:
