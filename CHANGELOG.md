@@ -41,6 +41,54 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
   today's tree — 57 of 57 still hold, and the method is written down in
   `docs/GATE-LOG.md` with a six-month cadence row so it repeats.
 
+- **Every document moved up a register, and the database design was reviewed
+  against outside guidance** — the prose across `CLAUDE.md`, `README.md`,
+  `CONTRIBUTING.md`, `docs/` and all 70 ADRs was lifted to a semi-formal
+  register without changing a single meaning: the colloquial verbs this
+  project had been writing since day one (`พัง`, `เน่า`, `โกหก`, `มั่ว`) are
+  now `ล้มเหลว`, `ล้าสมัย`, `ให้ข้อมูลที่ไม่จริง`, `ไม่ถูกต้อง` — chosen per
+  phrase rather than by blind substitution, because the same colloquial verb
+  stood for "failed", "was destroyed", "became unusable" and "could not keep
+  up" in different sentences. `SKILL.md` and `skill/` were regenerated from
+  their sources rather than edited.
+
+  Alongside it, [`docs/DATABASE-REVIEW.md`](docs/DATABASE-REVIEW.md) records a
+  review of the schema against relational-design and high-performance RDBMS
+  practice across eight axes — audit, history, masking, query performance,
+  partitioning, backup and restore, APM support, and schema discipline. Nine
+  areas already hold; ten gaps are written down with the condition that brings
+  each one into scope, and **none of them were acted on**: the three that
+  depend on measurement (composite indexes, audit partitioning, an index for
+  the export query) require numbers first, in keeping with how
+  `docs/PERFORMANCE.md` has decided everything else.
+
+- **Round 19 asked the data itself** — eighteen rounds had audited code,
+  configuration, documents, CI and registers; all of it lives in git and can be
+  rechecked by reading files. The data is the only part of the system that is
+  neither in git nor visible to anyone but the user, and planting defects *in a
+  live database* found three:
+
+  - `flask audit-verify` answered `Audit chain OK — 0 entries verified` after
+    the whole table was deleted, and `OK` after the tail was cut. It walked
+    only the rows still present, and those rows did still link correctly. The
+    proof it needed was already in the database — `tdl_audit_lock.last_hash`,
+    the anchor ADR 0035 added to serialise writers — and nothing had ever read
+    it. A severed tail is now a distinct `AnchorError`, because "row N was
+    modified" sends the person on duty to the wrong place.
+  - `flask create-user Alice` succeeded while `alice` existed. Identity
+    compared usernames case-sensitively; the login quota compared them
+    case-insensitively (ADR 0021). Both were right on their own, and together
+    they let an outsider lock `alice` out by failing five logins against
+    `Alice` — denial of service across accounts, requiring no knowledge of the
+    target. Collisions are now refused at creation, which changes nothing for
+    accounts that never collided.
+  - `flask data-doctor` is new: four questions answered by reading the database
+    alone — rows whose foreign key points at nothing (12 relationships), the
+    audit chain and its anchor, usernames that collide when case-folded, and
+    data past its retention window. **Read-only by design**: a tool that
+    repairs on its own is a tool nobody dares run against production, and on
+    the day it repairs the wrong thing nobody will know what was there before.
+
 - **The measuring instrument of the comparison experiment was measured** —
   `scripts/asvs_probe.py` had been reading `.venv/`: 4,171 of the 4,299
   Python files it scanned in this repository belonged to libraries, and
