@@ -20,7 +20,55 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Added
 
-- ยังไม่มีอะไรตั้งแต่ v2.1.0
+- **A third colour theme, `sepia`** — warm paper tones, for eyes tired of
+  looking at white and blue all day. Adding it changed no line of `core`:
+  a directory with a manifest and a stylesheet is the whole contract, and
+  the registry reads the disk on every request. Every pair the layout
+  actually renders — body text, links, quiet buttons, labels, the primary
+  button, the overdue badge — sits between 5.46 and 14.0 against WCAG 2.2
+  AA's 4.5, in both light and dark, and three new entries in
+  `.pa11yci.json` put a real Chromium behind that claim. Both modes are
+  named explicitly there: the default is `auto`, decided from a sunrise
+  table, so a scan that omitted the mode would have covered the light
+  palette or not depending on what time of day CI happened to run.
+
+### Fixed
+
+- **The gate on theme colours checked only the values that were already
+  hexadecimal.** Its name says `..._colour_values_are_valid_hex`; what it
+  enforced was "values shaped like hex are well formed", and everything
+  else passed in silence. `--accent: f0a868;` — a missing `#` — is a
+  perfectly valid custom-property declaration, because custom properties
+  accept almost any token sequence; it dies later, when `color:
+  var(--accent)` resolves to something that is invalid at computed-value
+  time, so the property falls back to `unset` and the element inherits its
+  parent's colour. That is precisely the failure the parity test exists to
+  catch — a theme that does not really deliver a colour — but that test
+  compares variable *names*, so it passed too, and the accessibility scan
+  passed as well, because a link wearing ordinary text colour has fine
+  contrast. Proving the fix caught a second hole in the same rule that
+  nobody had asked about: the pattern `#[0-9a-fA-F]{3,8}` also accepts five
+  and seven digits, which CSS does not recognise as colours at all, so
+  `#f0a86` failed exactly as silently. Both are closed; `rgb()` is refused
+  too, deliberately, since hex in a theme file is the only place in the
+  system where a colour is written.
+
+### Changed
+
+- **The release checklist now verifies the DOI where the answer lives.**
+  Counting webhooks (`gh api repos/:owner/:repo/hooks --jq 'length'`)
+  answers whether the wire is connected, not whether the release was
+  archived, and `v2.1.0` showed that the difference is not academic:
+  GitHub reported *every* delivery as failed — 500s reading `context
+  deadline exceeded ... giving up after 1 attempt`, a 403, a 502 — while
+  Zenodo archived the release correctly and minted
+  [10.5281/zenodo.22027978](https://doi.org/10.5281/zenodo.22027978).
+  What timed out was the response coming back, not the work. A status that
+  can be wrong in both directions is not a check, so `docs/RELEASE.md` now
+  asks Zenodo directly, after the release rather than only before it, and
+  records how to rotate the Zenodo token — which lives in the query string
+  of the webhook URL, and therefore comes back in plaintext from any
+  command that lists the repository's hooks.
 
 ## [2.1.0] — 2026-08-20
 
