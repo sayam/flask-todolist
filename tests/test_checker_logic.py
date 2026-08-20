@@ -1610,3 +1610,76 @@ def test_nobody_parses_the_trigger_shape_on_their_own_anymore():
         f"ไฟล์ที่ยังแกะรูปของ `on:` เอง: {guilty}\n"
         "ใช้ scripts/workflows.py (triggers · runs_on · schedules · jobs) แทน"
     )
+
+
+# ------------- มาร์ก `governance` ต้องตรงกับความจริง (audit รอบ 18 · ข้อ 4)
+#
+# job `bare` และ `dialect` รันด้วย `-m "not governance"` — การตัดจึงต้องพิสูจน์
+# ได้ว่าไม่ได้ตัดสัญญาณทิ้ง · **ถ้ามาร์กติดผิดตัวเดียว ด่านนั้นจะหยุดเดินบนยี่ห้อ
+# อื่นโดยไม่มีอะไรฟ้อง** ซึ่งเป็นการปิดตาที่แก้ได้ด้วยการเติมมาร์ก
+
+TESTS_ROOT = pathlib.Path(__file__).resolve().parent
+
+
+def _conftest():
+    """โมดูล conftest ที่ถือกฎการติดมาร์กไว้ — โหลดตรง ๆ ไม่ผ่าน pytest"""
+    import conftest
+
+    return conftest
+
+
+@pytest.mark.parametrize(
+    "name",
+    ["test_api_todos.py", "test_route_authz.py", "test_services.py", "test_dialect_parity.py"],
+)
+def test_a_test_that_needs_the_app_is_never_marked_governance(name):
+    """ทิศที่อันตราย — เทสต์ที่แตะแอปต้องเดินครบทุก job เสมอ
+
+    `test_dialect_parity.py` อยู่ในรายการนี้โดยตั้งใจ: มันหน้าตาเหมือนเทสต์ชั้น
+    กติกา (อ่าน model แล้วตรวจชนิดคอลัมน์) แต่มันสร้างแอปจริงเพื่ออ่าน metadata
+    — ตัดออกจาก job `dialect` เมื่อไหร่ คือการถอดด่านที่ job นั้นมีไว้เพื่อมันโดยตรง
+    """
+    source = (TESTS_ROOT / name).read_text(encoding="utf-8")
+
+    assert _conftest().touches_the_app(source), f"{name} จะถูกตัดออกจาก job dialect/bare"
+
+
+@pytest.mark.parametrize("name", ["test_gates.py", "test_asvs.py", "test_checker_logic.py"])
+def test_a_file_reading_test_is_marked_governance(name):
+    """ทิศ "ผ่านเมื่อควรผ่าน" — ถ้าไม่มีอะไรถูกมาร์กเลย การตัดก็ไม่ได้ประหยัดอะไร"""
+    source = (TESTS_ROOT / name).read_text(encoding="utf-8")
+
+    assert not _conftest().touches_the_app(source), f"{name} ไม่ถูกนับเป็นชั้นกติกา"
+
+
+def test_the_jobs_that_ask_other_questions_actually_skip_it():
+    """`ci.yml` ต้องกรองจริง — มาร์กที่ไม่มีใครกรอง คือมาร์กที่ไม่ได้ทำอะไรเลย"""
+    workflow = yaml.safe_load(CI_WORKFLOW.read_text(encoding="utf-8"))
+    commands = {
+        job: " ".join(str(step.get("run") or "") for step in workflow["jobs"][job]["steps"])
+        for job in ("bare", "dialects", "test")
+    }
+
+    assert "not governance" in commands["bare"], "job bare ยังเดินเทสต์ชั้นกติกาซ้ำ"
+    assert "not governance" in commands["dialects"], "job dialects ยังเดินเทสต์ชั้นกติกาซ้ำ"
+    assert "not governance" not in commands["test"], (
+        "job test ต้องเดินทั้งชุด — ไม่งั้นเทสต์ชั้นกติกาจะไม่ถูกรันที่ไหนเลย"
+    )
+
+
+def test_no_gate_watched_by_those_jobs_depends_on_a_governance_file():
+    """gate ที่ประกาศว่า job `bare`/`dialects` เป็นคนบังคับ ต้องไม่ถูกตัดออกไปด้วย"""
+    gates = yaml.safe_load((TESTS_ROOT.parent / "gates.yaml").read_text(encoding="utf-8"))["gates"]
+    conftest = _conftest()
+
+    stranded = []
+    for gate in gates:
+        enforced = gate["enforced_by"]
+        if enforced.get("job") not in {"bare", "dialects"}:
+            continue
+        for name in enforced.get("tests", []):
+            source = (TESTS_ROOT.parent / name).read_text(encoding="utf-8")
+            if not conftest.touches_the_app(source):
+                stranded.append(f"{gate['id']} → {name}")
+
+    assert not stranded, f"gate ที่ job ของมันจะไม่รันเทสต์นั้นอีกแล้ว: {stranded}"

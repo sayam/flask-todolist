@@ -171,8 +171,13 @@ jobs:
           SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
       # ไม่มี coverage gate ที่นี่ — เพดานวัดจาก job `test` ที่เดียว
       # job นี้ตอบคำถามเดียว: พฤติกรรมเหมือนกันทุกยี่ห้อไหม
+      #
+      # **ตัดเทสต์ชั้นกติกาออก** (audit รอบ 18) — 480 ตัวที่อ่านไฟล์อย่างเดียว
+      # ไม่แตะฐานข้อมูลเลย จึงตอบคำถามของ job นี้ไม่ได้ตามนิยาม · มาร์กถูก derive
+      # จากไฟล์ใน `tests/conftest.py` ไม่ใช่พิมพ์มือ และมีด่านกันไม่ให้เทสต์ที่
+      # แตะแอปติดมาร์กนี้ (`tests/test_checker_logic.py`)
       - name: pytest ทั้งชุดบน ${{ matrix.db.name }}
-        run: pipenv run pytest -q
+        run: pipenv run pytest -q -m "not governance"
         env:
           SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
           TEST_DATABASE_URL: >-
@@ -229,7 +234,7 @@ jobs:
       - name: pytest ทั้งชุด ยกเว้นเทสต์ที่ประกาศตัวว่าต้องมีไลบรารีของ plugin
         run: |
           set -o pipefail
-          pipenv run pytest -q -m "not plugin_deps" | tee bare.log
+          pipenv run pytest -q -m "not plugin_deps and not governance" | tee bare.log
           # **เขียวเฉย ๆ ไม่พอ ต้องบอกด้วยว่าตัดอะไรออกไป** — job นี้พิสูจน์ได้แค่
           # ส่วนที่มันรันจริง จำนวนที่ถูกข้ามจึงเป็นตัวเลขที่ต้องมีคนเห็นทุกครั้ง
           # ไม่ใช่ตัวเลขที่ต้องไปขุดหาใน log (เพดานของมันอยู่ที่ PLUGIN_DEPS_BUDGET
