@@ -4,6 +4,11 @@
 SQLite ไม่บังคับ FK ให้ ถ้า cascade พังจะไม่มีอะไรฟ้อง แค่เหลือแถวกำพร้า
 """
 
+import os
+
+import pytest
+from sqlalchemy import func, select
+
 from app import cli, db
 from app.cli import DEFAULT_CATEGORIES
 from app.models import Category, Todo, User
@@ -282,7 +287,9 @@ def test_create_user_rejects_a_name_that_only_differs_in_case(app):
     assert result.exit_code != 0, result.output
     assert "alice" in result.output
     with app.app_context():
-        assert User.query.filter_by(username="Alice").first() is None
+        # **นับจำนวน ไม่ใช่ค้นด้วยชื่อ** — collation เริ่มต้นของ MySQL/MariaDB
+        # ไม่สนตัวพิมพ์ การค้น "Alice" จึงคืนแถวของ `alice` มาให้ (ซึ่งถูกของมัน)
+        assert db.session.scalar(select(func.count()).select_from(User)) == 1
 
 
 def test_create_user_still_accepts_a_genuinely_new_name(app):
@@ -295,6 +302,14 @@ def test_create_user_still_accepts_a_genuinely_new_name(app):
     assert result.exit_code == 0, result.output
 
 
+@pytest.mark.skipif(
+    os.environ.get("TEST_DATABASE_URL", "sqlite").startswith(("mysql", "mariadb")),
+    reason=(
+        "MySQL/MariaDB เทียบ unique index ด้วย collation ที่ไม่สนตัวพิมพ์ — "
+        "สภาพ 'ชนกันอยู่แล้ว' จึงสร้างไม่ได้บนยี่ห้อนั้นตามนิยาม (ฐานกันให้ตั้งแต่แรก) · "
+        "SQLite ใช้ BINARY จึงเป็นยี่ห้อเดียวที่ของแบบนี้เกิดได้ และเป็นค่าเริ่มต้นของ dev"
+    ),
+)
 def test_the_collision_scan_reports_names_that_are_already_clashing(app):
     """ของที่ชนกันก่อนกฎข้อนี้เกิด ต้องมีคนบอก ไม่ใช่รอให้เจอตอนล็อกอินไม่ได้"""
     with app.app_context():
