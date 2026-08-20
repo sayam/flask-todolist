@@ -1,0 +1,8 @@
+{
+  "type": "theme",
+  "name": "Sepia",
+  "version": "1.0.0",
+  "stylesheet": "theme.css",
+  "description": "ชุดสีโทนกระดาษอุ่น สำหรับคนที่จ้องจอขาว-ฟ้าทั้งวันแล้วล้า",
+  "migration": "live"
+}

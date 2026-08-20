@@ -24,6 +24,9 @@
       "url": "http://127.0.0.1:5099/login?theme=ocean&mode=dark"
     },
     {
+      "url": "http://127.0.0.1:5099/login?theme=sepia&mode=dark"
+    },
+    {
       "url": "http://127.0.0.1:5099/",
       "actions": [
         "navigate to http://127.0.0.1:5099/login",
@@ -53,6 +56,28 @@
         "click element button[type=submit]",
         "wait for path to be /",
         "navigate to http://127.0.0.1:5099/?theme=ocean&mode=dark"
+      ]
+    },
+    {
+      "url": "http://127.0.0.1:5099/?theme=sepia&mode=light",
+      "actions": [
+        "navigate to http://127.0.0.1:5099/login",
+        "set field #username to a11y",
+        "set field #password to A11yProbe!2026",
+        "click element button[type=submit]",
+        "wait for path to be /",
+        "navigate to http://127.0.0.1:5099/?theme=sepia&mode=light"
+      ]
+    },
+    {
+      "url": "http://127.0.0.1:5099/?theme=sepia&mode=dark",
+      "actions": [
+        "navigate to http://127.0.0.1:5099/login",
+        "set field #username to a11y",
+        "set field #password to A11yProbe!2026",
+        "click element button[type=submit]",
+        "wait for path to be /",
+        "navigate to http://127.0.0.1:5099/?theme=sepia&mode=dark"
       ]
     },
     {

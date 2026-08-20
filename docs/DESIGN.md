@@ -94,5 +94,5 @@
 | ห้าม inline handler / `style=` ใน template (CSP) | `tests/test_security_headers.py` |
 | ทุกฟอร์มมีปุ่ม submit จริง + `.js-hidden` เฉพาะใต้ `.js` | `tests/test_a11y.py` |
 | ทุก control มีชื่อ (label/aria) · เป้ากด ≥24px | `tests/test_a11y.py` |
-| สแกนหน้าจริงรวมโหมดมืด/ธีม ocean/ภาษาไทย | `ci:a11y` |
+| สแกนหน้าจริงรวมโหมดมืด/ธีมเสริม/ภาษาไทย | `ci:a11y` |
 | ตารางหน้า↔โหมดในไฟล์นี้ตรงกับดิสก์สองทิศ + ตัวแปรสีตรงกับ `base.css` | `tests/test_design_doc.py` |
