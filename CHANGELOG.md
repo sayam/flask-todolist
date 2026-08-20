@@ -20,6 +20,17 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Added
 
+- ยังไม่มีอะไรตั้งแต่ v2.1.0
+
+## [2.1.0] — 2026-08-20
+
+> Four audit rounds (17–20), the first regression recheck of every round
+> before them, a database design review, and a prose pass over every
+> document. No behaviour of the application changed; what changed is what
+> the project can prove about itself, and what it now notices on its own.
+
+### Added
+
 - **Two more governance audit rounds, and the first regression recheck** —
   round 17 asked what checks the checking code itself, round 18 stopped
   reading declarations and ran an experiment: twelve real defects planted
@@ -1259,7 +1270,8 @@ work; the reasoning for each decision lives in the 70 records in
 - WCAG 2.2 AA, checked both by a structural test suite and by pa11y-ci driving a
   real Chromium over dark mode, an alternate theme, and Thai.
 
-[Unreleased]: https://github.com/sayam/flask-todolist/compare/v2.0.2...HEAD
+[Unreleased]: https://github.com/sayam/flask-todolist/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/sayam/flask-todolist/compare/v2.0.2...v2.1.0
 [2.0.2]: https://github.com/sayam/flask-todolist/compare/v2.0.1...v2.0.2
 [2.0.1]: https://github.com/sayam/flask-todolist/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/sayam/flask-todolist/compare/v1.6.0...v2.0.0
