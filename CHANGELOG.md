@@ -70,6 +70,20 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
   of the webhook URL, and therefore comes back in plaintext from any
   command that lists the repository's hooks.
 
+- **That Zenodo token turns out to have no rotation path, and the register
+  now says so.** Four routes were tried and measured: it is not listed among
+  Zenodo's personal access tokens, because the GitHub integration holds one
+  of its own; the linked GitHub account cannot be disconnected, because it
+  is the login; switching the repository off and on again installs a *new
+  webhook carrying the same token*; and revoking Zenodo's OAuth grant on
+  GitHub cuts the opposite credential — the one Zenodo uses to fetch the
+  release tarball — which would break archiving while leaving the exposed
+  value alive. It is recorded in `docs/RISK-ASSESSMENT.md` as accepted, at
+  the level the register's own formula produces, with the conditions that
+  would reopen it. The attempt also invalidated the check written one
+  commit earlier: "the hook `id` must be new" passes while the secret is
+  unchanged, so the criterion is now a fingerprint of the value itself.
+
 ## [2.1.0] — 2026-08-20
 
 > Four audit rounds (17–20), the first regression recheck of every round
