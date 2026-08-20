@@ -182,6 +182,31 @@ append-only audit chain, the public history) only work if they sit on the
 mandatory path. Review count is intentionally 0 — the day a second regular
 contributor arrives, required reviews turn on and ADR 0053 gets revisited.
 
+### 12. A `good first issue` is an invitation that is still out
+
+The label is not decoration: someone may already be working on it, and you will
+not know, because a first-time contributor has no reason to announce it and no
+way to self-assign.
+
+**Do not close one of these with your own pull request without removing the
+label first.** Remove it and say on the issue that you are taking it, so anyone
+mid-way can stop. If you deliberately take one back while the label is still on,
+declare it in the pull-request body:
+
+```
+good-first-issue-taken-back: <why it could not wait>
+```
+
+A step in the `lint` job checks this and fails the pull request otherwise
+(`scripts/check_issue_handoff.py`). It reads the issues GitHub itself would
+close, not the words in the description.
+
+This rule exists because it was broken. On 2026-08-20 an issue was labelled at
+12:14 UTC, the maintainer merged their own implementation of it at 16:51, and an
+outside contributor opened their pull request at 17:39 having worked on it for
+hours. The label was on the whole time. Their afternoon was spent on something
+that was already closed, and nothing in the project noticed.
+
 ## Before you open a pull request
 
 ```bash

@@ -298,6 +298,21 @@ jobs:
           dockerfile: Dockerfile
           config: .hadolint.yaml
 
+      # issue ที่ยังติดป้าย good first issue คือคำเชิญที่ยัง *ส่งอยู่* — ปิดมันด้วย
+      # PR ของผู้ดูแลโดยไม่ปลดป้ายก่อน แปลว่ามีคนกำลังทำงานที่หายไปโดยไม่รู้ตัว
+      # (เกิดขึ้นจริง 2026-08-20 — เหตุผลเต็มอยู่ในหัวไฟล์ของสคริปต์)
+      #
+      # **อยู่ใน job `lint` โดยตั้งใจ ไม่ใช่ job ใหม่**: job ใหม่ต้องถูกเพิ่มเข้า
+      # required checks แล้วเลข "27 จาก 30" ที่ประกาศไว้ 11 ที่ในเอกสารจะผิดทันที
+      # ทั้งหมด ซึ่งมีเครื่องตรวจอยู่แค่ที่เดียว — ราคานั้นแพงกว่าค่าที่ได้
+      - name: issue ที่เปิดให้คนใหม่ ต้องไม่ถูกปิดเงียบ ๆ
+        if: ${{ github.event_name == 'pull_request' && !cancelled() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: pipenv run python scripts/check_issue_handoff.py
+
   n-1:
     # สัญญา N-1 (ADR 0048): โค้ดของ tag ล่าสุดต้องให้บริการบน schema ของ HEAD
     # ได้จริง — rolling deploy มีจังหวะที่สองรุ่นรันพร้อมกันบน schema เดียวเสมอ
