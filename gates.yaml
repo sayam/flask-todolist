@@ -1424,7 +1424,7 @@ gates:
           และตัวอ่านต้องเข้าใจรูป JSON ที่ `pip-audit` คืนมาจริง ไม่ใช่รูปที่เราคิดเอง
 
   - id: a11y-real-browser
-    title: pa11y + Chromium จริง สแกนรวมโหมดมืด ธีม ocean และภาษาไทย
+    title: pa11y + Chromium จริง สแกนรวมโหมดมืด ธีมเสริม และภาษาไทย
     kind: job
     severity: blocking
     enforced_by: {job: a11y}

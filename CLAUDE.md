@@ -128,7 +128,7 @@
   ดูหัวข้อ Performance) · `loadtest/journey.js` + `scripts/loadtest_curve.sh` — ชุด load test
 - `app/static/base.css` — เลย์เอาต์ของ core **ห้ามมีสีดิบ** สีมาจากธีมทั้งหมด
 - `app/static/app.js` — พฤติกรรมฝั่ง client **ทั้งหมด** (ห้ามมี inline handler ที่อื่น)
-- `.pa11yci.json` — รายการหน้าที่ job `a11y` ใน CI สแกน (รวมโหมดมืด/ธีม ocean/ภาษาไทย)
+- `.pa11yci.json` — รายการหน้าที่ job `a11y` ใน CI สแกน (รวมโหมดมืด/ธีมเสริม/ภาษาไทย)
 - `Dockerfile` + `.dockerignore` — image ที่รันจริง (multi-stage, ไม่ใช่ root —
   `USER` เป็น uid ตัวเลข · HEALTHCHECK CMD เป็น JSON form ทั้งคู่ตาม hadolint)
   **ไม่ migrate ให้เอง** โดยตั้งใจ · ไลบรารีของ plugin ไม่อยู่ใน image (ADR 0025)
@@ -741,7 +741,7 @@ session มาก่อนโปรไฟล์เพื่อให้กดส
 - **ห้ามพึ่งข้อยกเว้นเรื่องระยะห่างของ 2.5.8** เกณฑ์ยอมให้เป้าเล็กได้ถ้าวงกลม 24px
   ไม่ทับเป้าอื่น แต่มันจะใช้ไม่ได้ทันทีที่มีใครวางปุ่มเพิ่มข้าง ๆ โดยไม่มีอะไรฟ้อง
 - ตรวจสองชั้น: `tests/test_a11y.py` (โครงสร้าง รันทุกครั้ง) + job `a11y` ใน CI
-  (pa11y-ci + Chromium จริง สแกนโหมดมืด ธีม ocean และภาษาไทยด้วย เพราะ contrast ต่างกัน)
+  (pa11y-ci + Chromium จริง สแกนโหมดมืด ธีมเสริม และภาษาไทยด้วย เพราะ contrast ต่างกัน)
 - รัน pa11y เองบนเครื่อง: ตั้ง `DATABASE_URL` ชี้ไฟล์ทิ้ง → `flask db upgrade` →
   `PYTHONPATH=. python scripts/a11y_fixture.py` → `flask run --port 5099` → `pa11y-ci`
   (สคริปต์ fixture ปฏิเสธถ้า `DATABASE_URL` ชี้ไปฐานข้อมูลจริง)
