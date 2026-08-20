@@ -7,7 +7,7 @@ SQLite ไม่บังคับ FK ให้ ถ้า cascade พังจ�
 from app import cli, db
 from app.cli import DEFAULT_CATEGORIES
 from app.models import Category, Todo, User
-from app.services import ServiceError
+from app.services import ServiceError, usernames
 from tests.conftest import PASSWORD
 
 
@@ -262,3 +262,57 @@ def test_mfa_disable_can_target_one_factor_and_leave_the_rest(app, user_id, monk
 
     assert result.exit_code == 0, result.output
     assert disabled == ["auth/totp"], "ต้องแตะเฉพาะตัวที่ระบุ"
+
+
+# ---------------- ชื่อที่ชนกันแบบ casefold (audit รอบ 19 ข้อ 2)
+#
+# ตัวตนเทียบตรงตัวพิมพ์ (`app/auth.py`) แต่โควตากันเดารหัสผ่านเทียบแบบ casefold
+# (ADR 0021 · ตั้งใจ) · ปล่อยให้มี `alice` กับ `Alice` พร้อมกันเมื่อไหร่ คนนอกยิง
+# รหัสผิดใส่ชื่อหนึ่งห้าครั้ง จะล็อกอีกชื่อออกจากระบบ — **ปฏิเสธบริการข้ามบัญชี
+# โดยไม่ต้องรู้อะไรเกี่ยวกับเป้าเลย** · วัดจริงในรอบ 19: create-user Alice สำเร็จ
+
+
+def test_create_user_rejects_a_name_that_only_differs_in_case(app):
+    """ทิศที่บั๊กอยู่ — `Alice` ต้องถูกปฏิเสธเมื่อมี `alice` แล้ว"""
+    runner = app.test_cli_runner()
+    runner.invoke(args=["create-user", "alice"], input=f"{PASSWORD}\n{PASSWORD}\n")
+
+    result = runner.invoke(args=["create-user", "Alice"], input=f"{PASSWORD}\n{PASSWORD}\n")
+
+    assert result.exit_code != 0, result.output
+    assert "alice" in result.output
+    with app.app_context():
+        assert User.query.filter_by(username="Alice").first() is None
+
+
+def test_create_user_still_accepts_a_genuinely_new_name(app):
+    """ทิศ "ผ่านเมื่อควรผ่าน" — ด่านที่กันชื่อที่ไม่ได้ชนกัน คือด่านที่ต้องถูกถอด"""
+    runner = app.test_cli_runner()
+    runner.invoke(args=["create-user", "alice"], input=f"{PASSWORD}\n{PASSWORD}\n")
+
+    result = runner.invoke(args=["create-user", "alicia"], input=f"{PASSWORD}\n{PASSWORD}\n")
+
+    assert result.exit_code == 0, result.output
+
+
+def test_the_collision_scan_reports_names_that_are_already_clashing(app):
+    """ของที่ชนกันก่อนกฎข้อนี้เกิด ต้องมีคนบอก ไม่ใช่รอให้เจอตอนล็อกอินไม่ได้"""
+    with app.app_context():
+        for name in ("alice", "Alice", "bob"):
+            person = User(username=name)
+            person.set_password(PASSWORD)
+            db.session.add(person)
+        db.session.commit()
+
+        assert usernames.collisions() == [["Alice", "alice"]]
+
+
+def test_the_collision_scan_is_quiet_when_nothing_clashes(app):
+    with app.app_context():
+        for name in ("alice", "bob"):
+            person = User(username=name)
+            person.set_password(PASSWORD)
+            db.session.add(person)
+        db.session.commit()
+
+        assert usernames.collisions() == []

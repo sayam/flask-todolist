@@ -21,6 +21,7 @@ from app.services import passwords as passwords_service
 from app.services import personal_data as personal_data_service
 from app.services import roles as roles_service
 from app.services import tokens as tokens_service
+from app.services import usernames as usernames_service
 from config import DEFAULT_LANGUAGE, LANGUAGES
 
 # หมวดตั้งต้นที่สร้างให้ user ใหม่ แยกตามภาษาที่เลือกตอนสร้าง
@@ -61,8 +62,13 @@ def _find_user(username):
 def create_user(username, lang, no_categories):
     """Create a new user (prompts for a password without echoing it)."""
     username = username.strip()
-    if _find_user(username) is not None:
-        raise click.ClickException(f"A user named {username!r} already exists.")
+    # **ชนแบบ casefold ก็ถือว่าชน** (audit รอบ 19) — ตัวตนเทียบตรงตัวพิมพ์ แต่
+    # โควตากันเดารหัสผ่านเทียบแบบ casefold (ADR 0021) · ปล่อยให้มี `alice` กับ
+    # `Alice` พร้อมกันเมื่อไหร่ คนยิงรหัสผิดใส่ชื่อหนึ่งจะล็อกอีกชื่อออกจากระบบ
+    try:
+        usernames_service.require_available(username)
+    except ServiceError as error:
+        raise click.ClickException(error.message) from error
 
     password = click.prompt("Password", hide_input=True, confirmation_prompt="Repeat password")
     # นโยบายเดียวกับฝั่งเว็บเป๊ะ — ประตูหลังที่ยอมให้ตั้งรหัสอ่อนกว่าคือช่องที่
