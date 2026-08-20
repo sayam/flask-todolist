@@ -368,6 +368,14 @@ jobs:
         env:
           SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
           DATABASE_URL: sqlite:////tmp/schema-check.db
+      # **ตัวตรวจสุขภาพข้อมูลต้องเดินได้บนฐานที่ migrate จริง** (audit รอบ 19) —
+      # เทสต์ของมันรันบนฐานที่ `db.create_all()` สร้าง ซึ่งตรงกับ model เสมอโดย
+      # นิยาม · ฐานที่มาจาก migration เป็นคนละต้นไม้ และเป็นต้นไม้ที่ของจริงใช้
+      - name: data-doctor เดินได้บนฐานที่มาจาก migration
+        run: pipenv run flask data-doctor
+        env:
+          SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
+          DATABASE_URL: sqlite:////tmp/schema-check.db
 
   openapi:
     # สัญญาที่ commit ไว้ต้องเป็นภาพถ่ายของโค้ดปัจจุบัน ไม่ใช่ของเมื่อสามเดือนก่อน

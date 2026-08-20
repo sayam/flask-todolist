@@ -16,6 +16,7 @@ from app import audit, db
 from app.models import Category, User
 from app.purge import AUDIT_RETAIN_DAYS, PURGE_AFTER_DAYS, preview_expired, purge_expired
 from app.services import ServiceError
+from app.services import data_doctor as doctor_service
 from app.services import mfa as mfa_service
 from app.services import passwords as passwords_service
 from app.services import personal_data as personal_data_service
@@ -551,6 +552,22 @@ def audit_verify():
     click.echo(f"Audit chain OK — {checked} entries verified.")
 
 
+@click.command("data-doctor")
+@with_appcontext
+def data_doctor():
+    """Check the data that is in the database right now (read only, changes nothing)."""
+    report = doctor_service.examine()
+    if report.healthy:
+        click.echo(f"Data looks healthy — {report.checks} checks, nothing to report.")
+        return
+    for finding in report.findings:
+        click.echo(f"{finding.kind}: {finding.where} — {finding.detail}")
+    raise click.ClickException(
+        f"{len(report.findings)} problem(s) found in {report.checks} checks "
+        "— this command never changes data, fixing is a decision for a person."
+    )
+
+
 @click.command("audit-log")
 @click.option("--limit", type=int, default=20, show_default=True, help="How many entries to show.")
 @with_appcontext
@@ -664,5 +681,6 @@ def register_cli(app):
     app.cli.add_command(purge_expired_command)
     app.cli.add_command(audit_verify)
     app.cli.add_command(audit_log)
+    app.cli.add_command(data_doctor)
     app.cli.add_command(mfa_status)
     app.cli.add_command(mfa_disable)
