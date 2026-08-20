@@ -198,7 +198,7 @@ scripts_coverage = 61
 # gate ทั้งหมดใน gates.yaml — ถอด gate ทิ้งเคยเขียวได้ทั้ง CI ถ้าเก็บกวาดครบ 6 ที่
 gates_total = 105
 # แถวใน "ส่วนที่ต้องมีคนลงมือ" ของ docs/SECURITY-CADENCE.md
-cadence_rows = 23
+cadence_rows = 27
 # แถวในทะเบียนความเสี่ยงของ docs/RISK-ASSESSMENT.md
 risk_rows = 13
 # แถวในทะเบียน "การตัดสินใจที่จงใจเลื่อน" ของ docs/GOVERNANCE.md
