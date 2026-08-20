@@ -1,4 +1,6 @@
+import ast
 import os
+import pathlib
 
 import pytest
 
@@ -11,6 +13,59 @@ from config import Config
 # ผ่าน `flask create-user` ซึ่งบังคับนโยบายเต็ม — ค่าเดิม ("password123")
 # อยู่ในรายการรหัสที่หลุดแล้ว จึงถูกปฏิเสธตั้งแต่ Phase 4
 PASSWORD = "pytest-fixture-passphrase"
+
+
+# ---------------------------------------------------------------- marker ที่ derive มา
+#
+# **เทสต์ชั้นกติกาอ่านไฟล์อย่างเดียว — ผลไม่ขึ้นกับยี่ห้อฐานข้อมูลเลย** (audit รอบ 18)
+# แต่มันเดินครบทุกรอบใน job `bare` และ `dialect` ทั้งสองยี่ห้อ · วัดได้ 94 วินาที
+# จาก 258 บนเครื่อง แล้วคูณสี่ตามจำนวน job ที่รันชุดเต็ม
+#
+# **มาร์กถูก derive จากไฟล์ ไม่ใช่พิมพ์มือ** (บทเรียนของรอบ 17–18): ไฟล์ที่ไม่
+# import `app` และไม่ใช้ fixture ที่สร้างแอปเลย = ชั้นกติกา · รายการที่พิมพ์มือ
+# จะครบเฉพาะวันที่มีคนนึกได้ และไฟล์ที่เพิ่มทีหลังจะเดินสี่รอบต่อไปเงียบ ๆ
+
+APP_FIXTURES = frozenset(
+    {
+        "app",
+        "client",
+        "other_client",
+        "anon_client",
+        "csrf_app",
+        "ratelimit_app",
+        "username_ratelimit_app",
+        "user_id",
+        "other_user_id",
+        "issue_token",
+    }
+)
+
+
+def touches_the_app(source: str) -> bool:
+    """โมดูลนี้ต้องมีแอปจริงถึงจะรันได้ไหม — import `app` หรือขอ fixture ที่สร้างแอป"""
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return True  # อ่านไม่ออก = ถือว่าแตะไว้ก่อน ปลอดภัยกว่าการข้าม
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom) and (node.module or "").split(".")[0] == "app":
+            return True
+        if isinstance(node, ast.Import) and any(a.name.split(".")[0] == "app" for a in node.names):
+            return True
+        if isinstance(node, ast.FunctionDef) and APP_FIXTURES & {a.arg for a in node.args.args}:
+            return True
+    return False
+
+
+def pytest_collection_modifyitems(items):
+    """ติดมาร์ก `governance` ให้เทสต์ในโมดูลที่ไม่ต้องมีแอปเลย"""
+    verdicts: dict[pathlib.Path, bool] = {}
+    for item in items:
+        path = pathlib.Path(str(item.path))
+        if path not in verdicts:
+            verdicts[path] = touches_the_app(path.read_text(encoding="utf-8"))
+        if not verdicts[path]:
+            item.add_marker(pytest.mark.governance)
 
 
 class TestConfig(Config):
