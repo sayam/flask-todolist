@@ -45,7 +45,6 @@ UNPROVEN = frozenset(
         "models-match-migrations",
         "dialect-discipline",
         "migration-class-declared",
-        "comparison-instrument-verified",
         "csrf-guards-every-form",
         "session-hardening",
         "login-rate-limited-two-ways",
