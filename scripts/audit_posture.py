@@ -292,7 +292,7 @@ def compare(
 #
 # ที่ *ไม่* อยู่ในทะเบียนโดยตั้งใจ: `merge_commit_title`/`merge_commit_message`
 # (มีผลเฉพาะเมื่อเปิด merge commit ซึ่งปิดอยู่) · `squash_merge_commit_*` และ
-# `use_squash_pr_title_as_default` (มีผลเฉพาะเมื่อเปิด squash) ·
+# `use_squash_pr_title_as_default` (มีผลเฉพาะเมื่อเปิด squash ซึ่งปิดแล้ว) ·
 # `allow_update_branch` (ไม่มีกติกาข้อไหนพึ่งมัน)
 MERGE_SETTINGS = {
     "allow_auto_merge": (True, "วิธี merge มาตรฐานของทุก PR (CONTRIBUTING ข้อ 7)"),
@@ -305,6 +305,14 @@ MERGE_SETTINGS = {
     ),
     "allow_merge_commit": (False, "ประวัติต้องเป็นเส้นเดียว (คู่กับ required_linear_history)"),
     "allow_rebase_merge": (True, "ทางเดียวที่ ADR 0053 กับ CONTRIBUTING ข้อ 7 รับ"),
+    "allow_squash_merge": (
+        False,
+        (
+            "CONTRIBUTING ข้อ 7 ห้ามไว้ตรง ๆ — squash ต่อ ` (#N)` ท้าย subject แล้วดัน "
+            "เกิน 72 ตัว และ commit-lint ที่จะจับได้รันหลังของลง main ไปแล้ว · "
+            "`required_linear_history` ไม่กันให้เพราะ squash ก็ให้ประวัติเส้นเดียว"
+        ),
+    ),
 }
 
 UNREADABLE_AT_LEAST_PRIVILEGE = {

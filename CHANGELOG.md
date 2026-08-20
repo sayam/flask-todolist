@@ -68,6 +68,13 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
   flag; the checker compares them when it can read them and reports what
   they *should* be when it cannot, and a quarterly row in
   `docs/SECURITY-CADENCE.md` gives the unreadable ones a human owner.
+  Writing the register down immediately found a second gap of the same
+  kind: squash merging was still offered, although rule 7 of
+  `CONTRIBUTING.md` forbids it and explains why — a squash appends
+  ` (#N)` to the subject, pushing anything near the limit past 72
+  characters, and the commit-lint check that would catch it only runs
+  once the merge has already landed. `required_linear_history` does not
+  help, because a squash is linear too. It is now off, and declared.
 
 - **The release checklist now verifies the DOI where the answer lives.**
   Counting webhooks (`gh api repos/:owner/:repo/hooks --jq 'length'`)
