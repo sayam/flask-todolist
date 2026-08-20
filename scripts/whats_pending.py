@@ -52,6 +52,11 @@ EXPIRY_MARK = "เงื่อนไขที่ทำให้คำตัด�
 
 def cadence_rows() -> list[tuple[str, str, str]]:
     """(ชื่อการตรวจ, รอบ, ครบกำหนด) ของทุกแถวในตาราง "ต้องมีคนลงมือ" """
+    return [(title, period, due) for title, period, _, due in _cadence_cells()]
+
+
+def _cadence_cells() -> list[tuple[str, str, str, str]]:
+    """(ชื่อ, รอบ, ครั้งล่าสุด, ครบกำหนด) — ช่อง "ครั้งล่าสุด" บอกด้วยว่าเคยทำซ้ำหรือยัง"""
     text = CADENCE.read_text(encoding="utf-8")
     start = text.index("## ส่วนที่ต้องมีคนลงมือ")
     end = text.index("## กรอบเวลาแก้ช่องโหว่", start)
@@ -61,8 +66,18 @@ def cadence_rows() -> list[tuple[str, str, str]]:
             continue
         cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
         if len(cells) == 5:
-            rows.append((cells[0].replace("**", ""), cells[1], cells[3]))
+            rows.append((cells[0].replace("**", ""), cells[1], cells[2], cells[3]))
     return rows
+
+
+def never_recurred() -> tuple[int, int]:
+    """(จำนวนแถวที่ยังไม่เคยถูกทำซ้ำ, จำนวนแถวที่มีวันที่ทั้งหมด)
+
+    **แถวที่ยังไม่เคยครบรอบ กับแถวที่ทำตามรอบแล้ว ให้ผลเหมือนกันทุกอย่างในตาราง
+    เดิม** (audit รอบ 20) — ตัวเลขนี้คือความต่างที่มองเห็นได้ และมันลดลงเองตามเวลา
+    """
+    dated = [row for row in _cadence_cells() if DATE.match(row[3])]
+    return sum(1 for row in dated if "ตั้งต้น" in row[2]), len(dated)
 
 
 def due_soon(rows: list[tuple[str, str, str]], today: datetime.date, within: int) -> list[str]:
@@ -151,6 +166,11 @@ def report(today: datetime.date, within: int) -> str:
     soon = due_soon(rows, today, within)
     lines.append(f"## ตรวจตามรอบที่ถึงคิว (ภายใน {within} วัน) — {len(soon)} จาก {len(rows)} แถว")
     lines += [f"  {item}" for item in soon] or ["  (ไม่มี)"]
+
+    fresh, dated = never_recurred()
+    lines.append(f"  · ยังไม่เคยทำซ้ำเลย {fresh} จาก {dated} แถวที่มีวันที่")
+    if fresh == dated:
+        lines.append("    (ยังไม่มีรอบไหนหมุนครบสักรอบ — 'เลยกำหนด 0' จึงยังไม่ได้แปลว่ากระบวนการเดิน)")
 
     waiting = conditional_rows(rows)
     lines += ["", f"## รอเงื่อนไข ไม่ใช่รอวันที่ — {len(waiting)} แถว"]
