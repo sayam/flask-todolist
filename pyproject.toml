@@ -200,7 +200,7 @@ gates_total = 105
 # แถวใน "ส่วนที่ต้องมีคนลงมือ" ของ docs/SECURITY-CADENCE.md
 cadence_rows = 23
 # แถวในทะเบียนความเสี่ยงของ docs/RISK-ASSESSMENT.md
-risk_rows = 12
+risk_rows = 13
 # แถวในทะเบียน "การตัดสินใจที่จงใจเลื่อน" ของ docs/GOVERNANCE.md
 deferred_rows = 2
 
