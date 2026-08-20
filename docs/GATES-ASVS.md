@@ -31,6 +31,7 @@ derive จากหลักฐานในตาราง `docs/ASVS.md`: แ�
 | `every-column-classified` | V14.1.1 · V14.1.2 |
 | `every-column-export-decided` | V5.4.1 · V5.4.2 · V7.4.2 |
 | `every-write-audited` | V2.3.4 · V11.4.3 · V14.2.4 · V16.3.1 |
+| `good-first-issue-not-taken-silently` | V15.3.5 |
 | `i18n-catalog-integrity` | V1.3.10 |
 | `image-built-and-probed` | V13.4.1 · V15.2.3 |
 | `image-os-cve-audit` | V13.4.1 · V15.2.3 |

@@ -32,6 +32,7 @@ from scripts import (
     audit_pins,
     audit_plugin_deps,
     audit_posture,
+    check_issue_handoff,
     check_ratchets,
     check_semgrep,
     lint_commits,
@@ -1846,3 +1847,123 @@ def test_the_single_pending_page_agrees_with_what_it_reads():
         len(whats_pending.cadence_rows()),
         len(whats_pending.REGISTERS),
     ), "เลขที่หัวไฟล์ประกาศ ไม่ตรงกับที่ตัวมันเองอ่านได้"
+
+
+# ------------- issue ที่เปิดให้คนใหม่ ต้องไม่ถูกปิดเงียบ ๆ (เหตุจริง 2026-08-20)
+#
+# ตรรกะทั้งหมดแยกจากการเรียก GitHub โดยตั้งใจ — ด่านที่ทดสอบได้เฉพาะตอนต่อเน็ต
+# คือด่านที่ไม่มีใครทดสอบ
+
+GOOD_FIRST = {"good first issue", "help wanted"}
+TAKEN = [{"number": 171, "title": "data-doctor check"}]
+
+
+def test_closing_an_invitation_that_is_still_open_is_a_problem():
+    found = check_issue_handoff.problems(TAKEN, {171: GOOD_FIRST}, body="ทำเอง")
+
+    assert found, "ปิด issue ที่ยังติดป้ายอยู่ ต้องแดง"
+    assert "171" in found[0]
+
+
+def test_an_issue_without_the_label_is_not_a_problem():
+    """ป้ายอื่นไม่เกี่ยว — ด่านที่ดังกับทุก PR จะถูกปิดเสียงภายในสัปดาห์เดียว"""
+    assert check_issue_handoff.problems(TAKEN, {171: {"bug"}}, body="") == []
+
+
+def test_a_pr_that_closes_nothing_is_not_a_problem():
+    assert check_issue_handoff.problems([], {}, body="") == []
+
+
+def test_a_declared_takeback_passes():
+    """ไม่ได้ห้ามผู้ดูแลทำเอง — ห้ามทำเงียบ ๆ"""
+    body = "good-first-issue-taken-back: ต้องใช้ในงาน audit วันนี้ รอไม่ได้"
+
+    assert check_issue_handoff.problems(TAKEN, {171: GOOD_FIRST}, body=body) == []
+
+
+def test_a_takeback_without_a_reason_does_not_pass():
+    """คำสั่งเปล่า ๆ ไม่ใช่การประกาศ — หลักเดียวกับทุกทะเบียนข้อยกเว้นในโปรเจกต์นี้"""
+    found = check_issue_handoff.problems(
+        TAKEN, {171: GOOD_FIRST}, body="good-first-issue-taken-back:"
+    )
+
+    assert found, "ประกาศโดยไม่มีเหตุผล ต้องไม่ผ่าน"
+
+
+def test_the_message_names_both_ways_out():
+    """ข้อความตอนแดงต้องบอกทางออก **ทั้งสองทาง** ไม่ใช่แค่บอกว่าผิด
+
+    รุ่นแรกของเทสต์นี้หาแค่คำว่า "ปลดป้าย" ในข้อความทั้งก้อน — ซึ่งโผล่ในประโยค
+    ที่บอก*อาการ*อยู่แล้ว มันจึงยังเขียวตอนที่ถอดบรรทัดทางออกข้อ 1 ออกไปทั้งบรรทัด
+    (จับได้ตอน mutation) · ตอนนี้จึงนับ *บรรทัด* ที่เป็นทางออกจริง
+    """
+    message = check_issue_handoff.report(["#171 ยังติดป้ายอยู่"])
+    ways = [line.strip() for line in message.splitlines() if line.strip()[:2] in {"1.", "2."}]
+
+    assert len(ways) == 2, f"ต้องมีทางออกสองทาง ได้ {ways}"
+    assert "ปลดป้าย" in ways[0], "ทางที่หนึ่งต้องคือการปลดป้าย"
+    assert "good-first-issue-taken-back:" in message, "ไม่ได้บอกรูปของการประกาศ"
+
+
+# ตัวที่คุยกับ GitHub — ทดสอบโดยปลอม `_gh` ไม่ใช่โดยต่อเน็ต · **เกณฑ์ coverage
+# ของ `scripts/` จับได้เองว่าครึ่งนี้ไม่มีเทสต์** ตอนที่ด่านนี้ถูกเพิ่มเข้ามา
+# (พื้นตก 62.14 → 61.80) ซึ่งเป็นเหตุผลที่เกณฑ์นั้นมีอยู่
+
+
+@pytest.fixture
+def fake_gh(monkeypatch):
+    """แทน `gh` ด้วยตารางคำตอบ — คืน list ของ argument ที่ถูกเรียกจริงด้วย"""
+    calls = []
+
+    def answer(*args):
+        calls.append(args)
+        if args[0] == "pr":
+            return json.dumps({"closingIssuesReferences": answer.closing})
+        return json.dumps({"labels": [{"name": name} for name in answer.labels]})
+
+    answer.closing = []
+    answer.labels = []
+    monkeypatch.setattr(check_issue_handoff, "_gh", answer)
+    return answer, calls
+
+
+def test_closing_issues_reads_what_github_would_actually_close(fake_gh):
+    """อ่านจาก `closingIssuesReferences` ไม่ใช่จากการ grep คำว่า Closes ในเนื้อ PR"""
+    answer, calls = fake_gh
+    answer.closing = [{"number": 171, "title": "x"}]
+
+    assert check_issue_handoff.closing_issues("9") == [{"number": 171, "title": "x"}]
+    assert "closingIssuesReferences" in calls[0]
+
+
+def test_labels_of_returns_the_names(fake_gh):
+    answer, _calls = fake_gh
+    answer.labels = ["good first issue", "bug"]
+
+    assert check_issue_handoff.labels_of(171) == {"good first issue", "bug"}
+
+
+def test_without_a_pull_request_number_the_check_is_silent(capsys):
+    """ด่านนี้มีความหมายเฉพาะบน pull_request — บน push ต้องผ่านเงียบ ๆ"""
+    assert check_issue_handoff.main(["--pr", "", "--body", ""]) == 0
+
+
+def test_a_pull_request_closing_nothing_passes(fake_gh):
+    assert check_issue_handoff.main(["--pr", "9", "--body", ""]) == 0
+
+
+def test_closing_a_labelled_issue_fails_the_build(fake_gh):
+    answer, _calls = fake_gh
+    answer.closing = [{"number": 171, "title": "data-doctor check"}]
+    answer.labels = ["good first issue"]
+
+    assert check_issue_handoff.main(["--pr", "9", "--body", "ทำเอง"]) == 1
+
+
+def test_a_declared_takeback_lets_the_build_through(fake_gh):
+    answer, _calls = fake_gh
+    answer.closing = [{"number": 171, "title": "data-doctor check"}]
+    answer.labels = ["good first issue"]
+    body = "good-first-issue-taken-back: จำเป็นต้องใช้ผลในวันเดียวกัน"
+
+    assert check_issue_handoff.main(["--pr", "9", "--body", body]) == 0

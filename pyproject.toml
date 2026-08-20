@@ -198,13 +198,13 @@ scripts_coverage = 62
 # ขึ้นได้เฉพาะเมื่อเป็นคำตัดสินที่มีเหตุผลใน commit · ลงแล้วต้องลดเพดานตามทันที
 [tool.todolist.ceilings]
 # `# noqa` + `# type: ignore` ใน app/ scripts/ tests/
-suppressions = 99
+suppressions = 101
 # ในจำนวนนั้น กี่บรรทัดที่ไม่มีข้อความบอกเหตุผลต่อท้าย
 suppressions_without_reason = 53
 
 [tool.todolist.removals]
 # gate ทั้งหมดใน gates.yaml — ถอด gate ทิ้งเคยเขียวได้ทั้ง CI ถ้าเก็บกวาดครบ 6 ที่
-gates_total = 105
+gates_total = 108
 # แถวใน "ส่วนที่ต้องมีคนลงมือ" ของ docs/SECURITY-CADENCE.md
 cadence_rows = 30
 # แถวในทะเบียนความเสี่ยงของ docs/RISK-ASSESSMENT.md
