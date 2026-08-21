@@ -15,110 +15,40 @@
     "checks/scan_write_discipline.py"
   ],
   "gates": {
-    "gates-registry-total": {
+    "a11y-real-browser": {
       "kind": "suite",
-      "title": "ดัชนี gate ตรงกับความจริงสองทิศ และไฟล์เทสต์ทุกไฟล์ถูกตัดสิน",
+      "title": "pa11y + Chromium จริง สแกนรวมโหมดมืด ธีม ocean และภาษาไทย",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     },
-    "gates-carry-red-evidence": {
+    "a11y-structural": {
       "kind": "suite",
-      "title": "gate ใหม่ต้องมาพร้อมหลักฐานว่าเคยแดงตอนของเสียจริง — รายการที่ยังไม่มีหดได้ทางเดียว",
+      "title": "โครงสร้าง WCAG ตรวจทุกครั้งที่รันเทสต์ (label ครบ, ปุ่มสำรอง, target size)",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     },
-    "changed-lines-fully-tested": {
-      "kind": "suite",
-      "title": "บรรทัดที่ PR แก้ต้องถูกเทสต์ครอบ 100% — coverage floor ทั้งไฟล์ตอบคำถามนี้ไม่ได้",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "skill-mirrors-portable-gates": {
-      "kind": "suite",
-      "title": "SKILL.md ที่ export เป็นเงาของ portable gate — generate ห้ามเขียนคู่ขนาน",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "logic-knows-no-http": {
+    "actions-sha-pinned": {
       "kind": "scan",
-      "script": "checks/scan_service_layer.py",
-      "title": "ตรรกะทั้งหมดอยู่ใน service layer และไม่รู้จัก HTTP"
+      "script": "checks/scan_workflow_pinning.py",
+      "title": "ทุก action ถูก pin ด้วย commit SHA + คอมเมนต์เลขรุ่น"
     },
-    "delete-means-soft-delete": {
+    "admin-masking-by-classification": {
+      "kind": "suite",
+      "title": "หน้า admin เห็นข้อมูลผู้ใช้แบบ mask ตามชั้นข้อมูล และ unmask ต้องลง audit",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "admin-panels-read-real-state": {
+      "kind": "suite",
+      "title": "panel ระบบของ admin อ่านจาก runtime/ดิสก์จริง ตอบตามจริง และ admin เท่านั้น",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "adr-index-complete": {
       "kind": "scan",
-      "script": "checks/scan_write_discipline.py",
-      "title": "ลบ = ซ่อน (soft delete) — ลบจริงได้ที่ purge เท่านั้น"
+      "script": "checks/scan_adr_index.py",
+      "title": "ดัชนี ADR ครอบทุกใบ เลขไม่ซ้ำไม่มีรู"
     },
-    "every-write-audited": {
+    "alerts-fire-for-real": {
       "kind": "suite",
-      "title": "ทุกการเขียนลง audit trail แบบเติมได้อย่างเดียว + hash chain",
+      "title": "กฎแจ้งเตือนใน Loki ruler ต้องดังจริงเมื่อยิงเหตุการณ์ใส่ ไม่ใช่แค่ stack ขึ้น",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "core-never-names-plugins": {
-      "kind": "suite",
-      "title": "core รู้แค่วิธีค้นหา plugin — ห้ามมีชื่อ plugin ในโค้ด core",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "every-column-classified": {
-      "kind": "suite",
-      "title": "ทุกคอลัมน์ต้องถูกจัดชั้นข้อมูลใน DATA-CLASSIFICATION.md",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "every-column-export-decided": {
-      "kind": "suite",
-      "title": "ทุกคอลัมน์ของตารางที่มีเจ้าของ ต้องถูกตัดสินว่า export หรือไม่ พร้อมเหตุผล",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "models-match-migrations": {
-      "kind": "suite",
-      "title": "schema มาจาก migration เท่านั้น และต้องตรงกับ model เป๊ะ",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "dialect-discipline": {
-      "kind": "suite",
-      "title": "คอลัมน์เวลาใช้ UTCDateTime · String ระบุความยาว · เขียนครั้งเดียวรันได้สามยี่ห้อ",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "csrf-guards-every-form": {
-      "kind": "suite",
-      "title": "CSRF คุมทั้งแอปและตัดก่อน login เสมอ",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "session-hardening": {
-      "kind": "suite",
-      "title": "idle/absolute timeout ตรวจฝั่ง server · คุกกี้ผูกกับ credential ปัจจุบัน",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "login-rate-limited-two-ways": {
-      "kind": "suite",
-      "title": "โควตา login ต่อ IP และต่อชื่อผู้ใช้ · โดนกันแล้วต้อง 429 แม้รหัสถูก",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "authz-in-service-layer": {
-      "kind": "suite",
-      "title": "ตรวจสิทธิ์ใน service ไม่ใช่ที่ route · ของคนอื่นตอบ 404 บทบาทไม่ถึงตอบ 403",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "password-policy-nist": {
-      "kind": "suite",
-      "title": "นโยบายรหัสผ่านตาม NIST อยู่ที่เดียว ทั้ง CLI และเว็บเรียกตัวเดียวกัน",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "logs-carry-no-pii": {
-      "kind": "suite",
-      "title": "log เป็น JSON มี request id และ actor เป็น username ไม่ใช่ชื่อจริง",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "csp-no-inline": {
-      "kind": "scan",
-      "script": "checks/scan_templates_inline.py",
-      "title": "CSP เป็น self ล้วน — ไม่มี inline script/style/handler ที่ไหนเลย"
-    },
-    "config-fails-loud": {
-      "kind": "suite",
-      "title": "ไม่มี SECRET_KEY หรือ scheme ที่ไม่รู้จัก = ไม่ start — ห้ามตกกลับเงียบ ๆ",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "no-debug-entrypoint": {
-      "kind": "scan",
-      "script": "checks/scan_entrypoint_debug.py",
-      "title": "ไฟล์ entrypoint ไม่มีทางเปิด debug console ได้แม้รันผิดตัว"
     },
     "api-contract-snapshot": {
       "kind": "suite",
@@ -130,109 +60,19 @@
       "title": "fuzz สร้างคำขอจาก spec เอง — endpoint ใหม่ถูกครอบอัตโนมัติ",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     },
-    "fk-enforced-measured": {
-      "kind": "suite",
-      "title": "FK ถูกบังคับจริง — วัดที่ผล (IntegrityError) ไม่ใช่อ่านค่า pragma",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "a11y-structural": {
-      "kind": "suite",
-      "title": "โครงสร้าง WCAG ตรวจทุกครั้งที่รันเทสต์ (label ครบ, ปุ่มสำรอง, target size)",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "i18n-catalog-integrity": {
-      "kind": "suite",
-      "title": "catalog ไม่มีช่องว่าง/fuzzy และครอบ msgid ที่มีในโค้ดครบ",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
     "asvs-evidence-real": {
       "kind": "suite",
       "title": "หลักฐานทุกชิ้นใน ASVS.md ชี้ไปหาของที่มีจริง · มาตรฐานตรึงด้วย checksum",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     },
-    "adr-index-complete": {
-      "kind": "scan",
-      "script": "checks/scan_adr_index.py",
-      "title": "ดัชนี ADR ครอบทุกใบ เลขไม่ซ้ำไม่มีรู"
-    },
-    "cadence-not-overdue": {
+    "authz-in-service-layer": {
       "kind": "suite",
-      "title": "ตารางตรวจตามรอบถูกอ่านจริง เลยกำหนดเกิน 7 วัน = แดง · และทะเบียนของที่จงใจเลื่อนตามทัน ADR",
+      "title": "ตรวจสิทธิ์ใน service ไม่ใช่ที่ route · ของคนอื่นตอบ 404 บทบาทไม่ถึงตอบ 403",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     },
-    "licensing-no-copyleft": {
+    "backup-restore-drilled-every-push": {
       "kind": "suite",
-      "title": "core ต้องไม่มี dependency ที่แบกภาระ copyleft — และด่านห้ามผ่านเพราะอ่านไม่ได้",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "security-policy-consistent": {
-      "kind": "suite",
-      "title": "ตัวเลขกรอบเวลาใน SECURITY.md ตรงกันทุกสำเนา และไม่มีอีเมลในไฟล์",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "contributor-docs-truthful": {
-      "kind": "suite",
-      "title": "ตัวเลขที่โฆษณาใน docs อ่านจากแหล่งจริง (จำนวน job, ADR, coverage floor)",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "changelog-tracks-version": {
-      "kind": "suite",
-      "title": "CHANGELOG ผูกกับ __version__ ของแอป",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "actions-sha-pinned": {
-      "kind": "scan",
-      "script": "checks/scan_workflow_pinning.py",
-      "title": "ทุก action ถูก pin ด้วย commit SHA + คอมเมนต์เลขรุ่น"
-    },
-    "image-digest-pinned": {
-      "kind": "scan",
-      "script": "checks/scan_dockerfile_digest.py",
-      "title": "base image ถูก pin ด้วย digest ของ manifest index และ Dependabot ขยับให้"
-    },
-    "ci-tools-hash-pinned": {
-      "kind": "scan",
-      "script": "checks/scan_install_pinning.py",
-      "title": "เครื่องมือที่ CI ติดตั้งเองถูกตรึงด้วย hash ทั้ง python และ node"
-    },
-    "pins-exceptions-honest": {
-      "kind": "suite",
-      "title": "รายการยกเว้น advisory ตรวจสองทิศ และทุก ID มีเหตุผลในเอกสาร",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "perf-regression-tripwire": {
-      "kind": "suite",
-      "title": "journey จริงบน image จริงทุก push — เกณฑ์หลวมจับ regression ก้าวกระโดด",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "dockerfile-linted": {
-      "kind": "suite",
-      "title": "Dockerfile ผ่าน hadolint ทุกระดับรวม info — ข้อยกเว้นมีเหตุผลที่ config เดียว",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "image-os-cve-audit": {
-      "kind": "suite",
-      "title": "OS layer ของ image ถูกสแกน CVE และตัดสินเทียบรายการยกเว้นสองทิศ",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "image-exceptions-honest": {
-      "kind": "suite",
-      "title": "รายการยกเว้น CVE ของ image ตรวจสองทิศ และทุก ID มีเหตุผลในเอกสาร",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "semgrep-scope-proven": {
-      "kind": "suite",
-      "title": "semgrep ต้องพิสูจน์ว่าสแกนอะไร — เทียบเซตไฟล์จริงกับ git ls-files",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "dependabot-fits-the-gates": {
-      "kind": "suite",
-      "title": "prefix ของ Dependabot เป็นชนิดที่ commit-lint รับ และ pip ถูกจำกัดด้วย path",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "suite-on-three-brands": {
-      "kind": "suite",
-      "title": "ชุดเทสต์ทั้งชุดผ่านบน MySQL 8 และ MariaDB 11 จริง ไม่ใช่แค่ SQLite",
+      "title": "การซ้อม backup → เสียหาย → restore รันจริงทุก push และตัวซ้อมจับความเสียหายได้จริง",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     },
     "bare-clone-still-green": {
@@ -240,19 +80,49 @@
       "title": "สภาพหลัง clone (ไม่มีไลบรารี plugin) ต้องเขียว — \"ถอดแล้วไม่พัง\" วัดได้",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     },
-    "static-quality-battery": {
+    "cadence-not-overdue": {
       "kind": "suite",
-      "title": "ruff + format + xenon + interrogate + mypy + asvs-worksheet — ratchet ขึ้นทางเดียว",
+      "title": "ตารางตรวจตามรอบถูกอ่านจริง เลยกำหนดเกิน 7 วัน = แดง · และทะเบียนของที่จงใจเลื่อนตามทัน ADR",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     },
-    "schema-drift-zero": {
+    "changed-lines-fully-tested": {
       "kind": "suite",
-      "title": "เดิน migration บนฐานเปล่าแล้วเทียบกับ model — drift ต้องเป็นศูนย์",
+      "title": "บรรทัดที่ PR แก้ต้องถูกเทสต์ครอบ 100% — coverage floor ทั้งไฟล์ตอบคำถามนี้ไม่ได้",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     },
-    "openapi-regen-clean": {
+    "changelog-tracks-version": {
       "kind": "suite",
-      "title": "generate spec ใหม่แล้ว git diff ต้องว่าง",
+      "title": "CHANGELOG ผูกกับ __version__ ของแอป",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "checkers-proven-two-way": {
+      "kind": "suite",
+      "title": "สคริปต์ที่ตัดสินผ่าน/ไม่ผ่าน ต้องมีเทสต์ planted violation + clean input · และรายงานต้องไม่ขัดกันเอง",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "ci-tools-cve-audit": {
+      "kind": "suite",
+      "title": "audit ของ pins/ ทั้ง python (pip-audit) และ node (npm audit) สองทิศ",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "ci-tools-hash-pinned": {
+      "kind": "scan",
+      "script": "checks/scan_install_pinning.py",
+      "title": "เครื่องมือที่ CI ติดตั้งเองถูกตรึงด้วย hash ทั้ง python และ node"
+    },
+    "codeql-sast": {
+      "kind": "suite",
+      "title": "CodeQL security-extended ทั้ง python และ javascript — เป็น job ไม่ใช่ default setup",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "config-fails-loud": {
+      "kind": "suite",
+      "title": "ไม่มี SECRET_KEY หรือ scheme ที่ไม่รู้จัก = ไม่ start — ห้ามตกกลับเงียบ ๆ",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "contributor-docs-truthful": {
+      "kind": "suite",
+      "title": "ตัวเลขที่โฆษณาใน docs อ่านจากแหล่งจริง (จำนวน job, ADR, coverage floor)",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     },
     "conventional-commits": {
@@ -265,24 +135,109 @@
       "title": "pip-audit ของ core — CVE ที่ถอดไม่ได้ต้องหยุด pipeline ได้",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     },
+    "core-never-names-plugins": {
+      "kind": "suite",
+      "title": "core รู้แค่วิธีค้นหา plugin — ห้ามมีชื่อ plugin ในโค้ด core",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "csp-no-inline": {
+      "kind": "scan",
+      "script": "checks/scan_templates_inline.py",
+      "title": "CSP เป็น self ล้วน — ไม่มี inline script/style/handler ที่ไหนเลย"
+    },
+    "csrf-guards-every-form": {
+      "kind": "suite",
+      "title": "CSRF คุมทั้งแอปและตัดก่อน login เสมอ",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "data-health-is-checkable": {
+      "kind": "suite",
+      "title": "มีคำสั่งเดียวที่ตอบว่าข้อมูลในฐาน *ตอนนี้* ผิดกติกาข้อไหนบ้าง — อ่านอย่างเดียว",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "declared-prohibitions-enforced": {
+      "kind": "suite",
+      "title": "ข้อห้ามที่เครื่องตรวจได้ ต้องมีเครื่องตรวจ — และด่านต้องอ้างกฎที่ยังมีอยู่จริง",
+      "note": "ต้องมีเทสต์ของโปรเจกต์เอง: ตารางของ (ข้อความจริงในไฟล์คำสั่ง → ฟังก์ชันตรวจ) ที่บังคับสองทิศ"
+    },
+    "delete-means-soft-delete": {
+      "kind": "scan",
+      "script": "checks/scan_write_discipline.py",
+      "title": "ลบ = ซ่อน (soft delete) — ลบจริงได้ที่ purge เท่านั้น"
+    },
+    "dependabot-fits-the-gates": {
+      "kind": "suite",
+      "title": "prefix ของ Dependabot เป็นชนิดที่ commit-lint รับ และ pip ถูกจำกัดด้วย path",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
     "deploy-deps-cve-audit": {
       "kind": "suite",
       "title": "audit หมวด deploy — server ที่รับคำขอจริงไม่มีใครเฝ้าให้ที่อื่น",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     },
-    "ci-tools-cve-audit": {
+    "design-doc-matches-the-ui": {
       "kind": "suite",
-      "title": "audit ของ pins/ ทั้ง python (pip-audit) และ node (npm audit) สองทิศ",
+      "title": "docs/DESIGN.md ตรงกับ UI จริง — ทุกหน้าเต็มถูกตัดสินโหมด และตัวแปรสีตรงกับ base.css สองทิศ",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     },
-    "semgrep-sast": {
+    "dialect-discipline": {
       "kind": "suite",
-      "title": "SAST ด้วย ruleset ของ framework และภาษา — ตัดสินด้วยรายงาน ไม่ใช่ exit code",
+      "title": "คอลัมน์เวลาใช้ UTCDateTime · String ระบุความยาว · เขียนครั้งเดียวรันได้สามยี่ห้อ",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     },
-    "a11y-real-browser": {
+    "dockerfile-linted": {
       "kind": "suite",
-      "title": "pa11y + Chromium จริง สแกนรวมโหมดมืด ธีม ocean และภาษาไทย",
+      "title": "Dockerfile ผ่าน hadolint ทุกระดับรวม info — ข้อยกเว้นมีเหตุผลที่ config เดียว",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "every-column-classified": {
+      "kind": "suite",
+      "title": "ทุกคอลัมน์ต้องถูกจัดชั้นข้อมูลใน DATA-CLASSIFICATION.md",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "every-column-export-decided": {
+      "kind": "suite",
+      "title": "ทุกคอลัมน์ของตารางที่มีเจ้าของ ต้องถูกตัดสินว่า export หรือไม่ พร้อมเหตุผล",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "every-write-audited": {
+      "kind": "suite",
+      "title": "ทุกการเขียนลง audit trail แบบเติมได้อย่างเดียว + hash chain",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "exception-registers-are-reasoned": {
+      "kind": "suite",
+      "title": "แฟ้มที่ปิดเสียงด่านต้องมีเหตุผลทุกบรรทัด ถูกใช้จริง และผ่อนเกณฑ์ทั้งชั้นไม่ได้",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "fail-fix-harness-honest": {
+      "kind": "suite",
+      "title": "harness รายงานสามสถานะตรงความจริง นับรอบต่อเนื่อง และไม่ผ่านเงียบ ๆ",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "fk-enforced-measured": {
+      "kind": "suite",
+      "title": "FK ถูกบังคับจริง — วัดที่ผล (IntegrityError) ไม่ใช่อ่านค่า pragma",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "gates-carry-red-evidence": {
+      "kind": "suite",
+      "title": "gate ใหม่ต้องมาพร้อมหลักฐานว่าเคยแดงตอนของเสียจริง — รายการที่ยังไม่มีหดได้ทางเดียว",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "gates-registry-total": {
+      "kind": "suite",
+      "title": "ดัชนี gate ตรงกับความจริงสองทิศ และไฟล์เทสต์ทุกไฟล์ถูกตัดสิน",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "good-first-issue-not-taken-silently": {
+      "kind": "suite",
+      "title": "PR ที่ปิด issue ซึ่งยังติดป้าย good first issue ต้องประกาศเหตุผล",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "i18n-catalog-integrity": {
+      "kind": "suite",
+      "title": "catalog ไม่มีช่องว่าง/fuzzy และครอบ msgid ที่มีในโค้ดครบ",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     },
     "image-built-and-probed": {
@@ -290,24 +245,109 @@
       "title": "build image จริงแล้วยิงใส่มัน — ไม่รัน root, โค้ดเขียนทับไม่ได้, ตอบ 200",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     },
-    "tls-modern-protocols-only": {
+    "image-digest-pinned": {
+      "kind": "scan",
+      "script": "checks/scan_dockerfile_digest.py",
+      "title": "base image ถูก pin ด้วย digest ของ manifest index และ Dependabot ขยับให้"
+    },
+    "image-exceptions-honest": {
       "kind": "suite",
-      "title": "รับเฉพาะ TLS 1.2/1.3 — พิสูจน์ว่า server ปฏิเสธ ไม่ใช่ client ปฏิเสธเอง",
+      "title": "รายการยกเว้น CVE ของ image ตรวจสองทิศ และทุก ID มีเหตุผลในเอกสาร",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     },
-    "tls-forward-secrecy": {
+    "image-os-cve-audit": {
       "kind": "suite",
-      "title": "TLS ให้ PFS ทุกทางที่เข้าถึงได้ — บังคับชุดอ่อนแล้วต้องถูกปฏิเสธ",
+      "title": "OS layer ของ image ถูกสแกน CVE และตัดสินเทียบรายการยกเว้นสองทิศ",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     },
-    "alerts-fire-for-real": {
+    "instruction-file-under-a-declared-ceiling": {
       "kind": "suite",
-      "title": "กฎแจ้งเตือนใน Loki ruler ต้องดังจริงเมื่อยิงเหตุการณ์ใส่ ไม่ใช่แค่ stack ขึ้น",
+      "title": "ไฟล์ที่คนอ่านบ่อยมีเพดานที่ประกาศไว้ และเพดานลอยเหนือของจริงไม่ได้",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     },
-    "zap-authenticated-scan": {
+    "jobs-declare-a-time-budget": {
       "kind": "suite",
-      "title": "ZAP baseline ยิง stack จริงแบบ login แล้ว — วัดว่าสแกนจริงจาก log ของแอป",
+      "title": "ทุก job และทุกคำสั่งที่เครื่องมือของเรายิงออกไป ประกาศเพดานเวลา — \"ค้าง\" กับ \"ช้า\" ต้องแยกออกจากกันได้",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "legal-pdpa-worksheet-honest": {
+      "kind": "suite",
+      "title": "worksheet PDPA อ้างหลักฐานที่มีจริงทุกชิ้น และช่องว่างทุกข้ออยู่ใน backlog",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "licensing-no-copyleft": {
+      "kind": "suite",
+      "title": "core ต้องไม่มี dependency ที่แบกภาระ copyleft — และด่านห้ามผ่านเพราะอ่านไม่ได้",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "logic-knows-no-http": {
+      "kind": "scan",
+      "script": "checks/scan_service_layer.py",
+      "title": "ตรรกะทั้งหมดอยู่ใน service layer และไม่รู้จัก HTTP"
+    },
+    "login-rate-limited-two-ways": {
+      "kind": "suite",
+      "title": "โควตา login ต่อ IP และต่อชื่อผู้ใช้ · โดนกันแล้วต้อง 429 แม้รหัสถูก",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "logs-carry-no-pii": {
+      "kind": "suite",
+      "title": "log เป็น JSON มี request id และ actor เป็น username ไม่ใช่ชื่อจริง",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "migration-class-declared": {
+      "kind": "suite",
+      "title": "ทุก plugin ประกาศ migration class (live/warm/cold) ตรงตามกฎของ port",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "models-match-migrations": {
+      "kind": "suite",
+      "title": "schema มาจาก migration เท่านั้น และต้องตรงกับ model เป๊ะ",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "n-minus-one-served": {
+      "kind": "suite",
+      "title": "โค้ดของ tag ล่าสุดต้องให้บริการบน schema ของ HEAD ได้จริง (expand–contract)",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "no-debug-entrypoint": {
+      "kind": "scan",
+      "script": "checks/scan_entrypoint_debug.py",
+      "title": "ไฟล์ entrypoint ไม่มีทางเปิด debug console ได้แม้รันผิดตัว"
+    },
+    "openapi-regen-clean": {
+      "kind": "suite",
+      "title": "generate spec ใหม่แล้ว git diff ต้องว่าง",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "overlay-covers-every-portable-gate": {
+      "kind": "suite",
+      "title": "overlay ต้องครอบกฎสากลครบทุกข้อ และ checker พิสูจน์สองทิศ",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "password-policy-nist": {
+      "kind": "suite",
+      "title": "นโยบายรหัสผ่านตาม NIST อยู่ที่เดียว ทั้ง CLI และเว็บเรียกตัวเดียวกัน",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "perf-regression-tripwire": {
+      "kind": "suite",
+      "title": "journey จริงบน image จริงทุก push — เกณฑ์หลวมจับ regression ก้าวกระโดด",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "pins-exceptions-honest": {
+      "kind": "suite",
+      "title": "รายการยกเว้น advisory ตรวจสองทิศ และทุก ID มีเหตุผลในเอกสาร",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "platform-posture-verified": {
+      "kind": "suite",
+      "title": "ท่าทีฝั่งแพลตฟอร์ม (branch protection · required check · auto-merge · alert ที่ค้างบนหน้า Security) ถูกเครื่องตรวจ ไม่ใช่แค่เขียนไว้",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "plugin-deps-cve-decided": {
+      "kind": "suite",
+      "title": "CVE ในไลบรารีของ plugin ต้องถูกตัดสินแล้วทุกตัว (อัปเกรด · ถอด · หรือรับไว้พร้อมเหตุผล)",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     },
     "purge-timer-real-systemd": {
@@ -320,39 +360,14 @@
       "title": "gitleaks ตรวจ commit ที่อยู่ใน push นั้น (ทั้งประวัติมีสคริปต์แยกตามรอบ)",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     },
-    "sbom-per-category": {
+    "ratchets-do-not-drift-below-reality": {
       "kind": "suite",
-      "title": "SBOM แยกต่อ category — ตอบได้ว่าถอด plugin แล้ว component ไหนหาย",
+      "title": "พื้นของ ratchet ต้องไม่ลอยต่ำกว่าของจริงเกินระยะที่ประกาศ",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     },
-    "codeql-sast": {
+    "release-signed-and-attested": {
       "kind": "suite",
-      "title": "CodeQL security-extended ทั้ง python และ javascript — เป็น job ไม่ใช่ default setup",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "overlay-covers-every-portable-gate": {
-      "kind": "suite",
-      "title": "overlay ต้องครอบกฎสากลครบทุกข้อ และ checker พิสูจน์สองทิศ",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "migration-class-declared": {
-      "kind": "suite",
-      "title": "ทุก plugin ประกาศ migration class (live/warm/cold) ตรงตามกฎของ port",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "fail-fix-harness-honest": {
-      "kind": "suite",
-      "title": "harness รายงานสามสถานะตรงความจริง นับรอบต่อเนื่อง และไม่ผ่านเงียบ ๆ",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "n-minus-one-served": {
-      "kind": "suite",
-      "title": "โค้ดของ tag ล่าสุดต้องให้บริการบน schema ของ HEAD ได้จริง (expand–contract)",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "backup-restore-drilled-every-push": {
-      "kind": "suite",
-      "title": "การซ้อม backup → เสียหาย → restore รันจริงทุก push และตัวซ้อมจับความเสียหายได้จริง",
+      "title": "SBOM ของ release ถูก generate ใน CI เซ็น keyless + provenance และ verify สองทิศก่อนแนบ",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     },
     "risk-method-and-register-current": {
@@ -365,49 +380,14 @@
       "title": "ROPA + บัญชี log + runbook ตรงกับระบบจริง",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     },
-    "admin-masking-by-classification": {
-      "kind": "suite",
-      "title": "หน้า admin เห็นข้อมูลผู้ใช้แบบ mask ตามชั้นข้อมูล และ unmask ต้องลง audit",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "secrets-encrypted-at-rest": {
-      "kind": "suite",
-      "title": "ความลับที่ต้องอ่านคืนได้ ถูก encrypt บนดิสก์ และคีย์หาย/ผิดต้องดังพร้อมเหตุผล",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "release-signed-and-attested": {
-      "kind": "suite",
-      "title": "SBOM ของ release ถูก generate ใน CI เซ็น keyless + provenance และ verify สองทิศก่อนแนบ",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "design-doc-matches-the-ui": {
-      "kind": "suite",
-      "title": "docs/DESIGN.md ตรงกับ UI จริง — ทุกหน้าเต็มถูกตัดสินโหมด และตัวแปรสีตรงกับ base.css สองทิศ",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "admin-panels-read-real-state": {
-      "kind": "suite",
-      "title": "panel ระบบของ admin อ่านจาก runtime/ดิสก์จริง ตอบตามจริง และ admin เท่านั้น",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "legal-pdpa-worksheet-honest": {
-      "kind": "suite",
-      "title": "worksheet PDPA อ้างหลักฐานที่มีจริงทุกชิ้น และช่องว่างทุกข้ออยู่ใน backlog",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "checkers-proven-two-way": {
-      "kind": "suite",
-      "title": "สคริปต์ที่ตัดสินผ่าน/ไม่ผ่าน ต้องมีเทสต์ planted violation + clean input · และรายงานต้องไม่ขัดกันเอง",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
     "route-authz-enumerated": {
       "kind": "suite",
       "title": "ทุก route ถูก enumerate เทียบรายการยกเว้นสองทิศ — ลืม decorator แล้วแดง",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     },
-    "platform-posture-verified": {
+    "sbom-per-category": {
       "kind": "suite",
-      "title": "ท่าทีฝั่งแพลตฟอร์ม (branch protection · required check · auto-merge · alert ที่ค้างบนหน้า Security) ถูกเครื่องตรวจ ไม่ใช่แค่เขียนไว้",
+      "title": "SBOM แยกต่อ category — ตอบได้ว่าถอด plugin แล้ว component ไหนหาย",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     },
     "schedules-still-fire": {
@@ -415,9 +395,69 @@
       "title": "ตารางเวลาที่ประกาศไว้ต้องพิสูจน์ได้ว่ายังยิงอยู่ — \"ไม่มี run เลย\" ต้องไม่เงียบเท่า \"ไม่มี run ไหนแดง\"",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     },
-    "jobs-declare-a-time-budget": {
+    "schema-drift-zero": {
       "kind": "suite",
-      "title": "ทุก job และทุกคำสั่งที่เครื่องมือของเรายิงออกไป ประกาศเพดานเวลา — \"ค้าง\" กับ \"ช้า\" ต้องแยกออกจากกันได้",
+      "title": "เดิน migration บนฐานเปล่าแล้วเทียบกับ model — drift ต้องเป็นศูนย์",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "scripts-declare-their-role": {
+      "kind": "suite",
+      "title": "สคริปต์ทุกตัวประกาศชนิดของตัวเอง · มีคนแตะ · และของที่ generate มายังใช้ได้จริง",
+      "note": "ต้องมีเทสต์ของโปรเจกต์เอง: ชนิดเป็นตัวกำหนดว่าหลักฐานที่ถูกต้องหน้าตาอย่างไร (decider = planted violation · generator = ผลลัพธ์ตรงกับที่ commit · reader = ตัวเลขตรงกับแหล่ง)"
+    },
+    "secrets-encrypted-at-rest": {
+      "kind": "suite",
+      "title": "ความลับที่ต้องอ่านคืนได้ ถูก encrypt บนดิสก์ และคีย์หาย/ผิดต้องดังพร้อมเหตุผล",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "security-policy-consistent": {
+      "kind": "suite",
+      "title": "ตัวเลขกรอบเวลาใน SECURITY.md ตรงกันทุกสำเนา และไม่มีอีเมลในไฟล์",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "semgrep-sast": {
+      "kind": "suite",
+      "title": "SAST ด้วย ruleset ของ framework และภาษา — ตัดสินด้วยรายงาน ไม่ใช่ exit code",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "semgrep-scope-proven": {
+      "kind": "suite",
+      "title": "semgrep ต้องพิสูจน์ว่าสแกนอะไร — เทียบเซตไฟล์จริงกับ git ls-files",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "session-hardening": {
+      "kind": "suite",
+      "title": "idle/absolute timeout ตรวจฝั่ง server · คุกกี้ผูกกับ credential ปัจจุบัน",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "skill-mirrors-portable-gates": {
+      "kind": "suite",
+      "title": "SKILL.md ที่ export เป็นเงาของ portable gate — generate ห้ามเขียนคู่ขนาน",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "stack-images-pinned-and-moved": {
+      "kind": "suite",
+      "title": "image ของ stack ที่ CI ดึงมารัน ตรึงด้วย digest และมี Dependabot ขยับให้",
+      "note": "ต้องมีเทสต์ของโปรเจกต์เอง: อ่านทุกที่ที่สั่งดึง image (compose · service container · สคริปต์) แล้วบังคับ digest + ตัวขยับคู่กัน"
+    },
+    "static-quality-battery": {
+      "kind": "suite",
+      "title": "ruff + format + xenon + interrogate + mypy + asvs-worksheet — ratchet ขึ้นทางเดียว",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "suite-on-three-brands": {
+      "kind": "suite",
+      "title": "ชุดเทสต์ทั้งชุดผ่านบน MySQL 8 และ MariaDB 11 จริง ไม่ใช่แค่ SQLite",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "tls-forward-secrecy": {
+      "kind": "suite",
+      "title": "TLS ให้ PFS ทุกทางที่เข้าถึงได้ — บังคับชุดอ่อนแล้วต้องถูกปฏิเสธ",
+      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+    },
+    "tls-modern-protocols-only": {
+      "kind": "suite",
+      "title": "รับเฉพาะ TLS 1.2/1.3 — พิสูจน์ว่า server ปฏิเสธ ไม่ใช่ client ปฏิเสธเอง",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     },
     "watched-promises-are-measured": {
@@ -425,30 +465,15 @@
       "title": "`within_days` ที่ประกาศไว้ต้องถูกวัดกับความจริง ไม่ใช่ตรวจแค่รูปแบบ",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     },
-    "ratchets-do-not-drift-below-reality": {
+    "workflows-are-startable": {
       "kind": "suite",
-      "title": "พื้นของ ratchet ต้องไม่ลอยต่ำกว่าของจริงเกินระยะที่ประกาศ",
+      "title": "ทุก workflow ต้อง start ได้จริง — scope/ทริกเกอร์/job ตรงกับที่ GitHub รับ",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     },
-    "plugin-deps-cve-decided": {
+    "zap-authenticated-scan": {
       "kind": "suite",
-      "title": "CVE ในไลบรารีของ plugin ต้องถูกตัดสินแล้วทุกตัว (อัปเกรด · ถอด · หรือรับไว้พร้อมเหตุผล)",
+      "title": "ZAP baseline ยิง stack จริงแบบ login แล้ว — วัดว่าสแกนจริงจาก log ของแอป",
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
-    },
-    "declared-prohibitions-enforced": {
-      "kind": "suite",
-      "title": "ข้อห้ามที่เครื่องตรวจได้ ต้องมีเครื่องตรวจ — และด่านต้องอ้างกฎที่ยังมีอยู่จริง",
-      "note": "ต้องมีเทสต์ของโปรเจกต์เอง: ตารางของ (ข้อความจริงในไฟล์คำสั่ง → ฟังก์ชันตรวจ) ที่บังคับสองทิศ"
-    },
-    "stack-images-pinned-and-moved": {
-      "kind": "suite",
-      "title": "image ของ stack ที่ CI ดึงมารัน ตรึงด้วย digest และมี Dependabot ขยับให้",
-      "note": "ต้องมีเทสต์ของโปรเจกต์เอง: อ่านทุกที่ที่สั่งดึง image (compose · service container · สคริปต์) แล้วบังคับ digest + ตัวขยับคู่กัน"
-    },
-    "scripts-declare-their-role": {
-      "kind": "suite",
-      "title": "สคริปต์ทุกตัวประกาศชนิดของตัวเอง · มีคนแตะ · และของที่ generate มายังใช้ได้จริง",
-      "note": "ต้องมีเทสต์ของโปรเจกต์เอง: ชนิดเป็นตัวกำหนดว่าหลักฐานที่ถูกต้องหน้าตาอย่างไร (decider = planted violation · generator = ผลลัพธ์ตรงกับที่ commit · reader = ตัวเลขตรงกับแหล่ง)"
     }
   }
 }
