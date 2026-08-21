@@ -599,8 +599,8 @@ gates:
     enforced_by: {job: test, tests: [tests/test_data_doctor.py]}
     standard: []
     requires: []
-    portable: false
-    layer: internal
+    portable: true
+    layer: baseline
     pillar: manageability
     born_from: >-
       audit รอบ 19 — สิบแปดรอบก่อนหน้าตรวจโค้ด · config · เอกสาร · CI · ทะเบียน
@@ -1430,8 +1430,8 @@ gates:
     enforced_by: {job: lint}
     standard: []
     requires: []
-    portable: false
-    layer: internal
+    portable: true
+    layer: baseline
     pillar: devx
     born_from: >-
       2026-08-20 — issue ถูกติดป้าย good first issue เวลา 12:14Z · ผู้ดูแลเปิด PR
@@ -1968,9 +1968,17 @@ gates:
     enforced_by: {job: test, tests: [tests/test_instruction_budget.py]}
     standard: []
     requires: []
-    portable: false
-    layer: internal
+    portable: true
+    layer: baseline
     pillar: devx
+    born_from: >-
+      ไฟล์ที่ agent อ่านทั้งไฟล์ทุก session ต่างจากเอกสารอื่นทุกฉบับ — ต้นทุนของมัน
+      จ่ายซ้ำตลอดไป ไม่ใช่จ่ายตอนมีคนเปิดอ่าน · วัดตอนตั้งกติกา (audit r8):
+      22 บรรทัดในวันแรกของโปรเจกต์ โตเป็น **1,240 บรรทัด / 8,488 คำ ใน 16 วัน**
+      และ 66 commit ใน 7 วันล่าสุดแตะมัน — โตทุกครั้งที่มีงาน governance โดยไม่มี
+      ใครเคยตัดสินว่าโตได้แค่ไหน · ทางที่ถูกคือ ratchet สองทิศ ไม่ใช่ห้ามโต:
+      เต็มแล้วย้ายเนื้อออกแล้วลิงก์กลับ และ **วันที่ย้ายออก เพดานต้องถูกลดตาม**
+      ไม่งั้นที่ว่างที่เพิ่งได้จะถูกถมกลับเงียบ ๆ ในรอบถัดไป
     proved_by:
       - kind: mutation
         ref: pr/99
@@ -1996,9 +2004,16 @@ gates:
     enforced_by: {job: test, tests: [tests/test_exception_registers.py]}
     standard: []
     requires: []
-    portable: false
-    layer: internal
+    portable: true
+    layer: baseline
     pillar: security
+    born_from: >-
+      audit r9 — `pins/accepted-advisories.txt` มีเทสต์สองทิศคุมมาตั้งแต่ต้น แต่แฟ้ม
+      อีกสองใบที่ทำหน้าที่เดียวกัน (ปิดเสียงสิ่งที่เครื่องมือความปลอดภัยรายงาน)
+      **ไม่มีเทสต์ไฟล์ไหนอ่านเลย** ทั้งที่เอกสารประกาศกฎไว้ทั้งคู่ว่าทุกบรรทัดต้อง
+      มีเหตุผล · ความเสี่ยงไม่ใช่บรรทัดที่มีอยู่วันนี้ซึ่งครบเหตุผลทุกบรรทัด
+      แต่คือบรรทัดถัดไปที่ใครสักคนเติมตอนรีบแล้วไม่มีอะไรฟ้อง — และการผ่อนเกณฑ์
+      ทั้งชั้นด้วยการแก้คำเดียว (FAIL → WARN) ซึ่งไม่มีใครเห็นในรายงานฉบับไหน
     proved_by:
       - kind: mutation
         ref: pr/100
@@ -2078,9 +2093,17 @@ gates:
     enforced_by: {job: test, tests: [tests/test_workflow_validity.py]}
     standard: []
     requires: []
-    portable: false
-    layer: internal
+    portable: true
+    layer: baseline
     pillar: security
+    born_from: >-
+      audit r9 — ตัวตรวจการตรึงเวอร์ชันมีครบ แต่ไม่มีตัวไหนตรวจว่าแพลตฟอร์มจะยอม
+      start ไฟล์นั้นไหม · ตัวแยกวิเคราะห์ YAML ยอมรับทุกคีย์ที่สะกดถูกตามไวยากรณ์
+      ส่วน GitHub ปฏิเสธคีย์ที่ไม่อยู่ใน schema แล้ว**ล้มทั้ง run ตั้งแต่ก่อนสร้าง
+      job** · เกิดจริงและอยู่ข้ามวัน: `permissions:` ที่ขอ scope ซึ่งไม่มีอยู่จริง
+      ทำให้ทั้ง workflow ล้มทุก run และ job ที่อยู่ในนั้น **ไม่เคยรันเลยสักครั้ง**
+      · มันเงียบได้เพราะ job นั้นไม่ใช่ required check จึงไม่มีสีแดงบนหน้า PR ใบไหน
+      — **ด่านที่ไม่ได้รัน ให้ผลเหมือนด่านที่ไม่มีอยู่ ต่างกันแค่มีเอกสารบอกว่ามันมี**
     proved_by:
       - kind: mutation
         ref: pr/101
