@@ -18,6 +18,21 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ## [Unreleased]
 
+### Fixed
+
+- **The command that verifies a release was archived had itself stopped
+  working.** `docs/RELEASE.md` carries a one-line check against Zenodo's API
+  — the step that exists because GitHub's webhook page has reported both
+  false-red and would one day report false-green. Zenodo now caps
+  unauthenticated page size at 25, so the documented `size=50` returns HTTP
+  400, and the naive pipe turns that into `KeyError: 'hits'` rather than
+  anything that reads as a refusal. Found while cutting v2.2.0, whose
+  archival it was supposed to confirm. The size is now within the cap and
+  the request fails loudly, because the question being asked here — was this
+  release archived — is one a parser crash cannot answer in either
+  direction.
+
+
 ## [2.2.0] — 2026-08-21
 
 ### Added
