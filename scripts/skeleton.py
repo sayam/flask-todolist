@@ -75,12 +75,21 @@ def _decorators(node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef) -> 
 
 
 def symbols(source: str, *, private: bool = False) -> list[Symbol]:
-    """พื้นผิวของโมดูลหนึ่ง — ระดับบนสุด และ method ชั้นเดียวใต้ class
+    """พื้นผิวของโมดูลหนึ่ง — ระดับบนสุด และ method ชั้นเดียวใต้ class"""
+    return surface(ast.parse(source), private=private)
 
-    ลึกกว่านั้นไม่เอา: ฟังก์ชันซ้อนในฟังก์ชันเป็นรายละเอียดการทำงาน ไม่ใช่สิ่งที่
-    ผู้เรียกจากข้างนอกเรียกได้
+
+def surface(tree: ast.Module, *, private: bool = False) -> list[Symbol]:
+    """เหมือน `symbols()` แต่รับ tree ที่ parse มาแล้ว
+
+    แยกออกมาเพราะ `render()` ต้องการทั้งพื้นผิวและ docstring ของโมดูล ซึ่งอ่านจาก
+    tree เดียวกันได้ · ฉบับแรกเรียก `ast.parse` สองครั้งต่อไฟล์ — มองไม่เห็นตอน
+    อ่านไฟล์เดียว แต่ตอนสแกนทั้งไดเรกทอรีคือการ parse ซ้ำทุกไฟล์ ซึ่งเป็นงานหลัก
+    ของเครื่องมือนี้ทั้งหมด (ultrareview ของ PR #189)
+
+    ลึกกว่าหนึ่งชั้นไม่เอา: ฟังก์ชันซ้อนในฟังก์ชันเป็นรายละเอียดการทำงาน ไม่ใช่
+    สิ่งที่ผู้เรียกจากข้างนอกเรียกได้
     """
-    tree = ast.parse(source)
     found: list[Symbol] = []
 
     def take(node: ast.AST, depth: int) -> None:
@@ -115,13 +124,21 @@ def render(path: pathlib.Path, source: str, *, private: bool = False) -> str:
     ตัวเลขที่ท้ายไม่ใช่ของแถม — มันคือเหตุผลที่เครื่องมือนี้มีอยู่ และเป็นสิ่งเดียว
     ที่บอกได้ว่าไฟล์ไหนคุ้มที่จะถามด้วยวิธีนี้ ไฟล์ไหนอ่านทั้งใบไปเลยเร็วกว่า
     """
-    found = symbols(source, private=private)
-    header = _first_line(ast.parse(source))
+    tree = ast.parse(source)
+    found = surface(tree, private=private)
+    header = _first_line(tree)
     lines = [f"{path} — {header}" if header else str(path)]
-    lines.extend(f"{INDENT * (item.depth + 1)}{item.signature}" for item in found)
+    for item in found:
+        lines.append(f"{INDENT * (item.depth + 1)}{item.signature}")
+        if item.summary:
+            lines.append(f"{INDENT * (item.depth + 2)}— {item.summary}")
     if not found:
         lines.append(f"{INDENT}(ไม่มีสัญลักษณ์บนพื้นผิว)")
-    whole = source.count("\n") + 1
+    # `count("\n") + 1` เกินไปหนึ่งบรรทัดเสมอสำหรับไฟล์ที่ลงท้ายด้วยขึ้นบรรทัดใหม่
+    # ซึ่งคือไฟล์ Python แทบทุกไฟล์ · ไฟล์บรรทัดเดียวเคยรายงาน 150% มาแล้ว —
+    # เลขที่เกิน 100% บนบรรทัดที่ docstring บอกว่าเป็นเหตุผลที่เครื่องมือนี้มีอยู่
+    # (ultrareview ของ PR #189)
+    whole = len(source.splitlines())
     shown = len(lines) + 1  # +1 คือบรรทัดสรุปนี้เอง — ตัวเลขต้องตรงกับที่พิมพ์จริง
     share = shown * 100 // whole if whole else 0
     lines.append(f"{INDENT}— {len(found)} สัญลักษณ์ · {shown} จาก {whole} บรรทัด ({share}%)")
@@ -152,7 +169,10 @@ def main(argv: list[str] | None = None) -> int:
     for path in targets:
         try:
             source = path.read_text(encoding="utf-8")
-        except OSError as problem:
+        # `UnicodeDecodeError` สืบทอดจาก `ValueError` **ไม่ใช่ `OSError`** — ไฟล์ที่
+        # ระบบอ่านได้แต่ไม่ใช่ UTF-8 จึงหลุด except แล้วพ่น traceback ใส่หน้าคนใช้
+        # โดยไม่บอกว่าไฟล์ไหน (ultrareview ของ PR #189)
+        except (OSError, UnicodeDecodeError) as problem:
             print(f"อ่าน {path} ไม่ได้: {problem}", file=sys.stderr)
             return 1
         try:
