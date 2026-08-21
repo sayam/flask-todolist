@@ -152,7 +152,7 @@ gates:
     standard: []
     requires: []
     portable: true
-    layer: baseline
+    layer: business
     pillar: manageability
     born_from: >-
       ADR 0023/0025 — วันที่ core เอ่ยชื่อ plugin คือวันที่ถอดไดเรกทอรีแล้วล้มเหลว
@@ -222,7 +222,7 @@ gates:
     standard: []
     requires: []
     portable: true
-    layer: baseline
+    layer: business
     pillar: manageability
     born_from: >-
       "สลับได้" ที่ไม่เคยประกาศว่าสลับแบบไหน คือคำสัญญาที่คนหน้างานต้องเดา
@@ -336,7 +336,7 @@ gates:
     born_from: >-
       audit governance รอบ 5 (2026-08-17) — กฎข้อแรกของโปรเจกต์คือ "ทุก route
       ต้องมี login_required" พร้อมรายการยกเว้นที่เขียนว่า "มีเท่านี้" แต่ไม่มี
-      ใครตรวจรายการนั้นเลย และมันไม่ครบจริง (`/plugin/themes/<id>/style.css`
+      ใครตรวจรายการนั้นเลย และมันไม่ครบจริง (route ที่เสิร์ฟไฟล์ของส่วนเสริม
       เปิดสาธารณะมาตั้งแต่ Phase 4 โดยไม่ถูกนับ) · เทสต์ authz เดิมครอบ route
       ที่คนเขียนนึกถึง ไม่ใช่ทุก route ที่มีอยู่ — OWASP A01 ที่เกิดจากการลืม
     proved_by:
@@ -920,7 +920,7 @@ gates:
     pillar: security
     axis: supply-chain
     born_from: >-
-      ldap3 เป็น LGPLv3 และอยู่ใน category ของ plugin พอดี — การแยก supply
+      ไลบรารีตัวนั้นเป็น LGPLv3 และอยู่ในกลุ่ม dependency ที่ไม่บังคับพอดี — การแยก supply
       chain แยกภาระทางกฎหมายไปด้วยโดยไม่มีใครออกแบบ · "ไม่พบ" ≠ "อ่านไม่ได้จึงไม่พบ"
       · ADR 0070 (2026-08-19) เปลี่ยนสัญญาอนุญาตเป็น AGPL-3.0 + CC BY-SA 4.0 —
       ด่านนี้จึงตรวจเนื้อของ AGPL (รวมข้อ 13 เรื่องการให้บริการผ่านเครือข่าย
@@ -1184,7 +1184,7 @@ gates:
           หลักฐานว่าชุดเทสต์เดินบนสองยี่ห้อนั้นจริง ไม่ได้ผ่านเพราะไม่ได้รัน
 
   - id: bare-clone-still-green
-    title: สภาพหลัง clone (ไม่มีไลบรารี plugin) ต้องเขียว — "ถอดแล้วระบบยังทำงานได้" วัดได้
+    title: สภาพหลัง clone เปล่า ๆ (ยังไม่ติดตั้งของเสริมที่ไม่บังคับ) ต้องเขียว — "ถอดแล้วระบบยังทำงานได้" วัดได้
     kind: job
     severity: blocking
     enforced_by: {job: bare}
@@ -1342,7 +1342,7 @@ gates:
     axis: supply-chain
     born_from: >-
       supply chain ของ core ถอดไม่ได้ — CVE ที่นี่ไม่มีทางออกอื่นนอกจากแก้
-      จึงแดงได้เต็มปาก ต่างจากของ plugin ที่คำตอบคือถอด
+      จึงแดงได้เต็มปาก ต่างจาก dependency ที่ไม่บังคับ ซึ่งคำตอบคือถอด
 
   - id: deploy-deps-cve-audit
     title: audit หมวด deploy — server ที่รับคำขอจริงไม่มีใครเฝ้าให้ที่อื่น
@@ -1404,7 +1404,7 @@ gates:
     standard: []
     requires: []
     portable: true
-    layer: baseline
+    layer: business
     pillar: security
     axis: supply-chain
     born_from: >-
@@ -1798,7 +1798,7 @@ gates:
     standard: []
     requires: []
     portable: true
-    layer: baseline
+    layer: business
     pillar: security
     axis: supply-chain
     born_from: >-
