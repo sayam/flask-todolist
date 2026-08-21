@@ -113,9 +113,7 @@ SUPPRESSION = (
     re.compile(r"#\s*type:\s*ignore(?:\[[^\]]*\])?(?P<rest>.*)$"),
 )
 
-CADENCE = ROOT / "docs" / "SECURITY-CADENCE.md"
 RISK = ROOT / "docs" / "RISK-ASSESSMENT.md"
-GOVERNANCE = ROOT / "docs" / "GOVERNANCE.md"
 
 APP = ROOT / "app"
 

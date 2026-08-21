@@ -1425,9 +1425,9 @@ gates:
 
   - id: good-first-issue-not-taken-silently
     title: PR ที่ปิด issue ซึ่งยังติดป้าย good first issue ต้องประกาศเหตุผล
-    kind: job
+    kind: step
     severity: blocking
-    enforced_by: {job: lint}
+    enforced_by: {job: lint, step: "issue ที่เปิดให้คนใหม่ ต้องไม่ถูกปิดเงียบ ๆ"}
     standard: []
     requires: []
     portable: true
