@@ -2072,6 +2072,55 @@ def test_the_line_count_matches_what_is_printed(tmp_path):
     assert claimed == len(text.splitlines())
 
 
+def test_the_file_length_matches_what_other_tools_count(tmp_path):
+    """**ตัวส่วนก็ต้องตรง ไม่ใช่แค่ตัวเศษ** — เทสต์ข้างบนตรวจแค่ครึ่งเดียวมาตลอด
+
+    `count("\n") + 1` เกินไปหนึ่งบรรทัดเสมอสำหรับไฟล์ที่ลงท้ายด้วยขึ้นบรรทัดใหม่
+    ซึ่งคือไฟล์ Python แทบทุกไฟล์ — และไฟล์บรรทัดเดียวรายงานได้ถึง 150%
+    (ultrareview ของ PR #189 · mutation ของเราไม่เคยแตะตัวส่วนเลย)
+    """
+    text = skeleton.render(tmp_path / "sample.py", SAMPLE)
+    claimed = int(re.search(r"จาก (\d+) บรรทัด", text).group(1))
+
+    assert claimed == len(SAMPLE.splitlines())
+
+
+def test_a_one_line_file_does_not_report_more_than_it_has(tmp_path):
+    """เลขที่เกิน 100% บนบรรทัดที่เป็นเหตุผลของเครื่องมือ คือการโฆษณาที่ขัดตัวเอง"""
+    text = skeleton.render(tmp_path / "one.py", "VALUE = 1\n")
+    claimed = int(re.search(r"จาก (\d+) บรรทัด", text).group(1))
+
+    assert claimed == 1
+
+
+def test_each_symbol_carries_its_one_line_summary(tmp_path):
+    """docstring บรรทัดแรกต้องถูก *แสดง* ไม่ใช่แค่ถูกคำนวณแล้วทิ้ง
+
+    ฉบับแรกเก็บ `summary` ไว้ในทุก `Symbol` แล้วไม่เคย render เลย — เทสต์ที่มีอยู่
+    ตรวจว่ามัน *ถูกคำนวณ* ถูกต้อง จึงเขียวทั้งที่ผู้ใช้ไม่เคยเห็นมัน
+    (ultrareview ของ PR #189)
+    """
+    text = skeleton.render(tmp_path / "sample.py", SAMPLE)
+
+    assert "ทำอะไรสักอย่าง" in text, "docstring ของฟังก์ชันไม่ได้ถูกแสดง"
+    assert "ของชิ้นหนึ่ง" in text, "docstring ของ class ไม่ได้ถูกแสดง"
+    assert "ส่วนนี้ไม่ควรโผล่บนพื้นผิว" not in text, "เอา docstring มาทั้งก้อน"
+
+
+def test_a_file_that_is_not_utf8_is_reported_not_crashed(tmp_path, capsys):
+    """`UnicodeDecodeError` สืบทอดจาก `ValueError` ไม่ใช่ `OSError`
+
+    ไฟล์ที่ระบบอ่านได้แต่ถอดรหัสไม่ได้จึงหลุด except แล้วพ่น traceback ใส่หน้า
+    คนใช้ โดยไม่บอกว่าไฟล์ไหน — และตอนสแกนทั้งไดเรกทอรีมันฆ่าทั้งชุด
+    (ultrareview ของ PR #189)
+    """
+    path = tmp_path / "latin.py"
+    path.write_bytes(b"# -*- coding: latin-1 -*-\ndef foo(x='\xe9'): pass\n")
+
+    assert skeleton.main([str(path)]) == 1
+    assert "อ่าน" in capsys.readouterr().err
+
+
 def test_a_file_with_no_surface_says_so(tmp_path):
     """ไฟล์ที่มีแต่ค่าคงที่ ต้องบอกว่าไม่มีอะไร ไม่ใช่พิมพ์หัวเปล่า ๆ"""
     text = skeleton.render(tmp_path / "empty.py", "VALUE = 1\n")
@@ -2115,3 +2164,21 @@ def test_a_missing_file_is_reported_not_crashed(tmp_path, capsys):
 def test_an_empty_directory_is_reported(tmp_path, capsys):
     assert skeleton.main([str(tmp_path)]) == 1
     assert "ไม่มีไฟล์" in capsys.readouterr().err
+
+
+def test_rendering_a_file_parses_it_exactly_once(tmp_path, monkeypatch):
+    """งานหลักของเครื่องมือนี้คือการ parse — ทำสองครั้งต่อไฟล์คือจ่ายสองเท่า
+
+    ข้อนี้ไม่มีพฤติกรรมต่างให้จับ (ผลลัพธ์เหมือนกันเป๊ะ) จึงต้องปักด้วยจำนวนครั้ง
+    ที่เรียก · ฉบับแรกเรียกสองครั้ง: หนึ่งครั้งใน `symbols()` และอีกครั้งเพื่ออ่าน
+    docstring ของโมดูล — มองไม่เห็นตอนอ่านไฟล์เดียว แต่ตอนสแกนทั้งไดเรกทอรีคือ
+    การจ่ายซ้ำทุกไฟล์ ซึ่งขัดกับเหตุผลที่เครื่องมือนี้ไม่มี index
+    (ultrareview ของ PR #189)
+    """
+    calls = []
+    real = skeleton.ast.parse
+    monkeypatch.setattr(skeleton.ast, "parse", lambda *a, **k: (calls.append(1), real(*a, **k))[1])
+
+    skeleton.render(tmp_path / "sample.py", SAMPLE)
+
+    assert len(calls) == 1, f"parse {len(calls)} ครั้งต่อไฟล์ — ควรเป็นครั้งเดียว"
