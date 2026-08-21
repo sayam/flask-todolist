@@ -88,10 +88,17 @@ Zenodo มินต์ DOI ให้เฉพาะ release ที่สร้�
 (บทเรียนจากรอบ v2.1.0):
 
 ```
-curl -s "https://zenodo.org/api/records?q=conceptrecid:22015133&all_versions=true&size=50" \
+curl -s --fail-with-body \
+  "https://zenodo.org/api/records?q=conceptrecid:22015133&all_versions=true&size=25" \
   | python3 -c "import json,sys; [print(h['metadata']['version'], h['doi']) \
                 for h in json.load(sys.stdin)['hits']['hits']]"
 ```
+
+**`size` ต้องไม่เกิน 25** — Zenodo ตอบ 400 ถ้าเกิน สำหรับคำขอที่ไม่ได้ยืนยันตัวตน
+(เจอตอนออก v2.2.0 · คำสั่งเดิมเขียน `size=50` ซึ่งเคยใช้ได้) · `--fail-with-body`
+อยู่ตรงนี้เพราะ **อาการของคำสั่งเดิมคือ `KeyError: 'hits'`** ไม่ใช่ข้อความว่า
+ปฏิเสธ — ตัวย่อยที่เจอซองผิดรูปพังก่อนที่ใครจะได้อ่านเหตุผล และคำถามที่ต้องการ
+คำตอบตรงนี้คือ "รุ่นนี้ถูก archive แล้วหรือยัง" ซึ่ง KeyError ตอบไม่ได้ทั้งสองทิศ
 
 รุ่นที่เพิ่งออกต้องอยู่ในรายการนั้น · **คำสั่งนับ webhook ข้างบนตอบคนละคำถาม** —
 มันตอบว่า "สายยังต่ออยู่ไหม" ไม่ได้ตอบว่า "รุ่นนี้ถูก archive แล้วหรือยัง"
