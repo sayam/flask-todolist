@@ -18,6 +18,26 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ## [Unreleased]
 
+### Added
+
+- **A register of the governance audit rounds, because the number was being
+  advertised without one.** The repository's About line and the OpenSSF badge
+  worksheet both said twenty recorded audits. Going to count them turned up
+  twenty-three, each one traceable — but only by grepping for the phrase
+  "audit round N" across gates, ADRs and documents, which is not a thing a
+  reader can be asked to do. `docs/AUDIT-LOG.md` now records, per round, the
+  question it asked, a one-line result, and at least one place inside this
+  repository that names it. A test holds four directions: the rounds run from
+  one without gaps, every row carries a question and a result and evidence,
+  every piece of evidence exists **and actually mentions that round** — a
+  register of filenames nobody checks the contents of would pass with any
+  name at all — and no round may be cited anywhere in the documents without
+  having a row. The advertised count is checked against the number of rows,
+  which is how the stale twenty was found in the first place. Dates are
+  deliberately absent: they could not be established for every row from
+  inside the repository, and a column that is right for some rows and wrong
+  for others is worse than no column.
+
 ### Fixed
 
 - **The DOI badge was never about the URL — Zenodo rate-limits GitHub's image
