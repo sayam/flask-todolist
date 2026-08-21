@@ -4,10 +4,12 @@
     "gates_doctor.py",
     "preflight.py",
     "scaffold.json.default",
+    "gates.yaml.default",
     "ci-template.yml",
     "checks/scan_adr_index.py",
     "checks/scan_dockerfile_digest.py",
     "checks/scan_entrypoint_debug.py",
+    "checks/scan_gates_registry.py",
     "checks/scan_install_pinning.py",
     "checks/scan_service_layer.py",
     "checks/scan_templates_inline.py",
@@ -226,9 +228,9 @@
       "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
     },
     "gates-registry-total": {
-      "kind": "suite",
-      "title": "ดัชนี gate ตรงกับความจริงสองทิศ และไฟล์เทสต์ทุกไฟล์ถูกตัดสิน",
-      "note": "ต้องมีเทสต์/job ของโปรเจกต์เอง แล้วลงทะเบียนใน gates.yaml ของโปรเจกต์"
+      "kind": "scan",
+      "script": "checks/scan_gates_registry.py",
+      "title": "ดัชนี gate ตรงกับความจริงสองทิศ และไฟล์เทสต์ทุกไฟล์ถูกตัดสิน"
     },
     "good-first-issue-not-taken-silently": {
       "kind": "suite",
