@@ -8,6 +8,9 @@
   workflow จริงของโปรเจกต์ (ADR 0060/0063 ของ repo แม่) · job ที่จะเดินประกาศใน
   `scaffold.json` คีย์ `preflight_jobs`
 - `scaffold.json` — config (ไม่ทับของที่มีอยู่)
+- `gates.yaml` — **ดัชนี gate ตั้งต้น** (ไม่ทับของที่มีอยู่) ลงทะเบียนด่านที่
+  scaffolding ให้มาแล้ว และเป็นที่ที่กฎชนิด `suite` มาลงเมื่อโปรเจกต์เขียนเทสต์
+  ของตัวเอง — `checks/scan_gates_registry.py` บังคับว่าดัชนีตรงกับความจริงสองทิศ
 - `.github/workflows/gates.yml` — workflow ตั้งต้น (ไม่ทับของที่มีอยู่)
 
 **อ่านรายชื่อไฟล์จาก manifest เท่านั้น** — ไฟล์ที่หายไปจาก overlay ทำให้
@@ -38,8 +41,8 @@ def main(dest_arg: str) -> int:
         if not source.is_file():
             print(f"** overlay ไม่ครบ: ไม่มี {name} — ติดตั้งไม่ได้", file=sys.stderr)
             return 1
-        if name == "scaffold.json.default":
-            target = dest / "scaffold.json"
+        if name in ("scaffold.json.default", "gates.yaml.default"):
+            target = dest / name.removesuffix(".default")
             if target.exists():
                 print(f"คงไว้: {target.name} (มีอยู่แล้ว)")
                 continue

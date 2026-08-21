@@ -34,6 +34,31 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Fixed
 
+- **The exported scaffolding told 83 rules to register themselves in a file
+  it never shipped.** Of the 92 rules in `overlays/flask/`, 83 travel as
+  `kind: suite` — "this box carries no enforcement for you; write your own
+  test, then register it in your project's `gates.yaml`" — and the pillar
+  those 83 lean on, `gates-registry-total`, travelled as prose alongside
+  them. There was no `gates.yaml` in the box, no template, and nothing that
+  made a downstream registry true: the test that enforces both directions
+  here (every job has a gate, every test file is adjudicated exactly once)
+  is bound to pytest, PyYAML and this repository's ASVS table, so it never
+  left. A destination could read the same footnote 83 times without ever
+  learning what a registry looks like or how it would know the registry had
+  drifted. The box now carries `gates.yaml` itself — seeded with the nine
+  scans it actually ships, so a fresh install starts with an index that is
+  already true — and `gates-registry-total` is enforced by a scan rather
+  than described: it checks that every gate points at a job, step or test
+  file that exists, that every job in every workflow is covered by a gate,
+  and that every test file is claimed by exactly one gate. Because a
+  destination runs on bare `python3`, the scan reads YAML itself, over a
+  deliberately narrow subset that raises on anchors, aliases, tags, tabs and
+  multi-document files rather than skipping what it cannot parse — a reader
+  kinder than the real thing reports green on files it did not understand.
+  The evidence that it reads correctly is a comparison against PyYAML on the
+  largest real files here: 108 gates and 28 jobs, over exactly the fields
+  the scan consumes (ADR 0071).
+
 - **The gate on theme colours checked only the values that were already
   hexadecimal.** Its name says `..._colour_values_are_valid_hex`; what it
   enforced was "values shaped like hex are well formed", and everything
@@ -1255,7 +1280,7 @@ graph. Nothing in the `/api/v1` contract changed; it only gained fields.
 ## [1.0.0] — 2026-08-12
 
 First public release. Everything below arrived across seven planned phases of
-work; the reasoning for each decision lives in the 70 records in
+work; the reasoning for each decision lives in the 71 records in
 [`docs/adr/`](docs/adr/), and the phase-by-phase plan in
 [`docs/ROADMAP.md`](docs/ROADMAP.md).
 

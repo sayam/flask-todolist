@@ -76,3 +76,4 @@ ADR 0002–0008 เป็นการ backfill การตัดสินใจ
 | [0068](0068-ratchets-need-something-that-turns-them.md) | ratchet ต้องมีตัวทวงให้หมุน — พื้นที่ลอยต่ำกว่าของจริงเกิน 1 จุด = แดง · ขยับพื้นในคอมมิตเดียวกับที่ทำให้ตัวเลขดีขึ้น | accepted |
 | [0069](0069-removal-must-be-a-decision.md) | การถอดของออกจากระบบต้องเป็นคำตัดสิน ไม่ใช่ผลข้างเคียง | accepted |
 | [0070](0070-relicense-to-agpl-and-cc-by-sa.md) | เปลี่ยนสัญญาอนุญาตเป็น AGPL-3.0 (โค้ด) + CC BY-SA 4.0 (เอกสาร) | accepted — แทนที่ 0038 |
+| [0071](0071-overlay-ships-the-registry-itself.md) | overlay ส่งออก*ทะเบียน*ด้วย — `gates.yaml` ตั้งต้น + ด่านที่บังคับสองทิศในปลายทาง (เสาที่กฎอีก 83 ข้อพิงอยู่) | accepted |
