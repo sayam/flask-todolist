@@ -40,6 +40,7 @@ from scripts import (
     removals_census,
     rerun_census,
     schedule_census,
+    skeleton,
     whats_pending,
     workflows,
 )
@@ -1967,3 +1968,150 @@ def test_a_declared_takeback_lets_the_build_through(fake_gh):
     body = "good-first-issue-taken-back: จำเป็นต้องใช้ผลในวันเดียวกัน"
 
     assert check_issue_handoff.main(["--pr", "9", "--body", body]) == 0
+
+
+# --------------------------------- พื้นผิว API ของไฟล์ Python (`scripts/skeleton.py`)
+#
+# ไอเดียมาจาก `graft` — แต่รับมาเฉพาะชั้นที่ deterministic · ไม่มี index ไม่มี
+# ขั้นตอน build จึงไม่มีคำถามว่าข้อมูลสดหรือยัง ซึ่งเป็นคำถามที่ audit r21 ชี้ว่า
+# เป็นต้นทางของหนี้ที่เงียบที่สุด
+
+SAMPLE = '''"""โมดูลตัวอย่าง — บรรทัดแรกเท่านั้นที่ถูกหยิบ
+
+ส่วนนี้ไม่ควรโผล่บนพื้นผิว
+"""
+
+
+def open_one(name: str, count: int = 3) -> bool:
+    """ทำอะไรสักอย่าง"""
+    helper = 1
+    return bool(helper)
+
+
+def _hidden() -> None:
+    """ไม่ใช่พื้นผิว"""
+
+
+class Thing(Base):
+    """ของชิ้นหนึ่ง"""
+
+    @property
+    def label(self) -> str:
+        """ป้ายของมัน"""
+        return "x"
+
+    def _inner(self) -> None:
+        """ไม่ใช่พื้นผิว"""
+
+
+async def fetch(url: str) -> str:
+    """ดึงของ"""
+    return url
+'''
+
+
+def test_the_surface_is_signatures_not_bodies():
+    """สิ่งที่ผู้เรียกต้องรู้คือ signature — body คือรายละเอียดที่ยังไม่ต้องการ"""
+    found = [item.signature for item in skeleton.symbols(SAMPLE)]
+
+    assert "def open_one(name: str, count: int=3) -> bool" in found
+    assert "class Thing(Base)" in found
+    assert "async def fetch(url: str) -> str" in found
+    assert not any("helper" in line for line in found), "body หลุดขึ้นมาบนพื้นผิว"
+
+
+def test_private_names_are_off_the_surface_unless_asked():
+    """`_hidden` ไม่ใช่สิ่งที่ผู้เรียกจากข้างนอกเรียกได้ — แต่บางครั้งก็อยากเห็น"""
+    public = [item.signature for item in skeleton.symbols(SAMPLE)]
+    everything = [item.signature for item in skeleton.symbols(SAMPLE, private=True)]
+
+    assert not any("_hidden" in line for line in public)
+    assert any("_hidden" in line for line in everything)
+    assert any("_inner" in line for line in everything), "method ส่วนตัวก็ต้องโผล่ด้วย"
+
+
+def test_decorators_are_part_of_the_surface():
+    """`@property` เปลี่ยนวิธีเรียกของผู้เรียก จึงเป็นพื้นผิว ไม่ใช่รายละเอียด"""
+    found = [item.signature for item in skeleton.symbols(SAMPLE)]
+
+    assert "@property" in found
+
+
+def test_methods_sit_one_level_under_their_class():
+    """ความลึกคือข้อมูล — `label` เป็นของ `Thing` ไม่ใช่ของโมดูล"""
+    found = {item.signature: item.depth for item in skeleton.symbols(SAMPLE)}
+
+    assert found["class Thing(Base)"] == 0
+    assert found["def label(self) -> str"] == 1
+
+
+def test_the_summary_is_the_first_line_only():
+    """ที่เหลือของ docstring คือรายละเอียดที่คนถาม *จะเรียกอะไร* ยังไม่ต้องการ"""
+    found = {item.signature: item.summary for item in skeleton.symbols(SAMPLE)}
+
+    assert found["def open_one(name: str, count: int=3) -> bool"] == "ทำอะไรสักอย่าง"
+
+
+def test_the_report_says_how_much_it_saved(tmp_path):
+    """ตัวเลขท้ายไม่ใช่ของแถม — มันคือเหตุผลที่เครื่องมือนี้มีอยู่"""
+    path = tmp_path / "sample.py"
+    text = skeleton.render(path, SAMPLE)
+
+    assert str(path) in text
+    assert "โมดูลตัวอย่าง — บรรทัดแรกเท่านั้นที่ถูกหยิบ" in text
+    assert "ส่วนนี้ไม่ควรโผล่บนพื้นผิว" not in text, "docstring ทั้งก้อนหลุดขึ้นมา"
+    assert "สัญลักษณ์" in text
+    assert "บรรทัด" in text
+
+
+def test_the_line_count_matches_what_is_printed(tmp_path):
+    """เลขที่รายงานต้องเท่ากับบรรทัดที่พิมพ์จริง ไม่งั้นมันเป็นเลขโฆษณา"""
+    text = skeleton.render(tmp_path / "sample.py", SAMPLE)
+    claimed = int(re.search(r"· (\d+) จาก", text).group(1))
+
+    assert claimed == len(text.splitlines())
+
+
+def test_a_file_with_no_surface_says_so(tmp_path):
+    """ไฟล์ที่มีแต่ค่าคงที่ ต้องบอกว่าไม่มีอะไร ไม่ใช่พิมพ์หัวเปล่า ๆ"""
+    text = skeleton.render(tmp_path / "empty.py", "VALUE = 1\n")
+
+    assert "ไม่มีสัญลักษณ์บนพื้นผิว" in text
+
+
+def test_the_command_reads_a_real_file(tmp_path, capsys):
+    """เส้นทางที่คนใช้จริง — รับ path แล้วพิมพ์ออก stdout"""
+    path = tmp_path / "sample.py"
+    path.write_text(SAMPLE, encoding="utf-8")
+
+    assert skeleton.main([str(path)]) == 0
+    assert "def open_one" in capsys.readouterr().out
+
+
+def test_a_directory_is_read_in_a_stable_order(tmp_path, capsys):
+    """ผลลัพธ์ต้องซ้ำได้ ไม่งั้นเอาไป diff อะไรไม่ได้เลย"""
+    for name in ("b.py", "a.py"):
+        (tmp_path / name).write_text(SAMPLE, encoding="utf-8")
+
+    assert skeleton.main([str(tmp_path)]) == 0
+    out = capsys.readouterr().out
+    assert out.index("a.py") < out.index("b.py")
+
+
+def test_a_file_that_cannot_be_parsed_fails_loudly(tmp_path, capsys):
+    """แยกวิเคราะห์ไม่ได้ = บอกว่าไฟล์ไหน ไม่ใช่พิมพ์ traceback ใส่หน้าคนใช้"""
+    path = tmp_path / "broken.py"
+    path.write_text("def (", encoding="utf-8")
+
+    assert skeleton.main([str(path)]) == 1
+    assert "แยกวิเคราะห์ไม่ได้" in capsys.readouterr().err
+
+
+def test_a_missing_file_is_reported_not_crashed(tmp_path, capsys):
+    assert skeleton.main([str(tmp_path / "ไม่มีอยู่.py")]) == 1
+    assert "อ่าน" in capsys.readouterr().err
+
+
+def test_an_empty_directory_is_reported(tmp_path, capsys):
+    assert skeleton.main([str(tmp_path)]) == 1
+    assert "ไม่มีไฟล์" in capsys.readouterr().err
