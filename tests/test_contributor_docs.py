@@ -47,6 +47,9 @@ DOCS_CLAIMING_JOB_COUNTS = (
 # ใบตอบ badge เป็นเอกสารที่คนนอกอ่าน (ลิงก์จาก README) และเต็มไปด้วยตัวเลข
 # ที่ไม่มีใครรัน — เน่าไปแล้วสามจุดก่อนจะมีเทสต์ชุดนี้
 BADGE_WORKSHEET = "docs/BEST-PRACTICES.md"
+# DOI ที่ README พิมพ์ออกมา — ทั้งในร้อยแก้วและใน URL ของ badge
+DOI_IN_TEXT = re.compile(r"10\.\d{4,9}/[-._;()/:a-zA-Z0-9]*zenodo[.\d]+")
+CITATION = ROOT / "CITATION.cff"
 VERSION_SOURCE = (ROOT / "app" / "__init__.py").read_text(encoding="utf-8")
 
 
@@ -345,3 +348,21 @@ def test_every_copy_of_the_required_count_says_the_same_thing(name, declared_pai
     wrong += [f"{value} required" for value in alone if value != required]
 
     assert not wrong, f"{name} อ้าง {wrong} แต่ต้นทางประกาศไว้ว่า {required} จาก {checks}"
+
+
+def test_every_place_the_readme_prints_the_doi_agrees_with_citation_cff():
+    """DOI บน README ต้องเป็นตัวเดียวกับที่ `CITATION.cff` ประกาศ — ทุกที่ รวมเป้าของ badge
+
+    DOI ปรากฏบน README สามที่ (ร้อยแก้วสองแห่ง + เป้าลิงก์ของ badge) และ**ไม่มี
+    ที่ไหนเลยที่ derive มาจาก `CITATION.cff`** — ทุกที่คือเลขที่คนพิมพ์ · รูปของ
+    badge มาจาก `zenodo.org` ตามที่ Zenodo กำหนด และมันชี้ด้วย *เลขที่อยู่ของ
+    repo* ไม่ใช่ DOI ดังนั้นรูปที่ถูกจึงขึ้นคู่กับเป้าที่ผิดได้อย่างหน้าตาเฉย
+    ซึ่งเป็นความล้มเหลวที่คนอ่านมองไม่เห็นเลย — เห็น badge สวย ๆ แล้วกดไปหาของผิด
+    """
+    declared = yaml.safe_load(CITATION.read_text(encoding="utf-8"))["doi"]
+    printed = set(DOI_IN_TEXT.findall((ROOT / "README.md").read_text(encoding="utf-8")))
+
+    assert printed, "README ไม่ได้พิมพ์ DOI แล้ว — ถ้าตั้งใจถอด ให้ลบเทสต์นี้ด้วย"
+    assert printed == {declared}, (
+        f"README พิมพ์ DOI {sorted(printed)} แต่ CITATION.cff ประกาศ {declared!r}"
+    )
