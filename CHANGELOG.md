@@ -20,6 +20,22 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Fixed
 
+- **The DOI badge was never about the URL — Zenodo rate-limits GitHub's image
+  proxy, and v2.2.0's fix for it was a wrong diagnosis.** That release changed
+  the badge to the URL form Zenodo's own settings page hands out, on the
+  reasoning that the old `badge/DOI/<doi>.svg` path was stale. The badge kept
+  flickering. Asking the camo URL itself — rather than asking zenodo.org from
+  here, which had answered 200 every time — gave the actual answer:
+  `HTTP/2 502 · Invalid upstream response (429)`. Three requests per badge
+  through camo put it beyond doubt: every `img.shields.io` badge and the
+  OpenSSF one return 200/200/200, while `zenodo.org` returns 200/502/200. The
+  earlier 200 that seemed to confirm the fix was a cache hit; this one came
+  back `x-cache: MISS`. The image now comes from shields.io, the link target
+  is unchanged, and a test holds every badge host to a list that says what was
+  measured — so the next host has to be a decision rather than markdown copied
+  off somebody's settings page.
+
+
 - **The command that verifies a release was archived had itself stopped
   working.** `docs/RELEASE.md` carries a one-line check against Zenodo's API
   — the step that exists because GitHub's webhook page has reported both

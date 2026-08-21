@@ -50,6 +50,12 @@ BADGE_WORKSHEET = "docs/BEST-PRACTICES.md"
 # DOI ที่ README พิมพ์ออกมา — ทั้งในร้อยแก้วและใน URL ของ badge
 DOI_IN_TEXT = re.compile(r"10\.\d{4,9}/[-._;()/:a-zA-Z0-9]*zenodo[.\d]+")
 CITATION = ROOT / "CITATION.cff"
+# โฮสต์ของรูป badge ที่ **วัดแล้ว** ว่า camo ของ GitHub ดึงไหวสม่ำเสมอ
+# (ยิงผ่าน camo สามครั้งต่อใบ — ดูเหตุผลใน docstring ของเทสต์ข้างล่าง)
+BADGE_HOSTS = {
+    "https://img.shields.io/": "ทุกใบที่ใช้อยู่ 200 ทุกครั้ง",
+    "https://www.bestpractices.dev/": "badge ของ OpenSSF เอง · 200 ทุกครั้ง",
+}
 VERSION_SOURCE = (ROOT / "app" / "__init__.py").read_text(encoding="utf-8")
 
 
@@ -365,4 +371,35 @@ def test_every_place_the_readme_prints_the_doi_agrees_with_citation_cff():
     assert printed, "README ไม่ได้พิมพ์ DOI แล้ว — ถ้าตั้งใจถอด ให้ลบเทสต์นี้ด้วย"
     assert printed == {declared}, (
         f"README พิมพ์ DOI {sorted(printed)} แต่ CITATION.cff ประกาศ {declared!r}"
+    )
+
+
+def test_every_badge_comes_from_a_host_that_camo_can_actually_fetch():
+    """โฮสต์ของรูป badge ต้องอยู่ในรายการที่**วัดแล้ว** ว่า camo ดึงไหว
+
+    GitHub ไม่ได้ฝังรูปจากปลายทางตรง ๆ — มันดึงผ่าน camo แล้ว proxy ให้ ดังนั้น
+    "ยิงจากเครื่องเราแล้ว 200" ไม่ได้แปลว่า badge จะขึ้น · badge ของ Zenodo ขึ้น
+    บ้างไม่ขึ้นบ้างอยู่หลายรุ่น และตอนไล่จนถึงตัว camo จริง ๆ คำตอบคือ
+
+        HTTP/2 502 · Invalid upstream response (429)
+
+    คือ **Zenodo rate-limit camo** ไม่ใช่เรื่องรูปแบบ URL อย่างที่เดากันสองรอบ
+    (รอบแรกโทษ URL รูปแบบเก่า · รอบสองเปลี่ยนไปใช้รูปที่ Zenodo ให้มาแล้วก็ยัง
+    กะพริบเหมือนเดิม) · ยิงผ่าน camo สามครั้งต่อใบเทียบกันแล้วชัด: shields.io กับ
+    bestpractices.dev ได้ 200/200/200 ทุกใบ ส่วน zenodo.org ได้ 200/502/200
+
+    เทสต์นี้ไม่ยิงเน็ต (ด่านที่ต้องต่อเน็ตคือด่านที่แดงเพราะเน็ต) — มันบังคับแค่ว่า
+    **การเพิ่มโฮสต์ใหม่ต้องเป็นคำตัดสินที่มีคนเซ็นชื่อ** พร้อมเหตุผลใน `BADGE_HOSTS`
+    ไม่ใช่การก๊อปวาง markdown จากหน้าเว็บของใครสักคน
+    """
+    text = (ROOT / "README.md").read_text(encoding="utf-8")
+    images = re.findall(r"!\[[^\]]*\]\((https?://[^)\s]+)\)", text)
+    assert images, "README ไม่มี badge แล้ว — ถ้าตั้งใจถอด ให้ลบเทสต์นี้ด้วย"
+
+    strangers = sorted(
+        {url for url in images if not any(url.startswith(host) for host in BADGE_HOSTS)}
+    )
+    assert not strangers, (
+        f"badge จากโฮสต์ที่ยังไม่ได้วัด: {strangers} — "
+        "ยิงผ่าน camo ของ GitHub หลายครั้งก่อน แล้วมาลงทะเบียนใน BADGE_HOSTS พร้อมเหตุผล"
     )
