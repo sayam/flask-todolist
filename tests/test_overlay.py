@@ -109,18 +109,25 @@ def test_everything_the_manifest_ships_exists(manifest):
     assert not unshipped, f"scan ที่ไม่อยู่ในรายการ ship: {unshipped}"
 
 
+def _spawn(*command: str) -> subprocess.CompletedProcess:
+    """ยิงเครื่องมือด้วย interpreter เปล่า เหมือนที่โปรเจกต์ปลายทางรันจริง
+
+    การเรียก subprocess ของไฟล์นี้ผ่านที่นี่ที่เดียว — คำสั่งประกอบจาก path ที่
+    เทสต์สร้างเอง ไม่มีอะไรมาจากภายนอก จึงปิด S603 ได้จุดเดียวพร้อมเหตุผล
+    แทนที่จะโรยไว้ทุกจุดที่เรียก
+    """
+    return subprocess.run(  # noqa: S603 — คำสั่งประกอบจาก path ของเทสต์เอง ไม่มี input ภายนอก
+        [sys.executable, *command], capture_output=True, text=True, check=False
+    )
+
+
 def _run(script: str, tree: dict[str, str], tmp: pathlib.Path) -> subprocess.CompletedProcess:
     (tmp / "scaffold.json").write_text("{}", encoding="utf-8")
     for name, content in tree.items():
         path = tmp / name
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content, encoding="utf-8")
-    return subprocess.run(  # noqa: S603 — ยิง checker เหมือนที่ปลายทางรันจริง
-        [sys.executable, str(OVERLAY / "checks" / script), str(tmp)],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    return _spawn(str(OVERLAY / "checks" / script), str(tmp))
 
 
 @pytest.mark.parametrize("script", sorted(CASES), ids=lambda s: s.removesuffix(".py"))
@@ -141,24 +148,15 @@ def test_each_checker_stays_quiet_on_clean_input(script, tmp_path):
 def test_install_then_doctor_and_the_doctor_notices_missing_pieces(tmp_path):
     """ติดตั้งแล้วต้อง --installed เขียว · ถอดไฟล์ที่ติดตั้งแล้วต้องแดง"""
     target = tmp_path / "target"
-    install = subprocess.run(  # noqa: S603
-        [sys.executable, str(OVERLAY / "install.py"), str(target)],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    install = _spawn(str(OVERLAY / "install.py"), str(target))
     assert install.returncode == 0, install.stderr
 
     doctor = target / "tools" / "gates_doctor.py"
-    ok = subprocess.run(  # noqa: S603
-        [sys.executable, str(doctor), "--installed"], capture_output=True, check=False
-    )
+    ok = _spawn(str(doctor), "--installed")
     assert ok.returncode == 0
 
     (target / "tools" / "checks" / "scan_adr_index.py").unlink()
-    broken = subprocess.run(  # noqa: S603
-        [sys.executable, str(doctor), "--installed"], capture_output=True, text=True, check=False
-    )
+    broken = _spawn(str(doctor), "--installed")
     assert broken.returncode == 1, "ไฟล์หายแล้ว doctor ยังบอกว่าติดตั้งครบ"
 
 
@@ -170,12 +168,7 @@ def test_a_gutted_overlay_refuses_to_install(tmp_path):
     shutil.copytree(OVERLAY, clone)
     (clone / "checks" / "scan_service_layer.py").unlink()
 
-    result = subprocess.run(  # noqa: S603
-        [sys.executable, str(clone / "install.py"), str(tmp_path / "t")],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    result = _spawn(str(clone / "install.py"), str(tmp_path / "t"))
     assert result.returncode == 1
     assert "ไม่ครบ" in result.stderr
 
@@ -204,20 +197,11 @@ def test_the_installed_preflight_runs_on_a_fresh_project(tmp_path):
     รันครั้งแรกก็แดงด้วยเรื่องของตัวมันเอง ซึ่งคือเครื่องมือที่ไม่มีใครใช้ต่อ
     """
     target = tmp_path / "fresh"
-    install = subprocess.run(  # noqa: S603
-        [sys.executable, str(OVERLAY / "install.py"), str(target)],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    install = _spawn(str(OVERLAY / "install.py"), str(target))
     assert install.returncode == 0, install.stderr
 
-    result = subprocess.run(  # noqa: S603 — รันแบบเดียวกับที่ปลายทางรัน
-        [sys.executable, str(target / "tools" / "preflight.py"), "--root", str(target)],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    # รันแบบเดียวกับที่ปลายทางรัน
+    result = _spawn(str(target / "tools" / "preflight.py"), "--root", str(target))
     assert result.returncode == 0, (
         f"preflight ของปลายทางแดงตั้งแต่ครั้งแรก: {result.stdout}{result.stderr}"
     )
@@ -286,25 +270,11 @@ def test_a_fresh_install_starts_with_a_registry_that_is_already_true(tmp_path):
     กล่องไม่มีไฟล์นั้น คำสั่งนั้นก็เป็นร้อยแก้ว (audit r23 ข้อ 3)
     """
     target = tmp_path / "fresh"
-    install = subprocess.run(  # noqa: S603
-        [sys.executable, str(OVERLAY / "install.py"), str(target)],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    install = _spawn(str(OVERLAY / "install.py"), str(target))
     assert install.returncode == 0, install.stderr
     assert (target / "gates.yaml").is_file(), "ติดตั้งแล้วยังไม่มีดัชนี gate"
 
-    result = subprocess.run(  # noqa: S603
-        [
-            sys.executable,
-            str(target / "tools" / "checks" / "scan_gates_registry.py"),
-            str(target),
-        ],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    result = _spawn(str(target / "tools" / "checks" / "scan_gates_registry.py"), str(target))
     assert result.returncode == 0, f"ดัชนีตั้งต้นไม่ผ่านด่านของตัวเอง: {result.stdout}"
     assert "NA" not in result.stdout, f"ดัชนีตั้งต้นถูกข้ามแทนที่จะถูกตรวจ: {result.stdout}"
 
@@ -327,21 +297,12 @@ def test_the_registry_gate_sees_what_nobody_registered(drift, tmp_path):
     """
     name, addition, expected = DRIFTS[drift]
     target = tmp_path / "fresh"
-    subprocess.run(  # noqa: S603
-        [sys.executable, str(OVERLAY / "install.py"), str(target)],
-        capture_output=True,
-        check=False,
-    )
+    _spawn(str(OVERLAY / "install.py"), str(target))
     path = target / name
     path.parent.mkdir(parents=True, exist_ok=True)
     existing = path.read_text(encoding="utf-8") if path.is_file() else ""
     path.write_text(existing + addition, encoding="utf-8")
 
-    result = subprocess.run(  # noqa: S603
-        [sys.executable, str(target / "tools" / "checks" / "scan_gates_registry.py"), str(target)],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    result = _spawn(str(target / "tools" / "checks" / "scan_gates_registry.py"), str(target))
     assert result.returncode == 1, f"{drift} ไม่มี gate แต่ด่านยังเขียว: {result.stdout}"
     assert expected in result.stdout, result.stdout
