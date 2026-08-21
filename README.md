@@ -361,6 +361,6 @@ org graph) · [`docs/PDPA.md`](docs/PDPA.md) (worksheet แบบเดียว
 (`tests/test_licensing.py` ตรึงไว้)
 
 [![version](https://img.shields.io/badge/version-v2.1.0-blue)](https://github.com/sayam/flask-todolist/releases)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22015133.svg)](https://doi.org/10.5281/zenodo.22015133)
+[![DOI](https://zenodo.org/badge/1319900799.svg)](https://doi.org/10.5281/zenodo.22015133)
 [![License](https://img.shields.io/badge/License-AGPL--3.0-blue)](LICENSE)
 [![Docs License](https://img.shields.io/badge/Docs-CC%20BY--SA%204.0-lightgrey)](LICENSE-docs)

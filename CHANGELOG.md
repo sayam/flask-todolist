@@ -34,6 +34,18 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Fixed
 
+- **The DOI badge used Zenodo's legacy image URL, and rendered only
+  sometimes.** `zenodo.org/badge/DOI/<doi>.svg` is not the form Zenodo hands
+  out any more; its GitHub settings page gives `zenodo.org/badge/<repo
+  id>.svg`, which is what the README now carries. The three shields.io
+  badges beside it never failed, which is what made the odd one out visible
+  at all. The DOI itself is printed in three places in the README — twice in
+  prose and once as the badge's link target — and none of them derived from
+  `CITATION.cff`, so a test now holds all three to what that file declares.
+  The badge image points at the repository id rather than the DOI, which
+  means a correct-looking badge can sit on top of a wrong link target
+  without anything looking odd to a reader.
+
 - **The exported scaffolding told 83 rules to register themselves in a file
   it never shipped.** Of the 92 rules in `overlays/flask/`, 83 travel as
   `kind: suite` — "this box carries no enforcement for you; write your own
