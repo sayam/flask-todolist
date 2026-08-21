@@ -183,7 +183,7 @@ enforced_prohibitions = 14
 # **วัดแยกไฟล์ข้อมูลใน CI** เพื่อไม่ให้ตัวเลขรวมลากพื้นของแอปลง — ดูขั้นตอนใน ci.yml
 # · ข้อ 2 ของรอบเดียวกันพบว่าเลขแรกต่ำกว่าความจริงเพราะ **ไม่นับลูกที่เป็น
 # subprocess** ซึ่งคือรูปที่ repo นี้บังคับเองว่าดีกว่า (ดู `.coveragerc-scripts`)
-scripts_coverage = 63
+scripts_coverage = 64
 
 # ---------------------------------------------------------------------------
 # **สี่ตัวข้างล่างนี้กันการ *ถอด* ไม่ใช่กันการถอย** (ADR 0069 · audit รอบ 16)
@@ -206,7 +206,7 @@ suppressions_without_reason = 53
 # gate ทั้งหมดใน gates.yaml — ถอด gate ทิ้งเคยเขียวได้ทั้ง CI ถ้าเก็บกวาดครบ 6 ที่
 gates_total = 108
 # แถวใน "ส่วนที่ต้องมีคนลงมือ" ของ docs/SECURITY-CADENCE.md
-cadence_rows = 30
+cadence_rows = 32
 # แถวในทะเบียนความเสี่ยงของ docs/RISK-ASSESSMENT.md
 risk_rows = 13
 # แถวในทะเบียน "การตัดสินใจที่จงใจเลื่อน" ของ docs/GOVERNANCE.md
