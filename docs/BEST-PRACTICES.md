@@ -23,7 +23,7 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 
 | เกณฑ์ | ตอบ | หลักฐาน |
 |---|---|---|
-| `description_good` MUST | ผ่าน | `README.md` ย่อหน้าแรกบอกว่าเป็นอะไรและแก้ปัญหาอะไร · ช่อง About ของ repo เติมแล้ว (อัปเดตตามรุ่น — ล่าสุด v2.1.0) |
+| `description_good` MUST | ผ่าน | `README.md` ย่อหน้าแรกบอกว่าเป็นอะไรและแก้ปัญหาอะไร · ช่อง About ของ repo เติมแล้ว (อัปเดตตามรุ่น — ล่าสุด v2.2.0) |
 | `interact` MUST | ผ่าน | `README.md` มีวิธีติดตั้ง/รัน · `CONTRIBUTING.md` มีวิธีเสนอการเปลี่ยนแปลง · Issues เปิดอยู่ |
 | `contribution` MUST | ผ่าน | `CONTRIBUTING.md` — อธิบายว่าใช้ PR, ต้องผ่าน 27 required check (จาก 30 check — scorecard, `posture` และ job ของ workflow release ไม่รันบน PR จึงไม่บังคับ), merge ด้วย rebase, และกติกาลงทะเบียนไฟล์เทสต์ใน `gates.yaml` |
 | `contribution_requirements` SHOULD | ผ่าน | `CONTRIBUTING.md` — Conventional Commits (หัว ≤72), ruff/mypy, **กติกา mutation test ของเทสต์ใหม่** |
@@ -45,9 +45,9 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 | `repo_track` MUST | ผ่าน | git |
 | `repo_interim` MUST | ผ่าน | commit ระหว่างทางอยู่ครบบน `main` ไม่ใช่แค่ของที่ release |
 | `repo_distributed` SUGGESTED | ผ่าน | git |
-| `version_unique` MUST | ผ่าน | ทุกรุ่นมี tag ไม่ซ้ำ — v1.0.0 ถึง v2.1.0 |
+| `version_unique` MUST | ผ่าน | ทุกรุ่นมี tag ไม่ซ้ำ — v1.0.0 ถึง v2.2.0 |
 | `version_semver` SUGGESTED | ผ่าน | SemVer · นิยามของ 1.0.0 บันทึกไว้ใน `docs/ROADMAP.md` |
-| `version_tags` SUGGESTED | ผ่าน | git tag ทุกรุ่น (v1.0.0 ถึง v2.1.0) |
+| `version_tags` SUGGESTED | ผ่าน | git tag ทุกรุ่น (v1.0.0 ถึง v2.2.0) |
 | `release_notes` MUST | ผ่าน | `CHANGELOG.md` (Keep a Changelog) ผูกกับ `app.__version__` และมีเทสต์คุม |
 | `release_notes_vulns` MUST | ผ่าน | **v1.5.0 คือรุ่นแรกที่แก้ CVE และ notes ระบุครบทั้งเจ็ด** (cryptography 45.0.7→50.0.0) — ตามที่นโยบายใน `docs/SECURITY-CADENCE.md` สัญญาไว้ |
 
@@ -281,16 +281,16 @@ curl -s https://www.bestpractices.dev/projects/14085.json > badge.json
 | ช่องบนเว็บ | ค่าที่เก็บอยู่ตอนนี้ | ต้องแก้เป็น | ทำไม |
 |---|---|---|---|
 | `license` (ช่องเมทาดาทาของโปรเจกต์ ไม่ใช่เกณฑ์) | `MIT` | `AGPL-3.0-or-later` | เปลี่ยนสัญญาอนุญาตตั้งแต่ 2026-08-19 (ADR 0070) — **ช่องนี้ยังค้างอยู่แม้จะบันทึกหน้าอื่นไปแล้ว** |
-| `description` | "… — v1.6.0: …" | เขียนใหม่ให้เป็น v2.0.2 และเอ่ยถึง DOI | คำโฆษณาบรรทัดแรกที่คนเห็นก่อนกดเข้า repo |
+| `description` | "… — v2.1.0: …" | เขียนใหม่ให้เป็น v2.2.0 (พร้อมเลข gate/ADR ปัจจุบัน) และเอ่ยถึง DOI | คำโฆษณาบรรทัดแรกที่คนเห็นก่อนกดเข้า repo |
 | `homepage_url` | ว่าง | `https://github.com/sayam/flask-todolist` | เกณฑ์ `description_good` อ้างถึงหน้าโครงการ · ปล่อยว่างทำให้ gold ข้อ `homepage_url_https` ตัดสินไม่ได้ |
 | `floss_license_osi_justification` | อธิบาย AGPL แล้ว แต่ยังมีคำว่า MIT อยู่ในประโยคเดียวกัน | คงไว้ได้ (อ้าง ADR 0038 ที่ถูกแทน) | ตรวจแล้วว่า**ถูกต้อง** — บันทึกไว้กันเข้าใจผิดว่าเป็นของค้าง |
 | `version_unique_justification` · `version_tags_justification` | "v1.0.0 through v2.0.2" | คงไว้ | ตรวจแล้วว่าตรงกับ tag จริง |
 | `release_notes_vulns_justification` | อ้าง v1.5.0 เป็นรุ่นแรกที่แก้ CVE | คงไว้ **จนกว่ารุ่นถัดไปจะแก้ CVE ใหม่** | ข้อความอ้างอดีต ไม่ใช่สถานะปัจจุบัน |
 | `crypto_working_justification` · `crypto_weaknesses_justification` | อ้างเลขรุ่นของไลบรารี (1.4.1) | คงไว้ | เป็นเลขรุ่นของ dependency ไม่ใช่ของแอป |
 | `test_continuous_integration_justification` | "27 checks on every push" | คงไว้ | ตรงกับ required check ปัจจุบัน (27 จาก 30) |
-| `version_unique_justification` · `version_tags_justification` (แก้ปลายช่วง) | "v1.0.0 through v2.0.2" | **"v1.0.0 through v2.1.0"** | ผูกกับรุ่น — RELEASE.md ข้อ 3 |
-| `maintained_justification` | "latest release v2.0.2 (2026-08-19)" | **"latest release v2.1.0 (2026-08-20)"** | ผูกกับรุ่น |
-| `release_notes_vulns_justification` | ชี้ v1.5.0 | คงไว้ | **v2.1.0 ไม่ได้แก้ CVE ของของที่ ship จริง** (CVE ของ `util-linux` เป็นการ*รับไว้* ไม่ใช่การแก้) — กฎใน RELEASE.md ข้อ 1 บอกให้คงไว้ |
+| `version_unique_justification` · `version_tags_justification` (แก้ปลายช่วง) | "v1.0.0 through v2.1.0" | **"v1.0.0 through v2.2.0"** | ผูกกับรุ่น — RELEASE.md ข้อ 3 |
+| `maintained_justification` | "latest release v2.1.0 (2026-08-20)" | **"latest release v2.2.0 (2026-08-21)"** | ผูกกับรุ่น |
+| `release_notes_vulns_justification` | ชี้ v1.5.0 | คงไว้ | **v2.2.0 ไม่ได้แก้ CVE ของของที่ ship จริง** (CVE ของ `util-linux` ยังเป็นการ*รับไว้* ไม่ใช่การแก้) — กฎใน RELEASE.md ข้อ 1 บอกให้คงไว้ |
 
 **สรุป: ต้องแก้ห้าช่อง** — `license` · `description` · `homepage_url` · `version_unique`/`version_tags` · `maintained` ·
 ที่เหลือตรวจแล้วว่ายังตรง · สามช่องแรกอยู่ในแท็บ **Project data** (ไม่กระทบ

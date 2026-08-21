@@ -120,6 +120,31 @@ def test_the_readme_advertises_the_real_rule_counts():
         assert re.search(pattern, readme), f"README ไม่มีข้อความ {pattern!r} — เลขจริงคือ {baseline}"
 
 
+def test_every_doc_that_says_how_many_rules_there_are_now_says_the_real_number():
+    """คำว่า "ปัจจุบัน N" ในเอกสารไหนก็ตาม ต้องเป็น N ของวันนี้ ไม่ใช่ของวันที่พิมพ์
+
+    เทสต์ข้างบนคุมเฉพาะ README มาตลอด — และบทเรียนที่เขียนอยู่ใน docstring ของมัน
+    เองก็เกิดซ้ำทันทีที่มีคนเขียนเลขเดียวกันไว้อีกไฟล์: `docs/ROADMAP-INFRA.md`
+    เขียน "ปัจจุบัน 77" ค้างไว้ขณะที่ของจริงเป็น 79 (รอบตรวจเอกสารก่อนออก v2.2.0)
+
+    ที่นี่ไม่ผูกกับชื่อไฟล์ใดไฟล์หนึ่ง — **สแกนทุกไฟล์ `.md` ที่คนเขียน** แล้วบังคับ
+    ว่าสำนวนนี้ต้องตรง เพราะที่ที่เลขจะไปโผล่ครั้งถัดไป เราไม่รู้ล่วงหน้า
+    """
+    baseline = len(portable_gates("baseline"))
+    generated = {"SKILL.md", "SKILL-TODOLIST.md"}
+    wrong: list[str] = []
+    for path in sorted(ROOT.glob("**/*.md")):
+        if ".venv" in path.parts or "node_modules" in path.parts or path.name in generated:
+            continue
+        wrong += [
+            f"{path.relative_to(ROOT)} อ้าง {claimed}"
+            for claimed in re.findall(r"ปัจจุบัน (\d+)\)", path.read_text(encoding="utf-8"))
+            if int(claimed) != baseline
+        ]
+
+    assert not wrong, f"เลขกฎที่ล้าสมัย: {wrong} — ของจริงคือ {baseline}"
+
+
 @pytest.mark.parametrize("word", ["mutation", "ratchet", "ADR", "สองทิศ"])
 def test_the_central_practices_survive_in_the_preamble(word):
     """หลักปฏิบัติกลาง (ของคน อยู่ใน PREAMBLE) ต้องไม่หายตอนมีคนแก้ generator"""

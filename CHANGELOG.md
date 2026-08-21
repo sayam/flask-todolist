@@ -18,6 +18,8 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ## [Unreleased]
 
+## [2.2.0] — 2026-08-21
+
 ### Added
 
 - **A third colour theme, `sepia`** — warm paper tones, for eyes tired of
@@ -1405,7 +1407,8 @@ work; the reasoning for each decision lives in the 71 records in
 - WCAG 2.2 AA, checked both by a structural test suite and by pa11y-ci driving a
   real Chromium over dark mode, an alternate theme, and Thai.
 
-[Unreleased]: https://github.com/sayam/flask-todolist/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/sayam/flask-todolist/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/sayam/flask-todolist/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/sayam/flask-todolist/compare/v2.0.2...v2.1.0
 [2.0.2]: https://github.com/sayam/flask-todolist/compare/v2.0.1...v2.0.2
 [2.0.1]: https://github.com/sayam/flask-todolist/compare/v2.0.0...v2.0.1
