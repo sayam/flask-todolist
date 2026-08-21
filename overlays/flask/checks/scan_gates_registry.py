@@ -186,7 +186,9 @@ def _parse(lines: list[tuple[int, str]], index: int, column: int) -> tuple[objec
     return _parse_mapping(lines, index, column)
 
 
-def _parse_sequence(lines, index, column):  # type: ignore[no-untyped-def]
+def _parse_sequence(
+    lines: list[tuple[int, str]], index: int, column: int
+) -> tuple[list[object], int]:
     items: list[object] = []
     while index < len(lines) and lines[index][0] == column and lines[index][1] == "-":
         index += 1
@@ -198,7 +200,9 @@ def _parse_sequence(lines, index, column):  # type: ignore[no-untyped-def]
     return items, index
 
 
-def _parse_mapping(lines, index, column):  # type: ignore[no-untyped-def]
+def _parse_mapping(
+    lines: list[tuple[int, str]], index: int, column: int
+) -> tuple[dict[str, object], int]:
     mapping: dict[str, object] = {}
     while index < len(lines) and lines[index][0] == column and lines[index][1] != "-":
         key, raw = _split_key(lines[index][1])
