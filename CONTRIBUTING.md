@@ -207,6 +207,32 @@ outside contributor opened their pull request at 17:39 having worked on it for
 hours. The label was on the whole time. Their afternoon was spent on something
 that was already closed, and nothing in the project noticed.
 
+## What you will see after you push (and what you will not)
+
+**Your first pull request will show no checks at all, and that is not your fault.**
+GitHub holds workflow runs from first-time contributors until a maintainer
+approves them, so the page you land on after pushing is simply empty — no green,
+no red, no explanation.
+
+That empty page is the worst part of contributing here right now, because
+everything this project knows how to tell you lives in those checks. Once they
+run you get, in plain terms, which rule you broke and where.
+
+- **The maintainer aims to approve within one working day.** If it has been
+  longer, comment on the pull request — that is a fair thing to chase, not a
+  nuisance.
+- **Nothing you can do speeds it up**, and re-pushing does not help.
+- Meanwhile the checks are reproducible on your own machine, which is faster
+  than waiting either way:
+
+  ```bash
+  pipenv run python scripts/preflight.py
+  ```
+
+This happened for real on 2026-08-20: a contributor's pull request sat with zero
+checks, so none of the three things CI would have told them — two auto-fixable
+lint errors and an untested line — ever reached them.
+
 ## Before you open a pull request
 
 ```bash
