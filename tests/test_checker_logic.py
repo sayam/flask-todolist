@@ -2085,12 +2085,27 @@ def test_the_file_length_matches_what_other_tools_count(tmp_path):
     assert claimed == len(SAMPLE.splitlines())
 
 
-def test_a_one_line_file_does_not_report_more_than_it_has(tmp_path):
-    """เลขที่เกิน 100% บนบรรทัดที่เป็นเหตุผลของเครื่องมือ คือการโฆษณาที่ขัดตัวเอง"""
-    text = skeleton.render(tmp_path / "one.py", "VALUE = 1\n")
-    claimed = int(re.search(r"จาก (\d+) บรรทัด", text).group(1))
+def test_a_file_too_small_to_shrink_says_so_instead_of_printing_a_riddle(tmp_path):
+    """**เทสต์ตัวนี้เคยอ้างในคำอธิบายว่าคุมเรื่องเปอร์เซ็นต์ แต่ assert แค่ตัวส่วน**
 
-    assert claimed == 1
+    ของเดิมเขียนว่า "เลขที่เกิน 100% คือการโฆษณาที่ขัดตัวเอง" แล้วตรวจว่า
+    `จาก 1 บรรทัด` เท่านั้น — ผลคือ `3 จาก 1 บรรทัด (300%)` ผ่านฉลุยมาตลอด
+    (ultrareview ของ PR #197 · คลาสเดียวกับด่านสีธีมที่ตรวจเฉพาะค่าที่เป็น hex อยู่แล้ว)
+
+    คำตัดสินที่ตามมาคือ **เลขไม่ผิด คนอ่านต่างหากที่ไม่มีใครแปลให้**: รายงานมีพื้น
+    ตายตัวสองบรรทัด ไฟล์ที่สั้นกว่านั้นย่อไม่ได้จริง ๆ และนั่นคือคำตอบที่เครื่องมือ
+    มีไว้ตอบ · ที่นี่จึงตรวจ *ทั้งสองฝั่ง* ของเส้น ไม่ใช่ฝั่งเดียว
+    """
+    tiny = skeleton.render(tmp_path / "one.py", "VALUE = 1\n")
+    assert int(re.search(r"จาก (\d+) บรรทัด", tiny).group(1)) == 1
+    assert int(re.search(r"\((\d+)%\)", tiny).group(1)) > 100, (
+        f"ไฟล์บรรทัดเดียวย่อไม่ได้ แต่รายงานว่าย่อได้: {tiny}"
+    )
+    assert "อ่านทั้งไฟล์เร็วกว่า" in tiny, f"เลขเกิน 100% แต่ไม่มีใครแปลให้: {tiny}"
+
+    roomy = skeleton.render(tmp_path / "roomy.py", SAMPLE)
+    assert int(re.search(r"\((\d+)%\)", roomy).group(1)) < 100, roomy
+    assert "อ่านทั้งไฟล์เร็วกว่า" not in roomy, f"ไฟล์ที่ย่อได้จริงถูกบอกว่าอ่านทั้งไฟล์เร็วกว่า: {roomy}"
 
 
 def test_each_symbol_carries_its_one_line_summary(tmp_path):

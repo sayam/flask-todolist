@@ -34,6 +34,21 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Fixed
 
+- **A test said, in its own docstring, that a number over 100% was the thing
+  it existed to prevent — and then asserted on the denominator instead.**
+  `scripts/skeleton.py` prints one summary line per file: how many lines its
+  skeleton costs against how many the file has. A one-line file reported
+  `3 จาก 1 บรรทัด (300%)` and the guard written to stop exactly that,
+  `test_a_one_line_file_does_not_report_more_than_it_has`, only ever checked
+  that the denominator was 1. It never extracted the percentage, so 300%
+  passed. The resolution is not the cap the number invites: a report has a
+  fixed floor of two lines — the header and the summary itself — so a file
+  shorter than that genuinely cannot be shrunk, and saying so is precisely
+  what the tool's docstring says the number is for. Capping at 100% would
+  hide that answer and make "100%" mean two different things. The line now
+  interprets itself (`— อ่านทั้งไฟล์เร็วกว่า`) and the test checks both
+  sides of the boundary rather than one.
+
 - **The DOI badge used Zenodo's legacy image URL, and rendered only
   sometimes.** `zenodo.org/badge/DOI/<doi>.svg` is not the form Zenodo hands
   out any more; its GitHub settings page gives `zenodo.org/badge/<repo
