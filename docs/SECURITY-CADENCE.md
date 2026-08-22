@@ -428,6 +428,7 @@ digest ใหม่ยังมาไม่ถึงแต่ต้อง ship �
 | `MaintainedID` | "repo อายุน้อยกว่า 90 วัน" เป็นข้อเท็จจริงที่หมดอายุเอง ไม่ใช่ของที่แก้ได้ | dismiss (2026-08-18) |
 | `CodeReviewID` | ผู้ดูแลคนเดียว ไม่มีผู้อนุมัติที่สอง — ชดเชยด้วย required check 27 ตัวและ `enforce_admins` ([ADR 0053](adr/0053-solo-maintainer-sod-compensating-controls.md)) | dismiss (2026-08-18) |
 | `FuzzingID` | Scorecard นับเฉพาะการต่อ OSS-Fuzz/ClusterFuzzLite — โปรเจกต์นี้มี fuzzer จริงที่ `tests/test_api_fuzz.py` ซึ่งสร้างคำขอจาก `docs/openapi.json` แล้วยิงทุก push (จับของจริงมาแล้วสามอย่างในรอบแรก) | dismiss (2026-08-18) |
+| `BranchProtectionID` | **โผล่ครั้งแรก 2026-08-22** ตอนที่ `repo_token` ทำให้ Scorecard *อ่าน* branch protection ได้ (ก่อนหน้านั้นเป็น `-1` = มองไม่เห็น ไม่ใช่ผ่าน) · ได้ 3/10 จากสี่คำเตือน — สามข้อ (ไม่มีผู้อนุมัติ · ไม่มี codeowners review · ไม่มี last-push approval) ต้องมีผู้ดูแลคนที่สองซึ่ง [ADR 0053](adr/0053-solo-maintainer-sod-compensating-controls.md) ระบุเงื่อนไขไว้แล้ว · ข้อที่สี่ `up-to-date branches` ปิดไว้โดยตั้งใจเพราะ auto-merge จะวน rebase ทุกครั้งที่ main ขยับ (มีแถวใน [EXTERNAL-SURFACE.md](EXTERNAL-SURFACE.md)) | **เปิดค้าง** — เนื้อของใบนี้เปลี่ยนตาม setting จริง ปล่อยเปิดไว้จึงยังเห็นการเลื่อนของท่าทีในอนาคต |
 
 **"รับไว้" ไม่เท่ากับ "ต้อง dismiss"** — สองสถานะนี้ต่างกันที่คำถามว่าใบถัดไปของกฎ
 เดียวกันจะมีเนื้อหาใหม่ไหม · กฎที่เนื้อหาคงที่ (คะแนน) dismiss ได้ · กฎที่เนื้อหา
