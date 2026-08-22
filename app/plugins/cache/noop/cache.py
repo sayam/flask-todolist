@@ -23,7 +23,7 @@ def get(_handle: None, _key: str) -> Any:
     return None
 
 
-def set(_handle: None, _key: str, _value: Any, _ttl: int | None) -> None:  # noqa: A001
+def set(_handle: None, _key: str, _value: Any, _ttl: int | None) -> None:  # noqa: A001 - documented suppression
     """ทิ้งค่าไปเฉย ๆ ไม่ใช่การลืม แต่เป็นสัญญาของ backend ตัวนี้"""
     return
 

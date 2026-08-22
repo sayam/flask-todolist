@@ -27,6 +27,8 @@ pip-audit = "*"
 cyclonedx-bom = "*"
 pre-commit = "*"
 schemathesis = "*"
+pyyaml = "*"
+coverage = "*"
 
 [requires]
 python_version = "3.13"

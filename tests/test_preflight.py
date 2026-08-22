@@ -112,7 +112,7 @@ def test_an_unknown_job_is_an_error_not_a_silent_pass(tmp_path):
     workflow = tmp_path / WORKFLOW_DIR / "ci.yml"
     workflow.parent.mkdir(parents=True, exist_ok=True)
     workflow.write_text(yaml.safe_dump({"jobs": {"lint": {"steps": []}}}), encoding="utf-8")
-    result = subprocess.run(  # noqa: S603
+    result = subprocess.run(  # noqa: S603 - trusted executable and input
         [sys.executable, str(SCRIPT), "--root", str(tmp_path), "--only", "ghost"],
         capture_output=True,
         text=True,

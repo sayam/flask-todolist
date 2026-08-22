@@ -24,7 +24,7 @@ SPEC_PATH = REPO_ROOT / "docs" / "openapi.json"
 
 # `create_app()` ปฏิเสธที่จะ start ถ้าไม่มี SECRET_KEY ที่ยาวพอ ตัวนี้ใช้แค่ตอน
 # generate เอกสาร ไม่ได้เซ็นอะไรที่ออกไปนอกเครื่อง
-DUMMY_SECRET = "openapi-generator-only-not-a-real-secret-key"  # noqa: S105
+DUMMY_SECRET = "openapi-generator-only-not-a-real-secret-key"  # noqa: S105 - dummy value for testing
 
 
 def build_spec() -> dict:

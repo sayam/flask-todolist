@@ -45,7 +45,7 @@ def commits_in_range(rev_range: str) -> list[tuple[str, str]]:
     commit ลง `main` อยู่แล้ว มันจึงเป็นของชั่วคราวบนกิ่งเท่านั้น
     """
     out = subprocess.run(  # noqa: S603 — อินพุตมาจาก CI/ผู้พัฒนาเอง ไม่ใช่ผู้ใช้ภายนอก
-        ["git", "log", "--no-merges", "--format=%H%x00%s", rev_range],  # noqa: S607
+        ["git", "log", "--no-merges", "--format=%H%x00%s", rev_range],  # noqa: S607 - executable is in PATH
         capture_output=True,
         text=True,
         check=True,

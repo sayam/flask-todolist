@@ -77,7 +77,7 @@ class _Connection:
     found = True
 
     # ต้องรับพารามิเตอร์ให้ตรงกับ `ldap3.Connection` แม้จะไม่ได้ใช้ทุกตัว
-    def __init__(self, server, user=None, password=None, **kwargs):  # noqa: ARG002
+    def __init__(self, server, user=None, password=None, **kwargs):  # noqa: ARG002 - required by interface
         self.server = server
         self.user = user
         self.password = password
@@ -96,7 +96,7 @@ class _Connection:
             return True
         return self.known.get(self.user) == self.password
 
-    def search(self, base, search_filter, attributes=None):  # noqa: ARG002
+    def search(self, base, search_filter, attributes=None):  # noqa: ARG002 - required by interface
         if search_filter.startswith("(member="):
             self.entries = [_Entry(dn, {}) for dn in self.groups]
             return True

@@ -25,7 +25,7 @@ def get(handle: Any, key: str) -> Any:
     return handle.get(key)
 
 
-def set(handle: Any, key: str, value: Any, ttl: int | None) -> None:  # noqa: A001
+def set(handle: Any, key: str, value: Any, ttl: int | None) -> None:  # noqa: A001 - documented suppression
     handle.set(key, value, ex=ttl)
 
 

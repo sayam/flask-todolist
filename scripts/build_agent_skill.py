@@ -24,7 +24,7 @@ sys.path.insert(0, str(SCRIPT_DIR))
 
 # import แบบ top-level (ไม่ใช่ scripts.build_skill) ให้ตรงกับชื่อโมดูลที่
 # mypy เห็นตอนสแกน `scripts/` — สองชื่อสำหรับไฟล์เดียว mypy ปฏิเสธ
-from build_skill import render  # noqa: E402
+from build_skill import render  # noqa: E402 - import order required here
 
 SKILL_DIR = ROOT / "skill"
 OVERLAY_DIR = ROOT / "overlays" / "flask"

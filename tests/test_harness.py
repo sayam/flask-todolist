@@ -111,7 +111,7 @@ def test_rounds_accumulate_in_the_log(tmp_path):
 @pytest.mark.parametrize("flag", ["--gates-file", "--root", "--only", "--output"])
 def test_the_flags_the_loop_depends_on_still_exist(flag):
     """สัญญาของ CLI — loop ภายนอกเรียกด้วย flag พวกนี้ เปลี่ยนชื่อคือ break สัญญา"""
-    helptext = subprocess.run(  # noqa: S603
+    helptext = subprocess.run(  # noqa: S603 - trusted executable and input
         [sys.executable, str(HARNESS), "--help"], capture_output=True, text=True, check=False
     ).stdout
     assert flag in helptext

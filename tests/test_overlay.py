@@ -127,7 +127,7 @@ def test_each_checker_stays_quiet_on_clean_input(script, tmp_path):
 def test_install_then_doctor_and_the_doctor_notices_missing_pieces(tmp_path):
     """ติดตั้งแล้วต้อง --installed เขียว · ถอดไฟล์ที่ติดตั้งแล้วต้องแดง"""
     target = tmp_path / "target"
-    install = subprocess.run(  # noqa: S603
+    install = subprocess.run(  # noqa: S603 - trusted executable and input
         [sys.executable, str(OVERLAY / "install.py"), str(target)],
         capture_output=True,
         text=True,
@@ -136,13 +136,13 @@ def test_install_then_doctor_and_the_doctor_notices_missing_pieces(tmp_path):
     assert install.returncode == 0, install.stderr
 
     doctor = target / "tools" / "gates_doctor.py"
-    ok = subprocess.run(  # noqa: S603
+    ok = subprocess.run(  # noqa: S603 - trusted executable and input
         [sys.executable, str(doctor), "--installed"], capture_output=True, check=False
     )
     assert ok.returncode == 0
 
     (target / "tools" / "checks" / "scan_adr_index.py").unlink()
-    broken = subprocess.run(  # noqa: S603
+    broken = subprocess.run(  # noqa: S603 - trusted executable and input
         [sys.executable, str(doctor), "--installed"], capture_output=True, text=True, check=False
     )
     assert broken.returncode == 1, "ไฟล์หายแล้ว doctor ยังบอกว่าติดตั้งครบ"
@@ -156,7 +156,7 @@ def test_a_gutted_overlay_refuses_to_install(tmp_path):
     shutil.copytree(OVERLAY, clone)
     (clone / "checks" / "scan_service_layer.py").unlink()
 
-    result = subprocess.run(  # noqa: S603
+    result = subprocess.run(  # noqa: S603 - trusted executable and input
         [sys.executable, str(clone / "install.py"), str(tmp_path / "t")],
         capture_output=True,
         text=True,
@@ -190,7 +190,7 @@ def test_the_installed_preflight_runs_on_a_fresh_project(tmp_path):
     รันครั้งแรกก็แดงด้วยเรื่องของตัวมันเอง ซึ่งคือเครื่องมือที่ไม่มีใครใช้ต่อ
     """
     target = tmp_path / "fresh"
-    install = subprocess.run(  # noqa: S603
+    install = subprocess.run(  # noqa: S603 - trusted executable and input
         [sys.executable, str(OVERLAY / "install.py"), str(target)],
         capture_output=True,
         text=True,

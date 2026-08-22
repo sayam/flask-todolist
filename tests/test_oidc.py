@@ -342,8 +342,8 @@ class _Handler(BaseHTTPRequestHandler):
 
     # ชื่อของ BaseHTTPRequestHandler เป็น mixedCase ตามสัญญาของ stdlib
     # เปลี่ยนชื่อไม่ได้ ต้องขอยกเว้นตรงนี้ (N815)
-    do_GET = _reply  # noqa: N815
-    do_POST = _reply  # noqa: N815
+    do_GET = _reply  # noqa: N815 - matching external API
+    do_POST = _reply  # noqa: N815 - matching external API
 
     def log_message(self, *args):
         """เงียบไว้ ไม่งั้น log ของ server ปนกับผลของ pytest"""
@@ -520,7 +520,7 @@ def test_a_second_factor_still_stands_between_sso_and_the_app(oidc_app, monkeypa
     """
     with oidc_app.app_context():
         _make_user("somchai")
-    monkeypatch.setattr("app.auth.mfa.is_required", lambda user: True)  # noqa: ARG005
+    monkeypatch.setattr("app.auth.mfa.is_required", lambda user: True)  # noqa: ARG005 - required by interface
     _client, response = _walk_through_sso(oidc_app)
     assert response.headers["Location"] == "/login/verify"
 
@@ -532,7 +532,7 @@ def test_a_provider_missing_part_of_the_contract_says_who_and_what(oidc_app, mon
         def begin(self, redirect_uri):
             """มี begin แต่ไม่มี finish"""
 
-    monkeypatch.setattr(plugins, "factor_module", lambda plugin: Incomplete())  # noqa: ARG005
+    monkeypatch.setattr(plugins, "factor_module", lambda plugin: Incomplete())  # noqa: ARG005 - required by interface
     with oidc_app.app_context():
         # `begin()` รับ Provider (มี profile ติดมาด้วย) ไม่ใช่ Plugin ดิบ — ADR 0047
         plugin = plugins.find(OIDC_KEY)
