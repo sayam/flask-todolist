@@ -198,7 +198,10 @@ scripts_coverage = 64
 # ขึ้นได้เฉพาะเมื่อเป็นคำตัดสินที่มีเหตุผลใน commit · ลงแล้วต้องลดเพดานตามทันที
 [tool.todolist.ceilings]
 # `# noqa` + `# type: ignore` ใน app/ scripts/ tests/
-suppressions = 95
+# 95 → 96 ตอน audit รอบ 25: `scripts/sync_counts.py` อ่าน `gates.yaml` จึงต้อง
+# มี `# type: ignore[import-untyped]` ของ pyyaml เหมือนทุกตัวที่อ่าน YAML —
+# **มีเหตุผลกำกับ** จึงไม่กระทบเพดานของบรรทัดที่ไม่มีเหตุผล (ยังเป็น 48)
+suppressions = 96
 # ในจำนวนนั้น กี่บรรทัดที่ไม่มีข้อความบอกเหตุผลต่อท้าย
 suppressions_without_reason = 48
 # แถวใน docs/EXTERNAL-SURFACE.md ที่ยอมรับตรง ๆ ว่ายังไม่มีใครเทียบกับของจริง

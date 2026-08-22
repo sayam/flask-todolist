@@ -69,8 +69,8 @@
   ใน `CONTRIBUTING.md` (สองภาษา) · กฎข้อ 8 บังคับ gate ใหม่ประกาศ `pillar:`
 - `pillar:` ครบทุก gate ใน `gates.yaml` (`tests/test_gates.py` บังคับ —
   ค่าแรกประกาศตอนปิด G1: security 52 · manageability 14 · devx 13 · performance 2
-  — วันนี้ (หลัง r24) เป็น security 68 · devx 22 · manageability 17 · performance 4
-  รวม 111 gate · **ตัวเลขชุดนี้มีเทสต์คุมแล้ว** ตั้งแต่ r17
+  — วันนี้ (หลัง r24) เป็น security 68 · devx 23 · manageability 17 · performance 4
+  รวม 112 gate · **ตัวเลขชุดนี้มีเทสต์คุมแล้ว** ตั้งแต่ r17
   (`tests/test_gates.py::test_the_pillar_tally_in_the_roadmap_matches_reality`) —
   ก่อนหน้านั้นต้องรอ doc sweep และค้างผิดมาแล้วสองรอบ)
 - ภาพที่ pillar เผยทันที (ณ ตอนเปิดแผน): ชั้น performance มีด่านอัตโนมัติ

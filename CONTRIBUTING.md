@@ -239,6 +239,18 @@ lint errors and an untested line — ever reached them.
 pipenv run python scripts/preflight.py   # walks CI's own lint + test steps locally
 ```
 
+If you added an ADR or a gate, one more command spares you the bookkeeping —
+several documents advertise those counts and each has a test that fails when the
+number goes stale:
+
+```bash
+pipenv run python scripts/sync_counts.py --write   # ten places, one command
+```
+
+It only edits the numbers; the tests are still what decide. Measured on
+2026-08-22: adding one ADR turned three files red, and 25 of the last 200
+commits existed only to sync a number (audit round 25).
+
 That one command reads `.github/workflows/ci.yml` and runs what CI runs, so the
 list cannot drift from the pipeline (ADR 0060). The commit hook already covers
 ruff, format, and mypy; xenon, interrogate, the coverage floor, and diff-cover
