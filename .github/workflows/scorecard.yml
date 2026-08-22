@@ -56,6 +56,15 @@ jobs:
           # **เผยแพร่ผลไปที่ OpenSSF API** — เป็นเงื่อนไขของการมี badge
           # ข้อมูลที่ส่งเป็นข้อเท็จจริงเกี่ยวกับ repo สาธารณะซึ่งเปิดอยู่แล้ว
           publish_results: true
+          # **ข้อ Branch-Protection อ่านไม่ได้ด้วย `GITHUB_TOKEN`** — วัดจริง
+          # 2026-08-22: API ของ Scorecard คืน `-1` พร้อมเหตุผล "some github
+          # tokens can't read branch protection" ซึ่งแปลว่าด่านที่ ADR 0053
+          # พึ่งพามากที่สุด เป็นข้อเดียวที่คะแนนไม่ได้บอกอะไรเลย · ยืม
+          # `POSTURE_TOKEN` (fine-grained · Administration: read) ใบเดียวกับที่
+          # job `posture` ใช้ — **สิทธิ์อ่านอย่างเดียว ไม่มีสิทธิ์เขียนโค้ด**
+          # · ไม่มี secret (เช่น รันจาก fork) = ตกกลับไปใบเดิม แล้วข้อนั้นกลับ
+          # เป็น -1 ตามเดิม ซึ่งเป็นการเสื่อมที่ยอมรับได้ ไม่ใช่ job แดง
+          repo_token: ${{ secrets.POSTURE_TOKEN || secrets.GITHUB_TOKEN }}
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
