@@ -325,6 +325,52 @@ curl -s https://www.bestpractices.dev/projects/14085.json > badge.json
 **กับดักของฟอร์มที่ยังใช้ได้อยู่**: บันทึกทีละแท็บ และดูว่า `updated_at`
 ใน JSON ขยับจริงหลังกด Save — ถ้าไม่ขยับ แปลว่าไม่ได้บันทึก
 
+## ชุด baseline — OSPS Baseline v2026.02.19 (ยังไม่เริ่มตอบบนเว็บ)
+
+`bestpractices.dev` ออก badge **สองชุดจากโปรเจกต์เดียวกัน** (ID 14085) —
+ชุด *metal* (passing → silver → gold) ที่ไฟล์นี้ตอบไว้ข้างบน และชุด
+**baseline** (baseline-1 → 2 → 3) ซึ่งเป็น [OSPS Baseline](https://baseline.openssf.org/)
+ชุดข้อ **MUST ล้วน** ที่ derive มาจากกรอบกฎหมาย/regulation · รูปของชุดนี้อยู่คนละ
+URL: `https://www.bestpractices.dev/projects/14085/baseline`
+
+**สถานะที่ดึงจาก API เมื่อ 2026-08-22**: `badge_percentage_baseline_1/2/3 = 0`
+ทั้งสามระดับ · เว็บใช้ v2026.02.19 แล้ว (64 ข้อ — L1 21 · L2 16 · L3 27)
+
+ตารางข้างล่างคือ**คำตอบที่เตรียมไว้สำหรับ baseline-1** พร้อมหลักฐานในรีโป —
+กรอกบนเว็บด้วยบัญชีเจ้าของ แล้วค่อยเพิ่มรูป badge ลง `README.md`
+(**อย่าเพิ่มรูปก่อนตอบ** ไม่งั้นหน้าแรกจะโชว์ `🚧 0% 🚧`)
+
+| เกณฑ์ | ตอบ | หลักฐาน |
+|---|---|---|
+| `OSPS-AC-01.01` MFA ตอนอ่าน/แก้ของอ่อนไหว | ผ่าน | บัญชีผู้ดูแลเปิด 2FA แบบ **passkey เป็นวิธีหลัก** (phishing-resistant) สำรองด้วย TOTP + GitHub Mobile · ไม่ใช้ SMS โดยตั้งใจ · ตรวจตามรอบ 12 เดือนที่แถว "hardening ของบัญชีเจ้าของ" ใน [SECURITY-CADENCE.md](SECURITY-CADENCE.md) |
+| `OSPS-AC-02.01` collaborator ใหม่ได้สิทธิ์ต่ำสุด/ต้องกำหนดเอง | ผ่าน | GitHub บังคับให้เลือกสิทธิ์ตอนเชิญ · ตอนนี้มี collaborator คนเดียว (เจ้าของ) และ `docs/EXTERNAL-SURFACE.md` มีแถวเฝ้าจำนวน collaborator |
+| `OSPS-AC-03.01` commit ตรงเข้า branch หลักต้องถูกกัน | ผ่าน | `ADR 0053` — main รับของทาง PR เท่านั้น · `enforce_admins` เปิด (ผู้ดูแลก็ข้ามไม่ได้) · **`ci:posture` เทียบกับ API ของ GitHub ทุก push** ([ADR 0061](adr/0061-platform-posture-verified.md)) |
+| `OSPS-AC-03.02` ลบ branch หลักต้องยืนยันเจตนา | ผ่าน | `allow_deletions = false` และ `allow_force_pushes = false` บน branch protection · ตรวจโดย `ci:posture` เช่นกัน |
+| `OSPS-BR-01.01` CI ต้องล้าง/ตรวจ metadata ที่ไม่น่าเชื่อถือ | ผ่าน | ไม่มี workflow ไหนเอาข้อความจากผู้ใช้ไปแทนใน `run:` · OpenSSF Scorecard ให้ `Dangerous-Workflow = 10` และ `Token-Permissions = 10` |
+| `OSPS-BR-01.03` snapshot ที่ไม่น่าเชื่อถือต้องไม่เห็น credential | ผ่าน | GitHub ไม่ส่ง secret ให้ workflow ของ fork · `approval_policy: first_time_contributors` ค้าง run ของคนใหม่ไว้รออนุมัติ (บันทึกเหตุการณ์จริงไว้ที่ audit รอบ 22) · ทุก job ประกาศ `permissions:` ของตัวเอง และค่าเริ่มต้นระดับ repo คือ `read` |
+| `OSPS-BR-03.01` ช่องทางทางการต้องเป็น HTTPS | ผ่าน | ทุกช่องทางอยู่บน GitHub และ `https://doi.org/…` — ไม่มี URL ที่เป็น http ในเอกสาร |
+| `OSPS-BR-03.02` ช่องทางแจกจ่ายต้องกัน AitM ได้ | ผ่าน | GitHub Releases ผ่าน TLS · **ทุก asset ถูกเซ็นแบบ keyless (cosign/sigstore) และมี SLSA provenance ที่ `gh attestation verify` ตรวจได้** ([ADR 0058](adr/0058-signed-releases.md) · `gate release-signed-and-attested`) |
+| `OSPS-BR-07.01` กันความลับหลุดเข้า version control | ผ่าน | gitleaks ทุก push (`gate push-secret-scan`) · GitHub secret scanning + **push protection** เปิดอยู่ · `.env` ถูก gitignore และ `SECRET_KEY` ไม่มีค่า default โดยตั้งใจ |
+| `OSPS-DO-01.01` มีคู่มือผู้ใช้ครบทุกความสามารถพื้นฐาน | ผ่าน | [`README.md`](../README.md) (สองภาษา) + [`docs/OPERATIONS.md`](OPERATIONS.md) + [`docs/openapi.json`](openapi.json) ที่ generate จากโค้ด |
+| `OSPS-DO-02.01` มีคู่มือการรายงานข้อบกพร่อง | ผ่าน | [`CONTRIBUTING.md`](../CONTRIBUTING.md) · `.github/ISSUE_TEMPLATE/bug_report.md` · [`SECURITY.md`](../SECURITY.md) สำหรับช่องทางลับ |
+| `OSPS-GV-02.01` มีช่องทางคุยเรื่องข้อเสนอ/อุปสรรคแบบสาธารณะ | ผ่าน | GitHub Issues (ค้นได้ · เป็นเธรด · เห็นย้อนหลัง) — issue ที่เปิดให้คนนอกมีป้าย `good first issue` จริง |
+| `OSPS-GV-03.01` เอกสารอธิบายกระบวนการมีส่วนร่วม | ผ่าน | [`CONTRIBUTING.md`](../CONTRIBUTING.md) — PR-only · Conventional Commits ≤72 · mutation test ของเทสต์ใหม่ทุกตัว · ลงทะเบียนไฟล์เทสต์ใน `gates.yaml` |
+| `OSPS-LE-02.01` license ของซอร์สผ่านนิยาม OSI/FSF | ผ่าน | **AGPL-3.0-or-later** ([ADR 0070](adr/0070-relicense-to-agpl-and-cc-by-sa.md)) — OSI-approved |
+| `OSPS-LE-02.02` license ของ asset ที่ปล่อยออกไปผ่านนิยามเดียวกัน | ผ่าน | asset ทุกใบมาจากซอร์สเดียวกันใต้ AGPL-3.0 · tarball ที่ GitHub สร้างมี `LICENSE` อยู่ข้างใน |
+| `OSPS-LE-03.01` license อยู่ในไฟล์ `LICENSE` ของรีโป | ผ่าน | [`LICENSE`](../LICENSE) ที่ราก + [`LICENSE-docs`](../LICENSE-docs) (CC BY-SA 4.0 สำหรับเอกสาร) · `tests/test_licensing.py` ตรึงไว้ |
+| `OSPS-LE-03.02` license ไปพร้อมกับ release asset | ผ่าน | เหมือน `LE-02.02` — source archive ของทุก tag มี `LICENSE` |
+| `OSPS-QA-01.01` ซอร์สอ่านได้สาธารณะที่ URL คงที่ | ผ่าน | <https://github.com/sayam/flask-todolist> |
+| `OSPS-QA-01.02` มีบันทึกสาธารณะว่าใครแก้อะไรเมื่อไหร่ | ผ่าน | ประวัติ git ทั้งหมดอยู่บน `main` (ไม่ squash — [ADR 0053](adr/0053-pr-only-main.md)) · commit ทุกใบมีผู้เขียนและเวลา |
+| `OSPS-QA-02.01` มีรายการ dependency ตรงของภาษา | ผ่าน | `Pipfile` + `Pipfile.lock` (ตรึงด้วย hash) · เครื่องมือของ CI ตรึงแยกที่ `pins/` ด้วย `--require-hashes` · SBOM แนบทุก release แยกตาม category |
+| `OSPS-QA-04.01` โปรเจกต์หลายรีโปต้องมีรายการ codebase | ไม่เกี่ยวข้อง | รีโปเดียว — ไม่มี codebase อื่นในโปรเจกต์นี้ |
+| `OSPS-QA-05.01` ห้ามมี executable ที่ generate มาใน version control | ผ่าน | ไม่มีไฟล์ executable ที่ commit ไว้เลย · Scorecard `Binary-Artifacts = 10` |
+| `OSPS-QA-05.02` ห้ามมี binary ที่รีวิวไม่ได้ | ผ่าน (มีหมายเหตุ) | ไฟล์ไบนารีที่ commit ไว้มี **สองใบเท่านั้น** คือ `app/translations/{en,th}/LC_MESSAGES/messages.mo` ซึ่ง**คอมไพล์จาก `.po` ที่อยู่ในรีโปเดียวกันและรีวิวได้** · `tests/test_i18n.py` แดงทันทีถ้าสองอย่างไม่ตรงกัน จึงไม่มีทางที่ `.mo` จะมีเนื้อหาที่ `.po` ไม่มี |
+| `OSPS-VM-02.01` เอกสารมีช่องทางติดต่อด้านความปลอดภัย | ผ่าน | [`SECURITY.md`](../SECURITY.md) — ช่องทางลับผ่าน GitHub private vulnerability reporting (เปิดอยู่) + กรอบเวลา: รับเรื่องใน 7 วัน · ประเมินใน 14 · แก้ตามระดับ (critical 7 / high 30 / medium 90) |
+
+**ที่ยังต้องทำด้วยมือ**: ล็อกอินที่ <https://www.bestpractices.dev/en/projects/14085>
+แล้วสลับไปแท็บชุด baseline · กรอกตามตารางนี้ · ครบ 100% เมื่อไหร่ได้ badge
+`baseline-1` แล้วค่อยเพิ่มรูปลง `README.md`
+
 ## ทบทวน 2026-08-14 (หลังปิดเฟส 8–12)
 
 ไล่ทั้ง 67 ข้อใหม่เทียบกับสภาพปัจจุบัน — **ไม่มีข้อไหนเปลี่ยนสถานะ** สิ่งที่

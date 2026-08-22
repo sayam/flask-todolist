@@ -1,6 +1,8 @@
 # Todolist
 
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/14085/badge)](https://www.bestpractices.dev/projects/14085)
+[![OpenSSF Scorecard](https://img.shields.io/ossf-scorecard/github.com/sayam/flask-todolist?label=openssf%20scorecard)](https://scorecard.dev/viewer/?uri=github.com/sayam/flask-todolist)
+[![CI](https://img.shields.io/github/actions/workflow/status/sayam/flask-todolist/ci.yml?branch=main&label=CI)](https://github.com/sayam/flask-todolist/actions/workflows/ci.yml)
 
 A personal to-do list built with Flask — and, more to the point, a place where
 the engineering practices around a small app are taken all the way rather than
@@ -186,6 +188,8 @@ own dependency category) · SQLite / MySQL / MariaDB · gunicorn · pipenv
 # Todolist (ฉบับภาษาไทย)
 
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/14085/badge)](https://www.bestpractices.dev/projects/14085)
+[![OpenSSF Scorecard](https://img.shields.io/ossf-scorecard/github.com/sayam/flask-todolist?label=openssf%20scorecard)](https://scorecard.dev/viewer/?uri=github.com/sayam/flask-todolist)
+[![CI](https://img.shields.io/github/actions/workflow/status/sayam/flask-todolist/ci.yml?branch=main&label=CI)](https://github.com/sayam/flask-todolist/actions/workflows/ci.yml)
 
 แอปจดงานส่วนตัวเขียนด้วย Flask — และที่สำคัญกว่านั้น เป็นที่ที่วินัยทางวิศวกรรม
 รอบ ๆ แอปเล็ก ๆ ตัวหนึ่งถูกทำจนสุดทาง แทนที่จะทำครึ่งทาง
