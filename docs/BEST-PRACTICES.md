@@ -289,7 +289,18 @@ curl -s https://www.bestpractices.dev/projects/14085.json > badge.json
 | `test_continuous_integration_justification` | "27 checks on every push" | ตรงกับ required check ปัจจุบัน (27 จาก 30) |
 | `floss_license_osi_justification` | อ้าง ADR 0070 ที่แทน ADR 0038 | ถูกต้อง — บันทึกไว้กันเข้าใจผิดว่าเป็นของค้าง |
 | `crypto_working_justification` · `crypto_weaknesses_justification` | อ้างเลขรุ่นของไลบรารี (1.4.1) | คงไว้ — เป็นเลขรุ่นของ dependency ไม่ใช่ของแอป |
+| `contribution_justification` | "…must pass **26** required status checks…" | **ค้าง** — ของจริงคือ 27 และช่องอื่นบนเว็บเดียวกัน (`contribution_requirements_justification` · `test_continuous_integration_justification` · `two_person_review_justification`) เขียน 27 ถูกแล้ว ทั้งสามช่อง — ใบเดียวกันขัดกันเองได้เพราะไม่มีอะไรอ่านคู่ |
+| `governance_justification` | "…all decisions recorded as ADRs (**58** to date)…" | **ค้าง** — ของจริงคือ 72 (`ls docs/adr/0*.md`) · ห่างจากความจริง 14 ใบ |
+| `test_most_justification` · `test_statement_coverage80_justification` | "Coverage gate fail_under = **96**" | **ค้าง** — `pyproject.toml` เป็น 97 มาตั้งแต่ ratchet ขยับ · ช่อง `test_statement_coverage90_justification` บนเว็บเดียวกันเขียน 97 ถูกแล้ว |
+| `test_statement_coverage90_justification` · `test_branch_coverage80_justification` | 97.17% · 93.96% (1,058/1,126) | ห่างเล็กน้อยจากของวันนี้ (97.18% · 93.98% — 1,062/1,130) · ช่องพวกนี้เขียนว่า "measured on the current tree" จึงเป็นภาพถ่าย ไม่ใช่คำสัญญา — แก้ตอนรอบ release ถัดไปพอ |
 | `description` | "… v2.2.0 … **111** machine-checked gates, 72 ADRs, **24** recorded governance audits …" | **ค้างอยู่บนเว็บและบน About** — สองที่นั้นยังถือชุดของ v2.2.0 (109 · 71 · 23) ส่วนของบนดิสก์เดินไปแล้วตอน audit รอบ 24 · เลขในช่องนี้นับจาก `gates.yaml` · `docs/adr/` · `AUDIT-LOG.md` ที่ HEAD ซึ่งเป็นทิศที่ `tests/test_audit_log.py` บังคับ · อัปเดตสองที่ข้างนอกตาม [RELEASE.md](RELEASE.md) ข้อ 7 |
+
+**สี่แถวบนนี้เพิ่มตอน audit รอบ 24** — คำถามของรอบคือ *ใครเทียบของที่อยู่นอกรีโป
+กับของจริง* และคำตอบสำหรับใบตอบ badge คือ **ไม่มีใคร นอกจากรอบตรวจ 12 เดือน** ·
+ตัวเลขที่ค้างอยู่ไม่ได้ค้างเพราะใครประมาท แต่เพราะมันอยู่ในที่ที่ `git diff`
+มองไม่เห็น: `26` กับ `27` นั่งอยู่บนหน้าเดียวกันคนละช่อง และ `58 ADRs` เขียน
+ตอนที่มัน *เคย* เป็น 58 จริง ๆ · ผิวนอกรีโปทั้งกองอยู่ใน
+[EXTERNAL-SURFACE.md](EXTERNAL-SURFACE.md) แล้ว (ADR 0072)
 
 **ช่อง `description` เป็นสำเนาที่สามของตัวเลขชุดเดียวกัน** — อยู่ที่ About ของ repo
 · ที่นี่ · และในไฟล์นี้ · **ไม่มีที่ไหนในสามที่นั้นที่เทสต์อ่านคู่ได้เลย** เพราะสองที่แรก
