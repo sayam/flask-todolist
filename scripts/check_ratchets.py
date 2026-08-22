@@ -103,7 +103,7 @@ REMOVAL_GUARDS = ("gates_total", "cadence_rows", "risk_rows", "deferred_rows")
 #
 # **สองทิศเหมือนเพดานของ `CLAUDE.md`**: เกินเพดาน = ต้องเป็นคำตัดสิน · ลดลงแล้ว
 # ไม่ลดเพดานตาม = ที่ว่างจะถูกถมกลับเงียบ ๆ
-CEILINGS = ("suppressions", "suppressions_without_reason")
+CEILINGS = ("suppressions", "suppressions_without_reason", "external_surface_unowned")
 
 SUPPRESSION_SOURCES = ("app/**/*.py", "scripts/*.py", "tests/*.py")
 # `app/sun_data.py` generate มา · `migrations/` กับ `skill/` อยู่นอกขอบเขต ruff อยู่แล้ว
@@ -114,6 +114,9 @@ SUPPRESSION = (
 )
 
 RISK = ROOT / "docs" / "RISK-ASSESSMENT.md"
+# ทะเบียนผิวนอกรีโป (ADR 0072) — แถวที่ยอมรับตรง ๆ ว่ายังไม่มีใครเทียบ
+EXTERNAL_SURFACE = ROOT / "docs" / "EXTERNAL-SURFACE.md"
+NO_OWNER = "ยังไม่มีใคร"
 
 APP = ROOT / "app"
 
@@ -308,9 +311,24 @@ def measured() -> dict[str, float]:
         "mypy_strict_modules": float(strict_modules()),
         "enforced_prohibitions": float(enforced_prohibitions()),
         "scripts_coverage": scripts_coverage(),
+        "external_surface_unowned": float(external_surface_unowned()),
         **{name: float(value) for name, value in removal_counts().items()},
         **{name: float(value) for name, value in suppression_counts().items()},
     }
+
+
+def external_surface_unowned() -> int:
+    """นับ**แถวในตาราง**เท่านั้น — ร้อยแก้วที่อธิบายคำว่า "ยังไม่มีใคร" ไม่ใช่ผิวที่ไม่มีเจ้าของ
+
+    ผิวนอกรีโปโตได้ทุกครั้งที่ GitHub เพิ่ม setting ใหม่ · เพดานนี้ทำให้การเพิ่ม
+    แถวที่ไม่มีเจ้าของเป็นคำตัดสิน และทำให้การหาเจ้าของให้แถวเดิมถูกบันทึก (ADR 0072)
+    """
+    rows = 0
+    for line in EXTERNAL_SURFACE.read_text(encoding="utf-8").splitlines():
+        cells = [cell.strip() for cell in line.split("|")]
+        if len(cells) >= 4 and line.startswith("|") and NO_OWNER in cells[-2]:
+            rows += 1
+    return rows
 
 
 def _ceiling_problems(name: str, ceiling: float, now: float) -> list[str]:

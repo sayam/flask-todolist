@@ -522,6 +522,9 @@ def test_the_harvester_ignores_failures_that_are_not_ours(tmp_path):
 # ตัวควบคุมที่ด่านอื่นทุกตัวพิงอยู่ จึงเป็นตัวเดียวที่ไม่มีใครเฝ้า
 
 
+# จำนวน required check ที่ใช้ในเทสต์ของช่อง About — เลขอะไรก็ได้ที่คงที่
+REQUIRED_NOW = 27
+
 HEALTHY = {
     "required_checks": ["lint", "test"],
     "enforce_admins": True,
@@ -534,6 +537,8 @@ HEALTHY = {
     "allow_rebase_merge": True,
     "allow_squash_merge": False,
     "sha_pinning_required": True,
+    "default_workflow_permissions": "read",
+    "can_approve_pull_request_reviews": False,
 }
 ON_PR = {"lint", "test"}
 
@@ -556,6 +561,14 @@ def test_posture_passes_when_the_platform_matches_what_we_declared():
         ({"allow_rebase_merge": False}, "ทางเดียวที่ ADR 0053 รับ ถูกปิด"),
         ({"allow_squash_merge": True}, "ปุ่มที่ CONTRIBUTING ข้อ 7 ห้ามไว้ กลับมาให้กดได้"),
         ({"sha_pinning_required": False}, "แพลตฟอร์มเลิกบังคับสิ่งที่เทสต์เราบังคับอยู่"),
+        (
+            {"default_workflow_permissions": "write"},
+            "GITHUB_TOKEN ของทุก job เริ่มด้วยสิทธิ์เขียน — ชั้นที่รองรับตอนมีใครลืมประกาศหายไป",
+        ),
+        (
+            {"can_approve_pull_request_reviews": True},
+            "workflow อนุมัติ PR แทนคนได้ — ทางเข้า main ที่ไม่มีคนดู",
+        ),
         ({"required_checks": ["lint"]}, "job ที่รันบน PR หลุดจากรายการบังคับ"),
         ({"required_checks": ["lint", "test", "ผี"]}, "บังคับ check ที่ไม่มีใครสร้างได้"),
     ],
@@ -1706,11 +1719,49 @@ def test_no_gate_watched_by_those_jobs_depends_on_a_governance_file():
 # สัญญาว่าจะอยู่ในรูปไหน การบังคับทุกเลขจะกลายเป็นด่านที่แดงเพราะถ้อยคำ
 
 
+def _about(**counts: int) -> str:
+    """ประโยคโฆษณาที่ *ถูกทุกตัว* แล้วให้ผู้เรียกทำให้ผิดทีละตัว (audit รอบ 24)"""
+    source = (pathlib.Path(__file__).resolve().parent.parent / "app" / "__init__.py").read_text(
+        encoding="utf-8"
+    )
+    current = re.search(r'__version__ = "([^"]+)"', source).group(1)
+    real = {**audit_posture.advertised_counts(REQUIRED_NOW), **counts}
+    said = " · ".join(f"{value} {phrase}" for phrase, value in real.items())
+    return f"… v{current} (AGPL-3.0): {said}"
+
+
 def test_a_stale_version_in_the_about_box_is_caught():
     """ทิศ "แดงเมื่อควรแดง" — คำโฆษณาที่ค้างรุ่นเก่าต้องถูกจับ"""
-    stale = audit_posture.description_problems("… v1.6.0 (AGPL-3.0): 105 machine-checked gates …")
+    stale = audit_posture.description_problems(
+        "… v1.6.0 (AGPL-3.0): 105 machine-checked gates …", REQUIRED_NOW
+    )
 
     assert stale, "คำโฆษณาที่บอกรุ่นเก่ากลับผ่าน"
+
+
+@pytest.mark.parametrize(
+    "phrase",
+    ["machine-checked gates", "ADRs", "recorded governance audits", "required checks"],
+)
+def test_every_number_the_about_box_advertises_is_counted(phrase):
+    """เลขที่นับได้แต่ไม่มีใครนับ คือเลขที่ค้างจนกว่าจะมีคนบังเอิญสังเกต (audit รอบ 24)
+
+    ตอน v2.2.0 มันค้างพร้อมกันสามที่ — และตัวตรวจนี้ถือสตริงนั้นอยู่ในมือแล้ว
+    ตั้งแต่วันแรก โดยอ่านเฉพาะเลขรุ่น
+    """
+    wrong = audit_posture.description_problems(_about(**{phrase: 9_999}), REQUIRED_NOW)
+
+    assert wrong, f"เลข {phrase!r} ผิดแล้วยังผ่าน"
+    assert any(phrase in line for line in wrong), "แดงแล้วแต่ไม่ได้บอกว่าเลขไหนผิด"
+
+
+def test_dropping_a_number_from_the_about_box_is_not_silent():
+    """ทิศที่คนลืมเสมอ — วลีที่หายไปทั้งวลี ต้องไม่กลายเป็น "ไม่มีอะไรให้ตรวจ" """
+    trimmed = re.sub(r"\d+ ADRs · ", "", _about())
+
+    assert audit_posture.description_problems(trimmed, REQUIRED_NOW), (
+        "ถอดวลีออกจากช่อง About แล้วด่านเงียบ — แฟ้มที่ไม่มีใครอ่านคือไฟล์ข้อความ"
+    )
 
 
 def test_an_about_box_that_names_the_current_version_passes():
@@ -1720,12 +1771,7 @@ def test_an_about_box_that_names_the_current_version_passes():
     job `bare`/`dialect` ตัดออก (audit รอบ 18) การ import แอปจะทำให้มันหลุด
     ออกจากกลุ่มนั้นทันที และด่านของรอบ 18 ก็จับได้จริงตอนเขียนเทสต์นี้
     """
-    source = (pathlib.Path(__file__).resolve().parent.parent / "app" / "__init__.py").read_text(
-        encoding="utf-8"
-    )
-    current = re.search(r'__version__ = "([^"]+)"', source).group(1)
-
-    assert audit_posture.description_problems(f"… v{current} (AGPL-3.0) …") == []
+    assert audit_posture.description_problems(_about(), REQUIRED_NOW) == []
 
 
 def test_no_answer_from_the_api_is_not_treated_as_a_failure():
@@ -1733,7 +1779,7 @@ def test_no_answer_from_the_api_is_not_treated_as_a_failure():
 
     หลักเดียวกับที่ `--input` ของสคริปต์นี้ทำให้รันโดยไม่ต่อเน็ตได้
     """
-    assert audit_posture.description_problems(None) == []
+    assert audit_posture.description_problems(None, REQUIRED_NOW) == []
 
 
 def test_every_merge_setting_declares_a_value_and_a_reason():

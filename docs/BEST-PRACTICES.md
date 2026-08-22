@@ -289,7 +289,7 @@ curl -s https://www.bestpractices.dev/projects/14085.json > badge.json
 | `test_continuous_integration_justification` | "27 checks on every push" | ตรงกับ required check ปัจจุบัน (27 จาก 30) |
 | `floss_license_osi_justification` | อ้าง ADR 0070 ที่แทน ADR 0038 | ถูกต้อง — บันทึกไว้กันเข้าใจผิดว่าเป็นของค้าง |
 | `crypto_working_justification` · `crypto_weaknesses_justification` | อ้างเลขรุ่นของไลบรารี (1.4.1) | คงไว้ — เป็นเลขรุ่นของ dependency ไม่ใช่ของแอป |
-| `description` | "… v2.2.0 … **110** machine-checked gates, 71 ADRs, **24** recorded governance audits …" | **ค้างอยู่บนเว็บและบน About** — สองที่นั้นยังถือชุดของ v2.2.0 (109 · 71 · 23) ส่วนของบนดิสก์เดินไปแล้วตอน audit รอบ 24 · เลขในช่องนี้นับจาก `gates.yaml` · `docs/adr/` · `AUDIT-LOG.md` ที่ HEAD ซึ่งเป็นทิศที่ `tests/test_audit_log.py` บังคับ · อัปเดตสองที่ข้างนอกตาม [RELEASE.md](RELEASE.md) ข้อ 7 |
+| `description` | "… v2.2.0 … **111** machine-checked gates, 72 ADRs, **24** recorded governance audits …" | **ค้างอยู่บนเว็บและบน About** — สองที่นั้นยังถือชุดของ v2.2.0 (109 · 71 · 23) ส่วนของบนดิสก์เดินไปแล้วตอน audit รอบ 24 · เลขในช่องนี้นับจาก `gates.yaml` · `docs/adr/` · `AUDIT-LOG.md` ที่ HEAD ซึ่งเป็นทิศที่ `tests/test_audit_log.py` บังคับ · อัปเดตสองที่ข้างนอกตาม [RELEASE.md](RELEASE.md) ข้อ 7 |
 
 **ช่อง `description` เป็นสำเนาที่สามของตัวเลขชุดเดียวกัน** — อยู่ที่ About ของ repo
 · ที่นี่ · และในไฟล์นี้ · **ไม่มีที่ไหนในสามที่นั้นที่เทสต์อ่านคู่ได้เลย** เพราะสองที่แรก
