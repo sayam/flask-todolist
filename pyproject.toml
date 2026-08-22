@@ -201,6 +201,10 @@ scripts_coverage = 64
 suppressions = 95
 # ในจำนวนนั้น กี่บรรทัดที่ไม่มีข้อความบอกเหตุผลต่อท้าย
 suppressions_without_reason = 48
+# แถวใน docs/EXTERNAL-SURFACE.md ที่ยอมรับตรง ๆ ว่ายังไม่มีใครเทียบกับของจริง
+# (ADR 0072) — วัดตอนตั้งเพดาน 2026-08-22 · ผิวนอกโตทุกครั้งที่ GitHub เพิ่ม
+# setting ใหม่ และของใหม่เกิดมาไม่มีเจ้าของเสมอ
+external_surface_unowned = 18
 
 [tool.todolist.removals]
 # gate ทั้งหมดใน gates.yaml — ถอด gate ทิ้งเคยเขียวได้ทั้ง CI ถ้าเก็บกวาดครบ 6 ที่
