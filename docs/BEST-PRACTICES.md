@@ -372,6 +372,40 @@ ossf/best-practices-badge: **L1 24 · L2 19 · L3 21 รวม 64** (หน้�
 
 **ทั้ง 24 ข้ออยู่ในกลุ่มเดียวบนเว็บ** (`General → Controls`) เรียงตามลำดับนี้พอดี
 
+
+## ชุด baseline — ระดับ baseline-2 (19 ข้อ · ยังไม่ได้กรอก)
+
+จำนวนข้อมาจากไฟล์เกณฑ์ทางการ `criteria/baseline_criteria.yml` · อยู่กลุ่มเดียว
+(`General → Controls`) เหมือน baseline-1 และเรียงตามลำดับนี้พอดี
+
+**18 ข้อผ่าน · 1 ข้อไม่ผ่าน** — และข้อที่ไม่ผ่านคือตัวเดียวที่กั้น badge อยู่:
+`OSPS-LE-01.01` ต้องให้ผู้ส่งโค้ด **ยืนยันสิทธิ์ตามกฎหมายในทุก commit** ซึ่งแปลว่า
+ต้องเปิด DCO (`Signed-off-by`) หรือ CLA · เป็นการเปลี่ยนวิธีทำงานของทุก commit
+ต่อจากนี้ จึงเป็นคำตัดสินของเจ้าของ ไม่ใช่ของผู้ช่วย (เกณฑ์ `dco` ของชุด metal
+ระดับ silver ก็เป็น Unmet ด้วยเหตุผลเดียวกัน — ปิดทีเดียวได้ทั้งสองที่)
+
+| เกณฑ์ | ตอบ | ข้อความที่วางลงฟอร์มได้เลย (อังกฤษ) |
+|---|---|---|
+| `OSPS-AC-04.01` | Met | The repository default for GITHUB_TOKEN is read-only (default_workflow_permissions=read, and workflows cannot approve pull requests); every job additionally declares its own permissions block. OpenSSF Scorecard scores Token-Permissions 10/10. |
+| `OSPS-BR-02.01` | Met | Every release carries a unique SemVer git tag (v1.0.0 through v2.2.0); the version is also asserted in app/__init__.py and a test fails if the tag, the code and CHANGELOG.md disagree. |
+| `OSPS-BR-04.01` | Met | CHANGELOG.md follows Keep a Changelog with a section per release, and release notes repeat it. Releases that fix published CVEs name them explicitly — v1.5.0 lists all seven cryptography advisories. |
+| `OSPS-BR-05.01` | Met | Dependencies are ingested with standard tooling only: pipenv with a hash-pinned Pipfile.lock for the application, pip --require-hashes for CI tools under pins/, and npm ci for the JavaScript tooling. A test fails the build if any workflow installs without hashes. |
+| `OSPS-BR-06.01` | Met | Every asset attached to a release is signed keyless with cosign/sigstore — each SBOM ships with its .sigstore.json bundle — and the build carries SLSA provenance verified with gh attestation verify before the assets are published (ADR 0058). Note: GitHub's auto-generated source archives and the git tags themselves are not separately signed; ADR 0058 records that decision and the condition for revisiting it. |
+| `OSPS-DO-06.01` | Met | docs/SUPPLY-CHAIN.md documents how dependencies are selected, obtained and tracked across every layer (application, CI tooling, container base image, service images), including the pinning rules and the two-way CVE registers. ADR 0025 documents how plugin dependencies are kept separable. |
+| `OSPS-DO-07.01` | Met | README.md and CONTRIBUTING.md give the full build path: Python 3.13, pipenv sync --dev, the plugin dependency categories, and the single preflight command that runs what CI runs. docs/OPERATIONS.md covers container and compose builds. |
+| `OSPS-GV-01.01` | Met | CONTRIBUTING.md section 'Who holds what' lists every member with access to sensitive resources: a single maintainer (@sayam) who is the only account with write access, administration rights and repository secrets. There are no teams or service accounts with write access. |
+| `OSPS-GV-01.02` | Met | The same section describes the roles and their responsibilities, and ADR 0053 records the compensating controls that stand in for separation of duties in a single-maintainer project, together with the condition that ends the arrangement. |
+| `OSPS-GV-03.02` | Met | CONTRIBUTING.md states what an acceptable contribution must satisfy: pull-request-only flow, Conventional Commits with a 72-character subject, ruff and mypy clean, mutation proof for every new test, registration of new test files in gates.yaml, and an ADR for any new decision. |
+| `OSPS-LE-01.01` | Unmet | The project does not yet require a Developer Certificate of Origin sign-off or a CLA, so contributors do not assert legal authorization on every commit. This is the only baseline-2 control that is not met. |
+| `OSPS-QA-03.01` | Met | main is protected: 27 required status checks must pass before merge and enforce_admins is on, so the maintainer cannot bypass them either. The posture job compares the live settings with ADR 0053 on every push. |
+| `OSPS-QA-06.01` | Met | Every pull request runs the full test suite (1,773 tests) plus the same suite against MySQL and MariaDB, an authenticated DAST scan, an accessibility scan and a real compose stack — 27 required checks in total. |
+| `OSPS-SA-01.01` | Met | docs/ARCHITECTURE.md is an ISO/IEC 42010 style description: system context, stakeholders and their concerns, viewpoints and views, and correspondence rules between them. docs/DESIGN.md covers the user-facing side, and every decision links back to an ADR. |
+| `OSPS-SA-02.01` | Met | docs/openapi.json describes the HTTP API and is generated from the code, with CI failing if it drifts. The CLI surface is documented in CONTRIBUTING.md and docs/OPERATIONS.md, and the plugin interfaces are specified in the ADRs they were introduced by. |
+| `OSPS-SA-03.01` | Met | docs/RISK-ASSESSMENT.md holds a risk register with a documented likelihood x impact method and a machine-checked level formula. It sits alongside a full ASVS 5.0 L2 self-assessment (253 requirements) and an ISO/IEC 27001:2022 self-assessment (116 controls). |
+| `OSPS-VM-01.01` | Met | SECURITY.md is a coordinated disclosure policy with explicit timeframes: acknowledgement within 7 days, initial assessment within 14, and fixes within 7/30/90 days by severity. A test fails CI when a scheduled security review is overdue. |
+| `OSPS-VM-03.01` | Met | GitHub private vulnerability reporting is enabled and SECURITY.md points to it as the primary channel, giving the reporter a private thread with the maintainer. |
+| `OSPS-VM-04.01` | Met | Fixed vulnerabilities are published in CHANGELOG.md and in the release notes, naming each advisory; accepted-but-unfixed advisories are published with their reasoning in pins/accepted-advisories.txt, app/plugins/accepted-advisories.txt and deploy/accepted-image-advisories.txt, all of which CI checks in both directions. |
+
 **ที่ยังต้องทำด้วยมือ**: ล็อกอินที่ <https://www.bestpractices.dev/en/projects/14085>
 แล้วสลับไปแท็บชุด baseline · กรอกตามตารางนี้ · ครบ 100% เมื่อไหร่ได้ badge
 `baseline-1` แล้วค่อยเพิ่มรูปลง `README.md`

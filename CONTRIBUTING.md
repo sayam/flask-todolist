@@ -182,6 +182,31 @@ append-only audit chain, the public history) only work if they sit on the
 mandatory path. Review count is intentionally 0 — the day a second regular
 contributor arrives, required reviews turn on and ADR 0053 gets revisited.
 
+## Who holds what
+
+The project has one maintainer, **[@sayam](https://github.com/sayam)**, who is
+also the only account with write access, the only administrator, and the only
+holder of repository secrets. There are no other members, no teams, and no
+service accounts with write access.
+
+| Role | Who | What they can reach |
+|---|---|---|
+| Maintainer / administrator | @sayam | repository settings, branch protection, Actions secrets, release publication, the Zenodo and OpenSSF Best Practices records |
+| Contributor | anyone | fork + pull request; no access to secrets — GitHub holds workflow runs from first-time contributors until the maintainer approves them |
+
+Nothing about that concentration is comfortable, and it is not treated as
+normal: [ADR 0053](docs/adr/0053-solo-maintainer-sod-compensating-controls.md)
+records the compensating controls that stand in for separation of duties
+(pull-request-only `main` enforced against admins, 27 required checks, an
+append-only audit chain, a fully public history) and the condition that ends
+the arrangement — the day a second regular contributor arrives, required
+reviews turn on and that ADR is revisited.
+
+The maintainer's account is protected with phishing-resistant two-factor
+authentication (a passkey as the primary method, TOTP and GitHub Mobile as
+backups, SMS deliberately not enabled); this is re-verified on a twelve-month
+cadence recorded in [docs/SECURITY-CADENCE.md](docs/SECURITY-CADENCE.md).
+
 ### 12. A `good first issue` is an invitation that is still out
 
 The label is not decoration: someone may already be working on it, and you will
