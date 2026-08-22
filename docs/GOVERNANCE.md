@@ -8,7 +8,7 @@
 **อ่านไฟล์นี้เมื่อ**: จะเพิ่ม/แก้ gate · แตะ `gates.yaml` · แตะ workflow ที่เป็น
 ด่าน · แก้ของที่ generate ไป `SKILL.md`/`skill/`/`overlays/` · หรือจะอ่านผลของ
 สำมะโน (`rerun_census.py` · `schedule_census.py` · `red_streak_census.py` ·
-`audit_posture.py`)
+`audit_posture.py`) · รอบ audit ที่ให้กำเนิดกลไกพวกนี้อยู่ใน [`AUDIT-LOG.md`](AUDIT-LOG.md)
 
 > **ไฟล์นี้มีเพดานของตัวเอง** (180 บรรทัด / 1,400 คำ — `tests/test_instruction_budget.py`)
 > กว้างกว่าของ `CLAUDE.md` เพราะต้นทุนของมันจ่ายตอนมีคนเปิดอ่าน ไม่ใช่ทุก session ·
