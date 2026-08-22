@@ -33,6 +33,7 @@ import datetime
 import pathlib
 import re
 import sys
+import tomllib
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 CADENCE = ROOT / "docs" / "SECURITY-CADENCE.md"
@@ -51,6 +52,13 @@ REGISTERS = (
     ".github/accepted-code-scanning-alerts.txt",
     "app/plugins/accepted-advisories.txt",
 )
+
+# ทะเบียนที่อยู่ **ในโค้ด** ไม่ใช่ไฟล์ข้อความ — นับด้วยตัวเลขของมันเองที่อื่น
+# ในหน้านี้ แต่ต้องถูกเอ่ยชื่อคู่กับกองข้างบนเสมอ ไม่งั้นรายการของ "ทะเบียน
+# ข้อยกเว้นทั้งหมด" จะมีสองฉบับที่ไม่ตรงกัน (audit รอบ 25 ข้อ 1)
+IN_CODE_REGISTERS = ("ALLOWED_LINES", "UNPROVEN")
+
+PYPROJECT = ROOT / "pyproject.toml"
 
 DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 EXPIRY_MARK = "เงื่อนไขที่ทำให้คำตัดสิน"
@@ -151,6 +159,17 @@ def undone() -> list[str]:
     return items
 
 
+def ceilings() -> dict[str, int]:
+    """เพดานที่เดินทางเดียว — กองที่ *มีคนต้องไปทำให้เล็กลง* ไม่ใช่แค่ห้ามโต
+
+    หน้านี้เกิดขึ้นเพราะการต้องเปิดหลายที่ถึงจะรู้ว่าอะไรค้าง · เพดานพวกนี้เกิด
+    ทีหลัง (audit รอบ 21 และ 24) แล้ว **ไม่มีอะไรทวงให้มาโผล่ที่นี่** — ผลคือ
+    หน้าเดียวที่สร้างมาเพื่อให้เลิกเปิดหลายที่ ก็ยังต้องเปิดที่อื่นอยู่ดี
+    """
+    config = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
+    return {name: int(value) for name, value in config["tool"]["todolist"]["ceilings"].items()}
+
+
 def counts() -> dict[str, int]:
     """ตัวเลขที่บอกขนาดของกองที่ต้องอ่าน — อ่านจากแหล่งจริงทุกตัว"""
     unproven = re.search(r"UNPROVEN_CEILING\s*=\s*(\d+)", EVIDENCE.read_text(encoding="utf-8"))
@@ -193,6 +212,11 @@ def report(today: datetime.date, within: int) -> str:
     lines += ["", f"## รอเงื่อนไข ไม่ใช่รอวันที่ — {len(waiting)} แถว"]
     lines.append(f"  · คนตัดสิน {manual} จาก {conditional} แถว (ที่เหลือมีเครื่องตรวจให้)")
     lines += [f"  {item}" for item in waiting] or ["  (ไม่มี)"]
+
+    limits = ceilings()
+    lines += ["", f"## กองที่หดได้ทางเดียว (เพดานใน pyproject) — {len(limits)} กอง"]
+    lines += [f"  {name}: {value}" for name, value in sorted(limits.items())]
+    lines.append("  · เพดานกันไม่ให้โต แต่ไม่มีอะไรทำให้หด — ต้องมีคนไปทำให้เล็กลงเอง")
 
     postponed = deferred()
     lines += ["", f"## ตัดสินแล้วว่ายังไม่ทำ — {len(postponed)} รายการ"]

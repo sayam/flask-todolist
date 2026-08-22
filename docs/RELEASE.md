@@ -25,6 +25,9 @@
      [`AUDIT-LOG.md`](AUDIT-LOG.md) (จำนวนรอบ audit) · required check จาก
      branch protection · **ช่องนี้อยู่นอก repo จึงไม่มีเทสต์ไหนอ่านคู่ได้**
      ซึ่งเป็นเหตุผลที่มันค้างได้นานที่สุดในบรรดาที่ที่เราโฆษณาตัวเลข
+     · **ตั้งแต่ audit รอบ 24 มีเครื่องอ่านคู่แล้ว** (`ci:posture` เทียบทั้งสี่เลข
+     กับของบนดิสก์) และตั้งแต่รอบ 25 เลขที่จะใส่พิมพ์ออกมาได้ด้วย
+     `python3 scripts/sync_counts.py --about` — ไม่ต้องประกอบสตริงเอง
      (เคยพลาดค้าง v1.1.0 มาสามรุ่นเพราะขั้นตอนนี้เขียนแค่ "อัปเดต About")
    - `Website` (homepage): ตั้งเป็น
      `https://github.com/sayam/flask-todolist/releases/latest` **ถาวรแล้ว**
