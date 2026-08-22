@@ -325,7 +325,7 @@ curl -s https://www.bestpractices.dev/projects/14085.json > badge.json
 **กับดักของฟอร์มที่ยังใช้ได้อยู่**: บันทึกทีละแท็บ และดูว่า `updated_at`
 ใน JSON ขยับจริงหลังกด Save — ถ้าไม่ขยับ แปลว่าไม่ได้บันทึก
 
-## ชุด baseline — OSPS Baseline v2026.02.19 (ยังไม่เริ่มตอบบนเว็บ)
+## ชุด baseline — OSPS Baseline v2026.02.19 (**baseline-1 ได้แล้ว 2026-08-22**)
 
 `bestpractices.dev` ออก badge **สองชุดจากโปรเจกต์เดียวกัน** (ID 14085) —
 ชุด *metal* (passing → silver → gold) ที่ไฟล์นี้ตอบไว้ข้างบน และชุด
@@ -333,12 +333,15 @@ curl -s https://www.bestpractices.dev/projects/14085.json > badge.json
 ชุดข้อ **MUST ล้วน** ที่ derive มาจากกรอบกฎหมาย/regulation · รูปของชุดนี้อยู่คนละ
 URL: `https://www.bestpractices.dev/projects/14085/baseline`
 
-**สถานะที่ดึงจาก API เมื่อ 2026-08-22**: `badge_percentage_baseline_1/2/3 = 0`
-ทั้งสามระดับ · เว็บใช้ v2026.02.19 แล้ว (64 ข้อ — L1 21 · L2 16 · L3 27)
+**สถานะที่ดึงจาก API เมื่อ 2026-08-23**: `badge_percentage_baseline_1 = 100`
+(`achieved_baseline_1_at = 2026-08-22T23:19Z`) · baseline-2 และ 3 ยังเป็น 0 ·
+จำนวนข้อยืนยันจากไฟล์เกณฑ์ทางการ `criteria/baseline_criteria.yml` ของ
+ossf/best-practices-badge: **L1 24 · L2 19 · L3 21 รวม 64** (หน้าสรุปบนเว็บเขียน
+21/16/27 ซึ่งไม่ตรงกับไฟล์ที่ระบบใช้จริง)
 
-ตารางข้างล่างคือ**คำตอบที่เตรียมไว้สำหรับ baseline-1** พร้อมหลักฐานในรีโป —
-กรอกบนเว็บด้วยบัญชีเจ้าของ แล้วค่อยเพิ่มรูป badge ลง `README.md`
-(**อย่าเพิ่มรูปก่อนตอบ** ไม่งั้นหน้าแรกจะโชว์ `🚧 0% 🚧`)
+ตารางข้างล่างคือ**คำตอบที่กรอกไปจริงทั้ง 24 ข้อ** พร้อมหลักฐานในรีโป ·
+รูป badge อยู่บน `README.md` แล้วทั้งฉบับอังกฤษและไทย
+(`https://www.bestpractices.dev/projects/14085/baseline`)
 
 | เกณฑ์ | ตอบ | ข้อความที่วางลงฟอร์มได้เลย (อังกฤษ — ฟอร์มเป็นอังกฤษทั้งใบ) |
 |---|---|---|

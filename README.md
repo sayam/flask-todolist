@@ -1,6 +1,7 @@
 # Todolist
 
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/14085/badge)](https://www.bestpractices.dev/projects/14085)
+[![OpenSSF Baseline](https://www.bestpractices.dev/projects/14085/baseline)](https://www.bestpractices.dev/projects/14085)
 [![OpenSSF Scorecard](https://img.shields.io/ossf-scorecard/github.com/sayam/flask-todolist?label=openssf%20scorecard)](https://scorecard.dev/viewer/?uri=github.com/sayam/flask-todolist)
 [![CI](https://img.shields.io/github/actions/workflow/status/sayam/flask-todolist/ci.yml?branch=main&label=CI)](https://github.com/sayam/flask-todolist/actions/workflows/ci.yml)
 
@@ -188,6 +189,7 @@ own dependency category) · SQLite / MySQL / MariaDB · gunicorn · pipenv
 # Todolist (ฉบับภาษาไทย)
 
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/14085/badge)](https://www.bestpractices.dev/projects/14085)
+[![OpenSSF Baseline](https://www.bestpractices.dev/projects/14085/baseline)](https://www.bestpractices.dev/projects/14085)
 [![OpenSSF Scorecard](https://img.shields.io/ossf-scorecard/github.com/sayam/flask-todolist?label=openssf%20scorecard)](https://scorecard.dev/viewer/?uri=github.com/sayam/flask-todolist)
 [![CI](https://img.shields.io/github/actions/workflow/status/sayam/flask-todolist/ci.yml?branch=main&label=CI)](https://github.com/sayam/flask-todolist/actions/workflows/ci.yml)
 
