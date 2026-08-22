@@ -242,7 +242,7 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 | `test_statement_coverage90` | MUST | **วัดแล้ว 97.17%** (`fail_under = 97` ใน `pyproject.toml` เป็นพื้นที่ขยับขึ้นทางเดียว · job `test` บังคับทุก push) |
 | `test_branch_coverage80` | MUST | **วัดแล้ว 93.96%** (1,058 จาก 1,126 สาขา · `[tool.coverage.run] branch = true`) |
 | `code_review_standards` | MUST (ต้องมี URL) | `CONTRIBUTING.md` — PR-only, Conventional Commits, กติกา mutation test, การลงทะเบียนไฟล์เทสต์ใน `gates.yaml` · คำตัดสินอยู่ใน ADR 0053 |
-| `security_review` | MUST | `docs/ASVS.md` (ประเมิน ASVS 5.0 L2 ครบ 253 ข้อ) · `docs/ISO27001.md` (116 ข้อ) · `docs/RISK-ASSESSMENT.md` · และรอบ audit 23 รอบที่มีทะเบียนใน [AUDIT-LOG.md](AUDIT-LOG.md) |
+| `security_review` | MUST | `docs/ASVS.md` (ประเมิน ASVS 5.0 L2 ครบ 253 ข้อ) · `docs/ISO27001.md` (116 ข้อ) · `docs/RISK-ASSESSMENT.md` · และรอบ audit 24 รอบที่มีทะเบียนใน [AUDIT-LOG.md](AUDIT-LOG.md) |
 | `hardened_site` | MUST (ต้องมี URL) | หน้าโครงการคือ GitHub ซึ่งส่ง header ครบ · ตัวแอปเองบังคับ CSP/HSTS ผ่าน Talisman และมี gate คุม (`tests/test_security_headers.py`) |
 | `require_2FA` | MUST | ผู้ดูแลคนเดียวเปิด 2FA ไว้ (ตรวจตามรอบ "hardening ของบัญชีเจ้าของ" — ทบทวนล่าสุด 2026-08-17) · GitHub บังคับ 2FA กับผู้ร่วมพัฒนาตั้งแต่ 2023 |
 | `secure_2FA` | SHOULD | ถ้าเป็น TOTP/passkey (ไม่ใช่ SMS) — **เจ้าของยืนยันเองก่อนตอบ** |
@@ -289,7 +289,7 @@ curl -s https://www.bestpractices.dev/projects/14085.json > badge.json
 | `test_continuous_integration_justification` | "27 checks on every push" | ตรงกับ required check ปัจจุบัน (27 จาก 30) |
 | `floss_license_osi_justification` | อ้าง ADR 0070 ที่แทน ADR 0038 | ถูกต้อง — บันทึกไว้กันเข้าใจผิดว่าเป็นของค้าง |
 | `crypto_working_justification` · `crypto_weaknesses_justification` | อ้างเลขรุ่นของไลบรารี (1.4.1) | คงไว้ — เป็นเลขรุ่นของ dependency ไม่ใช่ของแอป |
-| `description` | "… v2.2.0 … **109** machine-checked gates, 71 ADRs, **23** recorded governance audits …" | **ตรงแล้ว** (2026-08-22) — เทียบทั้งกับ About ของ repo (ตรงกันทุกตัวอักษร) และกับของบนดิสก์ (`gates.yaml` · `docs/adr/` · `AUDIT-LOG.md`) |
+| `description` | "… v2.2.0 … **110** machine-checked gates, 71 ADRs, **24** recorded governance audits …" | **ค้างอยู่บนเว็บและบน About** — สองที่นั้นยังถือชุดของ v2.2.0 (109 · 71 · 23) ส่วนของบนดิสก์เดินไปแล้วตอน audit รอบ 24 · เลขในช่องนี้นับจาก `gates.yaml` · `docs/adr/` · `AUDIT-LOG.md` ที่ HEAD ซึ่งเป็นทิศที่ `tests/test_audit_log.py` บังคับ · อัปเดตสองที่ข้างนอกตาม [RELEASE.md](RELEASE.md) ข้อ 7 |
 
 **ช่อง `description` เป็นสำเนาที่สามของตัวเลขชุดเดียวกัน** — อยู่ที่ About ของ repo
 · ที่นี่ · และในไฟล์นี้ · **ไม่มีที่ไหนในสามที่นั้นที่เทสต์อ่านคู่ได้เลย** เพราะสองที่แรก
