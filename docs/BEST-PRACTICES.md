@@ -260,13 +260,14 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 
 | เกณฑ์ | ชนิด | ต้องมีอะไรก่อน |
 |---|---|---|
-| `small_tasks` | MUST (ต้องมี URL) | ต้องมี issue ที่ติดป้าย `good first issue` จริง — ป้ายมีอยู่แล้ว แต่ตอนนี้ repo มี **0 issue** |
+| `small_tasks` | MUST (ต้องมี URL) | **ตอบได้แล้ว** — issue [#186](https://github.com/sayam/flask-todolist/issues/186) เปิดอยู่และติดป้าย `good first issue` (ตอนเขียนแถวนี้ครั้งแรก repo มี 0 issue) · ช่องบนเว็บยังเป็น `?` |
 | `build_reproducible` | MUST (ต้องมี URL) | ทุกอย่างถูกตรึงแล้ว (`Pipfile.lock` มี hash · `pins/` ใช้ `--require-hashes` · base image ตรึง digest) แต่ **ยังไม่เคยพิสูจน์ว่า build ซ้ำได้ผลไบต์ต่อไบต์** — ตอบ Met โดยไม่วัดคือสิ่งที่โปรเจกต์นี้ห้ามตัวเองมาตลอด |
 
-**ถ้าตอบครบตามตารางบน** เปอร์เซ็นต์ gold จะขยับจาก 26% เป็นราว 60%
-โดยไม่ต้องแก้โค้ดอะไรเลย — และที่เหลือจะเป็นรายการที่*ตัดสินแล้ว* ไม่ใช่รายการที่ยังไม่ได้ดู
+**ตอบไปแล้ว และผลออกมาตามที่ประเมินไว้** — gold ขยับจาก 26% เป็น **57%**
+โดยไม่ได้แก้โค้ดอะไรเลย · ที่เหลือเป็นรายการที่*ตัดสินแล้ว* ไม่ใช่รายการที่ยังไม่ได้ดู
+(ดูรายการที่ยังไม่ Met ท้ายหัวข้อถัดไป)
 
-## สิ่งที่ต้องกรอกบนเว็บก่อนออกรุ่นถัดไป (ตรวจกับ API เมื่อ 2026-08-20)
+## ค่าที่เก็บอยู่บนเว็บจริง (ดึงจาก API เมื่อ 2026-08-22)
 
 **เว็บเป็นแหล่งจริง ไฟล์นี้เป็นใบตอบ** — รายการนี้จึงไม่ได้มาจากการอ่านไฟล์นี้
 แต่มาจากการดึงคำตอบที่เก็บอยู่จริงมาเทียบ:
@@ -275,27 +276,35 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 curl -s https://www.bestpractices.dev/projects/14085.json > badge.json
 ```
 
-สถานะ ณ วันที่ตรวจ: `badge_percentage_0` = 100 · `_1` = 100 (silver) · `_2` = 26
-(gold) · `updated_at` = 2026-08-19T15:22Z
+สถานะ ณ วันที่ตรวจ: `badge_percentage_0` = 100 · `_1` = 100 (silver) · `_2` = **57**
+(gold) · `updated_at` = 2026-08-21T17:31Z · `repo_url` ตรงกับของเรา
 
-| ช่องบนเว็บ | ค่าที่เก็บอยู่ตอนนี้ | ต้องแก้เป็น | ทำไม |
-|---|---|---|---|
-| `license` (ช่องเมทาดาทาของโปรเจกต์ ไม่ใช่เกณฑ์) | `MIT` | `AGPL-3.0-or-later` | เปลี่ยนสัญญาอนุญาตตั้งแต่ 2026-08-19 (ADR 0070) — **ช่องนี้ยังค้างอยู่แม้จะบันทึกหน้าอื่นไปแล้ว** |
-| `description` | "… — v2.1.0: …" | เขียนใหม่ให้เป็น v2.2.0 (พร้อมเลข gate/ADR ปัจจุบัน) และเอ่ยถึง DOI | คำโฆษณาบรรทัดแรกที่คนเห็นก่อนกดเข้า repo |
-| `homepage_url` | ว่าง | `https://github.com/sayam/flask-todolist` | เกณฑ์ `description_good` อ้างถึงหน้าโครงการ · ปล่อยว่างทำให้ gold ข้อ `homepage_url_https` ตัดสินไม่ได้ |
-| `floss_license_osi_justification` | อธิบาย AGPL แล้ว แต่ยังมีคำว่า MIT อยู่ในประโยคเดียวกัน | คงไว้ได้ (อ้าง ADR 0038 ที่ถูกแทน) | ตรวจแล้วว่า**ถูกต้อง** — บันทึกไว้กันเข้าใจผิดว่าเป็นของค้าง |
-| `version_unique_justification` · `version_tags_justification` | "v1.0.0 through v2.0.2" | คงไว้ | ตรวจแล้วว่าตรงกับ tag จริง |
-| `release_notes_vulns_justification` | อ้าง v1.5.0 เป็นรุ่นแรกที่แก้ CVE | คงไว้ **จนกว่ารุ่นถัดไปจะแก้ CVE ใหม่** | ข้อความอ้างอดีต ไม่ใช่สถานะปัจจุบัน |
-| `crypto_working_justification` · `crypto_weaknesses_justification` | อ้างเลขรุ่นของไลบรารี (1.4.1) | คงไว้ | เป็นเลขรุ่นของ dependency ไม่ใช่ของแอป |
-| `test_continuous_integration_justification` | "27 checks on every push" | คงไว้ | ตรงกับ required check ปัจจุบัน (27 จาก 30) |
-| `version_unique_justification` · `version_tags_justification` (แก้ปลายช่วง) | "v1.0.0 through v2.1.0" | **"v1.0.0 through v2.2.0"** | ผูกกับรุ่น — RELEASE.md ข้อ 3 |
-| `maintained_justification` | "latest release v2.1.0 (2026-08-20)" | **"latest release v2.2.0 (2026-08-21)"** | ผูกกับรุ่น |
-| `release_notes_vulns_justification` | ชี้ v1.5.0 | คงไว้ | **v2.2.0 ไม่ได้แก้ CVE ของของที่ ship จริง** (CVE ของ `util-linux` ยังเป็นการ*รับไว้* ไม่ใช่การแก้) — กฎใน RELEASE.md ข้อ 1 บอกให้คงไว้ |
+| ช่องบนเว็บ | ค่าที่เก็บอยู่จริงตอนนี้ | สถานะ |
+|---|---|---|
+| `license` | `AGPL-3.0-or-later` | **กรอกแล้ว** — ตรงกับ ADR 0070 |
+| `homepage_url` | `https://github.com/sayam/flask-todolist` | **กรอกแล้ว** (ช่องเมทาดาทา) · แต่ *เกณฑ์* ชื่อเดียวกันยังเป็น `?` — การเติมช่องไม่ได้ตอบเกณฑ์ให้เอง |
+| `version_unique_justification` · `version_tags_justification` | "v1.0.0 through v2.2.0" | **ตรงกับ tag จริง** |
+| `maintained_justification` | "latest release v2.2.0 (2026-08-21)" | **ตรงกับรุ่นล่าสุด** |
+| `release_notes_vulns_justification` | ชี้ v1.5.0 (CVE เจ็ดใบของ `cryptography`) | **คงไว้ถูกแล้ว** — v2.2.0 ไม่ได้แก้ CVE ของของที่ ship จริง (`util-linux` เป็นการ*รับไว้*) |
+| `test_continuous_integration_justification` | "27 checks on every push" | ตรงกับ required check ปัจจุบัน (27 จาก 30) |
+| `floss_license_osi_justification` | อ้าง ADR 0070 ที่แทน ADR 0038 | ถูกต้อง — บันทึกไว้กันเข้าใจผิดว่าเป็นของค้าง |
+| `crypto_working_justification` · `crypto_weaknesses_justification` | อ้างเลขรุ่นของไลบรารี (1.4.1) | คงไว้ — เป็นเลขรุ่นของ dependency ไม่ใช่ของแอป |
+| `description` | "… v2.2.0 … **108** machine-checked gates, 71 ADRs, **20** recorded governance audits …" | **ยังค้าง** — เลขรุ่นตรงแล้ว แต่จำนวน gate กับจำนวนรอบ audit เป็นของก่อนหน้า (ของจริง **109** และ **23**) |
 
-**สรุป: ต้องแก้ห้าช่อง** — `license` · `description` · `homepage_url` · `version_unique`/`version_tags` · `maintained` ·
-ที่เหลือตรวจแล้วว่ายังตรง · สามช่องแรกอยู่ในแท็บ **Project data** (ไม่กระทบ
-เปอร์เซ็นต์ แต่กระทบสิ่งที่คนอ่านเห็น) ส่วนสองช่องหลังเป็น justification ของเกณฑ์
-ที่ผูกกับเลขรุ่น ซึ่ง `docs/RELEASE.md` ข้อ 3 สั่งให้แก้ทุกรุ่นอยู่แล้ว
+**ช่อง `description` เป็นสำเนาที่สามของตัวเลขชุดเดียวกัน** — อยู่ที่ About ของ repo
+· ที่นี่ · และในไฟล์นี้ · **ไม่มีที่ไหนในสามที่นั้นที่เทสต์อ่านคู่ได้เลย** เพราะสองที่แรก
+อยู่นอก repo · นี่คือเหตุผลที่ `docs/RELEASE.md` ข้อ 7 ต้องระบุทุกเลขพร้อมแหล่ง
+ที่ต้องเทียบ แทนที่จะเขียนว่า "อัปเดต About"
+
+### เกณฑ์ที่ยังไม่ Met (อ่านจาก API ตรง ๆ ไม่ใช่จากความจำ)
+
+- **`?` (ยังไม่ตอบ)** — `small_tasks` (ตอนนี้ตอบได้แล้ว: issue #186 ติดป้าย
+  `good first issue` และเปิดอยู่) · `build_reproducible` · `homepage_url` ·
+  `report_url` · และชุด `OSPS-*` ทั้งหมดซึ่งเป็นกรอบคนละใบ
+- **`Unmet` (ตัดสินแล้วว่าไม่ผ่าน)** — `bus_factor` · `contributors_unassociated`
+  · `two_person_review` · `dco` · `copyright_per_file` · `license_per_file` ·
+  `version_tags_signed` · เจ็ดข้อนี้เป็นผลของการเป็นโครงการคนเดียวโดยตรง
+  ห้าข้อแรกแก้ด้วยการมีคนที่สองเท่านั้น
 
 **กับดักของฟอร์มที่ยังใช้ได้อยู่**: บันทึกทีละแท็บ และดูว่า `updated_at`
 ใน JSON ขยับจริงหลังกด Save — ถ้าไม่ขยับ แปลว่าไม่ได้บันทึก
