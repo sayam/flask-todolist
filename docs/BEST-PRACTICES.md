@@ -277,7 +277,7 @@ curl -s https://www.bestpractices.dev/projects/14085.json > badge.json
 ```
 
 สถานะ ณ วันที่ตรวจ: `badge_percentage_0` = 100 · `_1` = 100 (silver) · `_2` = **57**
-(gold) · `updated_at` = 2026-08-21T17:31Z · `repo_url` ตรงกับของเรา
+(gold) · `updated_at` = 2026-08-22T00:39Z · `repo_url` ตรงกับของเรา
 
 | ช่องบนเว็บ | ค่าที่เก็บอยู่จริงตอนนี้ | สถานะ |
 |---|---|---|
@@ -289,12 +289,17 @@ curl -s https://www.bestpractices.dev/projects/14085.json > badge.json
 | `test_continuous_integration_justification` | "27 checks on every push" | ตรงกับ required check ปัจจุบัน (27 จาก 30) |
 | `floss_license_osi_justification` | อ้าง ADR 0070 ที่แทน ADR 0038 | ถูกต้อง — บันทึกไว้กันเข้าใจผิดว่าเป็นของค้าง |
 | `crypto_working_justification` · `crypto_weaknesses_justification` | อ้างเลขรุ่นของไลบรารี (1.4.1) | คงไว้ — เป็นเลขรุ่นของ dependency ไม่ใช่ของแอป |
-| `description` | "… v2.2.0 … **108** machine-checked gates, 71 ADRs, **20** recorded governance audits …" | **ยังค้าง** — เลขรุ่นตรงแล้ว แต่จำนวน gate กับจำนวนรอบ audit เป็นของก่อนหน้า (ของจริง **109** และ **23**) |
+| `description` | "… v2.2.0 … **109** machine-checked gates, 71 ADRs, **23** recorded governance audits …" | **ตรงแล้ว** (2026-08-22) — เทียบทั้งกับ About ของ repo (ตรงกันทุกตัวอักษร) และกับของบนดิสก์ (`gates.yaml` · `docs/adr/` · `AUDIT-LOG.md`) |
 
 **ช่อง `description` เป็นสำเนาที่สามของตัวเลขชุดเดียวกัน** — อยู่ที่ About ของ repo
 · ที่นี่ · และในไฟล์นี้ · **ไม่มีที่ไหนในสามที่นั้นที่เทสต์อ่านคู่ได้เลย** เพราะสองที่แรก
 อยู่นอก repo · นี่คือเหตุผลที่ `docs/RELEASE.md` ข้อ 7 ต้องระบุทุกเลขพร้อมแหล่ง
 ที่ต้องเทียบ แทนที่จะเขียนว่า "อัปเดต About"
+
+**ตอน v2.2.0 ทั้งสามที่ค้างพร้อมกัน แล้วถูกไล่ปิดทีละที่ในสามรอบ** — About ก่อน
+· ใบตอบนี้ · แล้วช่องบนเว็บเป็นที่สุดท้าย · แต่ละรอบผ่านไปโดยที่ "ก็อัปเดตแล้วนี่"
+เป็นคำตอบที่จริงบางส่วนเสมอ **วิธีเดียวที่จบคือไล่เทียบทีละที่กับของบนดิสก์**
+ไม่ใช่เทียบกับความจำว่าแก้ไปแล้วหรือยัง
 
 ### เกณฑ์ที่ยังไม่ Met (อ่านจาก API ตรง ๆ ไม่ใช่จากความจำ)
 
