@@ -174,7 +174,7 @@ def declared() -> dict[str, float]:
 # parser ตัวที่สองที่นี่ จะ drift ทันทีที่มีคนแก้รูปตารางฝั่งเดียว
 # (เจอกับตัวเองระหว่างเขียน: ตัวนับที่เขียนใหม่ได้ 24 ขณะที่ตัวจริงได้ 23)
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-import whats_pending  # noqa: E402
+import whats_pending  # noqa: E402 - import order required here
 
 # แถวของทะเบียนความเสี่ยง — รูปเดียวกับที่ `tests/test_risk_assessment.py` ใช้
 RISK_ROW = re.compile(

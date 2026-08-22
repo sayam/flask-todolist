@@ -87,7 +87,7 @@ def run_semgrep(app_dir: pathlib.Path, binary: pathlib.Path | None) -> int | Non
     resolved = binary.resolve(strict=True)
     if not resolved.is_file():
         raise SystemExit(f"--semgrep ไม่ใช่ไฟล์: {resolved}")
-    result = subprocess.run(  # noqa: S603
+    result = subprocess.run(  # noqa: S603 - trusted executable and input
         [
             str(resolved),
             "scan",

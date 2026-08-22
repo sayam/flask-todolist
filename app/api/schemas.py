@@ -39,12 +39,12 @@ class LocalDateTime(ma.fields.Field):
     """
 
     # ลายเซ็นสองตัวนี้เป็นของ marshmallow ตัดอาร์กิวเมนต์ที่ไม่ได้ใช้ออกไม่ได้
-    def _serialize(self, value: Any, attr: str | None, obj: Any, **kwargs: Any) -> str | None:  # noqa: ARG002
+    def _serialize(self, value: Any, attr: str | None, obj: Any, **kwargs: Any) -> str | None:  # noqa: ARG002 - required by interface
         if value is None:
             return None
         return str(value.isoformat())
 
-    def _deserialize(self, value: Any, attr: str | None, data: Any, **kwargs: Any) -> Any:  # noqa: ARG002
+    def _deserialize(self, value: Any, attr: str | None, data: Any, **kwargs: Any) -> Any:  # noqa: ARG002 - required by interface
         # ไม่ต้องเช็ค None เอง — marshmallow จัดการ `allow_none` ให้ก่อนถึงตรงนี้แล้ว
         if not isinstance(value, str):
             raise ma.ValidationError(NOT_A_STRING)

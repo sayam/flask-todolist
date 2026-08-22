@@ -34,7 +34,7 @@ class EncryptedSecret(TypeDecorator):
     impl = String(256)
     cache_ok = True
 
-    def process_bind_param(self, value: Any, dialect: Any) -> Any:  # noqa: ARG002
+    def process_bind_param(self, value: Any, dialect: Any) -> Any:  # noqa: ARG002 - required by interface
         """ทุกค่าที่ลงดิสก์ต้องเป็น ciphertext — นี่คือใจของ at rest"""
         if value is None:
             return None
@@ -46,7 +46,7 @@ class EncryptedSecret(TypeDecorator):
 
         return value if crypto.is_encrypted(value) else crypto.encrypt(str(value))
 
-    def process_result_value(self, value: Any, dialect: Any) -> Any:  # noqa: ARG002
+    def process_result_value(self, value: Any, dialect: Any) -> Any:  # noqa: ARG002 - required by interface
         """ค่า legacy อ่านผ่านตรง — การปฏิเสธของเก่าคือการ lock ผู้ใช้ MFA ทุกคน"""
         if value is None:
             return None
