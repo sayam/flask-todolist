@@ -458,9 +458,9 @@ description: Universal production-discipline rules for web applications, distill
 
 ### `conventional-commits`
 
-**กฎ:** หัว commit เป็น Conventional Commits ≤72 ตัว ตรวจเฉพาะ commit ที่เพิ่มจริง
+**กฎ:** commit เป็น Conventional Commits ≤72 ตัว และมี Signed-off-by (DCO) ตรวจเฉพาะที่เพิ่มจริง
 
-**เกิดจาก:** required check ที่ถูก skip บน PR ทำให้ PR ค้าง BLOCKED ตลอดกาลโดยไม่มี อะไรแดงให้เห็น — และ merge commit ของปุ่ม Update branch เคยตกด่านเอง
+**เกิดจาก:** required check ที่ถูก skip บน PR ทำให้ PR ค้าง BLOCKED ตลอดกาลโดยไม่มี อะไรแดงให้เห็น — และ merge commit ของปุ่ม Update branch เคยตกด่านเอง · **ADR 0073 เพิ่มลายเซ็น DCO เข้ามาในด่านเดียวกัน**: โปรเจกต์ไม่เคยขอให้ ผู้ส่งโค้ดรับรองสิทธิ์ตามกฎหมายของสิ่งที่ส่งเลย ซึ่งเป็นข้อเดียวจาก 19 ข้อ ของ OSPS Baseline ระดับ 2 ที่ไม่ผ่าน และเป็นเหตุผลเดียวกับที่เกณฑ์ `dco` ของ badge ระดับ silver เป็น Unmet มาตั้งแต่ต้น
 
 **ตัวบังคับใน reference:** job `commit-lint`
 

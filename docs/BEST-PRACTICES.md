@@ -373,16 +373,24 @@ ossf/best-practices-badge: **L1 24 · L2 19 · L3 21 รวม 64** (หน้�
 **ทั้ง 24 ข้ออยู่ในกลุ่มเดียวบนเว็บ** (`General → Controls`) เรียงตามลำดับนี้พอดี
 
 
-## ชุด baseline — ระดับ baseline-2 (19 ข้อ · ยังไม่ได้กรอก)
+## ชุด baseline — ระดับ baseline-2 (19 ข้อ · ผ่านครบบนดิสก์แล้ว · รอกรอกบนเว็บ)
 
 จำนวนข้อมาจากไฟล์เกณฑ์ทางการ `criteria/baseline_criteria.yml` · อยู่กลุ่มเดียว
 (`General → Controls`) เหมือน baseline-1 และเรียงตามลำดับนี้พอดี
 
-**18 ข้อผ่าน · 1 ข้อไม่ผ่าน** — และข้อที่ไม่ผ่านคือตัวเดียวที่กั้น badge อยู่:
-`OSPS-LE-01.01` ต้องให้ผู้ส่งโค้ด **ยืนยันสิทธิ์ตามกฎหมายในทุก commit** ซึ่งแปลว่า
-ต้องเปิด DCO (`Signed-off-by`) หรือ CLA · เป็นการเปลี่ยนวิธีทำงานของทุก commit
-ต่อจากนี้ จึงเป็นคำตัดสินของเจ้าของ ไม่ใช่ของผู้ช่วย (เกณฑ์ `dco` ของชุด metal
-ระดับ silver ก็เป็น Unmet ด้วยเหตุผลเดียวกัน — ปิดทีเดียวได้ทั้งสองที่)
+**ผ่านครบทั้ง 19 ข้อแล้ว** — ข้อสุดท้ายที่ค้างคือ `OSPS-LE-01.01` (ผู้ส่งโค้ด
+ต้องยืนยันสิทธิ์ตามกฎหมายในทุก commit) ปิดด้วย **DCO ตาม
+[ADR 0073](adr/0073-dco-sign-off.md)** เมื่อ 2026-08-23 · ทุก commit ต่อจากนี้
+ต้องมี `Signed-off-by` ซึ่ง hook `commit-msg` กับ job `commit-lint` บังคับทั้งสองที่
+
+**ปิดทีเดียวได้สองที่** — เกณฑ์ `dco` ของชุด metal ระดับ **silver** เป็น `Unmet`
+มาตั้งแต่ต้นด้วยเหตุผลเดียวกัน ตอนกรอกให้เปลี่ยนเป็น `Met` พร้อมข้อความนี้:
+
+> Every commit must carry a Signed-off-by line (Developer Certificate of Origin
+> 1.1), added by git commit -s. The commit-msg hook rejects an unsigned commit
+> locally and the commit-lint CI job checks every commit a pull request adds,
+> including pull requests from forks. ADR 0073 records the rule and the
+> deliberate choice not to rewrite history that predates it.
 
 | เกณฑ์ | ตอบ | ข้อความที่วางลงฟอร์มได้เลย (อังกฤษ) |
 |---|---|---|
@@ -396,7 +404,7 @@ ossf/best-practices-badge: **L1 24 · L2 19 · L3 21 รวม 64** (หน้�
 | `OSPS-GV-01.01` | Met | CONTRIBUTING.md section 'Who holds what' lists every member with access to sensitive resources: a single maintainer (@sayam) who is the only account with write access, administration rights and repository secrets. There are no teams or service accounts with write access. |
 | `OSPS-GV-01.02` | Met | The same section describes the roles and their responsibilities, and ADR 0053 records the compensating controls that stand in for separation of duties in a single-maintainer project, together with the condition that ends the arrangement. |
 | `OSPS-GV-03.02` | Met | CONTRIBUTING.md states what an acceptable contribution must satisfy: pull-request-only flow, Conventional Commits with a 72-character subject, ruff and mypy clean, mutation proof for every new test, registration of new test files in gates.yaml, and an ADR for any new decision. |
-| `OSPS-LE-01.01` | Unmet | The project does not yet require a Developer Certificate of Origin sign-off or a CLA, so contributors do not assert legal authorization on every commit. This is the only baseline-2 control that is not met. |
+| `OSPS-LE-01.01` | Met | Every commit must carry a Signed-off-by line (Developer Certificate of Origin 1.1), added by git commit -s. The commit-msg hook rejects an unsigned commit on the contributor's machine and the commit-lint CI job checks every commit a pull request adds, including pull requests from forks. ADR 0073 records the decision, including the deliberate choice not to rewrite history that predates the rule. |
 | `OSPS-QA-03.01` | Met | main is protected: 27 required status checks must pass before merge and enforce_admins is on, so the maintainer cannot bypass them either. The posture job compares the live settings with ADR 0053 on every push. |
 | `OSPS-QA-06.01` | Met | Every pull request runs the full test suite (1,773 tests) plus the same suite against MySQL and MariaDB, an authenticated DAST scan, an accessibility scan and a real compose stack — 27 required checks in total. |
 | `OSPS-SA-01.01` | Met | docs/ARCHITECTURE.md is an ISO/IEC 42010 style description: system context, stakeholders and their concerns, viewpoints and views, and correspondence rules between them. docs/DESIGN.md covers the user-facing side, and every decision links back to an ADR. |
