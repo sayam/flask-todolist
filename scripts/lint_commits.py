@@ -59,6 +59,24 @@ def check_sign_off(message: str) -> list[str]:
     ]
 
 
+# ตัวคั่นของ `git log --format` — **เนื้อ commit มีขึ้นบรรทัดใหม่ได้** ตัวคั่นที่
+# เป็นบรรทัดจึงแตก commit ใบเดียวเป็นหลายใบเงียบ ๆ · เก็บไว้เป็นค่าคงที่คู่กับรูป
+# ที่ส่งให้ git เพื่อให้สองฝั่งไม่มีทาง drift จากกัน (เทสต์เทียบสองฝั่งอีกชั้น)
+RECORD_SEP = "\x1e"
+FIELD_SEP = "\x00"
+LOG_FORMAT = "%H%x00%s%x00%b%x1e"
+
+
+def parse_log(out: str) -> list[tuple[str, str, str]]:
+    """แปลงผลของ `git log --format=LOG_FORMAT` เป็น (sha สั้น, หัว, เนื้อ) ต่อ commit"""
+    return [
+        (sha[:9], subject, body)
+        for chunk in out.split(RECORD_SEP)
+        if chunk.strip()
+        for sha, subject, body in [chunk.strip("\n").split(FIELD_SEP, 2)]
+    ]
+
+
 def commits_in_range(rev_range: str) -> list[tuple[str, str, str]]:
     """commit ในช่วงนี้ **ไม่รวม merge commit**
 
@@ -69,20 +87,13 @@ def commits_in_range(rev_range: str) -> list[tuple[str, str, str]]:
     commit ลง `main` อยู่แล้ว มันจึงเป็นของชั่วคราวบนกิ่งเท่านั้น
     """
     out = subprocess.run(  # noqa: S603 — อินพุตมาจาก CI/ผู้พัฒนาเอง ไม่ใช่ผู้ใช้ภายนอก
-        # `%x1e` คั่นระหว่าง commit เพราะ **เนื้อ commit มีขึ้นบรรทัดใหม่ได้** —
-        # การคั่นด้วยบรรทัดจะทำให้ commit หนึ่งใบกลายเป็นหลายใบเงียบ ๆ
-        ["git", "log", "--no-merges", "--format=%H%x00%s%x00%b%x1e", rev_range],  # noqa: S607
+        ["git", "log", "--no-merges", f"--format={LOG_FORMAT}", rev_range],  # noqa: S607
         capture_output=True,
         text=True,
         check=True,
         timeout=LOCAL_TIMEOUT_SECONDS,
     ).stdout
-    return [
-        (sha[:9], subject, body)
-        for chunk in out.split("\x1e")
-        if chunk.strip()
-        for sha, subject, body in [chunk.strip("\n").split("\x00", 2)]
-    ]
+    return parse_log(out)
 
 
 def main() -> int:

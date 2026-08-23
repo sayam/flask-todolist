@@ -22,7 +22,6 @@ import ast
 import json
 import pathlib
 import re
-import subprocess
 import typing
 
 import pytest
@@ -2281,41 +2280,38 @@ def test_an_unsigned_commit_is_caught(message, why):
     assert "git commit -s" in found[0], "แดงแล้วแต่ไม่ได้บอกว่าจะเซ็นยังไง"
 
 
-def test_the_range_reader_keeps_multiline_bodies_in_one_commit(tmp_path, monkeypatch):
+def test_the_log_reader_keeps_multiline_bodies_in_one_commit():
     """เนื้อ commit มีขึ้นบรรทัดใหม่ได้ — ตัวอ่านที่คั่นด้วยบรรทัดจะแตกใบเดียวเป็นหลายใบ
 
     ทิศนี้สำคัญกว่าที่เห็น: ถ้าตัวอ่านแตกใบ ลายเซ็นจะไปอยู่คนละ "commit" กับหัว
     แล้วด่านจะแดงกับ commit ที่เซ็นถูกต้อง ซึ่งสอนให้คนข้ามด่านด้วย --no-verify
 
-    **สร้างรีโปของตัวเองแทนการอ่านประวัติจริง** — ฉบับแรกอ่าน `HEAD~1..HEAD` ของ
-    รีโปนี้ แล้วเขียวบนเครื่องแต่แดงบน CI เพราะ checkout ของ CI เป็น shallow
-    (`HEAD~1` ไม่มีอยู่) ซึ่งเป็นคลาสที่ `CLAUDE.md` เตือนไว้ตรง ๆ ว่าเทสต์ที่
-    ผลขึ้นกับเครื่องต้องปลอมอินพุตเอง
+    **ป้อนผลของ `git log` เอง ไม่เรียก git จริง** — ฉบับแรกอ่าน `HEAD~1..HEAD`
+    ของรีโปนี้ แล้วเขียวบนเครื่องแต่แดงบน CI เพราะ checkout ของ CI เป็น shallow
+    (`HEAD~1` ไม่มีอยู่) ซึ่งเป็นคลาสที่ `CLAUDE.md` เตือนไว้ตรง ๆ
     """
-
-    def git(*args: str) -> None:
-        subprocess.run(["git", *args], cwd=tmp_path, check=True, capture_output=True)  # noqa: S603, S607
-
-    git("init", "-q", "-b", "main")
-    git("config", "user.email", "a@b.co")
-    git("config", "user.name", "A B")
-    (tmp_path / "f.txt").write_text("หนึ่ง", encoding="utf-8")
-    git("add", "f.txt")
-    git("commit", "-q", "-m", "feat: ฐาน\n\nSigned-off-by: A B <a@b.co>")
-    (tmp_path / "f.txt").write_text("สอง", encoding="utf-8")
-    git("add", "f.txt")
-    git(
-        "commit",
-        "-q",
-        "-m",
-        "feat: ใบที่มีเนื้อหลายบรรทัด\n\nย่อหน้าแรก\n\nย่อหน้าที่สอง\n\nSigned-off-by: A B <a@b.co>",
+    sep, field = lint_commits.RECORD_SEP, lint_commits.FIELD_SEP
+    out = (
+        f"aaaaaaaaaaaa{field}feat: ฐาน{field}Signed-off-by: A B <a@b.co>\n{sep}"
+        f"bbbbbbbbbbbb{field}feat: หลายย่อหน้า{field}"
+        f"ย่อหน้าแรก\n\nย่อหน้าที่สอง\n\nSigned-off-by: A B <a@b.co>\n{sep}"
     )
-    monkeypatch.chdir(tmp_path)
 
-    rows = lint_commits.commits_in_range("HEAD~1..HEAD")
+    rows = lint_commits.parse_log(out)
 
-    assert len(rows) == 1, f"เนื้อหลายบรรทัดถูกแตกเป็นหลายใบ: {rows}"
-    _sha, subject, body = rows[0]
-    assert subject == "feat: ใบที่มีเนื้อหลายบรรทัด"
+    assert len(rows) == 2, f"เนื้อหลายบรรทัดถูกแตกเป็นหลายใบ: {rows}"
+    _sha, subject, body = rows[1]
+    assert subject == "feat: หลายย่อหน้า"
     assert "ย่อหน้าที่สอง" in body, "เนื้อถูกตัดหายไประหว่างทาง"
     assert lint_commits.check_sign_off(body) == []
+
+
+def test_the_format_git_gets_matches_the_separators_the_parser_splits_on():
+    """สองฝั่งเขียนตัวคั่นคนละรูป (`%x1e` กับ `\x1e`) — ถ้าไม่ตรงกันจะพังเงียบ"""
+    record = f"%x{ord(lint_commits.RECORD_SEP):02x}"
+    field = f"%x{ord(lint_commits.FIELD_SEP):02x}"
+
+    assert lint_commits.LOG_FORMAT.endswith(record), (
+        f"รูปที่ส่งให้ git ลงท้ายด้วย {lint_commits.LOG_FORMAT[-4:]!r} แต่ตัวอ่านตัดด้วย {record!r}"
+    )
+    assert lint_commits.LOG_FORMAT.count(field) == 2, "ตัวคั่นช่องต้องมีสองที่ (sha|หัว|เนื้อ)"
