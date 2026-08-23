@@ -1,0 +1,96 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://github.com/sayam/flask-todolist/blob/main/docs/vex.openvex.json",
+  "author": "Sayam Sriphua (flask-todolist maintainer)",
+  "timestamp": "2026-08-23T02:47:16+00:00",
+  "version": 1,
+  "tooling": "https://github.com/sayam/flask-todolist/blob/main/scripts/build_vex.py",
+  "statements": [
+    {
+      "vulnerability": {
+        "name": "CVE-2026-53612"
+      },
+      "products": [
+        {
+          "@id": "pkg:github/sayam/flask-todolist",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/util-linux"
+            }
+          ]
+        }
+      ],
+      "status": "affected",
+      "action_statement": "Rebuild the container image once the upstream python:3.13-slim base ships the patched Debian package. The fix exists in Debian but the base image has not been rebuilt yet; the deadline for this decision is tracked in docs/SECURITY-CADENCE.md and the pinned digest is the newest available."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-53613"
+      },
+      "products": [
+        {
+          "@id": "pkg:github/sayam/flask-todolist",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/util-linux"
+            }
+          ]
+        }
+      ],
+      "status": "affected",
+      "action_statement": "Rebuild the container image once the upstream python:3.13-slim base ships the patched Debian package. The fix exists in Debian but the base image has not been rebuilt yet; the deadline for this decision is tracked in docs/SECURITY-CADENCE.md and the pinned digest is the newest available."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-53614"
+      },
+      "products": [
+        {
+          "@id": "pkg:github/sayam/flask-todolist",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/util-linux"
+            }
+          ]
+        }
+      ],
+      "status": "affected",
+      "action_statement": "Rebuild the container image once the upstream python:3.13-slim base ships the patched Debian package. The fix exists in Debian but the base image has not been rebuilt yet; the deadline for this decision is tracked in docs/SECURITY-CADENCE.md and the pinned digest is the newest available."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-53615"
+      },
+      "products": [
+        {
+          "@id": "pkg:github/sayam/flask-todolist",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/util-linux"
+            }
+          ]
+        }
+      ],
+      "status": "affected",
+      "action_statement": "Rebuild the container image once the upstream python:3.13-slim base ships the patched Debian package. The fix exists in Debian but the base image has not been rebuilt yet; the deadline for this decision is tracked in docs/SECURITY-CADENCE.md and the pinned digest is the newest available."
+    },
+    {
+      "vulnerability": {
+        "name": "GHSA-jmr9-qjv8-65gv"
+      },
+      "products": [
+        {
+          "@id": "pkg:github/sayam/flask-todolist",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/extract-zip"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "component_not_present",
+      "impact_statement": "The affected package is a CI tooling dependency pinned under pins/. It is never installed into the application image and is not part of any released artefact, so no released version of this project contains it."
+    }
+  ]
+}
