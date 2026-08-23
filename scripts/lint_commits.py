@@ -1,4 +1,4 @@
-"""ตรวจ Conventional Commits — แทน gitlint ที่ pin click ชนกับ Flask ecosystem
+"""ตรวจ Conventional Commits + DCO — แทน gitlint ที่ pin click ชนกับ Flask ecosystem
 
 ใช้ได้สองโหมด:
     python scripts/lint_commits.py --msg-file .git/COMMIT_EDITMSG   # hook commit-msg
@@ -6,6 +6,11 @@
 
 กติกา (ตามที่ประวัติ commit ของ repo นี้ใช้อยู่แล้ว):
     <type>[(scope)][!]: <subject ไม่เกิน 72 ตัว>
+
+และตั้งแต่ ADR 0073 ทุก commit ต้องมีบรรทัด **`Signed-off-by:` (DCO)** — เซ็นด้วย
+`git commit -s` · เป็นการรับรองตาม Developer Certificate of Origin 1.1 ว่าผู้ส่ง
+มีสิทธิ์ตามกฎหมายที่จะส่งโค้ดชิ้นนั้น · ตรวจสองที่เหมือนกฎหัว commit: hook
+`commit-msg` บนเครื่อง และ job `commit-lint` ที่เห็น commit ของ PR จาก fork ด้วย
 
 บทบาท: decider — ตัดสินผ่าน/ไม่ผ่าน — หลักฐานคือเทสต์ที่ฝังความผิดแล้วต้องจับได้ · ของสะอาดต้องไม่ถูกจับ
 """
@@ -24,6 +29,10 @@ LOCAL_TIMEOUT_SECONDS = 60  # `git log` บนเครื่อง — ช้�
 TYPES = "feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert"
 TITLE = re.compile(rf"^({TYPES})(\([\w./-]+\))?!?: \S.{{0,70}}$")
 MAX_TITLE = 72
+# `Signed-off-by: ชื่อ <อีเมล>` — รูปเดียวกับที่ `git commit -s` เขียนให้ และเป็น
+# รูปที่ DCO bot/CLA ของโปรเจกต์อื่นอ่านได้เหมือนกัน · **ต้องมีอีเมลจริง** เพราะ
+# ลายเซ็นที่ไม่มีที่อยู่ติดต่อกลับ ไม่ได้รับรองอะไรให้ใครตามไปถามได้
+SIGN_OFF = re.compile(r"^Signed-off-by: .+ <[^<>@\s]+@[^<>\s]+>\s*$", re.MULTILINE)
 
 
 def check_title(title: str) -> list[str]:
@@ -35,7 +44,22 @@ def check_title(title: str) -> list[str]:
     return problems
 
 
-def commits_in_range(rev_range: str) -> list[tuple[str, str]]:
+def check_sign_off(message: str) -> list[str]:
+    """DCO — ทุก commit ต้องรับรองว่าผู้ส่งมีสิทธิ์ตามกฎหมาย (ADR 0073)
+
+    ตรวจ *ทั้งข้อความ* ไม่ใช่แค่หัว เพราะ `git commit -s` เขียนบรรทัดนี้ท้ายเนื้อ
+    """
+    if SIGN_OFF.search(message):
+        return []
+    return [
+        (
+            "ไม่มีบรรทัด `Signed-off-by: ชื่อ <อีเมล>` — เซ็นด้วย `git commit -s` "
+            "(DCO 1.1 · ADR 0073) หรือ `git commit --amend -s` ถ้า commit ไปแล้ว"
+        )
+    ]
+
+
+def commits_in_range(rev_range: str) -> list[tuple[str, str, str]]:
     """commit ในช่วงนี้ **ไม่รวม merge commit**
 
     ข้อความของ merge commit เป็นของที่ GitHub สร้างให้ (`Merge branch 'main'
@@ -45,17 +69,19 @@ def commits_in_range(rev_range: str) -> list[tuple[str, str]]:
     commit ลง `main` อยู่แล้ว มันจึงเป็นของชั่วคราวบนกิ่งเท่านั้น
     """
     out = subprocess.run(  # noqa: S603 — อินพุตมาจาก CI/ผู้พัฒนาเอง ไม่ใช่ผู้ใช้ภายนอก
-        ["git", "log", "--no-merges", "--format=%H%x00%s", rev_range],  # noqa: S607
+        # `%x1e` คั่นระหว่าง commit เพราะ **เนื้อ commit มีขึ้นบรรทัดใหม่ได้** —
+        # การคั่นด้วยบรรทัดจะทำให้ commit หนึ่งใบกลายเป็นหลายใบเงียบ ๆ
+        ["git", "log", "--no-merges", "--format=%H%x00%s%x00%b%x1e", rev_range],  # noqa: S607
         capture_output=True,
         text=True,
         check=True,
         timeout=LOCAL_TIMEOUT_SECONDS,
     ).stdout
     return [
-        (sha[:9], subject)
-        for line in out.splitlines()
-        if line
-        for sha, subject in [line.split("\x00", 1)]
+        (sha[:9], subject, body)
+        for chunk in out.split("\x1e")
+        if chunk.strip()
+        for sha, subject, body in [chunk.strip("\n").split("\x00", 2)]
     ]
 
 
@@ -68,11 +94,14 @@ def main() -> int:
 
     failures: list[tuple[str | None, str, str]] = []
     if args.msg_file:
-        title = pathlib.Path(args.msg_file).read_text().splitlines()[0]
+        message = pathlib.Path(args.msg_file).read_text()
+        title = message.splitlines()[0]
         failures.extend((None, title, p) for p in check_title(title))
+        failures.extend((None, title, p) for p in check_sign_off(message))
     else:
-        for sha, subject in commits_in_range(args.rev_range):
+        for sha, subject, body in commits_in_range(args.rev_range):
             failures.extend((sha, subject, p) for p in check_title(subject))
+            failures.extend((sha, subject, p) for p in check_sign_off(body))
 
     for maybe_sha, _title, problem in failures:
         prefix = f"{maybe_sha}: " if maybe_sha else ""

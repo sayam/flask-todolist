@@ -2243,3 +2243,50 @@ def test_rendering_a_file_parses_it_exactly_once(tmp_path, monkeypatch):
     skeleton.render(tmp_path / "sample.py", SAMPLE)
 
     assert len(calls) == 1, f"parse {len(calls)} ครั้งต่อไฟล์ — ควรเป็นครั้งเดียว"
+
+
+# ------------- DCO: ทุก commit ต้องรับรองสิทธิ์ตามกฎหมาย (ADR 0073)
+#
+# ข้อนี้เป็นข้อเดียวจาก 19 ข้อของ OSPS Baseline ระดับ 2 ที่เราไม่ผ่าน และเป็น
+# เหตุผลเดียวกับที่เกณฑ์ `dco` ของ badge ระดับ silver เป็น Unmet มาตั้งแต่ต้น
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "feat(x): ok\n\nSigned-off-by: Sayam Sriphua <sayams@hotmail.com>\n",
+        "fix: ok\n\nเนื้อความไทย\n\nSigned-off-by: A B <a@b.co>\nCo-Authored-By: C <c@d.io>\n",
+    ],
+)
+def test_a_signed_off_commit_passes(message):
+    """ทิศ "ผ่านเมื่อควรผ่าน" — ลายเซ็นที่ `git commit -s` เขียนให้ ต้องไม่ถูกจับ"""
+    assert lint_commits.check_sign_off(message) == []
+
+
+@pytest.mark.parametrize(
+    ("message", "why"),
+    [
+        ("feat(x): ไม่มีลายเซ็นเลย\n\nเนื้อความ\n", "ไม่มีบรรทัดลายเซ็น"),
+        ("feat(x): ok\n\nSigned-off-by: ไม่มีอีเมล\n", "ลายเซ็นที่ไม่มีที่อยู่ติดต่อกลับ"),
+        ("feat(x): ok\n\nsigned-off-by: a <a@b.co>\n", "พิมพ์เล็กทั้งบรรทัด — ไม่ใช่รูปที่ git เขียน"),
+        ("feat(x): ok\n\nSigned-off-by: A B <a@b.co> ต่อท้าย\n", "มีข้อความต่อท้ายลายเซ็น"),
+    ],
+)
+def test_an_unsigned_commit_is_caught(message, why):
+    """ทุกทางที่ลายเซ็นจะขาดหรือปลอมรูป ต้องแดง — ไม่ใช่แค่กรณีที่นึกถึงตอนเขียน"""
+    found = lint_commits.check_sign_off(message)
+
+    assert found, why
+    assert "git commit -s" in found[0], "แดงแล้วแต่ไม่ได้บอกว่าจะเซ็นยังไง"
+
+
+def test_the_range_reader_keeps_multiline_bodies_in_one_commit():
+    """เนื้อ commit มีขึ้นบรรทัดใหม่ได้ — ตัวอ่านที่คั่นด้วยบรรทัดจะแตกใบเดียวเป็นหลายใบ
+
+    ทิศนี้สำคัญกว่าที่เห็น: ถ้าตัวอ่านแตกใบ ลายเซ็นจะไปอยู่คนละ "commit" กับหัว
+    แล้วด่านจะแดงกับ commit ที่เซ็นถูกต้อง ซึ่งสอนให้คนข้ามด่านด้วย --no-verify
+    """
+    rows = lint_commits.commits_in_range("HEAD~1..HEAD")
+
+    assert len(rows) == 1
+    assert len(rows[0]) == 3, "ต้องคืน (sha, หัว, เนื้อ) ครบสามช่อง"

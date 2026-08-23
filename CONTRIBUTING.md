@@ -7,7 +7,7 @@
 
 The code, commit messages, and this file are in English. **Almost everything that
 explains *why* the code looks the way it does is in Thai** — [`CLAUDE.md`](CLAUDE.md)
-(the working notes), the 72 records in [`docs/adr/`](docs/adr/), and the rest of
+(the working notes), the 73 records in [`docs/adr/`](docs/adr/), and the rest of
 `docs/`. Machine translation handles them acceptably, but you should know that
 before you invest an afternoon.
 
@@ -98,7 +98,7 @@ translation key. Thai lives in `app/translations/th/LC_MESSAGES/messages.po`.
 Never write Thai directly in a template or a `.py` file, and remember to
 `pybabel compile` — the `.mo` files are committed.
 
-### 7. Commits are Conventional Commits, subject ≤ 72 characters
+### 7. Commits are Conventional Commits, subject ≤ 72 characters, signed off
 
 Enforced by a commit-msg hook and again in CI. `feat:`, `fix:`, `docs:`, `test:`,
 `refactor:`, `chore:`, `ci:`, `perf:`, optionally scoped: `fix(audit): ...`.
@@ -109,6 +109,17 @@ PR when all required checks pass. Squashing appends ` (#N)` to the subject,
 which pushes anything near the limit over it — and the check that would have
 caught it only runs after the merge has already landed on `main`. Merge commits
 themselves are not linted, since GitHub writes those, not you.
+
+**Sign every commit off (DCO).** `git commit -s` adds the `Signed-off-by:` line;
+`git commit --amend -s` fixes one you forgot. The line is not a signature on the
+code — it is the [Developer Certificate of Origin 1.1](https://developercertificate.org/):
+you are stating that you wrote the contribution or otherwise have the right to
+submit it under this project's licence, and that the contribution is public and
+recorded permanently. The `commit-msg` hook rejects an unsigned commit on your
+machine, and the `commit-lint` job checks every commit a pull request adds,
+including pull requests from forks. Only commits added by the pull request are
+checked: the history before 2026-08-23 predates the rule and is deliberately not
+rewritten ([ADR 0073](docs/adr/0073-dco-sign-off.md)).
 
 ### 8. A new test file has to be registered in `gates.yaml`
 
