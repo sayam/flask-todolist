@@ -19,6 +19,8 @@ services:
       - --storage.tsdb.retention.time=15d
     volumes:
       - ./deploy/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # กฎ liveness — ไฟล์แยกเพราะ `rule_files` ของ Prometheus รับ path ไม่ใช่เนื้อ
+      - ./deploy/prometheus-rules.yaml:/etc/prometheus/rules.yaml:ro
       - ${METRICS_TOKEN_FILE:?ต้องชี้ไฟล์ที่เก็บ API token สำหรับ scrape /metrics (ออกด้วย flask token-create)}:/etc/prometheus/token:ro
       - prometheus-data:/prometheus
     ports:

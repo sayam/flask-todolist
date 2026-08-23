@@ -76,6 +76,7 @@ ADR 0002–0008 เป็นการ backfill การตัดสินใจ
 | [0068](0068-ratchets-need-something-that-turns-them.md) | ratchet ต้องมีตัวทวงให้หมุน — พื้นที่ลอยต่ำกว่าของจริงเกิน 1 จุด = แดง · ขยับพื้นในคอมมิตเดียวกับที่ทำให้ตัวเลขดีขึ้น | accepted |
 | [0069](0069-removal-must-be-a-decision.md) | การถอดของออกจากระบบต้องเป็นคำตัดสิน ไม่ใช่ผลข้างเคียง | accepted |
 | [0070](0070-relicense-to-agpl-and-cc-by-sa.md) | เปลี่ยนสัญญาอนุญาตเป็น AGPL-3.0 (โค้ด) + CC BY-SA 4.0 (เอกสาร) | accepted — แทนที่ 0038 |
+| [0074](0074-watcher-windows-fit-platform-silence.md) | คำสัญญาของผู้เฝ้าต้องสั้นกว่าหน้าต่างเงียบของแพลตฟอร์ม — ตัวเฝ้าที่รันอยู่ใน cron ตัวที่ GitHub ปิดให้ repo ที่เงียบ 60 วัน ดับพร้อมสิ่งที่มันเฝ้า | accepted |
 | [0073](0073-dco-sign-off.md) | ทุก commit ต้องมี `Signed-off-by` (DCO 1.1) — ปิดข้อสุดท้ายของ baseline-2 และเกณฑ์ `dco` ของ silver ในคราวเดียว | accepted |
 | [0072](0072-external-surface-has-a-register.md) | ผิวนอกรีโปมีทะเบียนเดียว ทุกแถวบอกว่าใครเทียบ · คำศัพท์เจ้าของปิดสี่คำ · "ยังไม่มีใคร" เขียนได้แต่ถูกนับด้วยเพดาน | accepted |
 | [0071](0071-overlay-ships-the-registry-itself.md) | overlay ส่งออก*ทะเบียน*ด้วย — `gates.yaml` ตั้งต้น + ด่านที่บังคับสองทิศในปลายทาง (เสาที่กฎอีก 83 ข้อพิงอยู่) | accepted |

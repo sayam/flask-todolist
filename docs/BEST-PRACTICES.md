@@ -242,7 +242,7 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 | `test_statement_coverage90` | MUST | **วัดแล้ว 97.17%** (`fail_under = 97` ใน `pyproject.toml` เป็นพื้นที่ขยับขึ้นทางเดียว · job `test` บังคับทุก push) |
 | `test_branch_coverage80` | MUST | **วัดแล้ว 93.96%** (1,058 จาก 1,126 สาขา · `[tool.coverage.run] branch = true`) |
 | `code_review_standards` | MUST (ต้องมี URL) | `CONTRIBUTING.md` — PR-only, Conventional Commits, กติกา mutation test, การลงทะเบียนไฟล์เทสต์ใน `gates.yaml` · คำตัดสินอยู่ใน ADR 0053 |
-| `security_review` | MUST | `docs/ASVS.md` (ประเมิน ASVS 5.0 L2 ครบ 253 ข้อ) · `docs/ISO27001.md` (116 ข้อ) · `docs/RISK-ASSESSMENT.md` · และรอบ audit 25 รอบที่มีทะเบียนใน [AUDIT-LOG.md](AUDIT-LOG.md) |
+| `security_review` | MUST | `docs/ASVS.md` (ประเมิน ASVS 5.0 L2 ครบ 253 ข้อ) · `docs/ISO27001.md` (116 ข้อ) · `docs/RISK-ASSESSMENT.md` · และรอบ audit 26 รอบที่มีทะเบียนใน [AUDIT-LOG.md](AUDIT-LOG.md) |
 | `hardened_site` | MUST (ต้องมี URL) | หน้าโครงการคือ GitHub ซึ่งส่ง header ครบ · ตัวแอปเองบังคับ CSP/HSTS ผ่าน Talisman และมี gate คุม (`tests/test_security_headers.py`) |
 | `require_2FA` | MUST | ผู้ดูแลคนเดียวเปิด 2FA ไว้ (ตรวจตามรอบ "hardening ของบัญชีเจ้าของ" — ทบทวนล่าสุด 2026-08-17) · GitHub บังคับ 2FA กับผู้ร่วมพัฒนาตั้งแต่ 2023 |
 | `secure_2FA` | SHOULD | ถ้าเป็น TOTP/passkey (ไม่ใช่ SMS) — **เจ้าของยืนยันเองก่อนตอบ** |
@@ -293,7 +293,7 @@ curl -s https://www.bestpractices.dev/projects/14085.json > badge.json
 | `governance_justification` | "…all decisions recorded as ADRs (**72** to date)…" | **แก้แล้ว 2026-08-22 โดยเจ้าของ** — เดิมค้างอยู่ที่ 58 (`ls docs/adr/0*.md`) · ห่างจากความจริง 14 ใบ |
 | `test_most_justification` · `test_statement_coverage80_justification` | "Coverage gate fail_under = **96**" | **ค้าง** — `pyproject.toml` เป็น 97 มาตั้งแต่ ratchet ขยับ · ช่อง `test_statement_coverage90_justification` บนเว็บเดียวกันเขียน 97 ถูกแล้ว |
 | `test_statement_coverage90_justification` · `test_branch_coverage80_justification` | 97.17% · 93.96% (1,058/1,126) | ห่างเล็กน้อยจากของวันนี้ (97.18% · 93.98% — 1,062/1,130) · ช่องพวกนี้เขียนว่า "measured on the current tree" จึงเป็นภาพถ่าย ไม่ใช่คำสัญญา — แก้ตอนรอบ release ถัดไปพอ |
-| `description` | "… v2.2.0 … **112** machine-checked gates, 72 ADRs, **25** recorded governance audits …" | **ตรงกันสามที่แล้ว (2026-08-23)** — เว็บ badge · ช่อง About ของ repo · และของบนดิสก์ (`gates.yaml` · `docs/adr/` · [AUDIT-LOG.md](AUDIT-LOG.md)) · ฝั่ง About มี `ci:posture` อ่านคู่ให้แล้วตั้งแต่ ADR 0072 ส่วนฝั่งเว็บ badge ยังต้องไล่ด้วยมือ |
+| `description` | "… v2.2.0 … **112** machine-checked gates, 72 ADRs, **26** recorded governance audits …" | **ตรงกันสามที่แล้ว (2026-08-23)** — เว็บ badge · ช่อง About ของ repo · และของบนดิสก์ (`gates.yaml` · `docs/adr/` · [AUDIT-LOG.md](AUDIT-LOG.md)) · ฝั่ง About มี `ci:posture` อ่านคู่ให้แล้วตั้งแต่ ADR 0072 ส่วนฝั่งเว็บ badge ยังต้องไล่ด้วยมือ |
 
 **สี่แถวบนนี้เพิ่มตอน audit รอบ 24** — คำถามของรอบคือ *ใครเทียบของที่อยู่นอกรีโป
 กับของจริง* และคำตอบสำหรับใบตอบ badge คือ **ไม่มีใคร นอกจากรอบตรวจ 12 เดือน** ·

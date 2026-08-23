@@ -12,6 +12,13 @@ global:
   scrape_interval: 5s
   scrape_timeout: 4s
 
+# **กฎที่ยิงจากการไม่มี** (audit รอบ 26 ข้อ 2) — ก่อนหน้านี้ไฟล์นี้ไม่มี
+# `rule_files` เลย แปลว่า Prometheus เก็บตัวเลขได้อย่างเดียว เตือนอะไรไม่ได้
+# ทั้งที่มันเป็นฝั่งเดียวที่*ดึง*ทุก 5 วินาที จึงเป็นฝั่งเดียวที่แยก "เงียบ"
+# ออกจาก "ตาย" ได้ · เหตุผลเต็มอยู่ในหัวไฟล์ deploy/prometheus-rules.yaml
+rule_files:
+  - /etc/prometheus/rules.yaml
+
 scrape_configs:
   - job_name: todolist
     metrics_path: /metrics

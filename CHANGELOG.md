@@ -20,6 +20,51 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Added
 
+- **The watcher that was built to notice our cron dying runs inside that cron.**
+  Governance audit round 26 asked, for the first time, where this project fails
+  *first* if the maintainer disappears for a year — the order of failure, not
+  its frequency. The answer is that it does not fail, it goes quiet: of 114
+  gates, the 109 that can block a merge all live in `ci.yml` and fire only on
+  `push` and `pull_request`, and the 5 that can fire without anybody acting
+  cannot block anything — and name the same single person as their watcher.
+  GitHub disables scheduled workflows in a public repository after 60 days
+  with no activity, which switches off the only trigger those 5 have left.
+  `schedules-still-fire` exists specifically to catch that 60-day rule; its
+  `born_from` has said so since round 10. It is enforced by a job in
+  `scorecard.yml` — the very cron being switched off — and it promised a human
+  would look within **90** days, longer than the window that creates the
+  failure. The watcher arrived a month after the machine it watches had died,
+  without breaking a single promise. `tests/test_watcher_windows.py` now holds
+  the rule that at least one promise on a cron-only workflow must be shorter
+  than the platform's silence window; not all of them, because one visit resets
+  that clock for the whole repository, so the shortest promise is the one
+  holding up the rest. The number 60 belongs to GitHub, so a test also requires
+  the document a person reads to say where it came from. `schedules-still-fire`
+  drops to 45 days, backed by a new 45-day **liveness row** in
+  `docs/SECURITY-CADENCE.md` whose work is to review the time-driven things and
+  **touch one Dependabot pull request** — one row closing two clocks that both
+  belong to someone else. See [ADR 0074](docs/adr/0074-watcher-windows-fit-platform-silence.md).
+
+- **Nothing in the alerting stack could fire on the *absence* of a signal.** All
+  three rules in `deploy/loki-rules.yaml` are `count_over_time(…) > n`: they
+  fire when bad events arrive. If the app stops, the log shipper stops, the disk
+  fills, or a field is renamed so `| json` stops parsing, all three evaluate to
+  zero forever and stay silent — which looks exactly like a healthy system. The
+  other half was worse: `deploy/prometheus.yml` had no `rule_files` and no
+  `alerting` at all, so the side that *pulls* every five seconds — the only side
+  that can tell "quiet" from "dead" for an app that is legitimately idle at
+  night — could not speak. `deploy/prometheus-rules.yaml` adds
+  `MetricsTargetDown` (`up == 0`, `for: 1m`), which covers the app being down,
+  the target being wrong, and the scrape token having expired, since a 401 also
+  reads as `up == 0`. The `scrape` job proves it by **stopping the app** and
+  waiting for the alert — the first gate in this project tested by taking
+  something away, which is the direction a counting rule cannot test by
+  definition. An `absent_over_time` rule on the Loki side was considered and
+  rejected: a personal todolist with no traffic overnight is normal, and a rule
+  that fires every night is a rule that gets silenced in two weeks — the
+  principle [ADR 0037](docs/adr/0037-where-logs-go-and-what-shouts.md) sets out
+  in its own opening.
+
 - **A register of the governance audit rounds, because the number was being
   advertised without one.** The repository's About line and the OpenSSF badge
   worksheet both said twenty recorded audits. Going to count them turned up
@@ -39,6 +84,37 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
   for others is worse than no column.
 
 ### Fixed
+
+- **`dependabot.yml` justified a decision by pointing at a safety net that
+  GitHub removes under the same condition.** The file explains at length why
+  version updates for `Pipfile.lock` are not enabled — a pull request almost
+  every day for a single maintainer — and rests that on "pip security updates
+  are already on", which answers the urgent question. GitHub pauses Dependabot
+  for a repository once nobody has touched one of its pull requests for 90
+  days, and the pause stops pull requests for version **and security** updates
+  alike. The net and the thing it catches are removed together, by one
+  condition, not two. The comment now says so, and the liveness row above is
+  what actually holds it open.
+
+- **The bus-factor row in the risk register measured the wrong axis.** It
+  reduced "single maintainer" with "knowledge is forced into the machine, not
+  the head: a gate for every rule". That is true of a second person arriving
+  without context. It is not true of the first person leaving: all 109 blocking
+  gates are *downstream* of that person rather than a stand-in for them. The
+  register now carries two rows — knowledge transfer, and nobody pressing the
+  button — because the treatments for them do not overlap at all.
+
+- **The Prometheus scrape token was told to expire, by default rather than by
+  choice.** The command in `docs/OPERATIONS.md` issued it without
+  `--expires-days`, which means 90 days: monitoring goes blind one quarter after
+  it is set up, and until now nothing in the system would have noticed. The
+  documented command now passes `--expires-days 0` and says why a key held by a
+  machine that runs continuously needs a lifetime somebody chose.
+
+- **`scripts/sync_counts.py` did not know about the exported-rule count.** Three
+  places advertise how many baseline rules `SKILL.md` ships, and all three had
+  to be edited by hand every time a portable gate was added — the exact tax the
+  script was written in round 25 to remove. It now syncs them too.
 
 - **The DOI badge was never about the URL — Zenodo rate-limits GitHub's image
   proxy, and v2.2.0's fix for it was a wrong diagnosis.** That release changed
@@ -1360,7 +1436,7 @@ graph. Nothing in the `/api/v1` contract changed; it only gained fields.
 ## [1.0.0] — 2026-08-12
 
 First public release. Everything below arrived across seven planned phases of
-work; the reasoning for each decision lives in the 73 records in
+work; the reasoning for each decision lives in the 74 records in
 [`docs/adr/`](docs/adr/), and the phase-by-phase plan in
 [`docs/ROADMAP.md`](docs/ROADMAP.md).
 

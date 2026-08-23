@@ -108,7 +108,14 @@ def _mini_repo(root: pathlib.Path, adrs: int, gates: int, audits: int, said: int
         "".join(f"({n:04d}-x.md)\n" for n in range(adrs)), encoding="utf-8"
     )
     (root / "gates.yaml").write_text(
-        yaml.safe_dump({"gates": [{"id": f"g{n}", "pillar": "devx"} for n in range(gates)]}),
+        yaml.safe_dump(
+            {
+                "gates": [
+                    {"id": f"g{n}", "pillar": "devx", "portable": True, "layer": "baseline"}
+                    for n in range(gates)
+                ]
+            }
+        ),
         encoding="utf-8",
     )
     (root / "docs" / "AUDIT-LOG.md").write_text(
@@ -116,7 +123,9 @@ def _mini_repo(root: pathlib.Path, adrs: int, gates: int, audits: int, said: int
     )
     (root / "README.md").write_text(
         f"| [`docs/adr/`](docs/adr/) | {said} architecture decision records — x\n"
-        f"[`docs/adr/`](docs/adr/) {said} ใบ\n",
+        f"[`docs/adr/`](docs/adr/) {said} ใบ\n"
+        f"| [`SKILL.md`](SKILL.md) | {said} framework-agnostic baseline rules, x\n"
+        f"- [`SKILL.md`](SKILL.md) — กฎ baseline {said} ข้อ x\n",
         encoding="utf-8",
     )
     (root / "CONTRIBUTING.md").write_text(
@@ -131,6 +140,9 @@ def _mini_repo(root: pathlib.Path, adrs: int, gates: int, audits: int, said: int
     (root / ".zenodo.json").write_text(f"{said} recorded audit rounds\n", encoding="utf-8")
     (root / "docs" / "BEST-PRACTICES.md").write_text(
         f"**{said}** recorded governance audits · audit {said} รอบ\n", encoding="utf-8"
+    )
+    (root / "docs" / "ROADMAP-INFRA.md").write_text(
+        f"portable gate (ตอนนั้น 58 กฎ · ปัจจุบัน {said}) ไม่ใช่เขียนมือ\n", encoding="utf-8"
     )
 
 
@@ -148,17 +160,20 @@ def test_the_sync_sees_every_place_a_number_drifted(mini):
     """หกที่ที่การทดลองของรอบ 25 วัดว่าแดงจริง ต้องถูกมองเห็นครบ
 
     สี่ที่เป็นจำนวน ADR (`README.md` สองบรรทัด · `CONTRIBUTING.md` · `CHANGELOG.md`) ·
-    สองที่เป็นจำนวน gate (`รวม N gate` กับบรรทัดสัดส่วน pillar) · และสี่ที่เป็นจำนวน
-    รอบ audit ซึ่งรวมบัตรประจำตัวสองใบที่ Zenodo อ่านไปตีพิมพ์ (ADR 0072)
+    สองที่เป็นจำนวน gate (`รวม N gate` กับบรรทัดสัดส่วน pillar) · สี่ที่เป็นจำนวน
+    รอบ audit ซึ่งรวมบัตรประจำตัวสองใบที่ Zenodo อ่านไปตีพิมพ์ (ADR 0072) · และสามที่
+    เป็นจำนวนกฎ baseline ที่ส่งออก (`README.md` สองบรรทัด · `ROADMAP-INFRA.md`)
+    ซึ่งเพิ่มเข้ามาตอน audit รอบ 26 หลังจากต้องไล่แก้ด้วยมือครบทั้งสามที่
     """
     found = sync_counts.drift()
 
-    assert len(found) == 10, f"ควรเจอครบสิบที่ แต่เจอ {[str(f[0].name) for f in found]}"
+    assert len(found) == 13, f"ควรเจอครบสิบสามที่ แต่เจอ {[str(f[0].name) for f in found]}"
     assert {path.name for path, *_ in found} == {
         "README.md",
         "CONTRIBUTING.md",
         "CHANGELOG.md",
         "ROADMAP-GOVERNANCE.md",
+        "ROADMAP-INFRA.md",
         "CITATION.cff",
         ".zenodo.json",
         "BEST-PRACTICES.md",
@@ -172,6 +187,7 @@ def test_writing_makes_every_place_agree_and_then_it_is_silent(mini):
     assert sync_counts.drift() == []
     assert "3 architecture decision records" in (mini / "README.md").read_text(encoding="utf-8")
     assert "รวม 2 gate" in (mini / "docs" / "ROADMAP-GOVERNANCE.md").read_text(encoding="utf-8")
+    assert "2 framework-agnostic baseline rules" in (mini / "README.md").read_text(encoding="utf-8")
 
 
 def test_a_sentence_that_no_longer_matches_is_reported_not_skipped(mini):
