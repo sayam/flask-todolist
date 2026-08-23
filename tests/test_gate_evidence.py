@@ -101,7 +101,6 @@ UNPROVEN = frozenset(
         "oidc-end-to-end",
         "ldap-end-to-end",
         "vault-end-to-end",
-        "metrics-scraped-for-real",
         "push-secret-scan",
         "sbom-per-category",
         "codeql-sast",
