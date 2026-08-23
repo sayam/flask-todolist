@@ -414,6 +414,69 @@ ossf/best-practices-badge: **L1 24 · L2 19 · L3 21 รวม 64** (หน้�
 | `OSPS-VM-03.01` | Met | GitHub private vulnerability reporting is enabled and SECURITY.md points to it as the primary channel, giving the reporter a private thread with the maintainer. |
 | `OSPS-VM-04.01` | Met | Fixed vulnerabilities are published in CHANGELOG.md and in the release notes, naming each advisory; accepted-but-unfixed advisories are published with their reasoning in pins/accepted-advisories.txt, app/plugins/accepted-advisories.txt and deploy/accepted-image-advisories.txt, all of which CI checks in both directions. |
 
+
+## รูป badge บน README อ่านจาก API ไหน (2026-08-23)
+
+**OpenSSF มี API สองโดเมนและให้คนละคำตอบ** — วัดเมื่อ 2026-08-23:
+
+| แหล่ง | คะแนน | วันที่ของผล | Branch-Protection |
+|---|---|---|---|
+| `api.securityscorecards.dev` (เดิม) | 7.2 | 22 ส.ค. 14:15 | `-1` (อ่านไม่ได้) |
+| `api.scorecard.dev` (ปัจจุบัน) | **6.9** | 23 ส.ค. | **3** |
+
+รูปสำเร็จรูปของ shields (`/ossf-scorecard/...`) อ่านจากโดเมนเดิม ซึ่งค้างอยู่ที่ผล
+ก่อนที่ `repo_token` จะทำให้ Scorecard อ่าน branch protection ได้ · README จึงใช้
+รูปแบบ `dynamic/json` ที่ชี้ `api.scorecard.dev` ตรง ๆ แทน — **โฮสต์ของรูปยังเป็น
+`img.shields.io` เหมือนเดิม** จึงไม่ต้องเพิ่มโฮสต์ใหม่ในรายการที่วัดผ่าน camo แล้ว
+
+**คะแนนลดลงเพราะเราทำให้มันมองเห็นได้** ไม่ใช่เพราะถอยหลัง: `-1` แปลว่า *อ่านไม่ได้*
+และถูกตัดออกจากการเฉลี่ย พอมองเห็นได้จริงมันเข้าสูตรที่ 3/10 — สามในสี่คำเตือน
+ต้องมีผู้ดูแลคนที่สอง (ADR 0053) ส่วนข้อที่สี่ `up-to-date branches` ปิดไว้โดยตั้งใจ
+
+## ชุด baseline — ระดับ baseline-3 (21 ข้อ · ตอบได้ 18 · ค้าง 3)
+
+**ระดับนี้ยังไปไม่ถึงด้วยเหตุผลเชิงโครงสร้างหนึ่งข้อ** — `OSPS-QA-07.01` ต้องมี
+**คนที่ไม่ใช่ผู้เขียนอนุมัติก่อน merge** ซึ่งเป็นไปไม่ได้กับโปรเจกต์ผู้ดูแลคนเดียว ·
+[ADR 0053](adr/0053-solo-maintainer-sod-compensating-controls.md) บันทึกมาตรการ
+ชดเชยและเงื่อนไขที่ทำให้ข้อนี้เปลี่ยนไว้แล้ว (วันที่มีผู้ร่วมพัฒนาประจำคนที่สอง)
+
+อีกสองข้อเป็น **งานจริงที่ทำได้ ไม่ใช่ข้อจำกัด**:
+
+- `OSPS-SA-03.02` — ยังไม่มี **threat model + attack surface analysis** ของเส้นทาง
+  โค้ดสำคัญ (ทะเบียนความเสี่ยงกับ ASVS/ISO ที่มีอยู่เป็นคนละชนิดของงาน)
+- `OSPS-VM-04.02` — เหตุผลของ CVE ที่ไม่กระทบเราอยู่ในทะเบียนร้อยแก้วที่ CI ตรวจ
+  สองทิศแล้ว แต่**ยังไม่ได้ออกเป็น VEX** ที่เครื่องอ่านได้
+
+ที่เหลือ 18 ข้อตอบได้ทั้งหมด (17 Met · 1 N/A) — ระหว่างเตรียมใบตอบนี้ได้ปิดช่องว่าง
+เอกสารสี่ที่ไปด้วย: นโยบายความลับใน [OPERATIONS.md](OPERATIONS.md) · นโยบายทบทวน
+ก่อนให้สิทธิ์ที่สูงขึ้นใน `CONTRIBUTING.md` · ตารางรุ่นที่รองรับใน `SECURITY.md`
+(ค้างอยู่ที่ v1.x ทั้งที่รุ่นจริงคือ v2.2.0) · และประโยคที่บอกว่าเมื่อไหร่รุ่นหนึ่ง
+หยุดได้รับ security update
+
+| เกณฑ์ | ตอบ | ข้อความที่วางลงฟอร์มได้เลย (อังกฤษ) |
+|---|---|---|
+| `OSPS-AC-04.02` | Met | Every workflow job declares its own permissions block with only what that job needs (for example the scorecard job takes security-events: write and actions: read and nothing else); the repository default is read-only. OpenSSF Scorecard scores Token-Permissions 10/10. |
+| `OSPS-BR-01.04` | Met | Untrusted or collaborator-supplied text is never interpolated into a shell command: values such as the pull request body are passed to a Python script through the environment (PR_BODY) rather than into the run block. OpenSSF Scorecard scores Dangerous-Workflow 10/10. |
+| `OSPS-BR-02.02` | Met | Every asset is attached to the tagged release itself, which is the association to the release identifier, and each signature bundle is named after the asset it signs (sbom-core.json / sbom-core.json.sigstore.json). The SBOMs record the component versions they describe. |
+| `OSPS-BR-07.02` | Met | docs/OPERATIONS.md has a secrets policy that covers all three layers (application runtime secrets behind SECRETS_URL, CI secrets in GitHub Actions, external service tokens), naming for each where it is stored, who can read it, and when it is rotated — with the rotation deadlines carried as rows in docs/SECURITY-CADENCE.md. Storage in version control is blocked by gitleaks on every push plus GitHub secret scanning with push protection. |
+| `OSPS-DO-03.01` | Met | SECURITY.md, section 'Release artifacts are signed', gives the exact commands to verify a downloaded asset: cosign verify-blob against the sigstore bundle, and gh attestation verify for the SLSA build provenance. |
+| `OSPS-DO-03.02` | Met | The same verification command pins the expected identity of the release process: --certificate-identity-regexp bound to this repository's release.yml workflow and --certificate-oidc-issuer bound to GitHub's OIDC issuer, so a signature made by any other workflow or account fails the check. |
+| `OSPS-DO-04.01` | Met | SECURITY.md, section 'Supported versions', states the scope: main and the latest release are supported, earlier releases are superseded, and pre-1.0 releases promised nothing. |
+| `OSPS-DO-05.01` | Met | The same section states when security updates stop: a release stops receiving them the moment a newer release exists. There is no long-term support branch; fixes land on main and go out in the next tag, and releases are never patched in place. |
+| `OSPS-GV-04.01` | Met | CONTRIBUTING.md, section 'Who holds what', states that escalated access is reviewed before it is granted — the maintainer reviews the person's contribution history and confirms the identity behind the account, and the grant is recorded in that section so the list always names everyone who holds it. |
+| `OSPS-QA-02.02` | Met | Every release carries an SBOM per dependency category (core plus one per installable plugin), generated in CI and attached to the release together with its signature. |
+| `OSPS-QA-04.02` | N/A | The project is a single repository; there are no subprojects to hold to the same requirements. |
+| `OSPS-QA-06.02` | Met | CONTRIBUTING.md documents when and how tests run: one preflight command reproduces CI's lint and test steps locally by reading the workflow itself, the commit hook covers formatting and typing, and every pull request runs 27 required checks including the full suite against three database engines. |
+| `OSPS-QA-06.03` | Met | CONTRIBUTING.md rule 1 requires every new test to be proven by mutation before it counts, and diff-cover gates every pull request at 100% coverage of changed lines, so a change that adds behaviour without tests cannot merge. |
+| `OSPS-QA-07.01` | Unmet | The project has a single maintainer, so no non-author human approval is possible; required approvals are set to 0. ADR 0053 records the compensating controls (pull-request-only main enforced against admins, 27 required checks, an append-only audit chain, a fully public history) and the condition that ends the arrangement: the day a second regular contributor arrives, required reviews turn on. |
+| `OSPS-SA-03.02` | Unmet | The project has a risk register with a documented method (docs/RISK-ASSESSMENT.md), an ASVS 5.0 L2 self-assessment and an ISO/IEC 27001:2022 self-assessment, but it has not yet produced a threat model and attack surface analysis of its own critical code paths and interactions. This is recognised work, not an oversight. |
+| `OSPS-VM-04.02` | Unmet | Vulnerabilities that do not affect the project are accounted for in prose registers that CI checks in both directions (pins/accepted-advisories.txt, app/plugins/accepted-advisories.txt, deploy/accepted-image-advisories.txt), each line carrying its reasoning — but they are not published as a machine-readable VEX document. |
+| `OSPS-VM-05.01` | Met | docs/SECURITY-CADENCE.md defines the remediation thresholds for SCA findings: critical within 7 days, high within 30, medium within 90, counted from the day the project becomes aware; an advisory without a score is treated as high until scored. Licence findings are gated separately by the licensing check, which fails on copyleft conflicts. |
+| `OSPS-VM-05.02` | Met | A release cannot be cut while an SCA violation is open: the release path requires the same required checks as any change, and the dependency audits fail the build unless every finding is either fixed or recorded with its reasoning in the accepted-advisories registers, which are themselves checked in both directions. |
+| `OSPS-VM-05.03` | Met | Every change is evaluated automatically: pip-audit for the application and for CI tooling, npm audit for the JavaScript tooling, trivy for the container image, and Dependabot for updates. All dependencies are hash-pinned (Pipfile.lock, pins/ with --require-hashes, npm ci), so a substituted or malicious artefact fails installation rather than being trusted. |
+| `OSPS-VM-06.01` | Met | SAST findings follow the same documented thresholds as other vulnerabilities in docs/SECURITY-CADENCE.md (critical 7 / high 30 / medium 90 days from awareness), and every alert that stays open must carry its reasoning in .github/accepted-code-scanning-alerts.txt, which CI checks in both directions. |
+| `OSPS-VM-06.02` | Met | Every change runs CodeQL (Python and JavaScript), semgrep with a proven scan scope, and gitleaks as required checks; a finding blocks the pull request unless it is declared with its reasoning in .github/accepted-code-scanning-alerts.txt, and a declaration that no longer matches a real alert fails the build too. |
+
 **ที่ยังต้องทำด้วยมือ**: ล็อกอินที่ <https://www.bestpractices.dev/en/projects/14085>
 แล้วสลับไปแท็บชุด baseline · กรอกตามตารางนี้ · ครบ 100% เมื่อไหร่ได้ badge
 `baseline-1` แล้วค่อยเพิ่มรูปลง `README.md`

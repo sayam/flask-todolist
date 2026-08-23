@@ -213,6 +213,16 @@ append-only audit chain, a fully public history) and the condition that ends
 the arrangement — the day a second regular contributor arrives, required
 reviews turn on and that ADR is revisited.
 
+**Escalated access is reviewed before it is granted, not after.** Write access,
+administration rights and repository secrets are granted only after the
+maintainer has reviewed the person's contribution history in this repository and
+confirmed the identity behind the account; the grant is recorded in this section
+so the list above always names everyone who holds it. Access is removed the same
+way it is granted — as a change to this file — when someone stops working on the
+project. There is currently nobody to review but the maintainer, which is the
+condition [ADR 0053](docs/adr/0053-solo-maintainer-sod-compensating-controls.md)
+is waiting on.
+
 The maintainer's account is protected with phishing-resistant two-factor
 authentication (a passkey as the primary method, TOTP and GitHub Mobile as
 backups, SMS deliberately not enabled); this is re-verified on a twelve-month

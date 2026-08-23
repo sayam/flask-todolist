@@ -2,7 +2,7 @@
 
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/14085/badge)](https://www.bestpractices.dev/projects/14085)
 [![OpenSSF Baseline](https://www.bestpractices.dev/projects/14085/baseline)](https://www.bestpractices.dev/projects/14085)
-[![OpenSSF Scorecard](https://img.shields.io/ossf-scorecard/github.com/sayam/flask-todolist?label=openssf%20scorecard)](https://scorecard.dev/viewer/?uri=github.com/sayam/flask-todolist)
+[![OpenSSF Scorecard](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fapi.scorecard.dev%2Fprojects%2Fgithub.com%2Fsayam%2Fflask-todolist&query=%24.score&label=openssf%20scorecard&color=blue)](https://scorecard.dev/viewer/?uri=github.com/sayam/flask-todolist)
 [![CI](https://img.shields.io/github/actions/workflow/status/sayam/flask-todolist/ci.yml?branch=main&label=CI)](https://github.com/sayam/flask-todolist/actions/workflows/ci.yml)
 
 A personal to-do list built with Flask — and, more to the point, a place where
@@ -190,7 +190,7 @@ own dependency category) · SQLite / MySQL / MariaDB · gunicorn · pipenv
 
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/14085/badge)](https://www.bestpractices.dev/projects/14085)
 [![OpenSSF Baseline](https://www.bestpractices.dev/projects/14085/baseline)](https://www.bestpractices.dev/projects/14085)
-[![OpenSSF Scorecard](https://img.shields.io/ossf-scorecard/github.com/sayam/flask-todolist?label=openssf%20scorecard)](https://scorecard.dev/viewer/?uri=github.com/sayam/flask-todolist)
+[![OpenSSF Scorecard](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fapi.scorecard.dev%2Fprojects%2Fgithub.com%2Fsayam%2Fflask-todolist&query=%24.score&label=openssf%20scorecard&color=blue)](https://scorecard.dev/viewer/?uri=github.com/sayam/flask-todolist)
 [![CI](https://img.shields.io/github/actions/workflow/status/sayam/flask-todolist/ci.yml?branch=main&label=CI)](https://github.com/sayam/flask-todolist/actions/workflows/ci.yml)
 
 แอปจดงานส่วนตัวเขียนด้วย Flask — และที่สำคัญกว่านั้น เป็นที่ที่วินัยทางวิศวกรรม

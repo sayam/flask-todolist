@@ -687,6 +687,28 @@ journalctl -u todolist-purge.service --grep TDL_PURGE_FAILED
 **ห้ามใช้ rerun เป็นนโยบาย** — ด่านที่ถูกกด rerun เป็นนิสัย คือด่านที่วันแดงจริง
 ก็ถูกกด rerun เหมือนกัน (หลักเดียวกับเงื่อนไข flaky ของ ADR 0056)
 
+## นโยบายความลับ — เก็บที่ไหน ใครแตะได้ หมุนเมื่อไหร่ (OSPS-BR-07.02)
+
+รวมไว้ที่เดียวเพราะกติกาเดิมกระจายอยู่ห้าที่ · **ความลับของโปรเจกต์นี้มีสามชั้น
+และคนละชั้นมีที่อยู่คนละแบบ**
+
+| ชั้น | ตัวอย่าง | เก็บที่ไหน | ใครอ่านได้ | หมุนเมื่อไหร่ |
+|---|---|---|---|---|
+| ความลับของแอปตอนรัน | `SECRET_KEY` · `DATA_ENCRYPTION_KEY` · `METRICS_TOKEN` | แหล่งที่ `SECRETS_URL` ประกาศ (`env://` · `file://` · `vault://` — ADR 0030) **ไม่เคยอยู่ในรีโป** | กระบวนการของแอปบนโฮสต์นั้น | เปลี่ยน `SECRET_KEY` = ทุก session ถูกตัด (ตั้งใจ) · `DATA_ENCRYPTION_KEY` หมุนคนละจังหวะเพราะทำหายแล้วความลับ TOTP อ่านไม่ได้ถาวร |
+| ความลับของ CI | `POSTURE_TOKEN` | GitHub Actions secrets | job ที่ประกาศชื่อนั้นเท่านั้น · ไม่ถูกส่งให้ workflow ของ fork | มีแถวรอบตรวจของตัวเองใน [SECURITY-CADENCE.md](SECURITY-CADENCE.md) — ใบปัจจุบันหมดอายุ 2026-11-16 |
+| ความลับของบริการภายนอก | token ใน URL ของ webhook Zenodo | ฝั่งผู้ให้บริการ | เจ้าของ repo | หมุนโดยถอด hook แล้วต่อใหม่ — มีแถวความเสี่ยงใน [RISK-ASSESSMENT.md](RISK-ASSESSMENT.md) |
+
+**กติกาที่บังคับด้วยเครื่อง ไม่ใช่ด้วยความจำ**
+
+- **ห้ามความลับเข้า version control** — gitleaks ทุก push (`gate push-secret-scan`)
+  · GitHub secret scanning + **push protection** เปิดอยู่ · `.env` ถูก gitignore
+- **แอปไม่ start ถ้าไม่มี `SECRET_KEY`** และไม่มีค่า default ให้ตกกลับ
+  (`check_secret_key()`) — ความลับที่มีค่าเริ่มต้นคือความลับที่ไม่มีใครตั้ง
+- **"ถามแหล่งไม่ได้" ต่างจาก "ไม่มีชื่อนั้นในแหล่ง"** — อย่างแรกทำให้แอปไม่ start
+  อย่างหลังตกกลับไป env ได้ (ADR 0030)
+- **สิทธิ์ของ token ต้องต่ำที่สุดที่ทำงานได้** — `POSTURE_TOKEN` เป็น fine-grained
+  ที่อ่านอย่างเดียว การขยาย scope เพื่อความสะดวกคือการจ่ายสิทธิ์ถาวรให้ของที่ยืมได้ต่อ run
+
 ## `POSTURE_TOKEN` — สิทธิ์อ่านท่าทีของ repo (ADR 0061)
 
 `scripts/audit_posture.py` เทียบ branch protection · required check · auto-merge ·
