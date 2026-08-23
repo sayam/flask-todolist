@@ -281,6 +281,34 @@ gates:
           gate ที่มีจริงแต่ไม่เกี่ยวกับรอบนั้น · ชี้ ADR ที่ไม่มีไฟล์ · อ้างรอบใหม่
           ในเอกสารโดยไม่มีแถว · และเลขที่โฆษณาไม่ตรงจำนวนแถว
 
+  - id: vex-matches-the-registers
+    title: เอกสาร VEX ตรงกับทะเบียน advisory สองทิศ และไม่ตอบเกินกว่าที่ทะเบียนพูด
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_vex.py]}
+    standard: []
+    requires: []
+    portable: false
+    layer: internal
+    pillar: security
+    born_from: >-
+      โปรเจกต์นี้ตัดสิน CVE ทุกใบอยู่แล้วและบังคับให้เหตุผลอยู่ใน
+      `docs/SECURITY-CADENCE.md` สองทิศ — **แต่คำตัดสินเป็นร้อยแก้วภาษาไทยที่มี
+      แต่คนอ่านได้** ปลายทางที่รันสแกนเนอร์ใส่ image ของเราแล้วเห็น CVE เดียวกัน
+      ไม่มีทางรู้ว่าเราตัดสินไว้ว่าอย่างไร (`OSPS-VM-04.02` ของ OSPS Baseline
+      ระดับ 3) · ข้อที่อันตรายที่สุดของเอกสาร VEX คือการตอบ `not_affected` กับของ
+      ที่อยู่ใน image จริง ซึ่งสแกนเนอร์ของผู้ใช้จับได้เอง — ด่านนี้จึงบังคับว่า
+      advisory ที่มาจากทะเบียนของ image ต้องเป็น `affected` พร้อม action_statement
+
+    proved_by:
+      - kind: mutation
+        ref: pr/217
+        date: 2026-08-23
+        caught: >-
+          ล้มเหลวสี่ทิศแล้วแดงครบ — เพิ่ม advisory ในทะเบียนโดยไม่ regenerate ·
+          เปลี่ยนของที่อยู่ใน image เป็น `not_affected` · ตอบ `affected` โดยไม่บอก
+          ว่าจะทำอะไรต่อ · และให้ตัวหาแพ็กเกจคืน "unknown" แทนที่จะดังเมื่อหาไม่เจอ
+
   - id: threat-model-bound-to-the-code
     title: threat model ผูกกับผิวจริง — route สาธารณะสองทิศ · gate/ADR ที่อ้างต้องมีอยู่
     kind: test
