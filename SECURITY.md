@@ -116,11 +116,14 @@ gh attestation verify sbom-core.json --repo sayam/flask-todolist
 | Version | Supported |
 |---|---|
 | `main` | ✅ |
-| v1.x | ✅ latest patch release |
+| latest release (v2.2.0) | ✅ |
+| any earlier release | ❌ superseded |
 | < v1.0.0 | ❌ pre-release, nothing was promised |
 
 There is no long-term support branch. Fixes land on `main` and go out in the next
-release.
+release, so **a release stops receiving security updates the moment a newer
+release exists** — the supported upgrade path is always "move to the latest
+release". Releases are not yanked or patched in place; the fix is the next tag.
 
 ---
 
