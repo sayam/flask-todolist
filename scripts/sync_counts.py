@@ -50,6 +50,14 @@ TARGETS = {
     ],
     # จำนวนรอบ audit เปลี่ยนทุกครั้งที่ลงทะเบียนรอบใหม่ — และสองใบแรกคือบัตร
     # ประจำตัวที่ Zenodo อ่านไปตีพิมพ์ใต้ DOI ถาวร (ADR 0072 · audit รอบ 24)
+    # จำนวนกฎ baseline ที่ส่งออกจริง — เปลี่ยนทุกครั้งที่มี gate ใหม่ที่ `portable`
+    # และ `layer: baseline` · **ไม่ได้อยู่ในรายการนี้มาจนถึง audit รอบ 26** จึงต้อง
+    # ไล่แก้สามที่ด้วยมือทุกครั้ง ซึ่งเป็นภาษีชนิดเดียวกับที่รอบ 25 สร้างสคริปต์นี้มาลด
+    "baseline_rules": [
+        ("README.md", r"(\d+)(?= framework-agnostic baseline rules)"),
+        ("README.md", r"(?<=กฎ baseline )(\d+)(?= ข้อ)"),
+        ("docs/ROADMAP-INFRA.md", r"(?<=ปัจจุบัน )(\d+)(?=\))"),
+    ],
     "audits": [
         ("CITATION.cff", r"(\d+)(?= recorded audit rounds)"),
         (".zenodo.json", r"(\d+)(?= recorded audit rounds)"),
@@ -65,6 +73,9 @@ def measured() -> tuple[dict[str, int], list[dict]]:
     counted = {
         "adrs": len([p for p in ADR_DIR.glob("*.md") if p.name[:4].isdigit()]),
         "gates": len(gates),
+        "baseline_rules": len(
+            [g for g in gates if g.get("portable") and g.get("layer") == "baseline"]
+        ),
         "audits": len(AUDIT_ROW.findall(AUDIT_LOG.read_text(encoding="utf-8"))),
     }
     return counted, gates

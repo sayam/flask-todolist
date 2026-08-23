@@ -1848,13 +1848,13 @@ gates:
           ด่านจึงปฏิเสธที่จะเขียวทั้งที่ stack ขึ้นครบทุก container
 
   - id: metrics-scraped-for-real
-    title: Prometheus ดูด /metrics ผ่านด่าน token จริง และตัวเลขไปถึง TSDB จริง
+    title: Prometheus ดูด /metrics ผ่านด่าน token จริง · ตัวเลขไปถึง TSDB จริง · และดังจริงเมื่อแอปหายไป
     kind: job
     severity: blocking
     enforced_by: {job: scrape}
     standard: []
     requires: [docker-compose]
-    guards: [app/metrics.py, compose.metrics.yaml, deploy/prometheus.yml]
+    guards: [app/metrics.py, compose.metrics.yaml, deploy/prometheus.yml, deploy/prometheus-rules.yaml]
     portable: false
     layer: internal
     pillar: performance
@@ -1863,6 +1863,12 @@ gates:
       endpoint ที่ไม่มีตัวดูดจริงคือ endpoint ที่วันหนึ่งล้มเหลวอย่างเงียบ ๆ ๆ ได้โดยไม่มี
       ใครรู้ · และต้องพิสูจน์ด้วยว่าด่าน token ยังปิดอยู่ (ดูดได้เพราะกุญแจถูก
       ไม่ใช่เพราะประตูเปิดโล่ง)
+      · **audit รอบ 26 ข้อ 2 ต่ออีกชั้น**: `deploy/prometheus.yml` ไม่มี `rule_files`
+      เลยตลอดอายุของมัน แปลว่าฝั่งที่*ดึง*ทุก 5 วินาที — ฝั่งเดียวที่แยก "เงียบ"
+      ออกจาก "ตาย" ได้ — พูดไม่ได้ · และกฎฝั่ง log ทั้งสามข้อเป็น
+      `count_over_time(…) > n` จึงยิงจาก*การมีอยู่*ของเหตุการณ์เท่านั้น ระบบทั้งระบบ
+      จึงไม่มีกฎสักข้อที่ยิงจาก*การไม่มี* · ตอนนี้มี `MetricsTargetDown` และ job นี้
+      พิสูจน์ด้วยการ **หยุดแอป** ซึ่งเป็นทิศที่กฎแบบนับทดสอบไม่ได้โดยนิยาม
 
   - id: zap-authenticated-scan
     title: ZAP baseline ยิง stack จริงแบบ login แล้ว — วัดว่าสแกนจริงจาก log ของแอป
@@ -2093,7 +2099,10 @@ gates:
     enforced_by: {job: posture, step: ตารางเวลาที่ประกาศไว้ต้องยังยิงอยู่จริง}
     watched_by:
       who: ผู้ดูแล
-      within_days: 90
+      # **45 ต้องน้อยกว่า 60 ซึ่งเป็นตัวเลขของ GitHub ไม่ใช่ของเรา** (audit รอบ 26 ·
+      # ADR 0074) — เดิมเป็น 90 ซึ่งยาวกว่าหน้าต่างที่ทำให้ cron ถูกปิด คำสัญญาจึง
+      # มาถึงหลังจากตัวที่มันเฝ้าดับไปแล้วอย่างน้อยหนึ่งเดือน โดยไม่ผิดสัญญาสักข้อ
+      within_days: 45
       cadence: ทบทวนของที่รันตามเวลาซึ่งเครื่องตรวจไม่ได้
       how: >-
         `scripts/schedule_census.py` รันทุก push บน main และทุกครั้งที่กฎของ branch
@@ -2123,6 +2132,34 @@ gates:
           ต้องอ่านจากช่องที่หยาบที่สุดที่ถูกตรึง ไม่ใช่เดาจากชื่อ workflow
           · ทิศ "ผ่านเมื่อควรผ่าน" ยืนยันกับของจริง: cron ที่ยิงเมื่อวานต้องเงียบ
 
+  - id: watcher-windows-fit-platform-silence
+    title: คำสัญญาของผู้เฝ้าต้องสั้นกว่าหน้าต่างเงียบของแพลตฟอร์ม — ผู้เฝ้าที่มาถึงหลังเครื่องถูกปิด ไม่ใช่ผู้เฝ้า
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_watcher_windows.py]}
+    standard: []
+    requires: [github-actions]
+    portable: true
+    layer: baseline
+    pillar: manageability
+    born_from: >-
+      audit รอบ 26 ข้อ 1 — `schedules-still-fire` ถูกสร้างมาเพื่อจับกฎ "GitHub ปิด
+      schedule ให้ repo สาธารณะที่เงียบครบ 60 วัน" โดยเฉพาะ แต่มันถูกบังคับด้วย job
+      ที่รันอยู่ใน cron ตัวนั้นเอง — **ตัวเฝ้าอยู่ใต้สิ่งที่มันเฝ้า** และตายในวินาที
+      เดียวกับที่มีเรื่องให้รายงาน · ที่แย่กว่าคือคำสัญญาของมันตอนนั้นเป็น 90 วัน
+      ซึ่ง**ยาวกว่าหน้าต่างที่สร้างความล้มเหลว**: ผู้เฝ้ามาถึงช้ากว่าของที่เฝ้าอย่างน้อย
+      หนึ่งเดือนโดยไม่ผิดสัญญาสักข้อ · กฎนี้บังคับข้อเดียว — ในบรรดา workflow ที่รอดได้
+      ด้วย cron อย่างเดียว ต้องมีคำสัญญาอย่างน้อยหนึ่งข้อที่สั้นกว่าหน้าต่างนั้น
+      เพราะการลงมือครั้งเดียวรีเซ็ตนาฬิกาของแพลตฟอร์มให้ทั้ง repo พร้อมกัน
+    proved_by:
+      - kind: mutation
+        ref: pr/216
+        date: 2026-08-23
+        caught: >-
+          แดงครบสามทิศตอนทำให้ผิดทีละจุด — คืน `within_days` เป็น 90 (ค่าก่อนรอบนี้)
+          ทำให้ข้อคำสัญญาแดง · ถอด `on.schedule` ออกจาก `scorecard.yml` ทำให้ข้อ
+          "กฎนี้ยังไม่เปล่า" แดง (กันกฎที่ผ่านฟรีเมื่อสมมติฐานหายไป) · แก้ `**60 วัน**`
+          ในเอกสารให้เป็นตัวหนังสือ ทำให้ข้อที่ผูกค่าคงที่กับที่มาของมันแดง
   - id: openssf-scorecard
     title: Scorecard วัดแนวปฏิบัติของ repo และเผยแพร่ผล — คะแนน ไม่ใช่ผ่าน/ตก
     kind: job

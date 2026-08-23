@@ -442,7 +442,11 @@ plugin ยืนยันตัวตนภายนอกตัวเดีย�
 
 ```bash
 # 1) ออก token ให้ตัวดูด (/metrics ต้องมี token เสมอ — ADR 0031)
-flask token-create <ผู้ใช้> --name "prometheus"   # เก็บบรรทัด token ลงไฟล์
+#    **`--expires-days 0` โดยตั้งใจ** — ค่าเริ่มต้นคือ 90 วัน (audit รอบ 26)
+#    ซึ่งแปลว่าการเฝ้าระวังจะตาบอดเองในอีกสามเดือนโดยไม่มีใครสั่ง · กุญแจของ
+#    เครื่องที่ทำงานตลอดเวลา ต้องมีอายุที่ถูก*เลือก* ไม่ใช่อายุที่ตกทอดมา ·
+#    ถ้าเลือกให้หมดอายุ ต้องมีแถวต่ออายุใน SECURITY-CADENCE.md คู่กันเสมอ
+flask token-create <ผู้ใช้> --name "prometheus" --expires-days 0
 echo 'tdl_...' > ./metrics-token
 
 # 2) ขึ้น stack — Prometheus อ่าน token จากไฟล์ (อ่านใหม่ทุกรอบ scrape
@@ -452,6 +456,10 @@ METRICS_TOKEN_FILE=$PWD/metrics-token GRAFANA_PASSWORD=... \
 ```
 
 - Prometheus: `:9090` · Grafana: `:3001` (datasource ถูก provision จากไฟล์)
+- **มีกฎ liveness หนึ่งข้อ** — `MetricsTargetDown` (`up == 0` · `for: 1m`) ใน
+  [`deploy/prometheus-rules.yaml`](../deploy/prometheus-rules.yaml) · เป็นกฎเดียว
+  ในระบบที่ยิงจาก*การไม่มี* ซึ่งเป็นทิศที่กฎฝั่ง log ทั้งสามข้อครอบไม่ถึง
+  (ADR 0037 โน้ต 2026-08-23) · ยังไม่มี Alertmanager — เสียงดังอยู่ที่ `:9090/alerts`
 - ค่าที่แอปนับเป็นของ process นั้นคนเดียว (ADR 0031) — การรวมข้าม replica
   เป็นหน้าที่ของฝั่ง Prometheus
 - job `scrape` ใน CI พิสูจน์ทุก push ว่าตัวเลขไปถึง TSDB จริงผ่านด่าน token

@@ -471,7 +471,13 @@ def test_every_watcher_names_a_mechanism_that_exists(gates, jobs):
 
 
 def _cadence_periods() -> dict[str, int]:
-    """หัวข้อของแถวใน cadence → รอบเป็นวัน (ข้ามแถวที่ผูกกับเหตุการณ์ ไม่ใช่เวลา)"""
+    """หัวข้อของแถวใน cadence → รอบเป็นวัน (ข้ามแถวที่ผูกกับเหตุการณ์ ไม่ใช่เวลา)
+
+    **รับทั้ง "N เดือน" และ "N วัน"** — รอบที่สั้นกว่าหนึ่งเดือนเขียนเป็นเดือนไม่ได้
+    และถ้าตัวอ่านรู้จักแต่เดือน แถวแบบนั้นจะถูกอ่านเป็น 0 = "ผูกกับเหตุการณ์
+    เร็วพอเสมอ" ซึ่งทำให้ด่านที่พึ่งตัวเลขนี้เขียวฟรี (audit รอบ 26 — แถวรักษาชีพ
+    เป็นแถวแรกที่มีรอบเป็นวัน เพราะมันต้องสั้นกว่าหน้าต่าง 60 วันของ GitHub)
+    """
     text = CADENCE_DOC.read_text(encoding="utf-8")
     start = text.index("## ส่วนที่ต้องมีคนลงมือ")
     end = text.index("## กรอบเวลาแก้ช่องโหว่", start)
@@ -483,7 +489,9 @@ def _cadence_periods() -> dict[str, int]:
         if len(cells) != 5:
             continue
         months = re.fullmatch(r"(\d+) เดือน", cells[1])
-        rows[cells[0].replace("**", "")] = int(months.group(1)) * MONTHS if months else 0
+        days = re.fullmatch(r"(\d+) วัน", cells[1])
+        period = int(months.group(1)) * MONTHS if months else int(days.group(1)) if days else 0
+        rows[cells[0].replace("**", "")] = period
     return rows
 
 

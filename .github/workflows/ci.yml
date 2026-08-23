@@ -1533,6 +1533,42 @@ jobs:
           # อะไรไม่ได้เลย (ดูดได้เพราะประตูเปิดโล่ง ไม่ใช่เพราะกุญแจถูก)
           code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/metrics)
           [ "$code" = "401" ] || { echo "/metrics ไม่มี token ได้ $code ไม่ใช่ 401"; exit 1; }
+      # ---- กฎที่ยิงจากการ **ไม่มี** (audit รอบ 26 ข้อ 2 · ADR 0037 โน้ต 2026-08-23)
+      #
+      # ทุกด่านที่มีอยู่ก่อนหน้านี้พิสูจน์ว่าระบบดังเมื่อ*ใส่ของแย่ ๆ เข้าไป* —
+      # ด่านนี้เป็นตัวแรกที่พิสูจน์ด้วยการ **เอาของออก** ซึ่งเป็นทิศที่กฎแบบ
+      # `count_over_time(…) > n` ทดสอบไม่ได้โดยนิยาม
+      - name: กฎ liveness ต้องถูกโหลด และต้องยังไม่ดัง
+        run: |
+          rules=$(curl -sf 'http://127.0.0.1:9090/api/v1/rules')
+          echo "$rules" | grep -q 'MetricsTargetDown' \
+            || { echo "Prometheus ไม่ได้โหลดกฎเลย: $rules"; exit 1; }
+          # `rule_files` ที่ path ผิดไม่ทำให้ Prometheus ล้ม มันแค่ไม่มีกฎ —
+          # ความล้มเหลวเงียบชนิดเดียวกับที่ทั้งข้อนี้พูดถึง
+          alerts=$(curl -sf 'http://127.0.0.1:9090/api/v1/alerts')
+          echo "$alerts" | grep -q '"state":"firing"' \
+            && { echo "มี alert ดังอยู่ทั้งที่ยังไม่ได้ทำอะไร: $alerts"; exit 1; }
+          echo "กฎถูกโหลดแล้วและเงียบตามที่ควรเงียบ"
+      - name: หยุดแอป แล้วต้องได้ยินเสียง
+        run: |
+          export METRICS_TOKEN_FILE=$PWD/metrics-token
+          $COMPOSE stop app
+          # `for: 1m` + `interval: 15s` → ดังภายใน ~75 วินาที · เผื่อถึง 3 นาที
+          fired=0
+          for _ in $(seq 1 36); do
+            alerts=$(curl -sf 'http://127.0.0.1:9090/api/v1/alerts' || true)
+            echo "$alerts" | grep -q 'MetricsTargetDown' \
+              && echo "$alerts" | grep -q '"state":"firing"' \
+              && { fired=1; break; }
+            sleep 5
+          done
+          [ "$fired" = "1" ] || {
+            echo "แอปหยุดไปแล้วแต่ไม่มีอะไรดัง — กฎที่ยิงจากการไม่มี ไม่ทำงาน"
+            curl -sf 'http://127.0.0.1:9090/api/v1/alerts' || true
+            $COMPOSE logs prometheus | tail -30
+            exit 1
+          }
+          echo "MetricsTargetDown ดังจริงหลังแอปหายไป"
       - name: เก็บกวาด
         if: always()
         run: |
