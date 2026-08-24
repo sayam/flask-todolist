@@ -14,6 +14,18 @@
     python3 scripts/sync_counts.py            # บอกว่าที่ไหนยังไม่ตรง (exit 1 ถ้าไม่ตรง)
     python3 scripts/sync_counts.py --write     # แก้ให้ตรงทุกที่
     python3 scripts/sync_counts.py --about     # พิมพ์ข้อความของช่อง About ที่ถูกต้อง
+    python3 scripts/sync_counts.py --about --write   # ยิงเลขที่ถูกขึ้นช่อง About จริง
+
+**`--about --write` เป็นทางเดียวในไฟล์นี้ที่คุยกับ GitHub** และมันต้องรันจาก
+เครื่องของผู้ดูแลเท่านั้น ไม่ใช่จาก CI — `POSTURE_TOKEN` เป็น token อ่านอย่างเดียว
+โดยตั้งใจ (ADR 0061) และการให้ CI มีสิทธิ์ `administration: write` เพื่อแก้ช่อง
+โฆษณาหนึ่งช่อง คือการยกอำนาจเขียน *ท่าที* ของ repo ให้ไปป์ไลน์ ซึ่งแพงกว่าที่ได้
+มาก · ที่นี่ถูกที่แล้วเพราะ `gh` บนเครื่องผู้ดูแลมีสิทธิ์ครบอยู่แล้ว
+
+**ซิงก์ได้สามเลขกับหนึ่งรุ่น ไม่ใช่ทั้งสี่เลข** — `required checks` มาจาก
+branch protection จริง ซึ่งนับจากดิสก์ไม่ได้ · ตัวนั้นปล่อยไว้ให้ `ci:posture`
+จับเหมือนเดิม และมันเปลี่ยนเฉพาะตอนมีคนเพิ่ม/ถอด required check ซึ่งเป็นคำตัดสิน
+ที่มีคนลงมืออยู่แล้ว ต่างจากเลขที่ขยับเองทุกครั้งที่ merge
 
 **ที่ไม่ทำให้โดยตั้งใจ**: แถวในดัชนี `docs/adr/README.md` — แถวใหม่ต้องมีคำอธิบาย
 ของมันเอง ซึ่งเป็นงานเขียน ไม่ใช่งานนับ · สคริปต์จึงบอกว่ามันขาด แต่ไม่แต่งให้
@@ -29,6 +41,9 @@ import re
 import sys
 
 import yaml  # type: ignore[import-untyped]  # pyyaml มากับ dev tools และไม่มี stub
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import gh
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 ADR_DIR = ROOT / "docs" / "adr"
@@ -152,6 +167,80 @@ def about_text() -> str:
     )
 
 
+# ---------------------------------------------------------------- ช่อง About
+#
+# **ช่องนี้อยู่นอก git จึงไม่มี diff ไหนทำให้ใครสังเกตว่ามันเก่า** (ADR 0072) ·
+# วัดแล้วสองครั้งใน session เดียวเมื่อ 2026-08-23/24: merge ของที่เพิ่ม gate
+# หนึ่งตัว แล้ว `ci:posture` แดงทันทีด้วยเลขที่ต่างกันหนึ่ง — ครั้งแรก 112→115
+# ครั้งที่สอง 115→116 · ขั้นตอนที่ต้องจำแล้วพลาดสองครั้งติด ไม่ใช่ความบังเอิญ
+#
+# `about_text()` รู้คำตอบที่ถูกมาตลอด แต่ไม่มีใครเอาไปยิง — เครื่องมือที่รู้คำตอบ
+# แต่ไม่ได้ต่อสายไปปลายทาง คือรูปเดียวกับที่ audit รอบ 26 ทั้งรอบพูดถึง
+# วลี → คีย์ของเลขที่นับจากดิสก์ได้ · `required checks` **ไม่อยู่ที่นี่โดยตั้งใจ**
+# เพราะมันมาจาก branch protection จริง (ดูหัวไฟล์)
+ABOUT_NUMBERS = {
+    "machine-checked gates": "gates",
+    "ADRs": "adrs",
+    "recorded governance audits": "audits",
+}
+
+
+def current_version() -> str:
+    """รุ่นที่ `app/__init__.py` ประกาศ — ช่อง About ต้องบอกรุ่นนี้ (ADR 0072)"""
+    found = re.search(
+        r'__version__ = "([^"]+)"', (ROOT / "app" / "__init__.py").read_text(encoding="utf-8")
+    )
+    if not found:
+        raise ValueError("อ่าน __version__ จาก app/__init__.py ไม่ได้")
+    return found.group(1)
+
+
+def about_drift(description: str) -> list[tuple[str, str, str]]:
+    """(อะไร, ที่เขียนไว้, ที่ควรเป็น) — เฉพาะของที่นับจากดิสก์ได้
+
+    วลีที่หายไปจากช่อง About **ถูกรายงาน ไม่ใช่ถูกข้าม** — ตัวซิงก์ที่เงียบตอน
+    หาไม่เจอ คือตัวที่บอกว่าตรงกันแล้วในวันที่มันไม่ได้อ่านอะไรเลย
+    """
+    real, _gates = measured()
+    found = []
+    version = current_version()
+    said = re.search(r"v(\d[\w.+-]*)", description)
+    if said is None:
+        found.append(("รุ่น", "(หาไม่เจอ)", f"v{version}"))
+    elif said.group(1) != version:
+        found.append(("รุ่น", f"v{said.group(1)}", f"v{version}"))
+    for phrase, key in ABOUT_NUMBERS.items():
+        said = re.search(rf"(\d+) {re.escape(phrase)}", description)
+        if said is None:
+            found.append((phrase, "(หาไม่เจอ)", str(real[key])))
+        elif int(said.group(1)) != real[key]:
+            found.append((phrase, said.group(1), str(real[key])))
+    return found
+
+
+def about_patched(description: str) -> str:
+    """ช่อง About ที่เลขถูกแก้ให้ตรงแล้ว — **ประโยคที่เหลือไม่ถูกแตะ**
+
+    แทนที่ทีละเลขในที่เดิม ไม่ใช่เขียนทั้งช่องใหม่จาก `about_text()` เพราะช่องนั้น
+    มีคำโฆษณาอย่างอื่นที่คนเขียนไว้ และการเขียนทับทั้งช่องคือการลบมันทิ้งเงียบ ๆ
+    """
+    real, _gates = measured()
+    patched = re.sub(r"(?<=v)\d[\w.+-]*", current_version(), description, count=1)
+    for phrase, key in ABOUT_NUMBERS.items():
+        patched = re.sub(rf"\d+(?= {re.escape(phrase)})", str(real[key]), patched, count=1)
+    return patched
+
+
+def about_now() -> str:
+    """ช่อง About ที่ GitHub ถืออยู่ตอนนี้"""
+    return gh.run(["repo", "view", "--json", "description", "--jq", ".description"])
+
+
+def about_push(description: str) -> None:
+    """เขียนช่อง About กลับไป — ต้องเป็น token ของผู้ดูแล ไม่ใช่ของ CI (ดูหัวไฟล์)"""
+    gh.run(["repo", "edit", "--description", description])
+
+
 def missing_index_rows() -> list[str]:
     """ADR ที่มีไฟล์แต่ยังไม่มีแถวในดัชนี — บอกอย่างเดียว ไม่แต่งให้"""
     index = (ADR_DIR / "README.md").read_text(encoding="utf-8")
@@ -168,8 +257,21 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--about", action="store_true", help="พิมพ์ข้อความของช่อง About")
     args = parser.parse_args(argv)
 
-    if args.about:
+    if args.about and not args.write:
         print(about_text())
+        return 0
+
+    if args.about:
+        live = about_now()
+        found = about_drift(live)
+        if not found:
+            print("ช่อง About ตรงกับของจริงแล้ว")
+            return 0
+        about_push(about_patched(live))
+        print(f"ยิงขึ้นช่อง About แล้ว {len(found)} ที่:")
+        for what, said, want in found:
+            print(f"  - {what}: {said} → {want}")
+        print("  `required checks` ไม่ได้ถูกแตะ — นับจากดิสก์ไม่ได้ (ci:posture เฝ้าให้)")
         return 0
 
     items = drift()

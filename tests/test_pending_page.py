@@ -190,6 +190,67 @@ def test_writing_makes_every_place_agree_and_then_it_is_silent(mini):
     assert "2 framework-agnostic baseline rules" in (mini / "README.md").read_text(encoding="utf-8")
 
 
+# ---------------------------------------------------- ช่อง About (audit รอบ 26)
+#
+# **ช่องนี้อยู่นอก git** จึงไม่มี diff ไหนทำให้ใครสังเกตว่ามันเก่า · วัดแล้วสองครั้ง
+# ใน session เดียวเมื่อ 2026-08-23/24: merge ของที่เพิ่ม gate หนึ่งตัว แล้ว
+# `ci:posture` แดงทันที (112→115 · 115→116) · `about_text()` รู้คำตอบที่ถูกมาตลอด
+# แต่ไม่มีใครเอาไปยิง — ตอนนี้ `--about --write` ยิงให้แล้ว
+#
+# **เทสต์ที่นี่ไม่แตะเครือข่าย** — ตัดสินจากสตริงล้วน ส่วนการยิงจริงพิสูจน์ด้วยการ
+# ทำให้ช่องผิดแล้วให้สคริปต์แก้เอง ซึ่งเป็นของที่ทำมือครั้งเดียวตอนเขียน (ดู PR)
+
+ABOUT = (
+    "Personal Flask to-do app built to production discipline — v2.2.0 (AGPL-3.0, "
+    "DOI-archived): 116 machine-checked gates, 74 ADRs, 26 recorded governance audits · "
+    "OpenSSF Silver badge, 27 required checks against real services"
+)
+
+
+def test_about_reports_every_number_that_drifted(mini, monkeypatch):
+    """เลขที่ค้างต้องถูกรายงานทีละตัว พร้อมค่าที่ควรเป็น"""
+    monkeypatch.setattr(sync_counts, "current_version", lambda: "2.2.0")
+    found = {what: (said, want) for what, said, want in sync_counts.about_drift(ABOUT)}
+
+    # รีโปจิ๋วมี 3 ADR · 2 gate · 4 รอบ audit — เลขในสตริงข้างบนจึงค้างทั้งสามตัว
+    assert found["machine-checked gates"] == ("116", "2")
+    assert found["ADRs"] == ("74", "3")
+    assert found["recorded governance audits"] == ("26", "4")
+    assert "required checks" not in found, (
+        "`required checks` มาจาก branch protection ไม่ใช่จากดิสก์ — ตัวซิงก์ที่แตะมันคือตัวที่เขียนเลขที่มันเดาเอง"
+    )
+
+
+def test_about_keeps_every_word_that_is_not_a_number(mini, monkeypatch):
+    """แก้เลขในที่เดิม ไม่ใช่เขียนทั้งช่องใหม่ — คำโฆษณาที่คนเขียนไว้ต้องรอด"""
+    monkeypatch.setattr(sync_counts, "current_version", lambda: "2.2.0")
+    patched = sync_counts.about_patched(ABOUT)
+
+    assert "2 machine-checked gates, 3 ADRs, 4 recorded governance audits" in patched
+    assert patched.startswith("Personal Flask to-do app built to production discipline")
+    assert "OpenSSF Silver badge" in patched
+    assert "27 required checks against real services" in patched, "เลขที่ไม่ได้ซิงก์ต้องไม่ถูกแตะ"
+    assert sync_counts.about_drift(patched) == [], "แก้แล้วต้องเงียบ ไม่ใช่แก้วนไม่รู้จบ"
+
+
+def test_about_reports_the_version_that_drifted(mini, monkeypatch):
+    """รุ่นก็เป็นของที่ค้างได้ — เคยค้าง v1.1.0 อยู่สามรุ่น (docs/RELEASE.md)"""
+    monkeypatch.setattr(sync_counts, "current_version", lambda: "9.9.9")
+    found = [row for row in sync_counts.about_drift(ABOUT) if row[0] == "รุ่น"]
+
+    assert found == [("รุ่น", "v2.2.0", "v9.9.9")]
+    assert "v9.9.9 (AGPL-3.0" in sync_counts.about_patched(ABOUT), "ต้องแก้ในที่เดิม"
+
+
+def test_about_reports_a_phrase_that_vanished_instead_of_skipping_it(mini, monkeypatch):
+    """วลีที่หายไปต้องดัง — ตัวซิงก์ที่เงียบตอนหาไม่เจอ บอกว่าตรงกันทั้งที่ไม่ได้อ่านอะไร"""
+    monkeypatch.setattr(sync_counts, "current_version", lambda: "2.2.0")
+    without = ABOUT.replace("74 ADRs, ", "")
+    found = {what: (said, want) for what, said, want in sync_counts.about_drift(without)}
+
+    assert found["ADRs"] == ("(หาไม่เจอ)", "3")
+
+
 def test_a_sentence_that_no_longer_matches_is_reported_not_skipped(mini):
     """ถ้อยคำเปลี่ยนจนรูปแบบหาไม่เจอ = ต้องดัง — การข้ามเงียบคือการรายงานว่าตรงทั้งที่ไม่รู้"""
     (mini / "CONTRIBUTING.md").write_text("ไม่มีเลขอยู่ในประโยคนี้แล้ว\n", encoding="utf-8")

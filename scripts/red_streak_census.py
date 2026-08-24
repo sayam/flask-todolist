@@ -43,8 +43,6 @@ import collections
 import datetime
 import json
 import pathlib
-import shutil
-import subprocess
 import sys
 import typing
 
@@ -52,6 +50,7 @@ import typing
 import yaml  # type: ignore[import-untyped]
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import gh
 import workflows
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -68,19 +67,7 @@ HOURS_PER_DAY = 24
 
 def _gh(path: str) -> typing.Any:
     """ถาม GitHub API — แยกไว้จุดเดียวให้เทสต์ปลอมได้ และให้ข้อผิดพลาดสิทธิ์ดังพอ"""
-    binary = shutil.which("gh")
-    if not binary:
-        raise RuntimeError("ไม่มี gh บนเครื่องนี้ — ตัวตรวจนี้ต้องถาม GitHub API ผ่านมัน")
-    result = subprocess.run(  # noqa: S603 — path มาจาก shutil.which และ argument เป็นของเราเอง
-        [binary, "api", path],
-        capture_output=True,
-        text=True,
-        check=False,
-        timeout=NETWORK_TIMEOUT_SECONDS,
-    )
-    if result.returncode != 0:
-        raise PermissionError(f"อ่าน {path} ไม่ได้: {result.stderr.strip()}")
-    return json.loads(result.stdout)
+    return gh.api(path)
 
 
 def promised_days() -> dict[str, int]:

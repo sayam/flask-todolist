@@ -20,6 +20,35 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Added
 
+- **The script that knew the right numbers was never wired to where they are
+  advertised.** The repository's About line carries four counts and a version;
+  `ci:posture` has checked them since round 24, and `sync_counts.py --about` has
+  printed the correct string since round 25 — but applying it was still a manual
+  copy. It went stale twice in one day: merging a change that added one gate left
+  `posture` red on `main`, first 112→115 and then 115→116. A step you have to
+  remember, missed twice running, is not bad luck. `--about --write` now reads the
+  live field, replaces each number in place, and pushes it back — the surrounding
+  sentence, which somebody wrote by hand, is left untouched. It syncs three counts
+  and the version; `required checks` is deliberately left alone because it comes
+  from branch protection rather than from disk, and `posture` still watches it.
+  This runs from the maintainer's machine only: `POSTURE_TOKEN` is read-only by
+  design ([ADR 0061](docs/adr/0061-platform-posture-verified.md)), and granting CI
+  `administration: write` so it could fix one advertising field would hand the
+  pipeline the power to rewrite the repository's posture — a far worse trade than
+  a command someone runs.
+
+- **A single wrapper for talking to GitHub, because there were five.**
+  `scripts/gh.py` replaces the `shutil.which("gh")` + `subprocess.run` block that
+  had been copied into `audit_posture`, `schedule_census`, `red_streak_census`,
+  `rerun_census` and, briefly, `sync_counts` — two of them identical to the
+  character, each carrying its own lint suppression for the same command. This is
+  the second instance of the class that produced `scripts/workflows.py` in round
+  18, where one copied idiom was broken in three of its five copies. Three callers
+  now share the wrapper; the two that remain are named in its docstring with the
+  reason each was left (`audit_posture` borrows a different token per question,
+  `rerun_census` raises a different error type and its tests are bound to that
+  shape). Suppressions dropped from 96 to 95 and the ceiling moved down with them.
+
 - **The test suite could be pointed at a real database, and nothing stopped it.**
   Every fixture that builds an app goes through `_app_with_tables()`, which calls
   `db.create_all()` and then `db.drop_all()`; the destination comes from
