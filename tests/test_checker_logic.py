@@ -32,6 +32,7 @@ from scripts import (
     audit_pins,
     audit_plugin_deps,
     audit_posture,
+    check_issue_handoff,
     check_ratchets,
     check_semgrep,
     lint_commits,
@@ -39,6 +40,7 @@ from scripts import (
     removals_census,
     rerun_census,
     schedule_census,
+    skeleton,
     whats_pending,
     workflows,
 )
@@ -520,6 +522,9 @@ def test_the_harvester_ignores_failures_that_are_not_ours(tmp_path):
 # ตัวควบคุมที่ด่านอื่นทุกตัวพิงอยู่ จึงเป็นตัวเดียวที่ไม่มีใครเฝ้า
 
 
+# จำนวน required check ที่ใช้ในเทสต์ของช่อง About — เลขอะไรก็ได้ที่คงที่
+REQUIRED_NOW = 27
+
 HEALTHY = {
     "required_checks": ["lint", "test"],
     "enforce_admins": True,
@@ -527,7 +532,13 @@ HEALTHY = {
     "allow_force_pushes": False,
     "allow_deletions": False,
     "allow_auto_merge": True,
+    "delete_branch_on_merge": True,
+    "allow_merge_commit": False,
+    "allow_rebase_merge": True,
+    "allow_squash_merge": False,
     "sha_pinning_required": True,
+    "default_workflow_permissions": "read",
+    "can_approve_pull_request_reviews": False,
 }
 ON_PR = {"lint", "test"}
 
@@ -545,7 +556,19 @@ def test_posture_passes_when_the_platform_matches_what_we_declared():
         ({"allow_force_pushes": True}, "เขียนทับประวัติได้"),
         ({"allow_deletions": True}, "ลบ branch หลักได้"),
         ({"allow_auto_merge": False}, "วิธี merge มาตรฐานของทุก PR หายไป"),
+        ({"delete_branch_on_merge": False}, "branch ที่ merge แล้วจะกองค้างอีกครั้ง"),
+        ({"allow_merge_commit": True}, "ประวัติแตกสายได้ ทั้งที่ประกาศว่าเส้นเดียว"),
+        ({"allow_rebase_merge": False}, "ทางเดียวที่ ADR 0053 รับ ถูกปิด"),
+        ({"allow_squash_merge": True}, "ปุ่มที่ CONTRIBUTING ข้อ 7 ห้ามไว้ กลับมาให้กดได้"),
         ({"sha_pinning_required": False}, "แพลตฟอร์มเลิกบังคับสิ่งที่เทสต์เราบังคับอยู่"),
+        (
+            {"default_workflow_permissions": "write"},
+            "GITHUB_TOKEN ของทุก job เริ่มด้วยสิทธิ์เขียน — ชั้นที่รองรับตอนมีใครลืมประกาศหายไป",
+        ),
+        (
+            {"can_approve_pull_request_reviews": True},
+            "workflow อนุมัติ PR แทนคนได้ — ทางเข้า main ที่ไม่มีคนดู",
+        ),
         ({"required_checks": ["lint"]}, "job ที่รันบน PR หลุดจากรายการบังคับ"),
         ({"required_checks": ["lint", "test", "ผี"]}, "บังคับ check ที่ไม่มีใครสร้างได้"),
     ],
@@ -902,6 +925,7 @@ def test_every_declared_floor_is_read_from_the_file_not_a_comment():
         "enforced_prohibitions",
         "scripts_coverage",
         *check_ratchets.REMOVAL_GUARDS,
+        *check_ratchets.CEILINGS,
     }
     assert all(value > 0 for value in floors.values())
 
@@ -1695,11 +1719,49 @@ def test_no_gate_watched_by_those_jobs_depends_on_a_governance_file():
 # สัญญาว่าจะอยู่ในรูปไหน การบังคับทุกเลขจะกลายเป็นด่านที่แดงเพราะถ้อยคำ
 
 
+def _about(**counts: int) -> str:
+    """ประโยคโฆษณาที่ *ถูกทุกตัว* แล้วให้ผู้เรียกทำให้ผิดทีละตัว (audit รอบ 24)"""
+    source = (pathlib.Path(__file__).resolve().parent.parent / "app" / "__init__.py").read_text(
+        encoding="utf-8"
+    )
+    current = re.search(r'__version__ = "([^"]+)"', source).group(1)
+    real = {**audit_posture.advertised_counts(REQUIRED_NOW), **counts}
+    said = " · ".join(f"{value} {phrase}" for phrase, value in real.items())
+    return f"… v{current} (AGPL-3.0): {said}"
+
+
 def test_a_stale_version_in_the_about_box_is_caught():
     """ทิศ "แดงเมื่อควรแดง" — คำโฆษณาที่ค้างรุ่นเก่าต้องถูกจับ"""
-    stale = audit_posture.description_problems("… v1.6.0 (AGPL-3.0): 105 machine-checked gates …")
+    stale = audit_posture.description_problems(
+        "… v1.6.0 (AGPL-3.0): 105 machine-checked gates …", REQUIRED_NOW
+    )
 
     assert stale, "คำโฆษณาที่บอกรุ่นเก่ากลับผ่าน"
+
+
+@pytest.mark.parametrize(
+    "phrase",
+    ["machine-checked gates", "ADRs", "recorded governance audits", "required checks"],
+)
+def test_every_number_the_about_box_advertises_is_counted(phrase):
+    """เลขที่นับได้แต่ไม่มีใครนับ คือเลขที่ค้างจนกว่าจะมีคนบังเอิญสังเกต (audit รอบ 24)
+
+    ตอน v2.2.0 มันค้างพร้อมกันสามที่ — และตัวตรวจนี้ถือสตริงนั้นอยู่ในมือแล้ว
+    ตั้งแต่วันแรก โดยอ่านเฉพาะเลขรุ่น
+    """
+    wrong = audit_posture.description_problems(_about(**{phrase: 9_999}), REQUIRED_NOW)
+
+    assert wrong, f"เลข {phrase!r} ผิดแล้วยังผ่าน"
+    assert any(phrase in line for line in wrong), "แดงแล้วแต่ไม่ได้บอกว่าเลขไหนผิด"
+
+
+def test_dropping_a_number_from_the_about_box_is_not_silent():
+    """ทิศที่คนลืมเสมอ — วลีที่หายไปทั้งวลี ต้องไม่กลายเป็น "ไม่มีอะไรให้ตรวจ" """
+    trimmed = re.sub(r"\d+ ADRs · ", "", _about())
+
+    assert audit_posture.description_problems(trimmed, REQUIRED_NOW), (
+        "ถอดวลีออกจากช่อง About แล้วด่านเงียบ — แฟ้มที่ไม่มีใครอ่านคือไฟล์ข้อความ"
+    )
 
 
 def test_an_about_box_that_names_the_current_version_passes():
@@ -1709,12 +1771,7 @@ def test_an_about_box_that_names_the_current_version_passes():
     job `bare`/`dialect` ตัดออก (audit รอบ 18) การ import แอปจะทำให้มันหลุด
     ออกจากกลุ่มนั้นทันที และด่านของรอบ 18 ก็จับได้จริงตอนเขียนเทสต์นี้
     """
-    source = (pathlib.Path(__file__).resolve().parent.parent / "app" / "__init__.py").read_text(
-        encoding="utf-8"
-    )
-    current = re.search(r'__version__ = "([^"]+)"', source).group(1)
-
-    assert audit_posture.description_problems(f"… v{current} (AGPL-3.0) …") == []
+    assert audit_posture.description_problems(_about(), REQUIRED_NOW) == []
 
 
 def test_no_answer_from_the_api_is_not_treated_as_a_failure():
@@ -1722,4 +1779,539 @@ def test_no_answer_from_the_api_is_not_treated_as_a_failure():
 
     หลักเดียวกับที่ `--input` ของสคริปต์นี้ทำให้รันโดยไม่ต่อเน็ตได้
     """
-    assert audit_posture.description_problems(None) == []
+    assert audit_posture.description_problems(None, REQUIRED_NOW) == []
+
+
+def test_every_merge_setting_declares_a_value_and_a_reason():
+    """**ทะเบียนที่บอกแค่ว่า "อ่านไม่ได้" คือทะเบียนที่ไม่มีเจ้าของ** (5-Why 2026-08-21)
+
+    `delete_branch_on_merge` หลุดจากแผนที่ไปทั้งใบเพราะมันอยู่ในคลาสที่ token
+    สิทธิ์ต่ำสุดอ่านไม่ได้ — ของเดิมบันทึกว่าเครื่องมองไม่เห็นอะไร แต่ไม่มีที่ไหน
+    บันทึกว่าค่าที่ควรเป็นคืออะไร · ผลคือกติกาถูกบังคับด้วยความจำ แล้ว branch
+    ที่ merge แล้วกองค้าง 64 ใบโดยไม่มีอะไรทัก
+    """
+    assert audit_posture.MERGE_SETTINGS, "ทะเบียน merge setting ว่าง"
+
+    for flag, declared in audit_posture.MERGE_SETTINGS.items():
+        want, why = declared
+        assert isinstance(want, bool), f"{flag} ไม่ได้ประกาศค่าที่ควรเป็น"
+        assert len(why) > 20, f"{flag} มีค่าแต่ไม่มีเหตุผลที่อ่านแล้วตัดสินได้: {why!r}"
+
+
+def test_the_note_for_an_unreadable_setting_says_what_it_should_be():
+    """รายงานที่บอกแค่ "อ่านไม่ได้" ทำให้คนอ่านไม่รู้ว่าต้องไปตั้งค่าอะไร"""
+    invisible = {**HEALTHY, "delete_branch_on_merge": None}
+
+    notes = audit_posture.unreadable(invisible)
+
+    assert any("delete_branch_on_merge" in note for note in notes), "ไม่ได้รายงานว่ามองไม่เห็น"
+    assert any("True" in note for note in notes), "รายงานแล้วแต่ไม่ได้บอกว่าค่าที่ควรเป็นคืออะไร"
+
+
+def test_a_readable_merge_setting_that_drifted_is_a_problem_not_a_note():
+    """อ่านได้แล้วผิด = ปัญหา · อ่านไม่ได้ = หมายเหตุ — สองอย่างนี้ห้ามสลับกัน"""
+    drifted = {**HEALTHY, "delete_branch_on_merge": False}
+
+    assert audit_posture.compare(drifted, ON_PR, 2, None), "อ่านได้แล้วผิด ต้องเป็นปัญหา"
+    assert audit_posture.unreadable(drifted) == [], "อ่านได้แล้วต้องไม่มีหมายเหตุค้าง"
+
+
+# ------------------------------- เพดานของการปิดเครื่องตรวจรายบรรทัด (audit r21 ข้อ 2)
+#
+# ทุก ratchet ในไฟล์นี้เดินขึ้น · กองนี้เดินลง และนั่นคือเหตุผลที่มันต้องมีตรรกะ
+# ของตัวเอง: "ของจริงต่ำกว่าที่ประกาศ" เป็น**ข่าวดี**ที่ต้องบันทึก ไม่ใช่การถอย
+
+
+def test_a_new_suppression_is_a_decision_not_a_side_effect():
+    """เกินเพดาน = แดง พร้อมบอกว่าต้องไปขยับที่ไหน"""
+    found = check_ratchets._ceiling_problems("suppressions", 99, 100)
+
+    assert found, "เพิ่มข้อยกเว้นแล้วต้องแดง"
+    assert "ceilings" in found[0], "แดงแล้วแต่ไม่ได้บอกว่าต้องไปแก้ที่ไหน"
+
+
+def test_a_freed_slot_must_be_recorded_not_left_open():
+    """ลดลงแล้วไม่ลดเพดานตาม = ที่ว่างถูกถมกลับเงียบ ๆ (ทิศที่คนลืมเสมอ)"""
+    found = check_ratchets._ceiling_problems("suppressions", 99, 90)
+
+    assert found, "ของจริงลดลงแล้วเพดานต้องตามลงมา"
+    assert "90" in found[0], "ต้องบอกตัวเลขใหม่ที่ควรเป็น"
+
+
+def test_a_ceiling_that_matches_reality_is_silent():
+    """ทิศ "ผ่านเมื่อควรผ่าน" — ตัวตรวจที่ดังกับของปกติจะถูกปิดเสียง"""
+    assert check_ratchets._ceiling_problems("suppressions", 99, 99) == []
+
+
+def test_the_counter_reads_real_files():
+    """อ่านของจริง ไม่ใช่ค่าคงที่"""
+    counts = check_ratchets.suppression_counts()
+
+    assert counts["suppressions"] > 0, "นับไม่เจอเลย — ตัวอ่านพังหรือขอบเขตผิด"
+    assert counts["suppressions_without_reason"] <= counts["suppressions"]
+
+
+# ตัวอย่างต้องประกอบขึ้นตอนรัน **ห้ามเขียนเป็นข้อความตรง ๆ** — ไฟล์นี้อยู่ในขอบเขต
+# ที่ตัวนับสแกน ตัวอย่างที่เขียนตรง ๆ จะถูกนับเป็นข้อยกเว้นจริงแล้วดันเพดานขึ้น
+# (เกิดขึ้นจริงตอนเขียน: ตัวอย่างใน docstring ของตัวนับเองทำให้เพดานเด้งเป็น 100)
+HASH = "#"
+
+
+@pytest.mark.parametrize(
+    ("line", "is_suppression", "has_reason"),
+    [
+        (f"x = 1  {HASH} noqa: F401", True, False),
+        (f"x = 1  {HASH} noqa: F401 นำเข้าเพื่อผูก event ไม่ได้ใช้ชื่อ", True, True),
+        (f"x = 1  {HASH} type: ignore[arg-type]", True, False),
+        (f"x = 1  {HASH} type: ignore[arg-type] ไลบรารีไม่มี stub", True, True),
+        (f"x = 1  {HASH} คอมเมนต์ธรรมดา", False, False),
+        ("x = 1", False, False),
+    ],
+)
+def test_the_reason_is_judged_apart_from_the_rule_code(line, is_suppression, has_reason):
+    """ "ปิดกฎไหน" กับ "ทำไม" เป็นคนละคำถาม — ยอดรวมพิสูจน์ข้อนี้ไม่ได้"""
+    assert check_ratchets.classify_suppression(line) == (is_suppression, has_reason)
+
+
+# ------------- หน้าที่สร้างมาให้เลิกนับด้วยมือ ต้องไม่มีเลขที่นับด้วยมือ (audit r21 ข้อ 3)
+
+PAGE_CLAIM = re.compile(r"แถวตรวจตามรอบ (\d+) แถว ·\s*\n?ทะเบียนข้อยกเว้น (\d+) แฟ้ม")
+
+
+def test_the_single_pending_page_agrees_with_what_it_reads():
+    """เลขในหัวไฟล์ต้องตรงกับของจริงที่ตัวมันเองอ่านได้
+
+    r13 สร้างหน้านี้เพราะต้องเปิด 8 ที่ถึงจะรู้ว่าอะไรค้าง · r14 พบว่ามันรายงาน
+    ของที่ไม่ได้ค้าง 3 จาก 8 · r21 พบว่า **หัวไฟล์ของมันเองเป็นเลขที่นับด้วยมือ
+    และผิดทั้งสองตัว** (บอก 24 แถว / 7 แฟ้ม ขณะที่ของจริงคือ 26 / 8)
+    """
+    page = pathlib.Path(__file__).resolve().parent.parent / "scripts" / "whats_pending.py"
+    source = page.read_text(encoding="utf-8")
+    claim = PAGE_CLAIM.search(source)
+
+    assert claim, "หัวไฟล์ whats_pending.py ไม่ได้ประกาศขนาดของสองกองแรกแล้ว"
+    assert (int(claim.group(1)), int(claim.group(2))) == (
+        len(whats_pending.cadence_rows()),
+        len(whats_pending.REGISTERS),
+    ), "เลขที่หัวไฟล์ประกาศ ไม่ตรงกับที่ตัวมันเองอ่านได้"
+
+
+# ------------- issue ที่เปิดให้คนใหม่ ต้องไม่ถูกปิดเงียบ ๆ (เหตุจริง 2026-08-20)
+#
+# ตรรกะทั้งหมดแยกจากการเรียก GitHub โดยตั้งใจ — ด่านที่ทดสอบได้เฉพาะตอนต่อเน็ต
+# คือด่านที่ไม่มีใครทดสอบ
+
+GOOD_FIRST = {"good first issue", "help wanted"}
+TAKEN = [{"number": 171, "title": "data-doctor check"}]
+
+
+def test_closing_an_invitation_that_is_still_open_is_a_problem():
+    found = check_issue_handoff.problems(TAKEN, {171: GOOD_FIRST}, body="ทำเอง")
+
+    assert found, "ปิด issue ที่ยังติดป้ายอยู่ ต้องแดง"
+    assert "171" in found[0]
+
+
+def test_an_issue_without_the_label_is_not_a_problem():
+    """ป้ายอื่นไม่เกี่ยว — ด่านที่ดังกับทุก PR จะถูกปิดเสียงภายในสัปดาห์เดียว"""
+    assert check_issue_handoff.problems(TAKEN, {171: {"bug"}}, body="") == []
+
+
+def test_a_pr_that_closes_nothing_is_not_a_problem():
+    assert check_issue_handoff.problems([], {}, body="") == []
+
+
+def test_a_declared_takeback_passes():
+    """ไม่ได้ห้ามผู้ดูแลทำเอง — ห้ามทำเงียบ ๆ"""
+    body = "good-first-issue-taken-back: ต้องใช้ในงาน audit วันนี้ รอไม่ได้"
+
+    assert check_issue_handoff.problems(TAKEN, {171: GOOD_FIRST}, body=body) == []
+
+
+def test_a_takeback_without_a_reason_does_not_pass():
+    """คำสั่งเปล่า ๆ ไม่ใช่การประกาศ — หลักเดียวกับทุกทะเบียนข้อยกเว้นในโปรเจกต์นี้"""
+    found = check_issue_handoff.problems(
+        TAKEN, {171: GOOD_FIRST}, body="good-first-issue-taken-back:"
+    )
+
+    assert found, "ประกาศโดยไม่มีเหตุผล ต้องไม่ผ่าน"
+
+
+def test_the_message_names_both_ways_out():
+    """ข้อความตอนแดงต้องบอกทางออก **ทั้งสองทาง** ไม่ใช่แค่บอกว่าผิด
+
+    รุ่นแรกของเทสต์นี้หาแค่คำว่า "ปลดป้าย" ในข้อความทั้งก้อน — ซึ่งโผล่ในประโยค
+    ที่บอก*อาการ*อยู่แล้ว มันจึงยังเขียวตอนที่ถอดบรรทัดทางออกข้อ 1 ออกไปทั้งบรรทัด
+    (จับได้ตอน mutation) · ตอนนี้จึงนับ *บรรทัด* ที่เป็นทางออกจริง
+    """
+    message = check_issue_handoff.report(["#171 ยังติดป้ายอยู่"])
+    ways = [line.strip() for line in message.splitlines() if line.strip()[:2] in {"1.", "2."}]
+
+    assert len(ways) == 2, f"ต้องมีทางออกสองทาง ได้ {ways}"
+    assert "ปลดป้าย" in ways[0], "ทางที่หนึ่งต้องคือการปลดป้าย"
+    assert "good-first-issue-taken-back:" in message, "ไม่ได้บอกรูปของการประกาศ"
+
+
+# ตัวที่คุยกับ GitHub — ทดสอบโดยปลอม `_gh` ไม่ใช่โดยต่อเน็ต · **เกณฑ์ coverage
+# ของ `scripts/` จับได้เองว่าครึ่งนี้ไม่มีเทสต์** ตอนที่ด่านนี้ถูกเพิ่มเข้ามา
+# (พื้นตก 62.14 → 61.80) ซึ่งเป็นเหตุผลที่เกณฑ์นั้นมีอยู่
+
+
+@pytest.fixture
+def fake_gh(monkeypatch):
+    """แทน `gh` ด้วยตารางคำตอบ — คืน list ของ argument ที่ถูกเรียกจริงด้วย"""
+    calls = []
+
+    def answer(*args):
+        calls.append(args)
+        if args[0] == "pr":
+            return json.dumps({"closingIssuesReferences": answer.closing})
+        return json.dumps({"labels": [{"name": name} for name in answer.labels]})
+
+    answer.closing = []
+    answer.labels = []
+    monkeypatch.setattr(check_issue_handoff, "_gh", answer)
+    return answer, calls
+
+
+def test_closing_issues_reads_what_github_would_actually_close(fake_gh):
+    """อ่านจาก `closingIssuesReferences` ไม่ใช่จากการ grep คำว่า Closes ในเนื้อ PR"""
+    answer, calls = fake_gh
+    answer.closing = [{"number": 171, "title": "x"}]
+
+    assert check_issue_handoff.closing_issues("9") == [{"number": 171, "title": "x"}]
+    assert "closingIssuesReferences" in calls[0]
+
+
+def test_labels_of_returns_the_names(fake_gh):
+    answer, _calls = fake_gh
+    answer.labels = ["good first issue", "bug"]
+
+    assert check_issue_handoff.labels_of(171) == {"good first issue", "bug"}
+
+
+def test_without_a_pull_request_number_the_check_is_silent(capsys):
+    """ด่านนี้มีความหมายเฉพาะบน pull_request — บน push ต้องผ่านเงียบ ๆ"""
+    assert check_issue_handoff.main(["--pr", "", "--body", ""]) == 0
+
+
+def test_a_pull_request_closing_nothing_passes(fake_gh):
+    assert check_issue_handoff.main(["--pr", "9", "--body", ""]) == 0
+
+
+def test_closing_a_labelled_issue_fails_the_build(fake_gh):
+    answer, _calls = fake_gh
+    answer.closing = [{"number": 171, "title": "data-doctor check"}]
+    answer.labels = ["good first issue"]
+
+    assert check_issue_handoff.main(["--pr", "9", "--body", "ทำเอง"]) == 1
+
+
+def test_a_declared_takeback_lets_the_build_through(fake_gh):
+    answer, _calls = fake_gh
+    answer.closing = [{"number": 171, "title": "data-doctor check"}]
+    answer.labels = ["good first issue"]
+    body = "good-first-issue-taken-back: จำเป็นต้องใช้ผลในวันเดียวกัน"
+
+    assert check_issue_handoff.main(["--pr", "9", "--body", body]) == 0
+
+
+# --------------------------------- พื้นผิว API ของไฟล์ Python (`scripts/skeleton.py`)
+#
+# ไอเดียมาจาก `graft` — แต่รับมาเฉพาะชั้นที่ deterministic · ไม่มี index ไม่มี
+# ขั้นตอน build จึงไม่มีคำถามว่าข้อมูลสดหรือยัง ซึ่งเป็นคำถามที่ audit r21 ชี้ว่า
+# เป็นต้นทางของหนี้ที่เงียบที่สุด
+
+SAMPLE = '''"""โมดูลตัวอย่าง — บรรทัดแรกเท่านั้นที่ถูกหยิบ
+
+ส่วนนี้ไม่ควรโผล่บนพื้นผิว
+"""
+
+
+def open_one(name: str, count: int = 3) -> bool:
+    """ทำอะไรสักอย่าง"""
+    helper = 1
+    return bool(helper)
+
+
+def _hidden() -> None:
+    """ไม่ใช่พื้นผิว"""
+
+
+class Thing(Base):
+    """ของชิ้นหนึ่ง"""
+
+    @property
+    def label(self) -> str:
+        """ป้ายของมัน"""
+        return "x"
+
+    def _inner(self) -> None:
+        """ไม่ใช่พื้นผิว"""
+
+
+async def fetch(url: str) -> str:
+    """ดึงของ"""
+    return url
+'''
+
+
+def test_the_surface_is_signatures_not_bodies():
+    """สิ่งที่ผู้เรียกต้องรู้คือ signature — body คือรายละเอียดที่ยังไม่ต้องการ"""
+    found = [item.signature for item in skeleton.symbols(SAMPLE)]
+
+    assert "def open_one(name: str, count: int=3) -> bool" in found
+    assert "class Thing(Base)" in found
+    assert "async def fetch(url: str) -> str" in found
+    assert not any("helper" in line for line in found), "body หลุดขึ้นมาบนพื้นผิว"
+
+
+def test_private_names_are_off_the_surface_unless_asked():
+    """`_hidden` ไม่ใช่สิ่งที่ผู้เรียกจากข้างนอกเรียกได้ — แต่บางครั้งก็อยากเห็น"""
+    public = [item.signature for item in skeleton.symbols(SAMPLE)]
+    everything = [item.signature for item in skeleton.symbols(SAMPLE, private=True)]
+
+    assert not any("_hidden" in line for line in public)
+    assert any("_hidden" in line for line in everything)
+    assert any("_inner" in line for line in everything), "method ส่วนตัวก็ต้องโผล่ด้วย"
+
+
+def test_decorators_are_part_of_the_surface():
+    """`@property` เปลี่ยนวิธีเรียกของผู้เรียก จึงเป็นพื้นผิว ไม่ใช่รายละเอียด"""
+    found = [item.signature for item in skeleton.symbols(SAMPLE)]
+
+    assert "@property" in found
+
+
+def test_methods_sit_one_level_under_their_class():
+    """ความลึกคือข้อมูล — `label` เป็นของ `Thing` ไม่ใช่ของโมดูล"""
+    found = {item.signature: item.depth for item in skeleton.symbols(SAMPLE)}
+
+    assert found["class Thing(Base)"] == 0
+    assert found["def label(self) -> str"] == 1
+
+
+def test_the_summary_is_the_first_line_only():
+    """ที่เหลือของ docstring คือรายละเอียดที่คนถาม *จะเรียกอะไร* ยังไม่ต้องการ"""
+    found = {item.signature: item.summary for item in skeleton.symbols(SAMPLE)}
+
+    assert found["def open_one(name: str, count: int=3) -> bool"] == "ทำอะไรสักอย่าง"
+
+
+def test_the_report_says_how_much_it_saved(tmp_path):
+    """ตัวเลขท้ายไม่ใช่ของแถม — มันคือเหตุผลที่เครื่องมือนี้มีอยู่"""
+    path = tmp_path / "sample.py"
+    text = skeleton.render(path, SAMPLE)
+
+    assert str(path) in text
+    assert "โมดูลตัวอย่าง — บรรทัดแรกเท่านั้นที่ถูกหยิบ" in text
+    assert "ส่วนนี้ไม่ควรโผล่บนพื้นผิว" not in text, "docstring ทั้งก้อนหลุดขึ้นมา"
+    assert "สัญลักษณ์" in text
+    assert "บรรทัด" in text
+
+
+def test_the_line_count_matches_what_is_printed(tmp_path):
+    """เลขที่รายงานต้องเท่ากับบรรทัดที่พิมพ์จริง ไม่งั้นมันเป็นเลขโฆษณา"""
+    text = skeleton.render(tmp_path / "sample.py", SAMPLE)
+    claimed = int(re.search(r"· (\d+) จาก", text).group(1))
+
+    assert claimed == len(text.splitlines())
+
+
+def test_the_file_length_matches_what_other_tools_count(tmp_path):
+    """**ตัวส่วนก็ต้องตรง ไม่ใช่แค่ตัวเศษ** — เทสต์ข้างบนตรวจแค่ครึ่งเดียวมาตลอด
+
+    `count("\n") + 1` เกินไปหนึ่งบรรทัดเสมอสำหรับไฟล์ที่ลงท้ายด้วยขึ้นบรรทัดใหม่
+    ซึ่งคือไฟล์ Python แทบทุกไฟล์ — และไฟล์บรรทัดเดียวรายงานได้ถึง 150%
+    (ultrareview ของ PR #189 · mutation ของเราไม่เคยแตะตัวส่วนเลย)
+    """
+    text = skeleton.render(tmp_path / "sample.py", SAMPLE)
+    claimed = int(re.search(r"จาก (\d+) บรรทัด", text).group(1))
+
+    assert claimed == len(SAMPLE.splitlines())
+
+
+def test_a_file_too_small_to_shrink_says_so_instead_of_printing_a_riddle(tmp_path):
+    """**เทสต์ตัวนี้เคยอ้างในคำอธิบายว่าคุมเรื่องเปอร์เซ็นต์ แต่ assert แค่ตัวส่วน**
+
+    ของเดิมเขียนว่า "เลขที่เกิน 100% คือการโฆษณาที่ขัดตัวเอง" แล้วตรวจว่า
+    `จาก 1 บรรทัด` เท่านั้น — ผลคือ `3 จาก 1 บรรทัด (300%)` ผ่านฉลุยมาตลอด
+    (ultrareview ของ PR #197 · คลาสเดียวกับด่านสีธีมที่ตรวจเฉพาะค่าที่เป็น hex อยู่แล้ว)
+
+    คำตัดสินที่ตามมาคือ **เลขไม่ผิด คนอ่านต่างหากที่ไม่มีใครแปลให้**: รายงานมีพื้น
+    ตายตัวสองบรรทัด ไฟล์ที่สั้นกว่านั้นย่อไม่ได้จริง ๆ และนั่นคือคำตอบที่เครื่องมือ
+    มีไว้ตอบ · ที่นี่จึงตรวจ *ทั้งสองฝั่ง* ของเส้น ไม่ใช่ฝั่งเดียว
+    """
+    tiny = skeleton.render(tmp_path / "one.py", "VALUE = 1\n")
+    assert int(re.search(r"จาก (\d+) บรรทัด", tiny).group(1)) == 1
+    assert int(re.search(r"\((\d+)%\)", tiny).group(1)) > 100, (
+        f"ไฟล์บรรทัดเดียวย่อไม่ได้ แต่รายงานว่าย่อได้: {tiny}"
+    )
+    assert "อ่านทั้งไฟล์เร็วกว่า" in tiny, f"เลขเกิน 100% แต่ไม่มีใครแปลให้: {tiny}"
+
+    roomy = skeleton.render(tmp_path / "roomy.py", SAMPLE)
+    assert int(re.search(r"\((\d+)%\)", roomy).group(1)) < 100, roomy
+    assert "อ่านทั้งไฟล์เร็วกว่า" not in roomy, f"ไฟล์ที่ย่อได้จริงถูกบอกว่าอ่านทั้งไฟล์เร็วกว่า: {roomy}"
+
+
+def test_each_symbol_carries_its_one_line_summary(tmp_path):
+    """docstring บรรทัดแรกต้องถูก *แสดง* ไม่ใช่แค่ถูกคำนวณแล้วทิ้ง
+
+    ฉบับแรกเก็บ `summary` ไว้ในทุก `Symbol` แล้วไม่เคย render เลย — เทสต์ที่มีอยู่
+    ตรวจว่ามัน *ถูกคำนวณ* ถูกต้อง จึงเขียวทั้งที่ผู้ใช้ไม่เคยเห็นมัน
+    (ultrareview ของ PR #189)
+    """
+    text = skeleton.render(tmp_path / "sample.py", SAMPLE)
+
+    assert "ทำอะไรสักอย่าง" in text, "docstring ของฟังก์ชันไม่ได้ถูกแสดง"
+    assert "ของชิ้นหนึ่ง" in text, "docstring ของ class ไม่ได้ถูกแสดง"
+    assert "ส่วนนี้ไม่ควรโผล่บนพื้นผิว" not in text, "เอา docstring มาทั้งก้อน"
+
+
+def test_a_file_that_is_not_utf8_is_reported_not_crashed(tmp_path, capsys):
+    """`UnicodeDecodeError` สืบทอดจาก `ValueError` ไม่ใช่ `OSError`
+
+    ไฟล์ที่ระบบอ่านได้แต่ถอดรหัสไม่ได้จึงหลุด except แล้วพ่น traceback ใส่หน้า
+    คนใช้ โดยไม่บอกว่าไฟล์ไหน — และตอนสแกนทั้งไดเรกทอรีมันฆ่าทั้งชุด
+    (ultrareview ของ PR #189)
+    """
+    path = tmp_path / "latin.py"
+    path.write_bytes(b"# -*- coding: latin-1 -*-\ndef foo(x='\xe9'): pass\n")
+
+    assert skeleton.main([str(path)]) == 1
+    assert "อ่าน" in capsys.readouterr().err
+
+
+def test_a_file_with_no_surface_says_so(tmp_path):
+    """ไฟล์ที่มีแต่ค่าคงที่ ต้องบอกว่าไม่มีอะไร ไม่ใช่พิมพ์หัวเปล่า ๆ"""
+    text = skeleton.render(tmp_path / "empty.py", "VALUE = 1\n")
+
+    assert "ไม่มีสัญลักษณ์บนพื้นผิว" in text
+
+
+def test_the_command_reads_a_real_file(tmp_path, capsys):
+    """เส้นทางที่คนใช้จริง — รับ path แล้วพิมพ์ออก stdout"""
+    path = tmp_path / "sample.py"
+    path.write_text(SAMPLE, encoding="utf-8")
+
+    assert skeleton.main([str(path)]) == 0
+    assert "def open_one" in capsys.readouterr().out
+
+
+def test_a_directory_is_read_in_a_stable_order(tmp_path, capsys):
+    """ผลลัพธ์ต้องซ้ำได้ ไม่งั้นเอาไป diff อะไรไม่ได้เลย"""
+    for name in ("b.py", "a.py"):
+        (tmp_path / name).write_text(SAMPLE, encoding="utf-8")
+
+    assert skeleton.main([str(tmp_path)]) == 0
+    out = capsys.readouterr().out
+    assert out.index("a.py") < out.index("b.py")
+
+
+def test_a_file_that_cannot_be_parsed_fails_loudly(tmp_path, capsys):
+    """แยกวิเคราะห์ไม่ได้ = บอกว่าไฟล์ไหน ไม่ใช่พิมพ์ traceback ใส่หน้าคนใช้"""
+    path = tmp_path / "broken.py"
+    path.write_text("def (", encoding="utf-8")
+
+    assert skeleton.main([str(path)]) == 1
+    assert "แยกวิเคราะห์ไม่ได้" in capsys.readouterr().err
+
+
+def test_a_missing_file_is_reported_not_crashed(tmp_path, capsys):
+    assert skeleton.main([str(tmp_path / "ไม่มีอยู่.py")]) == 1
+    assert "อ่าน" in capsys.readouterr().err
+
+
+def test_an_empty_directory_is_reported(tmp_path, capsys):
+    assert skeleton.main([str(tmp_path)]) == 1
+    assert "ไม่มีไฟล์" in capsys.readouterr().err
+
+
+def test_rendering_a_file_parses_it_exactly_once(tmp_path, monkeypatch):
+    """งานหลักของเครื่องมือนี้คือการ parse — ทำสองครั้งต่อไฟล์คือจ่ายสองเท่า
+
+    ข้อนี้ไม่มีพฤติกรรมต่างให้จับ (ผลลัพธ์เหมือนกันเป๊ะ) จึงต้องปักด้วยจำนวนครั้ง
+    ที่เรียก · ฉบับแรกเรียกสองครั้ง: หนึ่งครั้งใน `symbols()` และอีกครั้งเพื่ออ่าน
+    docstring ของโมดูล — มองไม่เห็นตอนอ่านไฟล์เดียว แต่ตอนสแกนทั้งไดเรกทอรีคือ
+    การจ่ายซ้ำทุกไฟล์ ซึ่งขัดกับเหตุผลที่เครื่องมือนี้ไม่มี index
+    (ultrareview ของ PR #189)
+    """
+    calls = []
+    real = skeleton.ast.parse
+    monkeypatch.setattr(skeleton.ast, "parse", lambda *a, **k: (calls.append(1), real(*a, **k))[1])
+
+    skeleton.render(tmp_path / "sample.py", SAMPLE)
+
+    assert len(calls) == 1, f"parse {len(calls)} ครั้งต่อไฟล์ — ควรเป็นครั้งเดียว"
+
+
+# ------------- DCO: ทุก commit ต้องรับรองสิทธิ์ตามกฎหมาย (ADR 0073)
+#
+# ข้อนี้เป็นข้อเดียวจาก 19 ข้อของ OSPS Baseline ระดับ 2 ที่เราไม่ผ่าน และเป็น
+# เหตุผลเดียวกับที่เกณฑ์ `dco` ของ badge ระดับ silver เป็น Unmet มาตั้งแต่ต้น
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "feat(x): ok\n\nSigned-off-by: Sayam Sriphua <sayams@hotmail.com>\n",
+        "fix: ok\n\nเนื้อความไทย\n\nSigned-off-by: A B <a@b.co>\nCo-Authored-By: C <c@d.io>\n",
+    ],
+)
+def test_a_signed_off_commit_passes(message):
+    """ทิศ "ผ่านเมื่อควรผ่าน" — ลายเซ็นที่ `git commit -s` เขียนให้ ต้องไม่ถูกจับ"""
+    assert lint_commits.check_sign_off(message) == []
+
+
+@pytest.mark.parametrize(
+    ("message", "why"),
+    [
+        ("feat(x): ไม่มีลายเซ็นเลย\n\nเนื้อความ\n", "ไม่มีบรรทัดลายเซ็น"),
+        ("feat(x): ok\n\nSigned-off-by: ไม่มีอีเมล\n", "ลายเซ็นที่ไม่มีที่อยู่ติดต่อกลับ"),
+        ("feat(x): ok\n\nsigned-off-by: a <a@b.co>\n", "พิมพ์เล็กทั้งบรรทัด — ไม่ใช่รูปที่ git เขียน"),
+        ("feat(x): ok\n\nSigned-off-by: A B <a@b.co> ต่อท้าย\n", "มีข้อความต่อท้ายลายเซ็น"),
+    ],
+)
+def test_an_unsigned_commit_is_caught(message, why):
+    """ทุกทางที่ลายเซ็นจะขาดหรือปลอมรูป ต้องแดง — ไม่ใช่แค่กรณีที่นึกถึงตอนเขียน"""
+    found = lint_commits.check_sign_off(message)
+
+    assert found, why
+    assert "git commit -s" in found[0], "แดงแล้วแต่ไม่ได้บอกว่าจะเซ็นยังไง"
+
+
+def test_the_log_reader_keeps_multiline_bodies_in_one_commit():
+    """เนื้อ commit มีขึ้นบรรทัดใหม่ได้ — ตัวอ่านที่คั่นด้วยบรรทัดจะแตกใบเดียวเป็นหลายใบ
+
+    ทิศนี้สำคัญกว่าที่เห็น: ถ้าตัวอ่านแตกใบ ลายเซ็นจะไปอยู่คนละ "commit" กับหัว
+    แล้วด่านจะแดงกับ commit ที่เซ็นถูกต้อง ซึ่งสอนให้คนข้ามด่านด้วย --no-verify
+
+    **ป้อนผลของ `git log` เอง ไม่เรียก git จริง** — ฉบับแรกอ่าน `HEAD~1..HEAD`
+    ของรีโปนี้ แล้วเขียวบนเครื่องแต่แดงบน CI เพราะ checkout ของ CI เป็น shallow
+    (`HEAD~1` ไม่มีอยู่) ซึ่งเป็นคลาสที่ `CLAUDE.md` เตือนไว้ตรง ๆ
+    """
+    sep, field = lint_commits.RECORD_SEP, lint_commits.FIELD_SEP
+    out = (
+        f"aaaaaaaaaaaa{field}feat: ฐาน{field}Signed-off-by: A B <a@b.co>\n{sep}"
+        f"bbbbbbbbbbbb{field}feat: หลายย่อหน้า{field}"
+        f"ย่อหน้าแรก\n\nย่อหน้าที่สอง\n\nSigned-off-by: A B <a@b.co>\n{sep}"
+    )
+
+    rows = lint_commits.parse_log(out)
+
+    assert len(rows) == 2, f"เนื้อหลายบรรทัดถูกแตกเป็นหลายใบ: {rows}"
+    _sha, subject, body = rows[1]
+    assert subject == "feat: หลายย่อหน้า"
+    assert "ย่อหน้าที่สอง" in body, "เนื้อถูกตัดหายไประหว่างทาง"
+    assert lint_commits.check_sign_off(body) == []
+
+
+def test_the_format_git_gets_matches_the_separators_the_parser_splits_on():
+    """สองฝั่งเขียนตัวคั่นคนละรูป (`%x1e` กับ `\x1e`) — ถ้าไม่ตรงกันจะพังเงียบ"""
+    record = f"%x{ord(lint_commits.RECORD_SEP):02x}"
+    field = f"%x{ord(lint_commits.FIELD_SEP):02x}"
+
+    assert lint_commits.LOG_FORMAT.endswith(record), (
+        f"รูปที่ส่งให้ git ลงท้ายด้วย {lint_commits.LOG_FORMAT[-4:]!r} แต่ตัวอ่านตัดด้วย {record!r}"
+    )
+    assert lint_commits.LOG_FORMAT.count(field) == 2, "ตัวคั่นช่องต้องมีสองที่ (sha|หัว|เนื้อ)"

@@ -46,7 +46,9 @@ jobs:
           python-version: "3.13"
           cache: pipenv
       - run: pip install --require-hashes -r pins/pipenv/requirements.txt
+        timeout-minutes: 5
       - run: pipenv sync --dev
+        timeout-minutes: 5
       # คำสั่งชุดเดียวกับ job `sbom` ของ ci.yml — แยกไฟล์ละ category ด้วย
       # เหตุผลเดิม (ADR 0025): ตอบได้ว่าถอด plugin ไหนแล้ว component ไหนหาย
       - name: generate SBOM ทุก category จากโค้ดของ tag นี้

@@ -8,7 +8,7 @@
 **อ่านไฟล์นี้เมื่อ**: จะเพิ่ม/แก้ gate · แตะ `gates.yaml` · แตะ workflow ที่เป็น
 ด่าน · แก้ของที่ generate ไป `SKILL.md`/`skill/`/`overlays/` · หรือจะอ่านผลของ
 สำมะโน (`rerun_census.py` · `schedule_census.py` · `red_streak_census.py` ·
-`audit_posture.py`)
+`audit_posture.py`) · รอบ audit ที่ให้กำเนิดกลไกพวกนี้อยู่ใน [`AUDIT-LOG.md`](AUDIT-LOG.md)
 
 > **ไฟล์นี้มีเพดานของตัวเอง** (180 บรรทัด / 1,400 คำ — `tests/test_instruction_budget.py`)
 > กว้างกว่าของ `CLAUDE.md` เพราะต้นทุนของมันจ่ายตอนมีคนเปิดอ่าน ไม่ใช่ทุก session ·
@@ -115,15 +115,15 @@
   กับ `SKILL.md` + business sheet ใน `reference/` + checker คัดลอกตาม manifest
   ของ overlay · `tests/test_agent_skill.py` เทียบผล generate สด**รวมทั้งเซตไฟล์**
   (ไฟล์แปลกปลอม = แดง) — แก้กฎ = แก้ `gates.yaml` แล้ว regenerate สองที่
-- `overlays/flask/` — enforcement ของกฎสากลสำหรับโปรเจกต์ Flask อื่น:
-  scan checker 8 ตัว (stdlib ล้วน) + `gates_doctor.py` + **`preflight.py`** (ADR 0063) + `install.py`
-  (copy ตาม manifest `overlay.json` — ไม่ครบ = ล้มดัง) · job `scaffold` พิสูจน์
-  ทุก push ว่า import ลง repo เปล่าได้จริง **และ repo นี้ผ่าน scan ของ overlay
-  ตัวเอง** (dogfood — `scaffold.json` ที่รากคือ config ของการ dogfood นั้น)
-  · เพิ่ม portable gate ต้องเพิ่ม entry ใน `overlay.json` ด้วย ไม่งั้น
-  `tests/test_overlay.py` แดง · **overlay ส่งออก `preflight.py` ด้วย (ADR 0063)**
-  ซึ่งเป็นสำเนาที่ต้องตรงกับ `scripts/preflight.py` **ไบต์ต่อไบต์** (เทสต์บังคับ) —
-  แก้ตัวไหนแล้ว `cp` ทับอีกตัวเสมอ
+- `overlays/flask/` — enforcement ของกฎสากลสำหรับโปรเจกต์ Flask อื่น: scan
+  checker 9 ตัว (stdlib ล้วน) + `gates_doctor.py` + `install.py` (copy ตาม
+  manifest `overlay.json` — ไม่ครบ = ล้มดัง) + **`preflight.py`** (ADR 0063 —
+  สำเนาที่ต้องตรงกับ `scripts/preflight.py` **ไบต์ต่อไบต์** แก้ตัวไหนแล้ว `cp` ทับ
+  อีกตัวเสมอ) + **`gates.yaml` ตั้งต้น** (ADR 0071 — ทะเบียนที่กฎชนิด `suite` อีก
+  83 ข้อพิงอยู่ ส่งไปพร้อมด่านที่บังคับสองทิศในปลายทาง) · job `scaffold` พิสูจน์ทุก
+  push ว่า import ลง repo เปล่าได้จริง **และ repo นี้ผ่าน scan ของ overlay ตัวเอง**
+  (dogfood — `scaffold.json` ที่รากคือ config นั้น) · เพิ่ม portable gate ต้องเพิ่ม
+  entry ใน `overlay.json` ด้วย ไม่งั้น `tests/test_overlay.py` แดง
 - `docs/GATES-ASVS.md` — crosswalk gate ↔ ASVS **generate มา ห้ามแก้ด้วยมือ**
   (`scripts/build_gates_crosswalk.py`) derive จากหลักฐานใน `ASVS.md` ผ่าน
   partition ของ `gates.yaml` — บอกด้วยว่าแถวไหนผ่านด้วยด่านที่รันทุก push

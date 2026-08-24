@@ -24,6 +24,7 @@ runner ที่ได้มาในวันนั้น (วัดจริ�
 
 import ast
 import pathlib
+import re
 
 import pytest
 import yaml
@@ -135,3 +136,67 @@ def test_the_scan_actually_finds_the_calls_it_claims_to_check():
     found = sum(len(_subprocess_calls(p)) for p in sorted(SCRIPTS_DIR.glob("*.py")))
 
     assert found >= 10, f"เจอ subprocess.run แค่ {found} จุด — ตัวสแกนน่าจะพัง เพราะของจริงมีมากกว่านั้น"
+
+
+# ------------------- เพดานระดับ *step* ของขั้นที่เอื้อมออกไปหาเครือข่าย (2026-08-21)
+#
+# ADR 0067 ตั้งเพดานให้ทุก job แล้ว — ซึ่งทำงานถูกและช่วยไว้จริง: `dialect
+# (mariadb-11)` ค้างที่ `pip install` แล้วถูกตัดที่ 45 นาทีแทนที่จะค้าง 6 ชั่วโมง
+# ตามค่าเริ่มต้นของ GitHub
+#
+# **แต่ราคาที่จ่ายคือทั้ง job** — ขั้นติดตั้งที่ปกติใช้ 10–60 วินาที กินงบทั้งใบ
+# แล้วงานที่เหลือทั้งหมดหายไปด้วย · เพดานของขั้นเหล่านี้จึงต้องเป็นของมันเอง
+# หลักเดียวกับที่ ADR 0067 ให้เหตุผลไว้ที่ระดับ job: "ค้าง" กับ "ช้า" ต้องแยกกันได้
+#
+# ขอบเขตคือ **ขั้นที่ดึงของจากอินเทอร์เน็ต** เท่านั้น ไม่ใช่ทุก step — ขั้นที่รัน
+# แต่โค้ดของเราถูกคุมด้วยเพดานของ job อยู่แล้ว และการบังคับทุกขั้นจะกลายเป็น
+# พิธีกรรมที่คนใส่เลขมั่ว ๆ ให้ผ่าน
+
+NETWORK_INSTALL = re.compile(r"\b(pip install|pipenv sync|npm ci|npm install)\b")
+STEP_MAX_MINUTES = 15
+
+
+def _install_steps() -> list[tuple[str, str, dict]]:
+    """(workflow, job, step) ของทุกขั้นที่ติดตั้งของจากเครือข่าย"""
+    found = []
+    for name, workflow in _workflows().items():
+        for job, body in (workflow.get("jobs") or {}).items():
+            found.extend(
+                (name, job, step)
+                for step in body.get("steps") or []
+                if NETWORK_INSTALL.search(step.get("run") or "")
+            )
+    return found
+
+
+def test_every_network_install_step_declares_its_own_ceiling():
+    """ขั้นที่รอปลายทางภายนอก ต้องประกาศเพดานเอง — ไม่ใช่ยืมของ job
+
+    เกิดจริง 2026-08-20: `pip install` ค้างจนกิน `timeout-minutes: 45` ของ job
+    `dialects` ทั้งใบ แล้ว PR แดงด้วยเรื่องที่ไม่เกี่ยวกับ PR นั้นเลย
+    """
+    steps = _install_steps()
+
+    assert steps, "ไม่เจอขั้นติดตั้งเลย — ตัวอ่านพังหรือ workflow เปลี่ยนรูปแล้ว"
+    bare = [f"{name}:{job}" for name, job, step in steps if step.get("timeout-minutes") is None]
+
+    assert not bare, (
+        f"ขั้นที่ติดตั้งของจากเครือข่ายแต่ไม่มีเพดานของตัวเอง: {bare}\n"
+        "ใส่ `timeout-minutes:` ให้ขั้นนั้น — เพดานของ job คุ้มทั้งใบ ค้างที่ขั้นเดียว"
+        "จึงกินงบของงานที่เหลือทั้งหมด"
+    )
+
+
+def test_a_step_ceiling_is_a_number_someone_could_defend():
+    """เพดานของขั้นต้องเล็กกว่าของ job มาก ไม่งั้นมันไม่ได้กันอะไรเพิ่ม"""
+    loose = []
+    for name, job, step in _install_steps():
+        budget = step.get("timeout-minutes")
+        assert isinstance(budget, int), f"{name}:{job}: เพดานของขั้นต้องเป็นจำนวนเต็ม"
+        if budget > STEP_MAX_MINUTES:
+            loose.append(f"{name}:{job} = {budget}")
+
+    assert not loose, (
+        f"เพดานของขั้นติดตั้งที่หลวมเกิน {STEP_MAX_MINUTES} นาที: {loose} — "
+        "ขั้นพวกนี้วัดได้ 10–60 วินาที เพดานที่ใหญ่กว่าของ job ไม่กี่เท่าไม่ได้กันอะไร"
+    )

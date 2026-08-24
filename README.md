@@ -1,6 +1,9 @@
 # Todolist
 
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/14085/badge)](https://www.bestpractices.dev/projects/14085)
+[![OpenSSF Baseline](https://www.bestpractices.dev/projects/14085/baseline)](https://www.bestpractices.dev/projects/14085)
+[![OpenSSF Scorecard](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fapi.scorecard.dev%2Fprojects%2Fgithub.com%2Fsayam%2Fflask-todolist&query=%24.score&label=openssf%20scorecard&color=blue)](https://scorecard.dev/viewer/?uri=github.com/sayam/flask-todolist)
+[![CI](https://img.shields.io/github/actions/workflow/status/sayam/flask-todolist/ci.yml?branch=main&label=CI)](https://github.com/sayam/flask-todolist/actions/workflows/ci.yml)
 
 A personal to-do list built with Flask — and, more to the point, a place where
 the engineering practices around a small app are taken all the way rather than
@@ -136,7 +139,7 @@ and measured:
 | | |
 |---|---|
 | [`gates.yaml`](gates.yaml) | an index of every gate, verified **in both directions** — every CI job must have a gate, and every test file must belong to exactly one gate. A gate may only cite an ASVS requirement whose own evidence points back at it |
-| [`SKILL.md`](SKILL.md) | 78 framework-agnostic baseline rules, **generated** from the portable gates. Each one carries the trap that produced it. You cannot write a rule into this file by hand — you add a gate and regenerate. App-type agreements (the rules a different app could legitimately choose differently, like soft delete) live in their own generated sheet, [`SKILL-TODOLIST.md`](SKILL-TODOLIST.md) |
+| [`SKILL.md`](SKILL.md) | 81 framework-agnostic baseline rules, **generated** from the portable gates. Each one carries the trap that produced it. You cannot write a rule into this file by hand — you add a gate and regenerate. App-type agreements (the rules a different app could legitimately choose differently, like soft delete) live in their own generated sheet, [`SKILL-TODOLIST.md`](SKILL-TODOLIST.md) |
 | [`overlays/flask/`](overlays/flask/) | the enforcement half for other Flask projects: 8 scanners in the standard library only, a doctor, and an installer. CI proves on every push that it installs into an empty repo **and** that this repo passes its own overlay |
 | [`skill/`](skill/) | the same rules packaged as an installable agent skill (ADR 0050) — frontmatter + the generated rule sheets + the overlay's checkers, every byte derived; a test rejects hand edits and stray files |
 | [`docs/comparison/`](docs/comparison/) | does any of it change the code that actually gets written? One spec, three arms of five generated apps, one measurement battery — including the finding that a plain "review your own work once" pass closes about three quarters of the gap |
@@ -147,10 +150,11 @@ Written in Thai, because that is the language the thinking happened in.
 
 | | |
 |---|---|
-| [`docs/adr/`](docs/adr/) | 70 architecture decision records — every choice, the options rejected, and what would reverse it |
+| [`docs/adr/`](docs/adr/) | 74 architecture decision records — every choice, the options rejected, and what would reverse it |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | the first seven phases — the application itself — what each closed, and what was deliberately deferred |
 | [`docs/ROADMAP-INFRA.md`](docs/ROADMAP-INFRA.md) | phases 8–12 — the index, the exported skill, the overlay, the fail-fix harness, and the comparison experiment |
 | [`docs/GOVERNANCE.md`](docs/GOVERNANCE.md) | how the gate machinery itself works — the index and its two-way checks, red-evidence, layers, severity and watchers, the censuses, and what gets exported to other projects |
+| [`docs/AUDIT-LOG.md`](docs/AUDIT-LOG.md) | the register of governance audit rounds — the question each one asked, what it found, and where in this repository it left a trace that you can check |
 | [`docs/ASVS.md`](docs/ASVS.md) | OWASP ASVS 5.0 Level 2 self-assessment — all 253 in-scope requirements answered, including the 48 that do not pass |
 | [`docs/ISO27001.md`](docs/ISO27001.md) | ISO/IEC 27001:2022 self-assessment — all 116 items answered (clauses 4–10 and every Annex A control) — and since 2026-08-16, all of them pass or are justified n/a |
 | [`docs/SUPPLY-CHAIN.md`](docs/SUPPLY-CHAIN.md) | the supply-chain axis — five layers of the chain and the 20 gates that guard them, kept honest against `gates.yaml` both ways |
@@ -185,6 +189,9 @@ own dependency category) · SQLite / MySQL / MariaDB · gunicorn · pipenv
 # Todolist (ฉบับภาษาไทย)
 
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/14085/badge)](https://www.bestpractices.dev/projects/14085)
+[![OpenSSF Baseline](https://www.bestpractices.dev/projects/14085/baseline)](https://www.bestpractices.dev/projects/14085)
+[![OpenSSF Scorecard](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fapi.scorecard.dev%2Fprojects%2Fgithub.com%2Fsayam%2Fflask-todolist&query=%24.score&label=openssf%20scorecard&color=blue)](https://scorecard.dev/viewer/?uri=github.com/sayam/flask-todolist)
+[![CI](https://img.shields.io/github/actions/workflow/status/sayam/flask-todolist/ci.yml?branch=main&label=CI)](https://github.com/sayam/flask-todolist/actions/workflows/ci.yml)
 
 แอปจดงานส่วนตัวเขียนด้วย Flask — และที่สำคัญกว่านั้น เป็นที่ที่วินัยทางวิศวกรรม
 รอบ ๆ แอปเล็ก ๆ ตัวหนึ่งถูกทำจนสุดทาง แทนที่จะทำครึ่งทาง
@@ -290,13 +297,14 @@ export และวัดผลแล้ว:
   ต้องมี gate และไฟล์เทสต์ทุกไฟล์ต้องเป็นของ gate เดียว · gate จะอ้างข้อ ASVS
   ได้ก็ต่อเมื่อหลักฐานของข้อนั้นชี้กลับมาหามันจริง · ทุก gate ประกาศ `layer`
   (`baseline`/`business`/`internal`) ซึ่งเป็นตัวแบ่งใบ SKILL สองใบ
-- [`SKILL.md`](SKILL.md) — กฎ baseline 78 ข้อ **generate จาก gate ที่ portable**
+- [`SKILL.md`](SKILL.md) — กฎ baseline 81 ข้อ **generate จาก gate ที่ portable**
   แต่ละข้อพก "กับดักที่ให้กำเนิดมัน" มาด้วย · เขียนกฎลงไฟล์นี้ตรง ๆ ไม่ได้
   ต้องเพิ่ม gate แล้ว regenerate · ข้อตกลงระดับตัวแอป (ที่แอปอื่นเลือกต่างได้
   โดยชอบ เช่น soft delete) แยกอยู่ [`SKILL-TODOLIST.md`](SKILL-TODOLIST.md)
 - [`overlays/flask/`](overlays/flask/) — ฝั่งบังคับใช้สำหรับโปรเจกต์ Flask อื่น
-  (scan 8 ตัวที่ใช้ stdlib ล้วน + doctor + installer) · CI พิสูจน์ทุก push ว่า
-  ติดตั้งลง repo เปล่าได้จริง **และ repo นี้ผ่าน overlay ของตัวเอง**
+  (scan 9 ตัวที่ใช้ stdlib ล้วน + doctor + installer + **ดัชนี `gates.yaml`
+  ตั้งต้น** — ADR 0071) · CI พิสูจน์ทุก push ว่าติดตั้งลง repo เปล่าได้จริง
+  **และ repo นี้ผ่าน overlay ของตัวเอง**
 - [`skill/`](skill/) — กฎชุดเดียวกันแพ็กเป็น **agent skill ที่ติดตั้งได้**
   (ADR 0050): frontmatter + ใบกฎที่ generate + checker ของ overlay —
   ทุกไบต์ derive มีเทสต์กันแก้มือและไฟล์แปลกปลอม
@@ -306,7 +314,7 @@ export และวัดผลแล้ว:
 
 ## เอกสาร
 
-[`docs/adr/`](docs/adr/) 70 ใบ (ทุกการตัดสินใจ ทางที่ไม่ได้เลือก และเงื่อนไข
+[`docs/adr/`](docs/adr/) 74 ใบ (ทุกการตัดสินใจ ทางที่ไม่ได้เลือก และเงื่อนไข
 ที่จะทำให้มันหมดอายุ) · [`docs/ROADMAP.md`](docs/ROADMAP.md) (เฟส 0–7 ของตัวแอป)
 · [`docs/ROADMAP-INFRA.md`](docs/ROADMAP-INFRA.md) (เฟส 8–12 ของ scaffolding) ·
 [`docs/ROADMAP-GOVERNANCE.md`](docs/ROADMAP-GOVERNANCE.md) (แผน G — ธรรมนูญ
@@ -317,6 +325,8 @@ org graph) · [`docs/PDPA.md`](docs/PDPA.md) (worksheet แบบเดียว
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) (42010) ·
 [`docs/ASVS.md`](docs/ASVS.md) ·
 [`docs/ISO27001.md`](docs/ISO27001.md) (27001:2022 ครบ 116 ข้อ) ·
+[`docs/AUDIT-LOG.md`](docs/AUDIT-LOG.md) (ทะเบียนรอบ audit — คำถามของแต่ละรอบ
+ผลโดยย่อ และร่องรอยที่มันทิ้งไว้ในรีโปซึ่งเปิดดูเองได้) ·
 [`docs/GOVERNANCE.md`](docs/GOVERNANCE.md) (กลไกของด่านเอง — ดัชนี `gates.yaml`
 และการบังคับสองทิศ · หลักฐานว่าด่านเคยแดง · ชั้นและผู้เฝ้า · สำมะโน ·
 และของที่ export ไปให้โปรเจกต์อื่น) ·
@@ -359,7 +369,7 @@ org graph) · [`docs/PDPA.md`](docs/PDPA.md) (worksheet แบบเดียว
 `ldap3` (LGPLv3) ซึ่งอยู่ใน category ของ plugin ที่ถอดทิ้งได้
 (`tests/test_licensing.py` ตรึงไว้)
 
-[![version](https://img.shields.io/badge/version-v2.1.0-blue)](https://github.com/sayam/flask-todolist/releases)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22015133.svg)](https://doi.org/10.5281/zenodo.22015133)
+[![version](https://img.shields.io/badge/version-v2.2.0-blue)](https://github.com/sayam/flask-todolist/releases)
+[![DOI 10.5281/zenodo.22015133](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.22015133-blue)](https://doi.org/10.5281/zenodo.22015133)
 [![License](https://img.shields.io/badge/License-AGPL--3.0-blue)](LICENSE)
 [![Docs License](https://img.shields.io/badge/Docs-CC%20BY--SA%204.0-lightgrey)](LICENSE-docs)

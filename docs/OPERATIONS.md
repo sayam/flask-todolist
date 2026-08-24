@@ -442,7 +442,11 @@ plugin ยืนยันตัวตนภายนอกตัวเดีย�
 
 ```bash
 # 1) ออก token ให้ตัวดูด (/metrics ต้องมี token เสมอ — ADR 0031)
-flask token-create <ผู้ใช้> --name "prometheus"   # เก็บบรรทัด token ลงไฟล์
+#    **`--expires-days 0` โดยตั้งใจ** — ค่าเริ่มต้นคือ 90 วัน (audit รอบ 26)
+#    ซึ่งแปลว่าการเฝ้าระวังจะตาบอดเองในอีกสามเดือนโดยไม่มีใครสั่ง · กุญแจของ
+#    เครื่องที่ทำงานตลอดเวลา ต้องมีอายุที่ถูก*เลือก* ไม่ใช่อายุที่ตกทอดมา ·
+#    ถ้าเลือกให้หมดอายุ ต้องมีแถวต่ออายุใน SECURITY-CADENCE.md คู่กันเสมอ
+flask token-create <ผู้ใช้> --name "prometheus" --expires-days 0
 echo 'tdl_...' > ./metrics-token
 
 # 2) ขึ้น stack — Prometheus อ่าน token จากไฟล์ (อ่านใหม่ทุกรอบ scrape
@@ -452,6 +456,10 @@ METRICS_TOKEN_FILE=$PWD/metrics-token GRAFANA_PASSWORD=... \
 ```
 
 - Prometheus: `:9090` · Grafana: `:3001` (datasource ถูก provision จากไฟล์)
+- **มีกฎ liveness หนึ่งข้อ** — `MetricsTargetDown` (`up == 0` · `for: 1m`) ใน
+  [`deploy/prometheus-rules.yaml`](../deploy/prometheus-rules.yaml) · เป็นกฎเดียว
+  ในระบบที่ยิงจาก*การไม่มี* ซึ่งเป็นทิศที่กฎฝั่ง log ทั้งสามข้อครอบไม่ถึง
+  (ADR 0037 โน้ต 2026-08-23) · ยังไม่มี Alertmanager — เสียงดังอยู่ที่ `:9090/alerts`
 - ค่าที่แอปนับเป็นของ process นั้นคนเดียว (ADR 0031) — การรวมข้าม replica
   เป็นหน้าที่ของฝั่ง Prometheus
 - job `scrape` ใน CI พิสูจน์ทุก push ว่าตัวเลขไปถึง TSDB จริงผ่านด่าน token
@@ -686,6 +694,28 @@ journalctl -u todolist-purge.service --grep TDL_PURGE_FAILED
 
 **ห้ามใช้ rerun เป็นนโยบาย** — ด่านที่ถูกกด rerun เป็นนิสัย คือด่านที่วันแดงจริง
 ก็ถูกกด rerun เหมือนกัน (หลักเดียวกับเงื่อนไข flaky ของ ADR 0056)
+
+## นโยบายความลับ — เก็บที่ไหน ใครแตะได้ หมุนเมื่อไหร่ (OSPS-BR-07.02)
+
+รวมไว้ที่เดียวเพราะกติกาเดิมกระจายอยู่ห้าที่ · **ความลับของโปรเจกต์นี้มีสามชั้น
+และคนละชั้นมีที่อยู่คนละแบบ**
+
+| ชั้น | ตัวอย่าง | เก็บที่ไหน | ใครอ่านได้ | หมุนเมื่อไหร่ |
+|---|---|---|---|---|
+| ความลับของแอปตอนรัน | `SECRET_KEY` · `DATA_ENCRYPTION_KEY` · `METRICS_TOKEN` | แหล่งที่ `SECRETS_URL` ประกาศ (`env://` · `file://` · `vault://` — ADR 0030) **ไม่เคยอยู่ในรีโป** | กระบวนการของแอปบนโฮสต์นั้น | เปลี่ยน `SECRET_KEY` = ทุก session ถูกตัด (ตั้งใจ) · `DATA_ENCRYPTION_KEY` หมุนคนละจังหวะเพราะทำหายแล้วความลับ TOTP อ่านไม่ได้ถาวร |
+| ความลับของ CI | `POSTURE_TOKEN` | GitHub Actions secrets | job ที่ประกาศชื่อนั้นเท่านั้น · ไม่ถูกส่งให้ workflow ของ fork | มีแถวรอบตรวจของตัวเองใน [SECURITY-CADENCE.md](SECURITY-CADENCE.md) — ใบปัจจุบันหมดอายุ 2026-11-16 |
+| ความลับของบริการภายนอก | token ใน URL ของ webhook Zenodo | ฝั่งผู้ให้บริการ | เจ้าของ repo | หมุนโดยถอด hook แล้วต่อใหม่ — มีแถวความเสี่ยงใน [RISK-ASSESSMENT.md](RISK-ASSESSMENT.md) |
+
+**กติกาที่บังคับด้วยเครื่อง ไม่ใช่ด้วยความจำ**
+
+- **ห้ามความลับเข้า version control** — gitleaks ทุก push (`gate push-secret-scan`)
+  · GitHub secret scanning + **push protection** เปิดอยู่ · `.env` ถูก gitignore
+- **แอปไม่ start ถ้าไม่มี `SECRET_KEY`** และไม่มีค่า default ให้ตกกลับ
+  (`check_secret_key()`) — ความลับที่มีค่าเริ่มต้นคือความลับที่ไม่มีใครตั้ง
+- **"ถามแหล่งไม่ได้" ต่างจาก "ไม่มีชื่อนั้นในแหล่ง"** — อย่างแรกทำให้แอปไม่ start
+  อย่างหลังตกกลับไป env ได้ (ADR 0030)
+- **สิทธิ์ของ token ต้องต่ำที่สุดที่ทำงานได้** — `POSTURE_TOKEN` เป็น fine-grained
+  ที่อ่านอย่างเดียว การขยาย scope เพื่อความสะดวกคือการจ่ายสิทธิ์ถาวรให้ของที่ยืมได้ต่อ run
 
 ## `POSTURE_TOKEN` — สิทธิ์อ่านท่าทีของ repo (ADR 0061)
 

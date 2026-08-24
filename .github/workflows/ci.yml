@@ -41,7 +41,7 @@ jobs:
     # สิ่งเดียวกันเลย — โดยเฉพาะกับข้อที่ปิดหนี้เรื่องโควตาที่นับแยกต่อ process
     services:
       redis:
-        image: redis:7@sha256:e9b2e45ecd47fbb69b877cf8d045d5cccaaaed52524b6e098b4abe8212994f73
+        image: redis:7@sha256:91d0f7e8c748ec7a4c2b4fb2c4f84edab794dd91d01e095e38dc906db9d684ab
         ports:
           - 6379:6379
         options: >-
@@ -56,10 +56,13 @@ jobs:
           python-version: "3.13"
           cache: pipenv
       - run: pip install --require-hashes -r pins/pipenv/requirements.txt
+        timeout-minutes: 5
       - run: pipenv sync --dev
+        timeout-minutes: 5
       # ไลบรารีของ plugin อยู่นอก `[packages]` (ADR 0025) ต้องติดตั้งแยก —
       # ถามชื่อ category จากตัวแอปเอง **ห้าม hardcode ชื่อ plugin ใน CI**
       - name: ติดตั้ง category ของ plugin ทุกตัวที่ประกาศไว้
+        timeout-minutes: 5
         run: pipenv sync --categories="$(pipenv run flask plugin-deps --categories)"
         env:
           SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
@@ -136,7 +139,7 @@ jobs:
             scheme: mysql+pymysql
             ping: mysqladmin
           - name: mariadb-11
-            image: mariadb:11@sha256:1fe78d53850250aa2560aa0059e3088b4cd230a5db2230f530c70e4b87bcc30c
+            image: mariadb:11@sha256:24e76fcec8c003a0362d0dd53f4806e7e79458d7fdeaf47437760e19496f5a9c
             scheme: mariadb+pymysql
             ping: mariadb-admin
     services:
@@ -162,10 +165,13 @@ jobs:
           python-version: "3.13"
           cache: pipenv
       - run: pip install --require-hashes -r pins/pipenv/requirements.txt
+        timeout-minutes: 5
       - run: pipenv sync --dev
+        timeout-minutes: 5
       # driver ของยี่ห้อพวกนี้อยู่ใน category ของ plugin ชนิด `db` (ADR 0026)
       # ถามชื่อจากตัวแอปเอง **ห้าม hardcode ชื่อ plugin ใน CI**
       - name: ติดตั้ง category ของ plugin ทุกตัวที่ประกาศไว้
+        timeout-minutes: 5
         run: pipenv sync --categories="$(pipenv run flask plugin-deps --categories)"
         env:
           SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
@@ -197,7 +203,9 @@ jobs:
           python-version: "3.13"
           cache: pipenv
       - run: pip install --require-hashes -r pins/pipenv/requirements.txt
+        timeout-minutes: 5
       - run: pipenv sync --dev
+        timeout-minutes: 5
       # ถ้าวันหนึ่งไลบรารีของ plugin เผลอย้ายกลับเข้า `[packages]` ของ core
       # job นี้จะยังเขียวทั้งที่ไม่ได้พิสูจน์อะไรเลย — ตรวจก่อนว่ามันหายไปจริง
       # ถามสถานะจากตัวแอปเอง **ห้าม hardcode ชื่อ plugin หรือชื่อไลบรารีใน CI**
@@ -258,7 +266,9 @@ jobs:
           python-version: "3.13"
           cache: pipenv
       - run: pip install --require-hashes -r pins/pipenv/requirements.txt
+        timeout-minutes: 5
       - run: pipenv sync --dev
+        timeout-minutes: 5
       # `if: !cancelled()` ทุก step เพื่อให้ **ด่านที่แดงตัวแรกไม่บังคับตัวหลังให้เงียบ**
       # เจอมาแล้วตอน Phase 4.5: xenon แดงก่อน job จึงไม่เคยเดินถึง mypy ที่แดงอยู่
       # ด้วยคนละเรื่อง กว่าจะเห็นก็เสียไปอีกหนึ่งรอบ push — รอบ CI แพงกว่าการรัน
@@ -298,6 +308,21 @@ jobs:
           dockerfile: Dockerfile
           config: .hadolint.yaml
 
+      # issue ที่ยังติดป้าย good first issue คือคำเชิญที่ยัง *ส่งอยู่* — ปิดมันด้วย
+      # PR ของผู้ดูแลโดยไม่ปลดป้ายก่อน แปลว่ามีคนกำลังทำงานที่หายไปโดยไม่รู้ตัว
+      # (เกิดขึ้นจริง 2026-08-20 — เหตุผลเต็มอยู่ในหัวไฟล์ของสคริปต์)
+      #
+      # **อยู่ใน job `lint` โดยตั้งใจ ไม่ใช่ job ใหม่**: job ใหม่ต้องถูกเพิ่มเข้า
+      # required checks แล้วเลข "27 จาก 30" ที่ประกาศไว้ 11 ที่ในเอกสารจะผิดทันที
+      # ทั้งหมด ซึ่งมีเครื่องตรวจอยู่แค่ที่เดียว — ราคานั้นแพงกว่าค่าที่ได้
+      - name: issue ที่เปิดให้คนใหม่ ต้องไม่ถูกปิดเงียบ ๆ
+        if: ${{ github.event_name == 'pull_request' && !cancelled() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: pipenv run python scripts/check_issue_handoff.py
+
   n-1:
     # สัญญา N-1 (ADR 0048): โค้ดของ tag ล่าสุดต้องให้บริการบน schema ของ HEAD
     # ได้จริง — rolling deploy มีจังหวะที่สองรุ่นรันพร้อมกันบน schema เดียวเสมอ
@@ -322,11 +347,14 @@ jobs:
           python-version: "3.13"
           cache: pipenv
       - run: pip install --require-hashes -r pins/pipenv/requirements.txt
+        timeout-minutes: 5
       - name: schema ของ HEAD
+        timeout-minutes: 5
         run: |
           pipenv sync --dev
           pipenv run flask db upgrade
       - name: โค้ดของ tag ล่าสุด + dependency ตาม lock ของมันเอง
+        timeout-minutes: 5
         run: |
           tag=$(git describe --tags --abbrev=0)
           echo "n-1 against: $tag"
@@ -360,7 +388,9 @@ jobs:
           python-version: "3.13"
           cache: pipenv
       - run: pip install --require-hashes -r pins/pipenv/requirements.txt
+        timeout-minutes: 5
       - run: pipenv sync --dev
+        timeout-minutes: 5
       - name: db upgrade แล้วเทียบ model กับ schema (drift ต้องเป็นศูนย์)
         run: |
           pipenv run flask db upgrade
@@ -395,7 +425,9 @@ jobs:
           python-version: "3.13"
           cache: pipenv
       - run: pip install --require-hashes -r pins/pipenv/requirements.txt
+        timeout-minutes: 5
       - run: pipenv sync --dev
+        timeout-minutes: 5
       - name: generate แล้วต้องไม่มีอะไรเปลี่ยน
         run: |
           pipenv run python scripts/generate_openapi.py
@@ -447,7 +479,9 @@ jobs:
           python-version: "3.13"
           cache: pipenv
       - run: pip install --require-hashes -r pins/pipenv/requirements.txt
+        timeout-minutes: 5
       - run: pipenv sync --dev
+        timeout-minutes: 5
       # **ไม่มี step ติดตั้ง category ของ plugin ที่นี่โดยตั้งใจ** — job นี้คือ
       # supply chain ที่ถอดไม่ได้ CVE ที่เจอที่นี่จึงหยุด pipeline ได้เต็มปาก
       # ส่วนของ plugin ถูก audit ในอีก job (`plugin-audit`) ซึ่งบอกได้ว่า CVE
@@ -457,6 +491,7 @@ jobs:
       # ตรวจ pip ด้วย) — แต่ "ล่าสุด" แปลว่าไม่มีใครรู้ว่า run นี้ใช้ตัวไหน
       # ตรึงแล้ว CVE ของ pip จะมาถึงในรูป PR ของ Dependabot แทน ซึ่งเห็นได้
       - name: pip-audit ของ core (ตรึงรุ่น pip ใน venv ก่อน — ตัว pip เองก็ถูก audit)
+        timeout-minutes: 5
         run: |
           pipenv run python -m pip install --quiet --require-hashes -r pins/pip/requirements.txt
           pipenv run pip-audit
@@ -502,6 +537,7 @@ jobs:
       # **ขอบเขตอยู่ใน `.semgrepignore` ที่ commit ไว้ ไม่ใช่ค่าเริ่มต้นในตัว
       # semgrep** ซึ่งตัด `tests/` ทิ้งเงียบ ๆ มาตลอด (61 จาก 136 ไฟล์)
       - name: semgrep (flask + python rulesets)
+        timeout-minutes: 5
         run: |
           python -m venv /tmp/semgrep-venv
           /tmp/semgrep-venv/bin/pip install --quiet --require-hashes -r pins/semgrep/requirements.txt
@@ -526,7 +562,9 @@ jobs:
           python-version: "3.13"
           cache: pipenv
       - run: pip install --require-hashes -r pins/pipenv/requirements.txt
+        timeout-minutes: 5
       - run: pipenv sync --dev
+        timeout-minutes: 5
       # ไม่ต้องติดตั้งไลบรารีของ plugin — audit จาก lock file ทีละ category
       # ชื่อ category ถามจากตัวแอปเอง **ห้าม hardcode ชื่อ plugin ใน CI**
       - name: แยก requirement ของแต่ละ category ออกมาเป็นไฟล์
@@ -580,10 +618,13 @@ jobs:
         with:
           node-version: "22"
       - run: pip install --require-hashes -r pins/pipenv/requirements.txt
+        timeout-minutes: 5
       - run: pipenv sync --dev
+        timeout-minutes: 5
       # ไลบรารีของ plugin อยู่นอก `[packages]` (ADR 0025) ต้องติดตั้งแยก —
       # ถามชื่อ category จากตัวแอปเอง **ห้าม hardcode ชื่อ plugin ใน CI**
       - name: ติดตั้ง category ของ plugin ทุกตัวที่ประกาศไว้
+        timeout-minutes: 5
         run: pipenv sync --categories="$(pipenv run flask plugin-deps --categories)"
         env:
           SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
@@ -593,6 +634,7 @@ jobs:
       # `npm ci` ติดตั้งจาก `package-lock.json` ตรง ๆ ซึ่งมี integrity hash ครบทั้งต้นไม้
       # และ **ล้มทันทีถ้า lock ไม่ตรงกับ package.json** ไม่ใช่แก้ lock ให้เงียบ ๆ
       - run: npm ci
+        timeout-minutes: 5
         working-directory: pins/pa11y
       - name: เตรียมฐานข้อมูลชั่วคราว + ข้อมูลตัวอย่าง
         run: |
@@ -1491,6 +1533,42 @@ jobs:
           # อะไรไม่ได้เลย (ดูดได้เพราะประตูเปิดโล่ง ไม่ใช่เพราะกุญแจถูก)
           code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/metrics)
           [ "$code" = "401" ] || { echo "/metrics ไม่มี token ได้ $code ไม่ใช่ 401"; exit 1; }
+      # ---- กฎที่ยิงจากการ **ไม่มี** (audit รอบ 26 ข้อ 2 · ADR 0037 โน้ต 2026-08-23)
+      #
+      # ทุกด่านที่มีอยู่ก่อนหน้านี้พิสูจน์ว่าระบบดังเมื่อ*ใส่ของแย่ ๆ เข้าไป* —
+      # ด่านนี้เป็นตัวแรกที่พิสูจน์ด้วยการ **เอาของออก** ซึ่งเป็นทิศที่กฎแบบ
+      # `count_over_time(…) > n` ทดสอบไม่ได้โดยนิยาม
+      - name: กฎ liveness ต้องถูกโหลด และต้องยังไม่ดัง
+        run: |
+          rules=$(curl -sf 'http://127.0.0.1:9090/api/v1/rules')
+          echo "$rules" | grep -q 'MetricsTargetDown' \
+            || { echo "Prometheus ไม่ได้โหลดกฎเลย: $rules"; exit 1; }
+          # `rule_files` ที่ path ผิดไม่ทำให้ Prometheus ล้ม มันแค่ไม่มีกฎ —
+          # ความล้มเหลวเงียบชนิดเดียวกับที่ทั้งข้อนี้พูดถึง
+          alerts=$(curl -sf 'http://127.0.0.1:9090/api/v1/alerts')
+          echo "$alerts" | grep -q '"state":"firing"' \
+            && { echo "มี alert ดังอยู่ทั้งที่ยังไม่ได้ทำอะไร: $alerts"; exit 1; }
+          echo "กฎถูกโหลดแล้วและเงียบตามที่ควรเงียบ"
+      - name: หยุดแอป แล้วต้องได้ยินเสียง
+        run: |
+          export METRICS_TOKEN_FILE=$PWD/metrics-token
+          $COMPOSE stop app
+          # `for: 1m` + `interval: 15s` → ดังภายใน ~75 วินาที · เผื่อถึง 3 นาที
+          fired=0
+          for _ in $(seq 1 36); do
+            alerts=$(curl -sf 'http://127.0.0.1:9090/api/v1/alerts' || true)
+            echo "$alerts" | grep -q 'MetricsTargetDown' \
+              && echo "$alerts" | grep -q '"state":"firing"' \
+              && { fired=1; break; }
+            sleep 5
+          done
+          [ "$fired" = "1" ] || {
+            echo "แอปหยุดไปแล้วแต่ไม่มีอะไรดัง — กฎที่ยิงจากการไม่มี ไม่ทำงาน"
+            curl -sf 'http://127.0.0.1:9090/api/v1/alerts' || true
+            $COMPOSE logs prometheus | tail -30
+            exit 1
+          }
+          echo "MetricsTargetDown ดังจริงหลังแอปหายไป"
       - name: เก็บกวาด
         if: always()
         run: |
@@ -1580,7 +1658,9 @@ jobs:
           python-version: "3.13"
           cache: pipenv
       - run: pip install --require-hashes -r pins/pipenv/requirements.txt
+        timeout-minutes: 5
       - run: pipenv sync --dev
+        timeout-minutes: 5
       # แยกเป็นไฟล์ละ category ด้วยเหตุผลเดียวกับ pip-audit: SBOM ที่รวมทุกอย่าง
       # เป็นก้อนเดียวตอบไม่ได้ว่า "ถอด plugin ตัวนี้แล้ว component ไหนหายไปบ้าง"
       # ซึ่งเป็นคำถามแรกของวันที่ CVE ออก (ADR 0025)
@@ -1621,12 +1701,12 @@ jobs:
         language: [python, javascript-typescript]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: github/codeql-action/init@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4.37.7
+      - uses: github/codeql-action/init@db488ddef3bf6cb639b32c2e9a7c0a7ea8271d28 # v4.37.8
         with:
           languages: ${{ matrix.language }}
           # security-extended: กว้างกว่าชุดเริ่มต้น — โปรเจกต์นี้รับ false positive
           # ได้มากกว่ารับของที่หลุดไป (หลักเดียวกับ ruff ที่เปิดทุกกฎแล้วปิดรายข้อ)
           queries: security-extended
-      - uses: github/codeql-action/analyze@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4.37.7
+      - uses: github/codeql-action/analyze@db488ddef3bf6cb639b32c2e9a7c0a7ea8271d28 # v4.37.8
         with:
           category: /language:${{ matrix.language }}

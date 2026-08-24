@@ -37,11 +37,25 @@ LINK = re.compile(r"\[[^\]]+\]\((?!https?:|mailto:|#)([^)\s]+)\)")
 # `20 jobs (21 checks)` และ `20 job (21 check)`
 JOB_CLAIM = re.compile(r"(\d+)\s+jobs?\s*\((\d+)\s+checks?\)")
 
-DOCS_CLAIMING_JOB_COUNTS = ("CONTRIBUTING.md", "CLAUDE.md", "docs/DEVELOPMENT.md")
+DOCS_CLAIMING_JOB_COUNTS = (
+    "CONTRIBUTING.md",
+    "CLAUDE.md",
+    "docs/DEVELOPMENT.md",
+    "docs/ROADMAP.md",
+)
 
 # ใบตอบ badge เป็นเอกสารที่คนนอกอ่าน (ลิงก์จาก README) และเต็มไปด้วยตัวเลข
 # ที่ไม่มีใครรัน — เน่าไปแล้วสามจุดก่อนจะมีเทสต์ชุดนี้
 BADGE_WORKSHEET = "docs/BEST-PRACTICES.md"
+# DOI ที่ README พิมพ์ออกมา — ทั้งในร้อยแก้วและใน URL ของ badge
+DOI_IN_TEXT = re.compile(r"10\.\d{4,9}/[-._;()/:a-zA-Z0-9]*zenodo[.\d]+")
+CITATION = ROOT / "CITATION.cff"
+# โฮสต์ของรูป badge ที่ **วัดแล้ว** ว่า camo ของ GitHub ดึงไหวสม่ำเสมอ
+# (ยิงผ่าน camo สามครั้งต่อใบ — ดูเหตุผลใน docstring ของเทสต์ข้างล่าง)
+BADGE_HOSTS = {
+    "https://img.shields.io/": "ทุกใบที่ใช้อยู่ 200 ทุกครั้ง",
+    "https://www.bestpractices.dev/": "badge ของ OpenSSF เอง · 200 ทุกครั้ง",
+}
 VERSION_SOURCE = (ROOT / "app" / "__init__.py").read_text(encoding="utf-8")
 
 
@@ -269,3 +283,123 @@ def test_the_install_command_covers_every_declared_stage(doc):
             f"{doc}: คำสั่งติดตั้งไม่ครอบ stage {missing}\n  {line.strip()}\n"
             "hook ที่ประกาศไว้แต่ไม่ถูกติดตั้ง คือ hook ที่ไม่มีอยู่จริงสำหรับคนที่ clone ใหม่"
         )
+
+
+# --------------- เลข "required N จาก M" ที่ถูกประกาศไว้หลายที่ (audit r21 ข้อค้าง)
+#
+# วัดเมื่อ 2026-08-21: คู่เลขนี้ถูกเขียนไว้ **11 ที่ใน 6 ไฟล์** ด้วยถ้อยคำเจ็ดแบบ
+# และมีเครื่องอ่านคู่กับความจริงอยู่ **ที่เดียว** (`ci:posture` อ่านของ
+# `docs/SECURITY-CADENCE.md`) · สิบที่ที่เหลือจึงเน่าได้เงียบ ๆ ทุกครั้งที่เพิ่ม job
+#
+# **แบ่งหน้าที่กันสองชั้น ไม่ใช่ให้ทุกที่ต่อเน็ต**: ที่นี่บังคับว่าทุกที่พูดเลข
+# *ชุดเดียวกัน* (ออฟไลน์ · เร็ว · รันทุก push) ส่วน `ci:posture` บังคับว่าชุดนั้น
+# ตรงกับแพลตฟอร์มจริง — ยืนยันที่เดียวจึงยืนยันครบ เพราะที่เหลือถูกบังคับให้ตรงกับมัน
+
+# `required check **27 จาก 30**` — ต้นทางเดียวที่ `ci:posture` อ่าน
+REQUIRED_SOURCE = re.compile(r"required check \*\*(\d+) จาก (\d+)\*\*")
+
+# ถ้อยคำอื่นที่พูดเรื่องเดียวกัน — เพิ่มรูปใหม่ต้องมาเพิ่มที่นี่ ไม่งั้นมันรอด
+REQUIRED_CLAIMS = (
+    # `\*{0,2}` ไม่ใช่ `\*\*?` — อันหลังบังคับให้ต้องมีดอกจันอย่างน้อยหนึ่งตัว
+    # จึงพลาดรูปที่เขียนโดยไม่ทำตัวหนา (ISO27001 เขียนแบบนั้น · จับได้ตอน mutation)
+    re.compile(r"required checks? \*{0,2}(\d+) จาก (\d+)\*{0,2}"),
+    re.compile(r"\((\d+) จาก (\d+)\)"),
+    re.compile(r"(\d+) จาก (\d+) check"),
+)
+REQUIRED_ALONE = re.compile(r"(\d+) required check")
+CHECKS_THEN_REQUIRED = re.compile(r"(\d+) check \((\d+) บังคับ\)")
+
+DOCS_CLAIMING_REQUIRED_COUNTS = (
+    "docs/SECURITY-CADENCE.md",
+    "docs/BEST-PRACTICES.md",
+    "docs/ISO27001.md",
+)
+
+
+@pytest.fixture(scope="module")
+def declared_pair() -> tuple[int, int]:
+    """(required, checks) จากต้นทางเดียวที่ถูกตรวจกับแพลตฟอร์มจริง"""
+    text = (ROOT / "docs" / "SECURITY-CADENCE.md").read_text(encoding="utf-8")
+    found = REQUIRED_SOURCE.search(text)
+
+    assert found, "อ่านคู่เลข required จาก SECURITY-CADENCE ไม่ได้ — รูปประโยคเปลี่ยนไปแล้ว"
+    return int(found.group(1)), int(found.group(2))
+
+
+def test_the_advertised_check_total_matches_the_workflows(declared_pair, ci_jobs):
+    """ตัวหลัง (จำนวน check ทั้งหมด) ตรวจออฟไลน์ได้ — ไม่ต้องรอ `ci:posture`"""
+    _required, claimed_checks = declared_pair
+    _defined, real_checks = ci_jobs
+
+    assert claimed_checks == real_checks, (
+        f"เอกสารบอกว่ามี {claimed_checks} check แต่ workflow สร้างจริง {real_checks}"
+    )
+
+
+@pytest.mark.parametrize("name", DOCS_CLAIMING_REQUIRED_COUNTS)
+def test_every_copy_of_the_required_count_says_the_same_thing(name, declared_pair):
+    """สำเนาทุกใบต้องพูดเลขชุดเดียวกับต้นทาง — สิบที่ที่ไม่มีใครอ่านคือสิบที่ที่เน่าได้"""
+    required, checks = declared_pair
+    text = (ROOT / name).read_text(encoding="utf-8")
+
+    pairs = [(int(a), int(b)) for probe in REQUIRED_CLAIMS for a, b in probe.findall(text)]
+    pairs += [(int(b), int(a)) for a, b in CHECKS_THEN_REQUIRED.findall(text)]
+    alone = [int(value) for value in REQUIRED_ALONE.findall(text)]
+
+    assert pairs or alone, (
+        f"{name} ไม่ได้อ้างจำนวน required check แล้ว — "
+        "ถ้าตั้งใจถอดออก ให้เอาชื่อไฟล์ออกจาก DOCS_CLAIMING_REQUIRED_COUNTS ด้วย"
+    )
+    wrong = [pair for pair in pairs if pair != (required, checks)]
+    wrong += [f"{value} required" for value in alone if value != required]
+
+    assert not wrong, f"{name} อ้าง {wrong} แต่ต้นทางประกาศไว้ว่า {required} จาก {checks}"
+
+
+def test_every_place_the_readme_prints_the_doi_agrees_with_citation_cff():
+    """DOI บน README ต้องเป็นตัวเดียวกับที่ `CITATION.cff` ประกาศ — ทุกที่ รวมเป้าของ badge
+
+    DOI ปรากฏบน README สามที่ (ร้อยแก้วสองแห่ง + เป้าลิงก์ของ badge) และ**ไม่มี
+    ที่ไหนเลยที่ derive มาจาก `CITATION.cff`** — ทุกที่คือเลขที่คนพิมพ์ · รูปของ
+    badge มาจาก `zenodo.org` ตามที่ Zenodo กำหนด และมันชี้ด้วย *เลขที่อยู่ของ
+    repo* ไม่ใช่ DOI ดังนั้นรูปที่ถูกจึงขึ้นคู่กับเป้าที่ผิดได้อย่างหน้าตาเฉย
+    ซึ่งเป็นความล้มเหลวที่คนอ่านมองไม่เห็นเลย — เห็น badge สวย ๆ แล้วกดไปหาของผิด
+    """
+    declared = yaml.safe_load(CITATION.read_text(encoding="utf-8"))["doi"]
+    printed = set(DOI_IN_TEXT.findall((ROOT / "README.md").read_text(encoding="utf-8")))
+
+    assert printed, "README ไม่ได้พิมพ์ DOI แล้ว — ถ้าตั้งใจถอด ให้ลบเทสต์นี้ด้วย"
+    assert printed == {declared}, (
+        f"README พิมพ์ DOI {sorted(printed)} แต่ CITATION.cff ประกาศ {declared!r}"
+    )
+
+
+def test_every_badge_comes_from_a_host_that_camo_can_actually_fetch():
+    """โฮสต์ของรูป badge ต้องอยู่ในรายการที่**วัดแล้ว** ว่า camo ดึงไหว
+
+    GitHub ไม่ได้ฝังรูปจากปลายทางตรง ๆ — มันดึงผ่าน camo แล้ว proxy ให้ ดังนั้น
+    "ยิงจากเครื่องเราแล้ว 200" ไม่ได้แปลว่า badge จะขึ้น · badge ของ Zenodo ขึ้น
+    บ้างไม่ขึ้นบ้างอยู่หลายรุ่น และตอนไล่จนถึงตัว camo จริง ๆ คำตอบคือ
+
+        HTTP/2 502 · Invalid upstream response (429)
+
+    คือ **Zenodo rate-limit camo** ไม่ใช่เรื่องรูปแบบ URL อย่างที่เดากันสองรอบ
+    (รอบแรกโทษ URL รูปแบบเก่า · รอบสองเปลี่ยนไปใช้รูปที่ Zenodo ให้มาแล้วก็ยัง
+    กะพริบเหมือนเดิม) · ยิงผ่าน camo สามครั้งต่อใบเทียบกันแล้วชัด: shields.io กับ
+    bestpractices.dev ได้ 200/200/200 ทุกใบ ส่วน zenodo.org ได้ 200/502/200
+
+    เทสต์นี้ไม่ยิงเน็ต (ด่านที่ต้องต่อเน็ตคือด่านที่แดงเพราะเน็ต) — มันบังคับแค่ว่า
+    **การเพิ่มโฮสต์ใหม่ต้องเป็นคำตัดสินที่มีคนเซ็นชื่อ** พร้อมเหตุผลใน `BADGE_HOSTS`
+    ไม่ใช่การก๊อปวาง markdown จากหน้าเว็บของใครสักคน
+    """
+    text = (ROOT / "README.md").read_text(encoding="utf-8")
+    images = re.findall(r"!\[[^\]]*\]\((https?://[^)\s]+)\)", text)
+    assert images, "README ไม่มี badge แล้ว — ถ้าตั้งใจถอด ให้ลบเทสต์นี้ด้วย"
+
+    strangers = sorted(
+        {url for url in images if not any(url.startswith(host) for host in BADGE_HOSTS)}
+    )
+    assert not strangers, (
+        f"badge จากโฮสต์ที่ยังไม่ได้วัด: {strangers} — "
+        "ยิงผ่าน camo ของ GitHub หลายครั้งก่อน แล้วมาลงทะเบียนใน BADGE_HOSTS พร้อมเหตุผล"
+    )

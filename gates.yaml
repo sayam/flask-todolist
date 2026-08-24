@@ -152,7 +152,7 @@ gates:
     standard: []
     requires: []
     portable: true
-    layer: baseline
+    layer: business
     pillar: manageability
     born_from: >-
       ADR 0023/0025 — วันที่ core เอ่ยชื่อ plugin คือวันที่ถอดไดเรกทอรีแล้วล้มเหลว
@@ -222,7 +222,7 @@ gates:
     standard: []
     requires: []
     portable: true
-    layer: baseline
+    layer: business
     pillar: manageability
     born_from: >-
       "สลับได้" ที่ไม่เคยประกาศว่าสลับแบบไหน คือคำสัญญาที่คนหน้างานต้องเดา
@@ -252,6 +252,185 @@ gates:
           ล้มเหลวสี่ทิศแล้วแดงครบ — ให้แผนทิ้ง step เงียบ ๆ · รัน expression ของ CI
           ที่แทนค่าไม่ได้แทนที่จะข้าม · คืน exit 0 ทั้งที่มี step แดง ·
           ถอด job `test` ออกจากรายการที่ mirror (xenon/diff-cover หายไปทั้งคลาส)
+
+  - id: audit-rounds-registered
+    title: ทะเบียนรอบ audit ตรงกับความจริงสองทิศ และเลขที่โฆษณามาจากมัน
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_audit_log.py]}
+    standard: []
+    requires: []
+    portable: false
+    layer: internal
+    pillar: devx
+    born_from: >-
+      ช่อง About ของ repo กับใบตอบ badge โฆษณาว่า "audit 20 รอบ" มาหลายรุ่น
+      โดยไม่มีทะเบียนให้ใครนับตาม — พอไปไล่ดูจริงตอนออก v2.2.0 พบว่ารอบที่
+      เกิดขึ้นแล้วคือ 23 · ไม่มีใครโกหก แต่ก็ไม่มีอะไรนับ ซึ่งเป็นรูปเดียวกับที่
+      audit รอบ 21 เจอกับ "เลขที่ประกาศในเอกสาร กี่ตัวมีเครื่องอ่านคู่" ·
+      ทะเบียนที่ไม่ถูกบังคับให้ตรงกับความจริงคือทะเบียนที่ให้ข้อมูลที่ไม่จริงเงียบ ๆ
+      — ที่นี่จึงบังคับทั้งความมีอยู่ของหลักฐาน **และว่าหลักฐานนั้นพูดถึงรอบนั้นจริง**
+      เพราะรายการชื่อไฟล์ที่ไม่มีใครตรวจเนื้อ คือรายการที่ผ่านได้ด้วยชื่ออะไรก็ได้
+
+    proved_by:
+      - kind: mutation
+        ref: pr/202
+        date: 2026-08-22
+        caught: >-
+          ล้มเหลวห้าทิศแล้วแดงครบ — ลบแถวกลางตาราง (เลขขาดช่วง) · ให้หลักฐานชี้
+          gate ที่มีจริงแต่ไม่เกี่ยวกับรอบนั้น · ชี้ ADR ที่ไม่มีไฟล์ · อ้างรอบใหม่
+          ในเอกสารโดยไม่มีแถว · และเลขที่โฆษณาไม่ตรงจำนวนแถว
+
+  - id: vex-matches-the-registers
+    title: เอกสาร VEX ตรงกับทะเบียน advisory สองทิศ และไม่ตอบเกินกว่าที่ทะเบียนพูด
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_vex.py]}
+    standard: []
+    requires: []
+    portable: false
+    layer: internal
+    pillar: security
+    born_from: >-
+      โปรเจกต์นี้ตัดสิน CVE ทุกใบอยู่แล้วและบังคับให้เหตุผลอยู่ใน
+      `docs/SECURITY-CADENCE.md` สองทิศ — **แต่คำตัดสินเป็นร้อยแก้วภาษาไทยที่มี
+      แต่คนอ่านได้** ปลายทางที่รันสแกนเนอร์ใส่ image ของเราแล้วเห็น CVE เดียวกัน
+      ไม่มีทางรู้ว่าเราตัดสินไว้ว่าอย่างไร (`OSPS-VM-04.02` ของ OSPS Baseline
+      ระดับ 3) · ข้อที่อันตรายที่สุดของเอกสาร VEX คือการตอบ `not_affected` กับของ
+      ที่อยู่ใน image จริง ซึ่งสแกนเนอร์ของผู้ใช้จับได้เอง — ด่านนี้จึงบังคับว่า
+      advisory ที่มาจากทะเบียนของ image ต้องเป็น `affected` พร้อม action_statement
+
+    proved_by:
+      - kind: mutation
+        ref: pr/217
+        date: 2026-08-23
+        caught: >-
+          ล้มเหลวสี่ทิศแล้วแดงครบ — เพิ่ม advisory ในทะเบียนโดยไม่ regenerate ·
+          เปลี่ยนของที่อยู่ใน image เป็น `not_affected` · ตอบ `affected` โดยไม่บอก
+          ว่าจะทำอะไรต่อ · และให้ตัวหาแพ็กเกจคืน "unknown" แทนที่จะดังเมื่อหาไม่เจอ
+
+  - id: threat-model-bound-to-the-code
+    title: threat model ผูกกับผิวจริง — route สาธารณะสองทิศ · gate/ADR ที่อ้างต้องมีอยู่
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_threat_model.py]}
+    standard: []
+    requires: []
+    portable: false
+    layer: internal
+    pillar: security
+    born_from: >-
+      ทะเบียนความเสี่ยงจัดลำดับความเสี่ยงระดับโปรเจกต์ · ใบประเมิน ASVS/ISO ตอบว่า
+      เรามีการควบคุมข้อไหน — **ไม่มีอันไหนตอบว่าใครโจมตีอะไรได้ผ่านทางไหน**
+      (`OSPS-SA-03.02` ของ OSPS Baseline ระดับ 3 · audit ที่ทำใบตอบ baseline-3)
+      · เอกสารชนิดนี้เน่าเงียบที่สุดเพราะผิวการโจมตีเปลี่ยนทุกครั้งที่มี route
+      ใหม่ แต่ไม่มีอะไรบังคับให้ใครกลับมาอ่าน · ด่านนี้จึงผูกรายการ route
+      สาธารณะในเอกสารเข้ากับ `PUBLIC_ROUTES` ที่แอปจริงถูกตรวจด้วยแบบสองทิศ
+
+    proved_by:
+      - kind: mutation
+        ref: pr/216
+        date: 2026-08-23
+        caught: >-
+          ล้มเหลวหกทิศแล้วแดงครบ — เพิ่ม route สาธารณะในตัวบังคับโดยไม่แก้เอกสาร ·
+          เอกสารอ้าง route ที่ไม่มีแล้ว · อ้าง gate ที่ไม่มีจริง · อ้าง ADR ที่ไม่มี
+          ไฟล์ · เลขจำนวน route ที่โฆษณาไม่ตรงกับรายการจริง · ถอดหัวข้อ "สิ่งที่
+          model นี้ตอบไม่ได้" ออก · **ทิศที่สามจับตัวเองได้ระหว่างทาง**: รูปแบบ
+          ที่จับชื่อ gate แคบเกินไปทำให้ชื่อที่พิมพ์ผิดหลุดออกจากเซตแล้วด่านผ่านฟรี
+
+  - id: one-page-sees-every-pile
+    title: หน้าเดียวที่รวมของค้างต้องเห็นทุกกอง และรายการทะเบียนต้องมีฉบับเดียว
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_pending_page.py]}
+    standard: []
+    requires: []
+    portable: false
+    layer: internal
+    pillar: devx
+    born_from: >-
+      audit รอบ 25 ถามฝั่ง*ต้นทุน*เป็นครั้งแรก (ยี่สิบสี่รอบก่อนถามแต่ฝั่งความ
+      ครอบคลุม) แล้วพบสามอย่าง: รายการของ "ทะเบียนข้อยกเว้นทั้งหมด" มีสามฉบับที่
+      ไม่ตรงกัน (แถวรอบตรวจเอ่ย 7 · `whats_pending.REGISTERS` นับ 8 ·
+      `tests/test_exception_registers.py` บังคับ 2 · union จริง 10) ·
+      หน้าเดียวที่สร้างมาเพื่อให้เลิกเปิดหลายที่ (audit รอบ 13) มองไม่เห็นเพดาน
+      สามตัวที่รอบ 21 กับ 24 สร้างขึ้นเอง · และภาษีของการเพิ่มของหนึ่งชิ้นวัดได้
+      ด้วยการทดลองใน worktree แยก — ADR หนึ่งใบต้องไล่แก้สี่ที่ · gate หนึ่งตัว
+      สองที่ · 25 จาก 200 commit ล่าสุดเป็นการซิงก์เลขล้วน ๆ · ทะเบียนที่เกิด
+      หลังตัวอ่าน จะไม่มีวันโผล่บนตัวอ่านถ้าไม่มีอะไรทวง
+
+    proved_by:
+      - kind: mutation
+        ref: pr/208
+        date: 2026-08-22
+        caught: >-
+          ล้มเหลวหกทิศแล้วแดงครบ — ถอดหัวข้อเพดานออกจากหน้า · ให้ `ceilings()`
+          คืนตารางว่าง (ทิศที่ทำให้ด่านผ่านฟรี) · ถอดทะเบียนหนึ่งใบออกจากแถว
+          รอบตรวจ · ถอดทะเบียนที่อยู่ในโค้ดออก · วางแฟ้ม `accepted-*.txt` ใหม่
+          บนดิสก์โดยไม่ลงรายการ · และให้ตัวซิงก์เลขข้ามประโยคที่หารูปแบบไม่เจอ
+          เงียบ ๆ แทนที่จะรายงาน
+
+  - id: external-surface-registered
+    title: ผิวที่อยู่นอกการควบคุมเวอร์ชันมีทะเบียน และทุกแถวบอกว่าใครเทียบมันกับของจริง
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_external_surface.py]}
+    standard: []
+    requires: []
+    portable: false
+    layer: internal
+    pillar: security
+    born_from: >-
+      `scripts/audit_posture.py` (ADR 0061) เฝ้าท่าทีของแพลตฟอร์มได้ครบตามที่มัน
+      ประกาศ แต่ขอบเขตของมันสืบทอดคำถามที่สร้างมันขึ้นมา ("สิ่งที่ ADR 0053
+      ประกาศยังจริงไหม") มันจึงมองไม่เห็นของที่เราไม่เคยประกาศ — วัดจริงตอน
+      audit รอบ 24: สาม endpoint ที่มันเรียกอยู่แล้วคืนค่ามา 75 ฟิลด์ และมันอ่าน
+      อยู่ 12 · ในกองที่เหลือมีของที่กฎในรีโปพึ่งอยู่จริง
+      (`default_workflow_permissions` · `can_approve_pull_request_reviews`)
+      กับของที่ค้างอยู่แล้วโดยไม่มีใครเห็น (ช่อง About โฆษณาสี่ตัวเลข ตัวตรวจ
+      อ่านตัวเดียว) · ทะเบียนนี้จึงถือ*ทั้งผิว* ไม่ใช่เฉพาะส่วนที่ถูกตรวจ และ
+      คำว่า "ยังไม่มีใคร" ต้องเขียนออกมาตรง ๆ แล้วถูกนับ ไม่ใช่เป็นสถานะเงียบ
+      ที่ทุกฟิลด์ใหม่ตกลงไปโดยอัตโนมัติ
+
+    proved_by:
+      - kind: mutation
+        ref: pr/207
+        date: 2026-08-22
+        caught: >-
+          ล้มเหลวห้าทิศแล้วแดงครบ — ใส่เจ้าของนอกคำศัพท์สี่คำ · ชี้ไฟล์เทสต์ที่ไม่มี
+          · อ้างแถวรอบตรวจที่ไม่มีในตาราง · ทะเบียนอ้างว่า `ci:posture` ดูแลฟิลด์ที่
+          ตัวตรวจไม่ได้อ่าน · และถอดฟิลด์ที่ตัวตรวจอ่านอยู่ออกจากทะเบียน
+          (สองทิศหลังคือทิศที่กันทะเบียนกับตัวตรวจไม่ให้ drift จากกัน)
+
+  - id: identity-cards-agree
+    title: บัตรประจำตัวสองใบที่บริการภายนอกอ่าน ต้องตรงกันเองและตรงกับทะเบียน
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_identity_cards.py]}
+    standard: []
+    requires: []
+    portable: false
+    layer: internal
+    pillar: devx
+    born_from: >-
+      `CITATION.cff` กับ `.zenodo.json` ประกาศงานเดียวกันให้เครื่องมือคนละตัวอ่าน
+      และใบหลังถูก Zenodo ตีพิมพ์เป็นระเบียนที่มี DOI ซึ่งแก้ย้อนหลังไม่ได้ —
+      แต่ก่อน audit รอบ 24 ไม่มีเทสต์ใดเปิดอ่าน `.zenodo.json` เลยสักตัว · วัดจริง
+      2026-08-22: ประโยคเดียวกันของสองใบบอกจำนวนรอบ audit ไว้คนละค่า (Sixteen กับ
+      Twenty) ขณะที่ทะเบียนมี 23 แถว — และค่าที่ถูก*ตีพิมพ์*คือค่าที่เก่าที่สุด ·
+      ด่านที่มีอยู่มองไม่เห็นเพราะมันอ่านเฉพาะเลขอารบิกในไฟล์เดียว: ยิ่งข้อความ
+      เดินทางไกลจากรีโป เครื่องที่เฝ้ามันยิ่งน้อยลง ทั้งที่ปลายทางไกลสุดคือ
+      ปลายทางเดียวที่แก้ไม่ได้
+
+    proved_by:
+      - kind: mutation
+        ref: pr/206
+        date: 2026-08-22
+        caught: >-
+          ล้มเหลวเจ็ดทิศแล้วแดงครบ — เลขรอบไม่ตรงทะเบียน · สัญญาอนุญาตต่างกันสองใบ ·
+          เขียนจำนวนรอบเป็นคำแทนตัวเลข · คำสำคัญหายไปหนึ่งคำ · ชื่องานเพี้ยน ·
+          สังกัดผู้แต่งเพี้ยน · และประโยคที่บอกจำนวนรอบถูกลบทิ้งทั้งประโยค
+          (ทิศสุดท้ายกันไม่ให้ด่านผ่านเพราะไม่มีอะไรให้ตรวจ)
 
   - id: comparison-instrument-verified
     title: ตัววัดของการทดลองต้องแยกแอปที่ทำครบออกจากแอปที่ละเมิดได้ทุกข้อ
@@ -336,7 +515,7 @@ gates:
     born_from: >-
       audit governance รอบ 5 (2026-08-17) — กฎข้อแรกของโปรเจกต์คือ "ทุก route
       ต้องมี login_required" พร้อมรายการยกเว้นที่เขียนว่า "มีเท่านี้" แต่ไม่มี
-      ใครตรวจรายการนั้นเลย และมันไม่ครบจริง (`/plugin/themes/<id>/style.css`
+      ใครตรวจรายการนั้นเลย และมันไม่ครบจริง (route ที่เสิร์ฟไฟล์ของส่วนเสริม
       เปิดสาธารณะมาตั้งแต่ Phase 4 โดยไม่ถูกนับ) · เทสต์ authz เดิมครอบ route
       ที่คนเขียนนึกถึง ไม่ใช่ทุก route ที่มีอยู่ — OWASP A01 ที่เกิดจากการลืม
     proved_by:
@@ -592,6 +771,39 @@ gates:
           reference ที่ไม่มี tag หลุดจากรายการแทนที่จะถูกฟ้อง ด่านจึงเขียว
           เพราะมองไม่เห็นของที่ผิด
 
+  - id: test-databases-must-be-throwaway
+    title: ปลายทางของชุดเทสต์ต้องประกาศตัวว่าเป็นของทิ้ง — ชุดที่ drop schema ทุก fixture ต้องไม่มีทางชี้ฐานจริง
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_throwaway_database.py]}
+    standard: []
+    requires: []
+    portable: true
+    layer: baseline
+    pillar: security
+    born_from: >-
+      คำถามทบทวนหลัง audit รอบ 26 — ISO/IEC 27001 `A.8.31`/`A.8.33` ถูกประกาศว่า
+      **ผ่าน** มานาน โดยอ้างว่า "fixture ปฏิเสธฐานข้อมูลจริง" · ไปตรวจแล้วพบว่าตัวที่
+      ปฏิเสธจริงคือ `scripts/a11y_fixture.py` ซึ่ง **(ก)** เป็นคนละเส้นทางกับชุดเทสต์
+      **(ข)** เกณฑ์ของมันคือ `"instance" in uri` จึงจับได้เฉพาะรูป sqlite ของ dev และ
+      **(ค)** ประกาศบทบาทตัวเองว่า `helper` ซึ่งนิยามคือ "ไม่ตัดสินและไม่ถูกอ้างเป็น
+      หลักฐาน" · ขณะที่เส้นทางที่อันตรายที่สุด — `TEST_DATABASE_URL` ที่ `CLAUDE.md`
+      บอกให้คนตั้งเอง แล้วทุก fixture เรียก `create_all()`/`drop_all()` ผ่านมัน —
+      **ไม่เคยมีอะไรกันเลย** พิมพ์ชื่อฐานผิดครั้งเดียวคือ drop ตารางทั้งฐานอย่างถาวร
+      · เกณฑ์เป็น allowlist ("ชื่อฐานต้องบอกเองว่าเป็นของทดสอบ") ไม่ใช่ blocklist
+      เพราะการเดาว่าฐานจริงหน้าตาอย่างไรไม่มีวันครบ ส่วน allowlist ผิดไปทางปลอดภัย
+    proved_by:
+      - kind: mutation
+        ref: pr/221
+        date: 2026-08-23
+        caught: >-
+          แดงครบสี่ทิศ ตกตรงข้อที่ถูกทำให้ผิดทุกครั้ง — ถอดการเรียกด่านตอน import
+          (ฟังก์ชันถูกแต่ไม่มีใครเรียก) ทำให้เฉพาะข้อที่ยิง pytest ลูกแดง · เปลี่ยน
+          เกณฑ์ให้อ่านทั้ง URL แทนชื่อฐาน ทำให้ `test-db.internal/todolist` หลุด ซึ่ง
+          เป็นรูปของ staging ที่มีข้อมูลจริง · ทำให้ด่านปล่อยทุกอย่างผ่าน แดง 7 ข้อ ·
+          และแก้ชื่อฐานใน `ci.yml` เป็น `todolist` ทำให้ทิศ "ผ่านเมื่อควรผ่าน" แดง
+          ซึ่งเป็นทิศที่ผูกกับของจริง ไม่ใช่กับสำเนาที่พิมพ์ไว้ในเทสต์
+
   - id: data-health-is-checkable
     title: มีคำสั่งเดียวที่ตอบว่าข้อมูลในฐาน *ตอนนี้* ผิดกติกาข้อไหนบ้าง — อ่านอย่างเดียว
     kind: test
@@ -599,8 +811,8 @@ gates:
     enforced_by: {job: test, tests: [tests/test_data_doctor.py]}
     standard: []
     requires: []
-    portable: false
-    layer: internal
+    portable: true
+    layer: baseline
     pillar: manageability
     born_from: >-
       audit รอบ 19 — สิบแปดรอบก่อนหน้าตรวจโค้ด · config · เอกสาร · CI · ทะเบียน
@@ -920,7 +1132,7 @@ gates:
     pillar: security
     axis: supply-chain
     born_from: >-
-      ldap3 เป็น LGPLv3 และอยู่ใน category ของ plugin พอดี — การแยก supply
+      ไลบรารีตัวนั้นเป็น LGPLv3 และอยู่ในกลุ่ม dependency ที่ไม่บังคับพอดี — การแยก supply
       chain แยกภาระทางกฎหมายไปด้วยโดยไม่มีใครออกแบบ · "ไม่พบ" ≠ "อ่านไม่ได้จึงไม่พบ"
       · ADR 0070 (2026-08-19) เปลี่ยนสัญญาอนุญาตเป็น AGPL-3.0 + CC BY-SA 4.0 —
       ด่านนี้จึงตรวจเนื้อของ AGPL (รวมข้อ 13 เรื่องการให้บริการผ่านเครือข่าย
@@ -1184,7 +1396,7 @@ gates:
           หลักฐานว่าชุดเทสต์เดินบนสองยี่ห้อนั้นจริง ไม่ได้ผ่านเพราะไม่ได้รัน
 
   - id: bare-clone-still-green
-    title: สภาพหลัง clone (ไม่มีไลบรารี plugin) ต้องเขียว — "ถอดแล้วระบบยังทำงานได้" วัดได้
+    title: สภาพหลัง clone เปล่า ๆ (ยังไม่ติดตั้งของเสริมที่ไม่บังคับ) ต้องเขียว — "ถอดแล้วระบบยังทำงานได้" วัดได้
     kind: job
     severity: blocking
     enforced_by: {job: bare}
@@ -1316,7 +1528,7 @@ gates:
       ภาพถ่ายที่ไม่ถูกเทียบกับโค้ดทุก push คือภาพถ่ายของอดีต
 
   - id: conventional-commits
-    title: หัว commit เป็น Conventional Commits ≤72 ตัว ตรวจเฉพาะ commit ที่เพิ่มจริง
+    title: commit เป็น Conventional Commits ≤72 ตัว และมี Signed-off-by (DCO) ตรวจเฉพาะที่เพิ่มจริง
     kind: job
     severity: blocking
     enforced_by: {job: commit-lint}
@@ -1327,7 +1539,11 @@ gates:
     pillar: devx
     born_from: >-
       required check ที่ถูก skip บน PR ทำให้ PR ค้าง BLOCKED ตลอดกาลโดยไม่มี
-      อะไรแดงให้เห็น — และ merge commit ของปุ่ม Update branch เคยตกด่านเอง
+      อะไรแดงให้เห็น — และ merge commit ของปุ่ม Update branch เคยตกด่านเอง ·
+      **ADR 0073 เพิ่มลายเซ็น DCO เข้ามาในด่านเดียวกัน**: โปรเจกต์ไม่เคยขอให้
+      ผู้ส่งโค้ดรับรองสิทธิ์ตามกฎหมายของสิ่งที่ส่งเลย ซึ่งเป็นข้อเดียวจาก 19 ข้อ
+      ของ OSPS Baseline ระดับ 2 ที่ไม่ผ่าน และเป็นเหตุผลเดียวกับที่เกณฑ์ `dco`
+      ของ badge ระดับ silver เป็น Unmet มาตั้งแต่ต้น
 
   - id: core-deps-cve-audit
     title: pip-audit ของ core — CVE ที่ถอดไม่ได้ต้องหยุด pipeline ได้
@@ -1342,7 +1558,7 @@ gates:
     axis: supply-chain
     born_from: >-
       supply chain ของ core ถอดไม่ได้ — CVE ที่นี่ไม่มีทางออกอื่นนอกจากแก้
-      จึงแดงได้เต็มปาก ต่างจากของ plugin ที่คำตอบคือถอด
+      จึงแดงได้เต็มปาก ต่างจาก dependency ที่ไม่บังคับ ซึ่งคำตอบคือถอด
 
   - id: deploy-deps-cve-audit
     title: audit หมวด deploy — server ที่รับคำขอจริงไม่มีใครเฝ้าให้ที่อื่น
@@ -1404,7 +1620,7 @@ gates:
     standard: []
     requires: []
     portable: true
-    layer: baseline
+    layer: business
     pillar: security
     axis: supply-chain
     born_from: >-
@@ -1422,6 +1638,32 @@ gates:
           ล้มเหลวห้าทิศแล้วแดงครบ — advisory ที่ไม่มีบรรทัดในทะเบียน (พร้อมข้อความที่บอก
           ว่าถอด plugin คือทางที่เร็วที่สุด) · บรรทัดในทะเบียนที่ไม่ตรงกับอะไรแล้ว ·
           และตัวอ่านต้องเข้าใจรูป JSON ที่ `pip-audit` คืนมาจริง ไม่ใช่รูปที่เราคิดเอง
+
+  - id: good-first-issue-not-taken-silently
+    title: PR ที่ปิด issue ซึ่งยังติดป้าย good first issue ต้องประกาศเหตุผล
+    kind: step
+    severity: blocking
+    enforced_by: {job: lint, step: "issue ที่เปิดให้คนใหม่ ต้องไม่ถูกปิดเงียบ ๆ"}
+    standard: []
+    requires: []
+    portable: true
+    layer: baseline
+    pillar: devx
+    born_from: >-
+      2026-08-20 — issue ถูกติดป้าย good first issue เวลา 12:14Z · ผู้ดูแลเปิด PR
+      ของตัวเองทำ issue เดียวกัน 16:40Z แล้ว merge 16:51Z · ผู้ร่วมพัฒนาภายนอก
+      เปิด PR ของเขา 17:39Z โดยลงมือมาก่อนหลายชั่วโมง · ป้ายยังติดอยู่ตลอด
+      ไม่มี assign ไม่มีคอมเมนต์ — เขาเสียเวลาไปทั้งบ่ายกับงานที่ปิดไปแล้ว
+    proved_by:
+      - kind: mutation
+        ref: pr/187
+        date: 2026-08-21
+        caught: >-
+          ล้มเหลวห้าทิศแล้วแดงครบ — เลิกดูป้าย · ทักทุก issue ไม่สนป้าย ·
+          รับบรรทัดประกาศที่ไม่มีเหตุผลต่อท้าย · เมินบรรทัดประกาศทั้งบรรทัด ·
+          และถอดทางออกข้อหนึ่งออกจากข้อความตอนแดง (ทิศสุดท้ายจับได้ก็ต่อเมื่อ
+          แก้เทสต์ให้นับ *บรรทัด* ทางออก — รุ่นแรกหาแค่คำว่า "ปลดป้าย" ซึ่งโผล่
+          ในประโยคที่บอกอาการอยู่แล้ว จึงเขียวทั้งที่ทางออกหายไป)
 
   - id: a11y-real-browser
     title: pa11y + Chromium จริง สแกนรวมโหมดมืด ธีมเสริม และภาษาไทย
@@ -1639,13 +1881,13 @@ gates:
           ด่านจึงปฏิเสธที่จะเขียวทั้งที่ stack ขึ้นครบทุก container
 
   - id: metrics-scraped-for-real
-    title: Prometheus ดูด /metrics ผ่านด่าน token จริง และตัวเลขไปถึง TSDB จริง
+    title: Prometheus ดูด /metrics ผ่านด่าน token จริง · ตัวเลขไปถึง TSDB จริง · และดังจริงเมื่อแอปหายไป
     kind: job
     severity: blocking
     enforced_by: {job: scrape}
     standard: []
     requires: [docker-compose]
-    guards: [app/metrics.py, compose.metrics.yaml, deploy/prometheus.yml]
+    guards: [app/metrics.py, compose.metrics.yaml, deploy/prometheus.yml, deploy/prometheus-rules.yaml]
     portable: false
     layer: internal
     pillar: performance
@@ -1654,6 +1896,24 @@ gates:
       endpoint ที่ไม่มีตัวดูดจริงคือ endpoint ที่วันหนึ่งล้มเหลวอย่างเงียบ ๆ ๆ ได้โดยไม่มี
       ใครรู้ · และต้องพิสูจน์ด้วยว่าด่าน token ยังปิดอยู่ (ดูดได้เพราะกุญแจถูก
       ไม่ใช่เพราะประตูเปิดโล่ง)
+      · **audit รอบ 26 ข้อ 2 ต่ออีกชั้น**: `deploy/prometheus.yml` ไม่มี `rule_files`
+      เลยตลอดอายุของมัน แปลว่าฝั่งที่*ดึง*ทุก 5 วินาที — ฝั่งเดียวที่แยก "เงียบ"
+      ออกจาก "ตาย" ได้ — พูดไม่ได้ · และกฎฝั่ง log ทั้งสามข้อเป็น
+      `count_over_time(…) > n` จึงยิงจาก*การมีอยู่*ของเหตุการณ์เท่านั้น ระบบทั้งระบบ
+      จึงไม่มีกฎสักข้อที่ยิงจาก*การไม่มี* · ตอนนี้มี `MetricsTargetDown` และ job นี้
+      พิสูจน์ด้วยการ **หยุดแอป** ซึ่งเป็นทิศที่กฎแบบนับทดสอบไม่ได้โดยนิยาม
+    proved_by:
+      - kind: ci-red
+        ref: run/32626114983
+        date: 2026-08-23
+        caught: >-
+          ด่านนี้ไม่เคยมีหลักฐานมาก่อน (อยู่ในรายการ `UNPROVEN`) · audit รอบ 26 วัด
+          สองทิศด้วยของจริงตอนเพิ่ม step ที่ยิงจาก*การไม่มี*: แก้ `expr` เป็น
+          `up == 2` ซึ่งเป็นค่าที่ `up` ไม่มีวันเป็น แล้ว push เป็น PR ชั่วคราว ·
+          step "กฎ liveness ต้องถูกโหลด และต้องยังไม่ดัง" **ยังเขียว** (กฎถูกโหลด
+          จริงและยังเงียบตามที่ควร) ส่วน step "หยุดแอป แล้วต้องได้ยินเสียง" **แดง**
+          เพราะไม่มีอะไรดังหลังแอปหายไป — ความแดงตกที่ step ที่ถูกทำให้ผิดพอดี
+          ไม่ใช่ที่ step ข้างเคียง
 
   - id: zap-authenticated-scan
     title: ZAP baseline ยิง stack จริงแบบ login แล้ว — วัดว่าสแกนจริงจาก log ของแอป
@@ -1772,7 +2032,7 @@ gates:
     standard: []
     requires: []
     portable: true
-    layer: baseline
+    layer: business
     pillar: security
     axis: supply-chain
     born_from: >-
@@ -1884,7 +2144,10 @@ gates:
     enforced_by: {job: posture, step: ตารางเวลาที่ประกาศไว้ต้องยังยิงอยู่จริง}
     watched_by:
       who: ผู้ดูแล
-      within_days: 90
+      # **45 ต้องน้อยกว่า 60 ซึ่งเป็นตัวเลขของ GitHub ไม่ใช่ของเรา** (audit รอบ 26 ·
+      # ADR 0074) — เดิมเป็น 90 ซึ่งยาวกว่าหน้าต่างที่ทำให้ cron ถูกปิด คำสัญญาจึง
+      # มาถึงหลังจากตัวที่มันเฝ้าดับไปแล้วอย่างน้อยหนึ่งเดือน โดยไม่ผิดสัญญาสักข้อ
+      within_days: 45
       cadence: ทบทวนของที่รันตามเวลาซึ่งเครื่องตรวจไม่ได้
       how: >-
         `scripts/schedule_census.py` รันทุก push บน main และทุกครั้งที่กฎของ branch
@@ -1914,6 +2177,34 @@ gates:
           ต้องอ่านจากช่องที่หยาบที่สุดที่ถูกตรึง ไม่ใช่เดาจากชื่อ workflow
           · ทิศ "ผ่านเมื่อควรผ่าน" ยืนยันกับของจริง: cron ที่ยิงเมื่อวานต้องเงียบ
 
+  - id: watcher-windows-fit-platform-silence
+    title: คำสัญญาของผู้เฝ้าต้องสั้นกว่าหน้าต่างเงียบของแพลตฟอร์ม — ผู้เฝ้าที่มาถึงหลังเครื่องถูกปิด ไม่ใช่ผู้เฝ้า
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_watcher_windows.py]}
+    standard: []
+    requires: [github-actions]
+    portable: true
+    layer: baseline
+    pillar: manageability
+    born_from: >-
+      audit รอบ 26 ข้อ 1 — `schedules-still-fire` ถูกสร้างมาเพื่อจับกฎ "GitHub ปิด
+      schedule ให้ repo สาธารณะที่เงียบครบ 60 วัน" โดยเฉพาะ แต่มันถูกบังคับด้วย job
+      ที่รันอยู่ใน cron ตัวนั้นเอง — **ตัวเฝ้าอยู่ใต้สิ่งที่มันเฝ้า** และตายในวินาที
+      เดียวกับที่มีเรื่องให้รายงาน · ที่แย่กว่าคือคำสัญญาของมันตอนนั้นเป็น 90 วัน
+      ซึ่ง**ยาวกว่าหน้าต่างที่สร้างความล้มเหลว**: ผู้เฝ้ามาถึงช้ากว่าของที่เฝ้าอย่างน้อย
+      หนึ่งเดือนโดยไม่ผิดสัญญาสักข้อ · กฎนี้บังคับข้อเดียว — ในบรรดา workflow ที่รอดได้
+      ด้วย cron อย่างเดียว ต้องมีคำสัญญาอย่างน้อยหนึ่งข้อที่สั้นกว่าหน้าต่างนั้น
+      เพราะการลงมือครั้งเดียวรีเซ็ตนาฬิกาของแพลตฟอร์มให้ทั้ง repo พร้อมกัน
+    proved_by:
+      - kind: mutation
+        ref: pr/218
+        date: 2026-08-23
+        caught: >-
+          แดงครบสามทิศตอนทำให้ผิดทีละจุด — คืน `within_days` เป็น 90 (ค่าก่อนรอบนี้)
+          ทำให้ข้อคำสัญญาแดง · ถอด `on.schedule` ออกจาก `scorecard.yml` ทำให้ข้อ
+          "กฎนี้ยังไม่เปล่า" แดง (กันกฎที่ผ่านฟรีเมื่อสมมติฐานหายไป) · แก้ `**60 วัน**`
+          ในเอกสารให้เป็นตัวหนังสือ ทำให้ข้อที่ผูกค่าคงที่กับที่มาของมันแดง
   - id: openssf-scorecard
     title: Scorecard วัดแนวปฏิบัติของ repo และเผยแพร่ผล — คะแนน ไม่ใช่ผ่าน/ตก
     kind: job
@@ -1942,9 +2233,17 @@ gates:
     enforced_by: {job: test, tests: [tests/test_instruction_budget.py]}
     standard: []
     requires: []
-    portable: false
-    layer: internal
+    portable: true
+    layer: baseline
     pillar: devx
+    born_from: >-
+      ไฟล์ที่ agent อ่านทั้งไฟล์ทุก session ต่างจากเอกสารอื่นทุกฉบับ — ต้นทุนของมัน
+      จ่ายซ้ำตลอดไป ไม่ใช่จ่ายตอนมีคนเปิดอ่าน · วัดตอนตั้งกติกา (audit r8):
+      22 บรรทัดในวันแรกของโปรเจกต์ โตเป็น **1,240 บรรทัด / 8,488 คำ ใน 16 วัน**
+      และ 66 commit ใน 7 วันล่าสุดแตะมัน — โตทุกครั้งที่มีงาน governance โดยไม่มี
+      ใครเคยตัดสินว่าโตได้แค่ไหน · ทางที่ถูกคือ ratchet สองทิศ ไม่ใช่ห้ามโต:
+      เต็มแล้วย้ายเนื้อออกแล้วลิงก์กลับ และ **วันที่ย้ายออก เพดานต้องถูกลดตาม**
+      ไม่งั้นที่ว่างที่เพิ่งได้จะถูกถมกลับเงียบ ๆ ในรอบถัดไป
     proved_by:
       - kind: mutation
         ref: pr/99
@@ -1970,9 +2269,16 @@ gates:
     enforced_by: {job: test, tests: [tests/test_exception_registers.py]}
     standard: []
     requires: []
-    portable: false
-    layer: internal
+    portable: true
+    layer: baseline
     pillar: security
+    born_from: >-
+      audit r9 — `pins/accepted-advisories.txt` มีเทสต์สองทิศคุมมาตั้งแต่ต้น แต่แฟ้ม
+      อีกสองใบที่ทำหน้าที่เดียวกัน (ปิดเสียงสิ่งที่เครื่องมือความปลอดภัยรายงาน)
+      **ไม่มีเทสต์ไฟล์ไหนอ่านเลย** ทั้งที่เอกสารประกาศกฎไว้ทั้งคู่ว่าทุกบรรทัดต้อง
+      มีเหตุผล · ความเสี่ยงไม่ใช่บรรทัดที่มีอยู่วันนี้ซึ่งครบเหตุผลทุกบรรทัด
+      แต่คือบรรทัดถัดไปที่ใครสักคนเติมตอนรีบแล้วไม่มีอะไรฟ้อง — และการผ่อนเกณฑ์
+      ทั้งชั้นด้วยการแก้คำเดียว (FAIL → WARN) ซึ่งไม่มีใครเห็นในรายงานฉบับไหน
     proved_by:
       - kind: mutation
         ref: pr/100
@@ -2052,9 +2358,17 @@ gates:
     enforced_by: {job: test, tests: [tests/test_workflow_validity.py]}
     standard: []
     requires: []
-    portable: false
-    layer: internal
+    portable: true
+    layer: baseline
     pillar: security
+    born_from: >-
+      audit r9 — ตัวตรวจการตรึงเวอร์ชันมีครบ แต่ไม่มีตัวไหนตรวจว่าแพลตฟอร์มจะยอม
+      start ไฟล์นั้นไหม · ตัวแยกวิเคราะห์ YAML ยอมรับทุกคีย์ที่สะกดถูกตามไวยากรณ์
+      ส่วน GitHub ปฏิเสธคีย์ที่ไม่อยู่ใน schema แล้ว**ล้มทั้ง run ตั้งแต่ก่อนสร้าง
+      job** · เกิดจริงและอยู่ข้ามวัน: `permissions:` ที่ขอ scope ซึ่งไม่มีอยู่จริง
+      ทำให้ทั้ง workflow ล้มทุก run และ job ที่อยู่ในนั้น **ไม่เคยรันเลยสักครั้ง**
+      · มันเงียบได้เพราะ job นั้นไม่ใช่ required check จึงไม่มีสีแดงบนหน้า PR ใบไหน
+      — **ด่านที่ไม่ได้รัน ให้ผลเหมือนด่านที่ไม่มีอยู่ ต่างกันแค่มีเอกสารบอกว่ามันมี**
     proved_by:
       - kind: mutation
         ref: pr/101

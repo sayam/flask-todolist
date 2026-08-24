@@ -32,7 +32,7 @@ from config import Config, check_secret_key
 # และตั้งใจให้แยกจากกัน: สัญญา `/api/v1` แก้ไม่ได้ตาม ADR 0018 ส่วนแอปออกรุ่นใหม่
 # ได้เรื่อย ๆ · ตอนนี้เลขบังเอิญตรงกันเพราะทั้งคู่เริ่มที่ 1.0.0 พร้อมกัน
 # เลขนี้ต้องตรงกับหัวข้อบนสุดของ CHANGELOG.md (`tests/test_changelog.py` บังคับ)
-__version__ = "2.1.0"
+__version__ = "2.2.0"
 
 # constraint/index ที่ไม่ได้ตั้งชื่อจะได้ชื่อ auto ที่ **ต่างกันตามยี่ห้อ DB**
 # ทำให้ alembic drop/alter constraint ข้ามยี่ห้อไม่ได้ (MySQL เจ็บสุด)

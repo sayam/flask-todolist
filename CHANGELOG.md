@@ -20,6 +20,157 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Added
 
+- **The test suite could be pointed at a real database, and nothing stopped it.**
+  Every fixture that builds an app goes through `_app_with_tables()`, which calls
+  `db.create_all()` and then `db.drop_all()`; the destination comes from
+  `TEST_DATABASE_URL`, which `CLAUDE.md` tells people to set by hand when they
+  want to run against another engine. One typo in a host or a database name and
+  the whole schema is gone, permanently. `docs/ISO27001.md` had claimed A.8.31
+  and A.8.33 as passing since they were first assessed, on the grounds that "the
+  fixture refuses a real database" — but the thing that refuses is
+  `scripts/a11y_fixture.py`, which is a different code path, tests only
+  `"instance" in uri` so it catches only the dev SQLite shape, and declares its
+  own role as `helper`, defined in `tests/test_script_roles.py` as "does not
+  decide and is not cited as evidence." The most dangerous path had nothing on it
+  at all. `tests/conftest.py` now refuses, at import time and before any fixture
+  can touch a schema, any destination that does not say it is disposable. The
+  rule is an allowlist rather than a blocklist — guessing every shape a real
+  database might take never finishes, while an allowlist fails safe — and it
+  reads the database name, not the whole URL, because a host called `test-db`
+  says nothing about what lives in it. The direction that matters most is proved
+  by launching a child pytest with a production-shaped URL and requiring the run
+  to stop; the direction that must keep passing is bound to the value `ci.yml`
+  really uses, read from that file rather than copied into the test.
+
+- **The watcher that was built to notice our cron dying runs inside that cron.**
+  Governance audit round 26 asked, for the first time, where this project fails
+  *first* if the maintainer disappears for a year — the order of failure, not
+  its frequency. The answer is that it does not fail, it goes quiet: of 114
+  gates, the 109 that can block a merge all live in `ci.yml` and fire only on
+  `push` and `pull_request`, and the 5 that can fire without anybody acting
+  cannot block anything — and name the same single person as their watcher.
+  GitHub disables scheduled workflows in a public repository after 60 days
+  with no activity, which switches off the only trigger those 5 have left.
+  `schedules-still-fire` exists specifically to catch that 60-day rule; its
+  `born_from` has said so since round 10. It is enforced by a job in
+  `scorecard.yml` — the very cron being switched off — and it promised a human
+  would look within **90** days, longer than the window that creates the
+  failure. The watcher arrived a month after the machine it watches had died,
+  without breaking a single promise. `tests/test_watcher_windows.py` now holds
+  the rule that at least one promise on a cron-only workflow must be shorter
+  than the platform's silence window; not all of them, because one visit resets
+  that clock for the whole repository, so the shortest promise is the one
+  holding up the rest. The number 60 belongs to GitHub, so a test also requires
+  the document a person reads to say where it came from. `schedules-still-fire`
+  drops to 45 days, backed by a new 45-day **liveness row** in
+  `docs/SECURITY-CADENCE.md` whose work is to review the time-driven things and
+  **touch one Dependabot pull request** — one row closing two clocks that both
+  belong to someone else. See [ADR 0074](docs/adr/0074-watcher-windows-fit-platform-silence.md).
+
+- **Nothing in the alerting stack could fire on the *absence* of a signal.** All
+  three rules in `deploy/loki-rules.yaml` are `count_over_time(…) > n`: they
+  fire when bad events arrive. If the app stops, the log shipper stops, the disk
+  fills, or a field is renamed so `| json` stops parsing, all three evaluate to
+  zero forever and stay silent — which looks exactly like a healthy system. The
+  other half was worse: `deploy/prometheus.yml` had no `rule_files` and no
+  `alerting` at all, so the side that *pulls* every five seconds — the only side
+  that can tell "quiet" from "dead" for an app that is legitimately idle at
+  night — could not speak. `deploy/prometheus-rules.yaml` adds
+  `MetricsTargetDown` (`up == 0`, `for: 1m`), which covers the app being down,
+  the target being wrong, and the scrape token having expired, since a 401 also
+  reads as `up == 0`. The `scrape` job proves it by **stopping the app** and
+  waiting for the alert — the first gate in this project tested by taking
+  something away, which is the direction a counting rule cannot test by
+  definition. An `absent_over_time` rule on the Loki side was considered and
+  rejected: a personal todolist with no traffic overnight is normal, and a rule
+  that fires every night is a rule that gets silenced in two weeks — the
+  principle [ADR 0037](docs/adr/0037-where-logs-go-and-what-shouts.md) sets out
+  in its own opening.
+
+- **A register of the governance audit rounds, because the number was being
+  advertised without one.** The repository's About line and the OpenSSF badge
+  worksheet both said twenty recorded audits. Going to count them turned up
+  twenty-three, each one traceable — but only by grepping for the phrase
+  "audit round N" across gates, ADRs and documents, which is not a thing a
+  reader can be asked to do. `docs/AUDIT-LOG.md` now records, per round, the
+  question it asked, a one-line result, and at least one place inside this
+  repository that names it. A test holds four directions: the rounds run from
+  one without gaps, every row carries a question and a result and evidence,
+  every piece of evidence exists **and actually mentions that round** — a
+  register of filenames nobody checks the contents of would pass with any
+  name at all — and no round may be cited anywhere in the documents without
+  having a row. The advertised count is checked against the number of rows,
+  which is how the stale twenty was found in the first place. Dates are
+  deliberately absent: they could not be established for every row from
+  inside the repository, and a column that is right for some rows and wrong
+  for others is worse than no column.
+
+### Fixed
+
+- **`dependabot.yml` justified a decision by pointing at a safety net that
+  GitHub removes under the same condition.** The file explains at length why
+  version updates for `Pipfile.lock` are not enabled — a pull request almost
+  every day for a single maintainer — and rests that on "pip security updates
+  are already on", which answers the urgent question. GitHub pauses Dependabot
+  for a repository once nobody has touched one of its pull requests for 90
+  days, and the pause stops pull requests for version **and security** updates
+  alike. The net and the thing it catches are removed together, by one
+  condition, not two. The comment now says so, and the liveness row above is
+  what actually holds it open.
+
+- **The bus-factor row in the risk register measured the wrong axis.** It
+  reduced "single maintainer" with "knowledge is forced into the machine, not
+  the head: a gate for every rule". That is true of a second person arriving
+  without context. It is not true of the first person leaving: all 109 blocking
+  gates are *downstream* of that person rather than a stand-in for them. The
+  register now carries two rows — knowledge transfer, and nobody pressing the
+  button — because the treatments for them do not overlap at all.
+
+- **The Prometheus scrape token was told to expire, by default rather than by
+  choice.** The command in `docs/OPERATIONS.md` issued it without
+  `--expires-days`, which means 90 days: monitoring goes blind one quarter after
+  it is set up, and until now nothing in the system would have noticed. The
+  documented command now passes `--expires-days 0` and says why a key held by a
+  machine that runs continuously needs a lifetime somebody chose.
+
+- **`scripts/sync_counts.py` did not know about the exported-rule count.** Three
+  places advertise how many baseline rules `SKILL.md` ships, and all three had
+  to be edited by hand every time a portable gate was added — the exact tax the
+  script was written in round 25 to remove. It now syncs them too.
+
+- **The DOI badge was never about the URL — Zenodo rate-limits GitHub's image
+  proxy, and v2.2.0's fix for it was a wrong diagnosis.** That release changed
+  the badge to the URL form Zenodo's own settings page hands out, on the
+  reasoning that the old `badge/DOI/<doi>.svg` path was stale. The badge kept
+  flickering. Asking the camo URL itself — rather than asking zenodo.org from
+  here, which had answered 200 every time — gave the actual answer:
+  `HTTP/2 502 · Invalid upstream response (429)`. Three requests per badge
+  through camo put it beyond doubt: every `img.shields.io` badge and the
+  OpenSSF one return 200/200/200, while `zenodo.org` returns 200/502/200. The
+  earlier 200 that seemed to confirm the fix was a cache hit; this one came
+  back `x-cache: MISS`. The image now comes from shields.io, the link target
+  is unchanged, and a test holds every badge host to a list that says what was
+  measured — so the next host has to be a decision rather than markdown copied
+  off somebody's settings page.
+
+
+- **The command that verifies a release was archived had itself stopped
+  working.** `docs/RELEASE.md` carries a one-line check against Zenodo's API
+  — the step that exists because GitHub's webhook page has reported both
+  false-red and would one day report false-green. Zenodo now caps
+  unauthenticated page size at 25, so the documented `size=50` returns HTTP
+  400, and the naive pipe turns that into `KeyError: 'hits'` rather than
+  anything that reads as a refusal. Found while cutting v2.2.0, whose
+  archival it was supposed to confirm. The size is now within the cap and
+  the request fails loudly, because the question being asked here — was this
+  release archived — is one a parser crash cannot answer in either
+  direction.
+
+
+## [2.2.0] — 2026-08-21
+
+### Added
+
 - **A third colour theme, `sepia`** — warm paper tones, for eyes tired of
   looking at white and blue all day. Adding it changed no line of `core`:
   a directory with a manifest and a stylesheet is the whole contract, and
@@ -33,6 +184,58 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
   palette or not depending on what time of day CI happened to run.
 
 ### Fixed
+
+- **A test said, in its own docstring, that a number over 100% was the thing
+  it existed to prevent — and then asserted on the denominator instead.**
+  `scripts/skeleton.py` prints one summary line per file: how many lines its
+  skeleton costs against how many the file has. A one-line file reported
+  `3 จาก 1 บรรทัด (300%)` and the guard written to stop exactly that,
+  `test_a_one_line_file_does_not_report_more_than_it_has`, only ever checked
+  that the denominator was 1. It never extracted the percentage, so 300%
+  passed. The resolution is not the cap the number invites: a report has a
+  fixed floor of two lines — the header and the summary itself — so a file
+  shorter than that genuinely cannot be shrunk, and saying so is precisely
+  what the tool's docstring says the number is for. Capping at 100% would
+  hide that answer and make "100%" mean two different things. The line now
+  interprets itself (`— อ่านทั้งไฟล์เร็วกว่า`) and the test checks both
+  sides of the boundary rather than one.
+
+- **The DOI badge used Zenodo's legacy image URL, and rendered only
+  sometimes.** `zenodo.org/badge/DOI/<doi>.svg` is not the form Zenodo hands
+  out any more; its GitHub settings page gives `zenodo.org/badge/<repo
+  id>.svg`, which is what the README now carries. The three shields.io
+  badges beside it never failed, which is what made the odd one out visible
+  at all. The DOI itself is printed in three places in the README — twice in
+  prose and once as the badge's link target — and none of them derived from
+  `CITATION.cff`, so a test now holds all three to what that file declares.
+  The badge image points at the repository id rather than the DOI, which
+  means a correct-looking badge can sit on top of a wrong link target
+  without anything looking odd to a reader.
+
+- **The exported scaffolding told 83 rules to register themselves in a file
+  it never shipped.** Of the 92 rules in `overlays/flask/`, 83 travel as
+  `kind: suite` — "this box carries no enforcement for you; write your own
+  test, then register it in your project's `gates.yaml`" — and the pillar
+  those 83 lean on, `gates-registry-total`, travelled as prose alongside
+  them. There was no `gates.yaml` in the box, no template, and nothing that
+  made a downstream registry true: the test that enforces both directions
+  here (every job has a gate, every test file is adjudicated exactly once)
+  is bound to pytest, PyYAML and this repository's ASVS table, so it never
+  left. A destination could read the same footnote 83 times without ever
+  learning what a registry looks like or how it would know the registry had
+  drifted. The box now carries `gates.yaml` itself — seeded with the nine
+  scans it actually ships, so a fresh install starts with an index that is
+  already true — and `gates-registry-total` is enforced by a scan rather
+  than described: it checks that every gate points at a job, step or test
+  file that exists, that every job in every workflow is covered by a gate,
+  and that every test file is claimed by exactly one gate. Because a
+  destination runs on bare `python3`, the scan reads YAML itself, over a
+  deliberately narrow subset that raises on anchors, aliases, tags, tabs and
+  multi-document files rather than skipping what it cannot parse — a reader
+  kinder than the real thing reports green on files it did not understand.
+  The evidence that it reads correctly is a comparison against PyYAML on the
+  largest real files here: 108 gates and 28 jobs, over exactly the fields
+  the scan consumes (ADR 0071).
 
 - **The gate on theme colours checked only the values that were already
   hexadecimal.** Its name says `..._colour_values_are_valid_hex`; what it
@@ -55,6 +258,27 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Changed
 
+- **Repository settings the checker cannot read now still have a declared
+  value.** `scripts/audit_posture.py` kept a register of merge-related
+  settings that GitHub withholds from a least-privilege token, but the
+  register recorded only *what the machine cannot see* — never *what the
+  value ought to be*. A setting that cannot be verified therefore had no
+  owner, and a setting with no owner had no default: `delete_branch_on_merge`
+  sat off since the repository was created, so every merged branch stayed
+  behind, and `git branch --merged` could not see them either, because
+  rebase merges rewrite the commits. Sixty-four of them had accumulated.
+  The register now carries the intended value and the reason beside each
+  flag; the checker compares them when it can read them and reports what
+  they *should* be when it cannot, and a quarterly row in
+  `docs/SECURITY-CADENCE.md` gives the unreadable ones a human owner.
+  Writing the register down immediately found a second gap of the same
+  kind: squash merging was still offered, although rule 7 of
+  `CONTRIBUTING.md` forbids it and explains why — a squash appends
+  ` (#N)` to the subject, pushing anything near the limit past 72
+  characters, and the commit-lint check that would catch it only runs
+  once the merge has already landed. `required_linear_history` does not
+  help, because a squash is linear too. It is now off, and declared.
+
 - **The release checklist now verifies the DOI where the answer lives.**
   Counting webhooks (`gh api repos/:owner/:repo/hooks --jq 'length'`)
   answers whether the wire is connected, not whether the release was
@@ -69,6 +293,20 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
   records how to rotate the Zenodo token — which lives in the query string
   of the webhook URL, and therefore comes back in plaintext from any
   command that lists the repository's hooks.
+
+- **That Zenodo token turns out to have no rotation path, and the register
+  now says so.** Four routes were tried and measured: it is not listed among
+  Zenodo's personal access tokens, because the GitHub integration holds one
+  of its own; the linked GitHub account cannot be disconnected, because it
+  is the login; switching the repository off and on again installs a *new
+  webhook carrying the same token*; and revoking Zenodo's OAuth grant on
+  GitHub cuts the opposite credential — the one Zenodo uses to fetch the
+  release tarball — which would break archiving while leaving the exposed
+  value alive. It is recorded in `docs/RISK-ASSESSMENT.md` as accepted, at
+  the level the register's own formula produces, with the conditions that
+  would reopen it. The attempt also invalidated the check written one
+  commit earlier: "the hook `id` must be new" passes while the secret is
+  unchanged, so the criterion is now a fingerprint of the value itself.
 
 ## [2.1.0] — 2026-08-20
 
@@ -1220,7 +1458,7 @@ graph. Nothing in the `/api/v1` contract changed; it only gained fields.
 ## [1.0.0] — 2026-08-12
 
 First public release. Everything below arrived across seven planned phases of
-work; the reasoning for each decision lives in the 70 records in
+work; the reasoning for each decision lives in the 74 records in
 [`docs/adr/`](docs/adr/), and the phase-by-phase plan in
 [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
@@ -1318,7 +1556,8 @@ work; the reasoning for each decision lives in the 70 records in
 - WCAG 2.2 AA, checked both by a structural test suite and by pa11y-ci driving a
   real Chromium over dark mode, an alternate theme, and Thai.
 
-[Unreleased]: https://github.com/sayam/flask-todolist/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/sayam/flask-todolist/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/sayam/flask-todolist/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/sayam/flask-todolist/compare/v2.0.2...v2.1.0
 [2.0.2]: https://github.com/sayam/flask-todolist/compare/v2.0.1...v2.0.2
 [2.0.1]: https://github.com/sayam/flask-todolist/compare/v2.0.0...v2.0.1

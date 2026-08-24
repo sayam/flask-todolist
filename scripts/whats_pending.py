@@ -1,9 +1,15 @@
 """หน้าเดียวที่ตอบว่า "อะไรค้างอยู่" — audit รอบ 13 ข้อ 4
 
 หลัง audit สิบสองรอบ คำถามง่าย ๆ ว่า *"หายไปหกเดือนแล้วกลับมา ต้องดูอะไรบ้าง"*
-ต้องเปิด **8 ที่**: แถวตรวจตามรอบ 24 แถว · ทะเบียนข้อยกเว้น 7 แฟ้ม · รายการ
-`UNPROVEN` · ทะเบียนของที่จงใจเลื่อน · ADR ที่มีเงื่อนไขหมดอายุ · หน้า Security ·
-รายการ "ยังไม่ได้ทำ" · ROADMAP — และไม่มีหน้าไหนรวมให้
+ต้องเปิด **8 ที่**: แถวตรวจตามรอบ · ทะเบียนข้อยกเว้น · รายการ `UNPROVEN` ·
+ทะเบียนของที่จงใจเลื่อน · ADR ที่มีเงื่อนไขหมดอายุ · หน้า Security · รายการ
+"ยังไม่ได้ทำ" · ROADMAP — และไม่มีหน้าไหนรวมให้
+
+ขนาดของสองกองแรก ณ วันนี้: **แถวตรวจตามรอบ 35 แถว ·
+ทะเบียนข้อยกเว้น 8 แฟ้ม** — สองเลขนี้มีเทสต์อ่านคู่กับของจริง
+(`tests/test_checker_logic.py`) เพราะ **หน้าที่สร้างมาเพื่อให้เลิกนับด้วยมือ
+เคยมีเลขที่นับด้วยมือและผิดทั้งสองตัวอยู่ในหัวไฟล์ของตัวเอง** — ตอนที่ audit
+รอบ 21 มาอ่าน มันบอกว่า 24 แถวกับ 7 แฟ้ม ขณะที่ของจริงคือ 26 กับ 8
 
 **ตัวนี้ไม่ใช่ทะเบียนใหม่** และตั้งใจให้ไม่เป็น: มันไม่เก็บสถานะของตัวเองเลย
 อ่านจากแหล่งที่มีอยู่แล้วทั้งหมด แล้วพิมพ์ออกมาหน้าเดียว · ทะเบียนที่สิบเอ็ด
@@ -27,6 +33,7 @@ import datetime
 import pathlib
 import re
 import sys
+import tomllib
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 CADENCE = ROOT / "docs" / "SECURITY-CADENCE.md"
@@ -45,6 +52,13 @@ REGISTERS = (
     ".github/accepted-code-scanning-alerts.txt",
     "app/plugins/accepted-advisories.txt",
 )
+
+# ทะเบียนที่อยู่ **ในโค้ด** ไม่ใช่ไฟล์ข้อความ — นับด้วยตัวเลขของมันเองที่อื่น
+# ในหน้านี้ แต่ต้องถูกเอ่ยชื่อคู่กับกองข้างบนเสมอ ไม่งั้นรายการของ "ทะเบียน
+# ข้อยกเว้นทั้งหมด" จะมีสองฉบับที่ไม่ตรงกัน (audit รอบ 25 ข้อ 1)
+IN_CODE_REGISTERS = ("ALLOWED_LINES", "UNPROVEN")
+
+PYPROJECT = ROOT / "pyproject.toml"
 
 DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 EXPIRY_MARK = "เงื่อนไขที่ทำให้คำตัดสิน"
@@ -145,6 +159,17 @@ def undone() -> list[str]:
     return items
 
 
+def ceilings() -> dict[str, int]:
+    """เพดานที่เดินทางเดียว — กองที่ *มีคนต้องไปทำให้เล็กลง* ไม่ใช่แค่ห้ามโต
+
+    หน้านี้เกิดขึ้นเพราะการต้องเปิดหลายที่ถึงจะรู้ว่าอะไรค้าง · เพดานพวกนี้เกิด
+    ทีหลัง (audit รอบ 21 และ 24) แล้ว **ไม่มีอะไรทวงให้มาโผล่ที่นี่** — ผลคือ
+    หน้าเดียวที่สร้างมาเพื่อให้เลิกเปิดหลายที่ ก็ยังต้องเปิดที่อื่นอยู่ดี
+    """
+    config = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
+    return {name: int(value) for name, value in config["tool"]["todolist"]["ceilings"].items()}
+
+
 def counts() -> dict[str, int]:
     """ตัวเลขที่บอกขนาดของกองที่ต้องอ่าน — อ่านจากแหล่งจริงทุกตัว"""
     unproven = re.search(r"UNPROVEN_CEILING\s*=\s*(\d+)", EVIDENCE.read_text(encoding="utf-8"))
@@ -187,6 +212,11 @@ def report(today: datetime.date, within: int) -> str:
     lines += ["", f"## รอเงื่อนไข ไม่ใช่รอวันที่ — {len(waiting)} แถว"]
     lines.append(f"  · คนตัดสิน {manual} จาก {conditional} แถว (ที่เหลือมีเครื่องตรวจให้)")
     lines += [f"  {item}" for item in waiting] or ["  (ไม่มี)"]
+
+    limits = ceilings()
+    lines += ["", f"## กองที่หดได้ทางเดียว (เพดานใน pyproject) — {len(limits)} กอง"]
+    lines += [f"  {name}: {value}" for name, value in sorted(limits.items())]
+    lines.append("  · เพดานกันไม่ให้โต แต่ไม่มีอะไรทำให้หด — ต้องมีคนไปทำให้เล็กลงเอง")
 
     postponed = deferred()
     lines += ["", f"## ตัดสินแล้วว่ายังไม่ทำ — {len(postponed)} รายการ"]

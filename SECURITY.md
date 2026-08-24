@@ -111,16 +111,34 @@ cosign verify-blob --bundle sbom-core.json.sigstore.json \
 gh attestation verify sbom-core.json --repo sayam/flask-todolist
 ```
 
+## Vulnerabilities we have already judged
+
+Scanners that look at this project's image will see advisories we have already
+decided about. Rather than leaving that decision in prose only, it is published
+as an [OpenVEX document](docs/vex.openvex.json), generated from the same
+registers that CI checks in both directions
+(`pins/accepted-advisories.txt`, `app/plugins/accepted-advisories.txt`,
+`deploy/accepted-image-advisories.txt`).
+
+Two things are worth knowing when you read it: an advisory that lives in CI
+tooling is `not_affected` because that code is never part of a released
+artefact, and an advisory that lives in the image's OS layer is reported as
+`affected` with the action we are waiting on — claiming otherwise would be a
+lie your own scanner could catch.
+
 ## Supported versions
 
 | Version | Supported |
 |---|---|
 | `main` | ✅ |
-| v1.x | ✅ latest patch release |
+| latest release (v2.2.0) | ✅ |
+| any earlier release | ❌ superseded |
 | < v1.0.0 | ❌ pre-release, nothing was promised |
 
 There is no long-term support branch. Fixes land on `main` and go out in the next
-release.
+release, so **a release stops receiving security updates the moment a newer
+release exists** — the supported upgrade path is always "move to the latest
+release". Releases are not yanked or patched in place; the fix is the next tag.
 
 ---
 

@@ -7,7 +7,7 @@
 
 The code, commit messages, and this file are in English. **Almost everything that
 explains *why* the code looks the way it does is in Thai** — [`CLAUDE.md`](CLAUDE.md)
-(the working notes), the 70 records in [`docs/adr/`](docs/adr/), and the rest of
+(the working notes), the 74 records in [`docs/adr/`](docs/adr/), and the rest of
 `docs/`. Machine translation handles them acceptably, but you should know that
 before you invest an afternoon.
 
@@ -98,7 +98,7 @@ translation key. Thai lives in `app/translations/th/LC_MESSAGES/messages.po`.
 Never write Thai directly in a template or a `.py` file, and remember to
 `pybabel compile` — the `.mo` files are committed.
 
-### 7. Commits are Conventional Commits, subject ≤ 72 characters
+### 7. Commits are Conventional Commits, subject ≤ 72 characters, signed off
 
 Enforced by a commit-msg hook and again in CI. `feat:`, `fix:`, `docs:`, `test:`,
 `refactor:`, `chore:`, `ci:`, `perf:`, optionally scoped: `fix(audit): ...`.
@@ -109,6 +109,17 @@ PR when all required checks pass. Squashing appends ` (#N)` to the subject,
 which pushes anything near the limit over it — and the check that would have
 caught it only runs after the merge has already landed on `main`. Merge commits
 themselves are not linted, since GitHub writes those, not you.
+
+**Sign every commit off (DCO).** `git commit -s` adds the `Signed-off-by:` line;
+`git commit --amend -s` fixes one you forgot. The line is not a signature on the
+code — it is the [Developer Certificate of Origin 1.1](https://developercertificate.org/):
+you are stating that you wrote the contribution or otherwise have the right to
+submit it under this project's licence, and that the contribution is public and
+recorded permanently. The `commit-msg` hook rejects an unsigned commit on your
+machine, and the `commit-lint` job checks every commit a pull request adds,
+including pull requests from forks. Only commits added by the pull request are
+checked: the history before 2026-08-23 predates the rule and is deliberately not
+rewritten ([ADR 0073](docs/adr/0073-dco-sign-off.md)).
 
 ### 8. A new test file has to be registered in `gates.yaml`
 
@@ -182,11 +193,109 @@ append-only audit chain, the public history) only work if they sit on the
 mandatory path. Review count is intentionally 0 — the day a second regular
 contributor arrives, required reviews turn on and ADR 0053 gets revisited.
 
+## Who holds what
+
+The project has one maintainer, **[@sayam](https://github.com/sayam)**, who is
+also the only account with write access, the only administrator, and the only
+holder of repository secrets. There are no other members, no teams, and no
+service accounts with write access.
+
+| Role | Who | What they can reach |
+|---|---|---|
+| Maintainer / administrator | @sayam | repository settings, branch protection, Actions secrets, release publication, the Zenodo and OpenSSF Best Practices records |
+| Contributor | anyone | fork + pull request; no access to secrets — GitHub holds workflow runs from first-time contributors until the maintainer approves them |
+
+Nothing about that concentration is comfortable, and it is not treated as
+normal: [ADR 0053](docs/adr/0053-solo-maintainer-sod-compensating-controls.md)
+records the compensating controls that stand in for separation of duties
+(pull-request-only `main` enforced against admins, 27 required checks, an
+append-only audit chain, a fully public history) and the condition that ends
+the arrangement — the day a second regular contributor arrives, required
+reviews turn on and that ADR is revisited.
+
+**Escalated access is reviewed before it is granted, not after.** Write access,
+administration rights and repository secrets are granted only after the
+maintainer has reviewed the person's contribution history in this repository and
+confirmed the identity behind the account; the grant is recorded in this section
+so the list above always names everyone who holds it. Access is removed the same
+way it is granted — as a change to this file — when someone stops working on the
+project. There is currently nobody to review but the maintainer, which is the
+condition [ADR 0053](docs/adr/0053-solo-maintainer-sod-compensating-controls.md)
+is waiting on.
+
+The maintainer's account is protected with phishing-resistant two-factor
+authentication (a passkey as the primary method, TOTP and GitHub Mobile as
+backups, SMS deliberately not enabled); this is re-verified on a twelve-month
+cadence recorded in [docs/SECURITY-CADENCE.md](docs/SECURITY-CADENCE.md).
+
+### 12. A `good first issue` is an invitation that is still out
+
+The label is not decoration: someone may already be working on it, and you will
+not know, because a first-time contributor has no reason to announce it and no
+way to self-assign.
+
+**Do not close one of these with your own pull request without removing the
+label first.** Remove it and say on the issue that you are taking it, so anyone
+mid-way can stop. If you deliberately take one back while the label is still on,
+declare it in the pull-request body:
+
+```
+good-first-issue-taken-back: <why it could not wait>
+```
+
+A step in the `lint` job checks this and fails the pull request otherwise
+(`scripts/check_issue_handoff.py`). It reads the issues GitHub itself would
+close, not the words in the description.
+
+This rule exists because it was broken. On 2026-08-20 an issue was labelled at
+12:14 UTC, the maintainer merged their own implementation of it at 16:51, and an
+outside contributor opened their pull request at 17:39 having worked on it for
+hours. The label was on the whole time. Their afternoon was spent on something
+that was already closed, and nothing in the project noticed.
+
+## What you will see after you push (and what you will not)
+
+**Your first pull request will show no checks at all, and that is not your fault.**
+GitHub holds workflow runs from first-time contributors until a maintainer
+approves them, so the page you land on after pushing is simply empty — no green,
+no red, no explanation.
+
+That empty page is the worst part of contributing here right now, because
+everything this project knows how to tell you lives in those checks. Once they
+run you get, in plain terms, which rule you broke and where.
+
+- **The maintainer aims to approve within one working day.** If it has been
+  longer, comment on the pull request — that is a fair thing to chase, not a
+  nuisance.
+- **Nothing you can do speeds it up**, and re-pushing does not help.
+- Meanwhile the checks are reproducible on your own machine, which is faster
+  than waiting either way:
+
+  ```bash
+  pipenv run python scripts/preflight.py
+  ```
+
+This happened for real on 2026-08-20: a contributor's pull request sat with zero
+checks, so none of the three things CI would have told them — two auto-fixable
+lint errors and an untested line — ever reached them.
+
 ## Before you open a pull request
 
 ```bash
 pipenv run python scripts/preflight.py   # walks CI's own lint + test steps locally
 ```
+
+If you added an ADR or a gate, one more command spares you the bookkeeping —
+several documents advertise those counts and each has a test that fails when the
+number goes stale:
+
+```bash
+pipenv run python scripts/sync_counts.py --write   # ten places, one command
+```
+
+It only edits the numbers; the tests are still what decide. Measured on
+2026-08-22: adding one ADR turned three files red, and 25 of the last 200
+commits existed only to sync a number (audit round 25).
 
 That one command reads `.github/workflows/ci.yml` and runs what CI runs, so the
 list cannot drift from the pipeline (ADR 0060). The commit hook already covers

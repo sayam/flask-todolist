@@ -210,6 +210,50 @@ def test_every_gate_declares_a_coherent_layer(gates):
             )
 
 
+# คำที่ผูกกับ *สถาปัตยกรรมของ repo นี้* — ต่างจาก `BANNED` ใน `tests/test_skill.py`
+# ซึ่งห้ามชื่อ *ไลบรารีของ framework* · ตัวนั้นถามว่า "กฎนี้ผูกกับ Flask ไหม"
+# ตัวนี้ถามว่า **"กฎนี้ผูกกับวิธีที่เราออกแบบแอปของเราไหม"** ซึ่งเป็นคนละคำถาม
+# และเป็นคำถามที่ไม่มีใครถามมาก่อน (audit r23)
+#
+# ชั้น `business` ใช้คำพวกนี้ได้เต็มที่ — มันคือชั้นที่มีไว้สำหรับ "ข้อตกลงของแอป
+# ชนิดนี้" โดยนิยาม · ที่ห้ามคือชั้น `baseline` ซึ่งประกาศตัวว่าสากล
+ARCHITECTURE_BOUND = ("plugin", "tdl_")
+
+
+def test_baseline_rules_do_not_speak_our_architecture(gates):
+    """กฎที่ประกาศตัวว่าสากล ต้องอ่านรู้เรื่องโดยไม่ต้องมีสถาปัตยกรรมของเรา (audit r23)
+
+    ป้ายชั้นเป็นคำประกาศที่ไม่มีอะไรตรวจมาตลอด — เทสต์ข้างบนบังคับ *ความสัมพันธ์*
+    ระหว่างชั้นกับ `portable` ครบถ้วน แต่ไม่มีอะไรถามว่า **กฎข้อนี้สากลจริงไหม**
+    · ผลคือกฎห้าข้อที่พูดถึง plugin ตรง ๆ ถูกส่งออกในชั้น baseline ไปหาโปรเจกต์
+    ที่ไม่มีสถาปัตยกรรมนั้น — ไม่ใช่ "ทำแล้วไม่ผ่าน" แต่เป็น "ไม่มีความหมาย"
+
+    **ตรวจทั้งชื่อกฎและบทเรียน** เพราะทั้งสองอย่างถูก render ลง `SKILL.md`
+    ไปด้วยกัน · บรรทัดที่ชี้ไฟล์/job ของ repo นี้ (`enforced_by`) ไม่ถูกตรวจ
+    เพราะนั่นคือส่วนอ้างอิง ไม่ใช่ส่วนกฎ — หลักเดียวกับที่ `tests/test_skill.py`
+    ยกเว้นบรรทัด "ตัวบังคับใน reference" ไว้
+    """
+    leaked = []
+    for gate in gates:
+        if gate.get("layer") != "baseline":
+            continue
+        prose = f"{gate.get('title', '')} {gate.get('born_from', '')}".lower()
+        leaked += [f"{gate['id']}: มีคำว่า {word!r}" for word in ARCHITECTURE_BOUND if word in prose]
+
+    assert not leaked, "\n  ".join(
+        [
+            "กฎที่ประกาศตัวว่าสากล แต่พูดภาษาสถาปัตยกรรมของเราเอง:",
+            *leaked,
+            "",
+            (
+                "เลือกทางใดทางหนึ่ง: ย้ายไปชั้น `business` (ข้อตกลงของแอปชนิดนี้ — "
+                "ยัง export ได้ แต่ไปอยู่ใบของมัน) หรือเขียนกฎใหม่ให้อ่านรู้เรื่อง"
+                "โดยไม่ต้องมีสถาปัตยกรรมของเรา"
+            ),
+        ]
+    )
+
+
 def test_every_gate_declares_a_pillar(gates):
     """ทุก gate ประกาศชั้นของปรัชญา (ADR 0051) — partition แบบเดียวกับ layer
 
@@ -427,7 +471,13 @@ def test_every_watcher_names_a_mechanism_that_exists(gates, jobs):
 
 
 def _cadence_periods() -> dict[str, int]:
-    """หัวข้อของแถวใน cadence → รอบเป็นวัน (ข้ามแถวที่ผูกกับเหตุการณ์ ไม่ใช่เวลา)"""
+    """หัวข้อของแถวใน cadence → รอบเป็นวัน (ข้ามแถวที่ผูกกับเหตุการณ์ ไม่ใช่เวลา)
+
+    **รับทั้ง "N เดือน" และ "N วัน"** — รอบที่สั้นกว่าหนึ่งเดือนเขียนเป็นเดือนไม่ได้
+    และถ้าตัวอ่านรู้จักแต่เดือน แถวแบบนั้นจะถูกอ่านเป็น 0 = "ผูกกับเหตุการณ์
+    เร็วพอเสมอ" ซึ่งทำให้ด่านที่พึ่งตัวเลขนี้เขียวฟรี (audit รอบ 26 — แถวรักษาชีพ
+    เป็นแถวแรกที่มีรอบเป็นวัน เพราะมันต้องสั้นกว่าหน้าต่าง 60 วันของ GitHub)
+    """
     text = CADENCE_DOC.read_text(encoding="utf-8")
     start = text.index("## ส่วนที่ต้องมีคนลงมือ")
     end = text.index("## กรอบเวลาแก้ช่องโหว่", start)
@@ -439,7 +489,9 @@ def _cadence_periods() -> dict[str, int]:
         if len(cells) != 5:
             continue
         months = re.fullmatch(r"(\d+) เดือน", cells[1])
-        rows[cells[0].replace("**", "")] = int(months.group(1)) * MONTHS if months else 0
+        days = re.fullmatch(r"(\d+) วัน", cells[1])
+        period = int(months.group(1)) * MONTHS if months else int(days.group(1)) if days else 0
+        rows[cells[0].replace("**", "")] = period
     return rows
 
 

@@ -12,8 +12,8 @@ authors:
     affiliation: Burapha University
     orcid: null
 doi: 10.5281/zenodo.22015133
-version: 2.1.0
-date-released: '2026-08-20'
+version: 2.2.0
+date-released: '2026-08-21'
 repository-code: https://github.com/sayam/flask-todolist
 url: https://github.com/sayam/flask-todolist
 abstract: >-
@@ -23,7 +23,7 @@ abstract: >-
   each rule must carry evidence that it once failed for a real defect, the
   portable subset is generated into an agent skill and an overlay that can be
   applied to other projects, and the effect on generated code is measured
-  against controlled arms. Twenty recorded audit rounds, each asking a
+  against controlled arms. 26 recorded audit rounds, each asking a
   question the previous round could not, are part of the artefact.
 keywords:
   - software governance

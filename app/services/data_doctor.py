@@ -9,12 +9,13 @@
 และคำว่า `foreign_key_check` ไม่ปรากฏที่ไหนใน repo แม้แต่ครั้งเดียว · แถวกำพร้า
 ที่ปลูกไว้ผ่านทุกคำสั่ง ทุก healthcheck และทุก job
 
-## สี่คำถามที่ตอบได้ด้วยการอ่านฐานอย่างเดียว
+## ห้าคำถามที่ตอบได้ด้วยการอ่านฐานอย่างเดียว
 
 1. มีแถวที่ชี้ไปหาแถวที่ไม่มีอยู่แล้วไหม (referential integrity)
 2. สาย audit ยังต่อครบและหางยังตรงกับสมอไหม
 3. มีชื่อผู้ใช้ที่ชนกันแบบ casefold ไหม (audit รอบ 19 ข้อ 2)
 4. มีข้อมูลที่พ้นระยะเก็บรักษาแล้วแต่ยังอยู่ไหม (นโยบายเป็นจริงก็ต่อเมื่อมีคนรัน purge)
+5. บัญชีที่ปิดแล้วหรือ token ที่เพิกถอนแล้ว ยังถือ credential ที่ใช้ได้อยู่ไหม
 
 ## ทำไมอ่านอย่างเดียว
 
@@ -35,6 +36,8 @@ from sqlalchemy import func, inspect, select
 
 import app.services.usernames as usernames_service
 from app import audit, db, purge
+from app.models import DISABLED_SECRET, ApiToken, User
+from app.soft_delete import INCLUDE_DELETED
 
 
 @dataclass
@@ -154,26 +157,44 @@ def _retention(report: Report) -> None:
         )
 
 
-def _closed_accounts(report: Report) -> None:
-    """บัญชีที่ปิดไปแล้ว ต้องไม่มี password_hash หลงเหลือ (ตั้งเป็น DISABLED_SECRET)"""
-    from app.models import User, DISABLED_SECRET
+def _live_credentials_on_closed_accounts(report: Report) -> None:
+    """บัญชีที่ปิดแล้ว/ใบที่เพิกถอนแล้ว ต้องไม่เหลือ credential ที่ใช้ได้
 
-    report.checks += 1
-    unsecured = db.session.scalars(
-        select(User).where(
-            User.deleted_at.is_not(None),
-            User.password_hash != DISABLED_SECRET
+    โค้ดสัญญาข้อนี้ไว้สี่ที่: `close_account()` · tombstone ของ `purge` ·
+    และ factor ของ directory ภายนอกทั้งสองตัว — ทุกที่เขียนทับด้วย
+    `DISABLED_SECRET` **ทันทีที่ปิด ไม่รอ grace 30 วัน** เพราะ hash เป็นชั้น C1
+    (ADR 0014) · ที่นี่ถามว่าแถวที่นอนอยู่จริงเป็นแบบนั้นไหม — การกู้คืนจาก
+    backup เก่า · migration ที่ทำครึ่งทาง · หรือคนแก้ด้วย SQL ตรง ๆ
+    ทำให้บัญชีที่ปิดแล้วยังถือรหัสผ่านที่ login ได้
+
+    **ต้องขอแถวที่ถูกลบมาเอง** — ตัวกรอง soft delete เติม `deleted_at IS NULL`
+    ให้ทุก ORM query อยู่แล้ว (`app/soft_delete.py`) ถามตรง ๆ จึงได้ศูนย์แถว
+    เสมอ แล้วด่านนี้จะเขียวกับฐานที่เต็มไปด้วยของผิด
+
+    **ใบที่หมดอายุแต่ยังไม่ถูกเพิกถอน ไม่นับว่าผิด** — `revoke()` เท่านั้นที่
+    ล้าง hash (soft delete + disable คู่กัน) ส่วนการหมดอายุแค่ทำให้ใช้ไม่ได้
+    ตาม `is_usable` และรอ `purge-expired` มาเก็บ · ตัวตรวจที่ดังกับของปกติ
+    คือตัวตรวจที่ถูกถอดภายในสัปดาห์เดียว
+    """
+    for model, column, what in (
+        (User, User.password_hash, "บัญชีที่ปิดแล้วแต่รหัสผ่านยังใช้ได้"),
+        (ApiToken, ApiToken.token_hash, "token ที่เพิกถอนแล้วแต่ความลับยังเทียบผ่านได้"),
+    ):
+        report.checks += 1
+        stale = db.session.scalar(
+            select(func.count())
+            .select_from(model)
+            .where(model.deleted_at.is_not(None), column != DISABLED_SECRET)
+            .execution_options(**INCLUDE_DELETED)
         )
-    ).all()
-    
-    for user in unsecured:
-        report.findings.append(
-            Finding(
-                kind="credential-not-cleared",
-                where=f"tdl_user id={user.id}",
-                detail="บัญชีถูกปิดแล้ว (deleted) แต่ password_hash ยังไม่ถูกล้าง",
+        if stale:
+            report.findings.append(
+                Finding(
+                    kind="live-credential-on-closed-row",
+                    where=f"{model.__tablename__}.{column.key}",
+                    detail=f"{stale} แถว — {what} (ชั้น C1 ต้องถูกล้างตอนปิด ไม่ใช่ตอน purge)",
+                )
             )
-        )
 
 
 def examine() -> Report:
@@ -183,5 +204,5 @@ def examine() -> Report:
     _audit_chain(report)
     _username_collisions(report)
     _retention(report)
-    _closed_accounts(report)
+    _live_credentials_on_closed_accounts(report)
     return report

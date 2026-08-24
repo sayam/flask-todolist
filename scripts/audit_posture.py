@@ -61,6 +61,11 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 NETWORK_TIMEOUT_SECONDS = 60  # หนึ่งคำขอไป GitHub API
 WORKFLOWS = ROOT / ".github" / "workflows"
 CADENCE = ROOT / "docs" / "SECURITY-CADENCE.md"
+AUDIT_LOG = ROOT / "docs" / "AUDIT-LOG.md"
+GATES_FILE = ROOT / "gates.yaml"
+ADR_DIR = ROOT / "docs" / "adr"
+# แถวของทะเบียนรอบ audit — ขึ้นต้นด้วยเลขรอบ (รูปเดียวกับ tests/test_audit_log.py)
+AUDIT_ROW = re.compile(r"^\|\s*(\d+)\s*\|", re.MULTILINE)
 ALERT_REGISTER = ROOT / ".github" / "accepted-code-scanning-alerts.txt"
 
 # **alert อ่านด้วย token คนละใบกับท่าที** — `POSTURE_TOKEN` เป็น fine-grained PAT
@@ -252,10 +257,17 @@ def compare(
         for flag, want in EXPECTED_FLAGS.items()
         if state.get(flag) != want
     )
+    # **เทียบเฉพาะที่อ่านได้** — `None` แปลว่าสิทธิ์ไม่พอ ไม่ใช่ว่าปิดอยู่
     problems.extend(
-        f"{flag} = {state.get(flag)!r} — ต้องเปิด (ADR 0061)"
-        for flag in ("allow_auto_merge", "sha_pinning_required")
-        if state.get(flag) is False
+        f"{flag} = {state.get(flag)!r} แต่ทะเบียน merge setting ประกาศไว้ว่า {want!r}"
+        for flag, (want, _why) in MERGE_SETTINGS.items()
+        if state.get(flag) is not None and state.get(flag) != want
+    )
+    # **เทียบเฉพาะที่อ่านได้** เหมือนกลุ่มบน — `None` = สิทธิ์ไม่พอ ไม่ใช่ปิดอยู่
+    problems.extend(
+        f"{flag} = {state.get(flag)!r} แต่ทะเบียนท่าทีของ Actions ประกาศไว้ว่า {want!r} ({why})"
+        for flag, (want, why) in ACTIONS_FLAGS.items()
+        if state.get(flag) is not None and state.get(flag) != want
     )
 
     if claim and claim != (len(required), produced):
@@ -272,8 +284,74 @@ def compare(
 # *เขียนโค้ด* แก่ตัวตรวจที่มีหน้าที่อ่านอย่างเดียว แพงกว่าค่าที่ได้จากบูลีนตัวเดียว
 # มาก (ADR 0061 โน้ต 2026-08-18) → รายงานเป็น "ตรวจด้วยเครื่องไม่ได้" ไม่ใช่
 # "ปิดอยู่" เพราะสองอย่างนั้นต่างกันคนละขั้ว และการรายงานผิดฝั่งคือการโกหก
+#
+# **แต่ "อ่านไม่ได้ที่นี่" ไม่ใช่เหตุผลที่จะไม่ประกาศว่าค่าควรเป็นอะไร** (5-Why
+# ของ branch ค้าง 64 ใบ · 2026-08-21): `delete_branch_on_merge` ตกจากแผนที่ไป
+# ทั้งใบเพราะมันอยู่ในคลาสนี้ — ทะเบียนเดิมบันทึกว่า *เครื่องมองไม่เห็นอะไร*
+# แต่ไม่มีที่ไหนบันทึกว่า *ค่าที่ควรเป็นคืออะไร* setting ที่พิสูจน์ไม่ได้จึงไม่มี
+# เจ้าของ และ setting ที่ไม่มีเจ้าของก็ไม่มีค่าตั้งต้น · ผลคือกติกาข้อ 7 ของ
+# CONTRIBUTING ถูกบังคับด้วยความจำของคนคนเดียว แล้วลืมไป 30 กว่าครั้งติดกัน
+#
+# ทะเบียนนี้จึงถือ **ค่าที่ควรเป็น** ด้วย · ตัวตัดสินใช้มันสองจังหวะ: เทียบจริง
+# เมื่ออ่านได้ (คนที่มีสิทธิ์รันเอง) และรายงานว่า "ควรเป็นอะไร" เมื่ออ่านไม่ได้
+# (CI ที่สิทธิ์ต่ำสุด) — ค่าที่ประกาศไว้จึงมีคนตรวจได้เสมอ แค่ไม่ใช่ทุกที่
+#
+# ที่ *ไม่* อยู่ในทะเบียนโดยตั้งใจ: `merge_commit_title`/`merge_commit_message`
+# (มีผลเฉพาะเมื่อเปิด merge commit ซึ่งปิดอยู่) · `squash_merge_commit_*` และ
+# `use_squash_pr_title_as_default` (มีผลเฉพาะเมื่อเปิด squash ซึ่งปิดแล้ว) ·
+# `allow_update_branch` (ไม่มีกติกาข้อไหนพึ่งมัน)
+MERGE_SETTINGS = {
+    "allow_auto_merge": (True, "วิธี merge มาตรฐานของทุก PR (CONTRIBUTING ข้อ 7)"),
+    "delete_branch_on_merge": (
+        True,
+        (
+            "ปิดแล้ว branch ที่ merge ไปกองค้าง — และ `git branch --merged` มองไม่เห็น "
+            "เพราะ rebase เขียน commit ใหม่ ทำให้ไม่มีใครสังเกตจนกองถึง 64 ใบ"
+        ),
+    ),
+    "allow_merge_commit": (False, "ประวัติต้องเป็นเส้นเดียว (คู่กับ required_linear_history)"),
+    "allow_rebase_merge": (True, "ทางเดียวที่ ADR 0053 กับ CONTRIBUTING ข้อ 7 รับ"),
+    "allow_squash_merge": (
+        False,
+        (
+            "CONTRIBUTING ข้อ 7 ห้ามไว้ตรง ๆ — squash ต่อ ` (#N)` ท้าย subject แล้วดัน "
+            "เกิน 72 ตัว และ commit-lint ที่จะจับได้รันหลังของลง main ไปแล้ว · "
+            "`required_linear_history` ไม่กันให้เพราะ squash ก็ให้ประวัติเส้นเดียว"
+        ),
+    ),
+}
+
+# ท่าทีของ Actions มาจากสอง endpoint — `actions/permissions` (ตัวแรก) กับ
+# `actions/permissions/workflow` (สองตัวหลัง) · สองตัวหลังคือสิ่งที่ Scorecard
+# เรียกว่า Token-Permissions และเป็นชั้นที่รองรับตอนมี workflow ไหนลืมประกาศ
+# `permissions:` ของตัวเอง — **ทั้งคู่อยู่ใน endpoint ที่ตัวตรวจนี้เรียกอยู่แล้ว
+# ตั้งแต่วันแรก แต่ไม่เคยถูกอ่าน** (audit รอบ 24: อ่าน 12 จาก 75 ฟิลด์ที่ถืออยู่
+# ในมือ — ขอบเขตของด่านสืบทอดคำถามที่สร้างมันขึ้นมา ไม่ใช่สิ่งที่มันมองเห็นได้)
+ACTIONS_FLAGS: dict[str, tuple[object, str]] = {
+    "sha_pinning_required": (True, "ให้แพลตฟอร์มบังคับสิ่งที่ gate actions-sha-pinned บังคับอยู่แล้ว"),
+    "default_workflow_permissions": ("read", "GITHUB_TOKEN เริ่มที่อ่านอย่างเดียว · job ที่ต้องเขียนขอเอง"),
+    "can_approve_pull_request_reviews": (False, "workflow อนุมัติ PR แทนคนไม่ได้ — ทางเข้า main ที่ไม่มีคนดู"),
+}
+
+
+def judged_fields() -> set[str]:
+    """ฟิลด์ที่ตัวตรวจนี้ **ตัดสิน** — `docs/EXTERNAL-SURFACE.md` ผูกสองทิศกับรายการนี้
+
+    ทะเบียนที่ drift จากตัวตรวจ อ่านแล้วเข้าใจผิดกว่าไม่มีทะเบียนเลย (ADR 0072)
+    """
+    return {
+        "required_checks",
+        "alerts",
+        "description",
+        *EXPECTED_FLAGS,
+        *MERGE_SETTINGS,
+        *ACTIONS_FLAGS,
+    }
+
+
 UNREADABLE_AT_LEAST_PRIVILEGE = {
-    "allow_auto_merge": "ต้องการ contents:write จึงจะเห็น — ตรวจด้วยมือตามรอบ cadence",
+    flag: f"ต้องการ contents:write จึงจะเห็น — ควรเป็น {want!r} ({why})"
+    for flag, (want, why) in MERGE_SETTINGS.items()
 }
 
 
@@ -344,15 +422,34 @@ def claimed_counts() -> tuple[int, int] | None:
     return (int(found.group(1)), int(found.group(2))) if found else None
 
 
-def description_problems(description: str | None) -> list[str]:
-    """คำโฆษณาบนช่อง About ของ repo ต้องบอกรุ่นปัจจุบัน
+def advertised_counts(required: int) -> dict[str, int]:
+    """เลขทุกตัวที่ช่อง About โฆษณา — นับจากดิสก์หรือจากท่าทีจริงได้ทั้งหมด (ADR 0072)
+
+    ทะเบียนนี้คือคำประกาศว่า *ช่องนั้นโฆษณาอะไรอยู่* — ถอดวลีไหนออกจากช่อง About
+    ต้องมาถอดที่นี่ด้วย ซึ่งเป็นคำตัดสินที่มีคนรีวิว ต่างจากการหายไปเงียบ ๆ
+    """
+    gates = yaml.safe_load(GATES_FILE.read_text(encoding="utf-8"))["gates"]
+    audits = AUDIT_ROW.findall(AUDIT_LOG.read_text(encoding="utf-8"))
+    return {
+        "machine-checked gates": len(gates),
+        "ADRs": len(list(ADR_DIR.glob("0*.md"))),
+        "recorded governance audits": len(audits),
+        "required checks": required,
+    }
+
+
+def description_problems(description: str | None, required: int) -> list[str]:
+    """คำโฆษณาบนช่อง About ต้องบอกรุ่นปัจจุบัน **และเลขทุกตัวต้องนับจากของจริงได้**
 
     **ช่องนี้คือสิ่งแรกที่คนเห็นก่อนกดเข้ามา** และมันไม่ได้อยู่ใน git จึงไม่มี
     diff ไหนทำให้ใครสังเกตว่ามันเก่า — วัดเมื่อ 2026-08-20: ยังเขียนว่า v2.0.0
     ขณะที่รุ่นจริงคือ v2.0.2 (และเลข gate กับจำนวนรอบ audit ก็ค้างมาสองรอบ)
 
-    ตรวจแค่ *เลขรุ่น* อย่างเดียวโดยตั้งใจ — เลขอื่นในประโยคนั้นเปลี่ยนบ่อยและ
-    ไม่มีสัญญาว่าจะอยู่ในรูปไหน การบังคับทุกเลขจะกลายเป็นด่านที่แดงเพราะถ้อยคำ
+    ฉบับแรกตรวจแค่เลขรุ่น เพราะ "เลขอื่นไม่มีสัญญาว่าจะอยู่ในรูปไหน" —
+    **audit รอบ 24 พบว่าเหตุผลนั้นหมดอายุไปแล้ว**: ทั้งสี่เลขมีแหล่งนับที่เป็น
+    ทะเบียนจริงหมด (`gates.yaml` · `docs/adr/` · `docs/AUDIT-LOG.md` ที่เพิ่งเกิด
+    · และรายการ required check ที่ตัวตรวจนี้ถืออยู่แล้ว) · เลขที่นับได้แต่ไม่มี
+    ใครนับ คือเลขที่ค้างจนกว่าจะมีคนบังเอิญสังเกต — ซึ่งตอน v2.2.0 คือสามที่พร้อมกัน
     """
     if description is None:
         return []
@@ -361,9 +458,22 @@ def description_problems(description: str | None) -> list[str]:
     if not found:
         return ["อ่าน __version__ จาก app/__init__.py ไม่ได้"]
     current = found.group(1)
-    if f"v{current}" in description:
-        return []
-    return [(f"ช่อง About ของ repo ไม่ได้บอกรุ่นปัจจุบัน (v{current}) — ตอนนี้เขียนว่า: {description[:90]!r}")]
+
+    problems = []
+    if f"v{current}" not in description:
+        problems.append(
+            f"ช่อง About ของ repo ไม่ได้บอกรุ่นปัจจุบัน (v{current}) — ตอนนี้เขียนว่า: {description[:90]!r}"
+        )
+    for phrase, want in advertised_counts(required).items():
+        said = re.search(rf"(\d+) {re.escape(phrase)}", description)
+        if said is None:
+            problems.append(
+                f"ช่อง About เลิกโฆษณา {phrase!r} แล้ว — ถ้าตั้งใจถอด ให้ถอดออกจาก "
+                "advertised_counts() ในคอมมิตเดียวกัน ไม่งั้นด่านนี้เฝ้าของที่ไม่มีอยู่"
+            )
+        elif int(said.group(1)) != want:
+            problems.append(f"ช่อง About บอก {said.group(1)} {phrase} แต่ของจริงคือ {want}")
+    return problems
 
 
 def fetch() -> dict:
@@ -371,6 +481,7 @@ def fetch() -> dict:
     protection = _gh("repos/:owner/:repo/branches/main/protection")
     repo = _gh("repos/:owner/:repo")
     actions = _gh("repos/:owner/:repo/actions/permissions")
+    workflow = _gh("repos/:owner/:repo/actions/permissions/workflow")
     alerts = _gh_pages("repos/:owner/:repo/code-scanning/alerts?state=all", ALERTS_ENV)
     return {
         "alerts": alerts,
@@ -379,8 +490,10 @@ def fetch() -> dict:
         "required_linear_history": (protection.get("required_linear_history") or {}).get("enabled"),
         "allow_force_pushes": (protection.get("allow_force_pushes") or {}).get("enabled"),
         "allow_deletions": (protection.get("allow_deletions") or {}).get("enabled"),
-        "allow_auto_merge": repo.get("allow_auto_merge"),
+        **{flag: repo.get(flag) for flag in MERGE_SETTINGS},
         "sha_pinning_required": actions.get("sha_pinning_required"),
+        "default_workflow_permissions": workflow.get("default_workflow_permissions"),
+        "can_approve_pull_request_reviews": workflow.get("can_approve_pull_request_reviews"),
         "description": repo.get("description") or "",
     }
 
@@ -420,7 +533,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     problems += unrequired_problems(all_checks(workflows), set(state.get("required_checks") or []))
     problems += alert_problems(state.get("alerts"), accepted_alerts())
-    problems += description_problems(state.get("description"))
+    problems += description_problems(
+        state.get("description"), len(state.get("required_checks") or [])
+    )
     if problems:
         print("ท่าทีของแพลตฟอร์มไม่ตรงกับสิ่งที่ประกาศไว้:", file=sys.stderr)
         for line in problems:

@@ -165,6 +165,38 @@ def execute(entries: list[dict], root: pathlib.Path) -> int:
     return failed
 
 
+# hook ทั้งสามชนิดที่ `CONTRIBUTING.md` สั่งให้ติดตั้ง — ชื่อไฟล์ใน `.git/hooks/`
+# ตรงกับชื่อชนิดพอดี และ `pre-commit` เขียนลายเซ็นของตัวเองไว้ในไฟล์
+HOOK_TYPES = ("pre-commit", "commit-msg", "pre-push")
+HOOK_MARK = "pre-commit"
+
+
+def missing_hooks(root: pathlib.Path) -> list[str]:
+    """hook ชนิดไหนที่ยังไม่ได้ติดตั้ง — อ่านจาก `.git/hooks/` ไม่ใช่จากความเชื่อ
+
+    **เกิดจากเหตุจริง 2026-08-20**: pull request ของผู้ร่วมพัฒนาภายนอกมาถึงพร้อม
+    `I001` (import ไม่เรียง) กับ `W293` (บรรทัดว่างมีช่องว่าง) ซึ่งเป็นสองอย่างที่
+    hook ก่อน commit แก้ให้เองอัตโนมัติ — การที่มันเดินทางมาได้แปลว่าคำสั่ง
+    `pre-commit install` ในหัวข้อ Setup ไม่เคยถูกรัน · คำสั่งที่อยู่ในเอกสาร
+    อย่างเดียว คือคำสั่งที่ถูกข้าม
+
+    เตือน ไม่ใช่ทำให้แดง — คนที่ตั้งใจข้าม hook มีเหตุผลของตัวเองได้ และด่านจริง
+    อยู่ที่ CI อยู่แล้ว · สิ่งที่ผิดคือการไม่รู้ว่าตัวเองอยู่สภาพไหน (หลักเดียวกับ
+    `warn_if_counters_are_not_shared` ของ rate limit)
+    """
+    hooks = root / ".git" / "hooks"
+    if not hooks.is_dir():
+        return []
+    absent = []
+    for kind in HOOK_TYPES:
+        path = hooks / kind
+        if not path.is_file() or HOOK_MARK not in path.read_text(
+            encoding="utf-8", errors="replace"
+        ):
+            absent.append(kind)
+    return absent
+
+
 def main(argv: list[str] | None = None) -> int:
     """อ่าน workflow → วางแผน → รัน → สรุป (exit 1 ถ้ามีอะไรแดง)"""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -180,6 +212,15 @@ def main(argv: list[str] | None = None) -> int:
     if unknown:
         print(f"ไม่มี job {unknown} ใน {WORKFLOW_DIR}/", file=sys.stderr)
         return 2
+
+    absent = missing_hooks(root)
+    if absent:
+        print(
+            f"⚠  hook ที่ยังไม่ได้ติดตั้ง: {', '.join(absent)}\n"
+            "   ติดตั้งด้วย: pipenv run pre-commit install "
+            + " ".join(f"--hook-type {kind}" for kind in HOOK_TYPES)
+            + "\n   (ไม่ได้ทำให้แดง — แต่ของที่ hook แก้ให้เองจะไปโผล่ที่ CI แทน)\n"
+        )
 
     entries = plan(workflow, jobs, args.base)
     failed = execute(entries, root)

@@ -23,7 +23,7 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 
 | เกณฑ์ | ตอบ | หลักฐาน |
 |---|---|---|
-| `description_good` MUST | ผ่าน | `README.md` ย่อหน้าแรกบอกว่าเป็นอะไรและแก้ปัญหาอะไร · ช่อง About ของ repo เติมแล้ว (อัปเดตตามรุ่น — ล่าสุด v2.1.0) |
+| `description_good` MUST | ผ่าน | `README.md` ย่อหน้าแรกบอกว่าเป็นอะไรและแก้ปัญหาอะไร · ช่อง About ของ repo เติมแล้ว (อัปเดตตามรุ่น — ล่าสุด v2.2.0) |
 | `interact` MUST | ผ่าน | `README.md` มีวิธีติดตั้ง/รัน · `CONTRIBUTING.md` มีวิธีเสนอการเปลี่ยนแปลง · Issues เปิดอยู่ |
 | `contribution` MUST | ผ่าน | `CONTRIBUTING.md` — อธิบายว่าใช้ PR, ต้องผ่าน 27 required check (จาก 30 check — scorecard, `posture` และ job ของ workflow release ไม่รันบน PR จึงไม่บังคับ), merge ด้วย rebase, และกติกาลงทะเบียนไฟล์เทสต์ใน `gates.yaml` |
 | `contribution_requirements` SHOULD | ผ่าน | `CONTRIBUTING.md` — Conventional Commits (หัว ≤72), ruff/mypy, **กติกา mutation test ของเทสต์ใหม่** |
@@ -45,9 +45,9 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 | `repo_track` MUST | ผ่าน | git |
 | `repo_interim` MUST | ผ่าน | commit ระหว่างทางอยู่ครบบน `main` ไม่ใช่แค่ของที่ release |
 | `repo_distributed` SUGGESTED | ผ่าน | git |
-| `version_unique` MUST | ผ่าน | ทุกรุ่นมี tag ไม่ซ้ำ — v1.0.0 ถึง v2.1.0 |
+| `version_unique` MUST | ผ่าน | ทุกรุ่นมี tag ไม่ซ้ำ — v1.0.0 ถึง v2.2.0 |
 | `version_semver` SUGGESTED | ผ่าน | SemVer · นิยามของ 1.0.0 บันทึกไว้ใน `docs/ROADMAP.md` |
-| `version_tags` SUGGESTED | ผ่าน | git tag ทุกรุ่น (v1.0.0 ถึง v2.1.0) |
+| `version_tags` SUGGESTED | ผ่าน | git tag ทุกรุ่น (v1.0.0 ถึง v2.2.0) |
 | `release_notes` MUST | ผ่าน | `CHANGELOG.md` (Keep a Changelog) ผูกกับ `app.__version__` และมีเทสต์คุม |
 | `release_notes_vulns` MUST | ผ่าน | **v1.5.0 คือรุ่นแรกที่แก้ CVE และ notes ระบุครบทั้งเจ็ด** (cryptography 45.0.7→50.0.0) — ตามที่นโยบายใน `docs/SECURITY-CADENCE.md` สัญญาไว้ |
 
@@ -242,7 +242,7 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 | `test_statement_coverage90` | MUST | **วัดแล้ว 97.17%** (`fail_under = 97` ใน `pyproject.toml` เป็นพื้นที่ขยับขึ้นทางเดียว · job `test` บังคับทุก push) |
 | `test_branch_coverage80` | MUST | **วัดแล้ว 93.96%** (1,058 จาก 1,126 สาขา · `[tool.coverage.run] branch = true`) |
 | `code_review_standards` | MUST (ต้องมี URL) | `CONTRIBUTING.md` — PR-only, Conventional Commits, กติกา mutation test, การลงทะเบียนไฟล์เทสต์ใน `gates.yaml` · คำตัดสินอยู่ใน ADR 0053 |
-| `security_review` | MUST | `docs/ASVS.md` (ประเมิน ASVS 5.0 L2 ครบ 253 ข้อ) · `docs/ISO27001.md` (116 ข้อ) · `docs/RISK-ASSESSMENT.md` · และรอบ audit 20 รอบที่มีรายงานทุกรอบ |
+| `security_review` | MUST | `docs/ASVS.md` (ประเมิน ASVS 5.0 L2 ครบ 253 ข้อ) · `docs/ISO27001.md` (116 ข้อ) · `docs/RISK-ASSESSMENT.md` · และรอบ audit 26 รอบที่มีทะเบียนใน [AUDIT-LOG.md](AUDIT-LOG.md) |
 | `hardened_site` | MUST (ต้องมี URL) | หน้าโครงการคือ GitHub ซึ่งส่ง header ครบ · ตัวแอปเองบังคับ CSP/HSTS ผ่าน Talisman และมี gate คุม (`tests/test_security_headers.py`) |
 | `require_2FA` | MUST | ผู้ดูแลคนเดียวเปิด 2FA ไว้ (ตรวจตามรอบ "hardening ของบัญชีเจ้าของ" — ทบทวนล่าสุด 2026-08-17) · GitHub บังคับ 2FA กับผู้ร่วมพัฒนาตั้งแต่ 2023 |
 | `secure_2FA` | SHOULD | ถ้าเป็น TOTP/passkey (ไม่ใช่ SMS) — **เจ้าของยืนยันเองก่อนตอบ** |
@@ -260,13 +260,14 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 
 | เกณฑ์ | ชนิด | ต้องมีอะไรก่อน |
 |---|---|---|
-| `small_tasks` | MUST (ต้องมี URL) | ต้องมี issue ที่ติดป้าย `good first issue` จริง — ป้ายมีอยู่แล้ว แต่ตอนนี้ repo มี **0 issue** |
+| `small_tasks` | MUST (ต้องมี URL) | **ตอบได้แล้ว** — issue [#186](https://github.com/sayam/flask-todolist/issues/186) เปิดอยู่และติดป้าย `good first issue` (ตอนเขียนแถวนี้ครั้งแรก repo มี 0 issue) · ช่องบนเว็บยังเป็น `?` |
 | `build_reproducible` | MUST (ต้องมี URL) | ทุกอย่างถูกตรึงแล้ว (`Pipfile.lock` มี hash · `pins/` ใช้ `--require-hashes` · base image ตรึง digest) แต่ **ยังไม่เคยพิสูจน์ว่า build ซ้ำได้ผลไบต์ต่อไบต์** — ตอบ Met โดยไม่วัดคือสิ่งที่โปรเจกต์นี้ห้ามตัวเองมาตลอด |
 
-**ถ้าตอบครบตามตารางบน** เปอร์เซ็นต์ gold จะขยับจาก 26% เป็นราว 60%
-โดยไม่ต้องแก้โค้ดอะไรเลย — และที่เหลือจะเป็นรายการที่*ตัดสินแล้ว* ไม่ใช่รายการที่ยังไม่ได้ดู
+**ตอบไปแล้ว และผลออกมาตามที่ประเมินไว้** — gold ขยับจาก 26% เป็น **57%**
+โดยไม่ได้แก้โค้ดอะไรเลย · ที่เหลือเป็นรายการที่*ตัดสินแล้ว* ไม่ใช่รายการที่ยังไม่ได้ดู
+(ดูรายการที่ยังไม่ Met ท้ายหัวข้อถัดไป)
 
-## สิ่งที่ต้องกรอกบนเว็บก่อนออกรุ่นถัดไป (ตรวจกับ API เมื่อ 2026-08-20)
+## ค่าที่เก็บอยู่บนเว็บจริง (ดึงจาก API เมื่อ 2026-08-22)
 
 **เว็บเป็นแหล่งจริง ไฟล์นี้เป็นใบตอบ** — รายการนี้จึงไม่ได้มาจากการอ่านไฟล์นี้
 แต่มาจากการดึงคำตอบที่เก็บอยู่จริงมาเทียบ:
@@ -275,30 +276,210 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 curl -s https://www.bestpractices.dev/projects/14085.json > badge.json
 ```
 
-สถานะ ณ วันที่ตรวจ: `badge_percentage_0` = 100 · `_1` = 100 (silver) · `_2` = 26
-(gold) · `updated_at` = 2026-08-19T15:22Z
+สถานะ ณ วันที่ตรวจ: `badge_percentage_0` = 100 · `_1` = 100 (silver) · `_2` = **57**
+(gold) · `updated_at` = 2026-08-22T00:39Z · `repo_url` ตรงกับของเรา
 
-| ช่องบนเว็บ | ค่าที่เก็บอยู่ตอนนี้ | ต้องแก้เป็น | ทำไม |
-|---|---|---|---|
-| `license` (ช่องเมทาดาทาของโปรเจกต์ ไม่ใช่เกณฑ์) | `MIT` | `AGPL-3.0-or-later` | เปลี่ยนสัญญาอนุญาตตั้งแต่ 2026-08-19 (ADR 0070) — **ช่องนี้ยังค้างอยู่แม้จะบันทึกหน้าอื่นไปแล้ว** |
-| `description` | "… — v1.6.0: …" | เขียนใหม่ให้เป็น v2.0.2 และเอ่ยถึง DOI | คำโฆษณาบรรทัดแรกที่คนเห็นก่อนกดเข้า repo |
-| `homepage_url` | ว่าง | `https://github.com/sayam/flask-todolist` | เกณฑ์ `description_good` อ้างถึงหน้าโครงการ · ปล่อยว่างทำให้ gold ข้อ `homepage_url_https` ตัดสินไม่ได้ |
-| `floss_license_osi_justification` | อธิบาย AGPL แล้ว แต่ยังมีคำว่า MIT อยู่ในประโยคเดียวกัน | คงไว้ได้ (อ้าง ADR 0038 ที่ถูกแทน) | ตรวจแล้วว่า**ถูกต้อง** — บันทึกไว้กันเข้าใจผิดว่าเป็นของค้าง |
-| `version_unique_justification` · `version_tags_justification` | "v1.0.0 through v2.0.2" | คงไว้ | ตรวจแล้วว่าตรงกับ tag จริง |
-| `release_notes_vulns_justification` | อ้าง v1.5.0 เป็นรุ่นแรกที่แก้ CVE | คงไว้ **จนกว่ารุ่นถัดไปจะแก้ CVE ใหม่** | ข้อความอ้างอดีต ไม่ใช่สถานะปัจจุบัน |
-| `crypto_working_justification` · `crypto_weaknesses_justification` | อ้างเลขรุ่นของไลบรารี (1.4.1) | คงไว้ | เป็นเลขรุ่นของ dependency ไม่ใช่ของแอป |
-| `test_continuous_integration_justification` | "27 checks on every push" | คงไว้ | ตรงกับ required check ปัจจุบัน (27 จาก 30) |
-| `version_unique_justification` · `version_tags_justification` (แก้ปลายช่วง) | "v1.0.0 through v2.0.2" | **"v1.0.0 through v2.1.0"** | ผูกกับรุ่น — RELEASE.md ข้อ 3 |
-| `maintained_justification` | "latest release v2.0.2 (2026-08-19)" | **"latest release v2.1.0 (2026-08-20)"** | ผูกกับรุ่น |
-| `release_notes_vulns_justification` | ชี้ v1.5.0 | คงไว้ | **v2.1.0 ไม่ได้แก้ CVE ของของที่ ship จริง** (CVE ของ `util-linux` เป็นการ*รับไว้* ไม่ใช่การแก้) — กฎใน RELEASE.md ข้อ 1 บอกให้คงไว้ |
+| ช่องบนเว็บ | ค่าที่เก็บอยู่จริงตอนนี้ | สถานะ |
+|---|---|---|
+| `license` | `AGPL-3.0-or-later` | **กรอกแล้ว** — ตรงกับ ADR 0070 |
+| `homepage_url` | `https://github.com/sayam/flask-todolist` | **กรอกแล้ว** (ช่องเมทาดาทา) · แต่ *เกณฑ์* ชื่อเดียวกันยังเป็น `?` — การเติมช่องไม่ได้ตอบเกณฑ์ให้เอง |
+| `version_unique_justification` · `version_tags_justification` | "v1.0.0 through v2.2.0" | **ตรงกับ tag จริง** |
+| `maintained_justification` | "latest release v2.2.0 (2026-08-21)" | **ตรงกับรุ่นล่าสุด** |
+| `release_notes_vulns_justification` | ชี้ v1.5.0 (CVE เจ็ดใบของ `cryptography`) | **คงไว้ถูกแล้ว** — v2.2.0 ไม่ได้แก้ CVE ของของที่ ship จริง (`util-linux` เป็นการ*รับไว้*) |
+| `test_continuous_integration_justification` | "27 checks on every push" | ตรงกับ required check ปัจจุบัน (27 จาก 30) |
+| `floss_license_osi_justification` | อ้าง ADR 0070 ที่แทน ADR 0038 | ถูกต้อง — บันทึกไว้กันเข้าใจผิดว่าเป็นของค้าง |
+| `crypto_working_justification` · `crypto_weaknesses_justification` | อ้างเลขรุ่นของไลบรารี (1.4.1) | คงไว้ — เป็นเลขรุ่นของ dependency ไม่ใช่ของแอป |
+| `contribution_justification` | "…must pass **27** required status checks…" | **แก้แล้ว 2026-08-22 โดยเจ้าของ** — เดิมเขียน 26 ขณะที่ของจริงคือ 27 และช่องอื่นบนเว็บเดียวกัน (`contribution_requirements_justification` · `test_continuous_integration_justification` · `two_person_review_justification`) เขียน 27 ถูกแล้ว ทั้งสามช่อง — ใบเดียวกันขัดกันเองได้เพราะไม่มีอะไรอ่านคู่ |
+| `governance_justification` | "…all decisions recorded as ADRs (**72** to date)…" | **แก้แล้ว 2026-08-22 โดยเจ้าของ** — เดิมค้างอยู่ที่ 58 (`ls docs/adr/0*.md`) · ห่างจากความจริง 14 ใบ |
+| `test_most_justification` · `test_statement_coverage80_justification` | "Coverage gate fail_under = **96**" | **ค้าง** — `pyproject.toml` เป็น 97 มาตั้งแต่ ratchet ขยับ · ช่อง `test_statement_coverage90_justification` บนเว็บเดียวกันเขียน 97 ถูกแล้ว |
+| `test_statement_coverage90_justification` · `test_branch_coverage80_justification` | 97.17% · 93.96% (1,058/1,126) | ห่างเล็กน้อยจากของวันนี้ (97.18% · 93.98% — 1,062/1,130) · ช่องพวกนี้เขียนว่า "measured on the current tree" จึงเป็นภาพถ่าย ไม่ใช่คำสัญญา — แก้ตอนรอบ release ถัดไปพอ |
+| `description` | "… v2.2.0 … **112** machine-checked gates, 72 ADRs, **26** recorded governance audits …" | **ตรงกันสามที่แล้ว (2026-08-23)** — เว็บ badge · ช่อง About ของ repo · และของบนดิสก์ (`gates.yaml` · `docs/adr/` · [AUDIT-LOG.md](AUDIT-LOG.md)) · ฝั่ง About มี `ci:posture` อ่านคู่ให้แล้วตั้งแต่ ADR 0072 ส่วนฝั่งเว็บ badge ยังต้องไล่ด้วยมือ |
 
-**สรุป: ต้องแก้ห้าช่อง** — `license` · `description` · `homepage_url` · `version_unique`/`version_tags` · `maintained` ·
-ที่เหลือตรวจแล้วว่ายังตรง · สามช่องแรกอยู่ในแท็บ **Project data** (ไม่กระทบ
-เปอร์เซ็นต์ แต่กระทบสิ่งที่คนอ่านเห็น) ส่วนสองช่องหลังเป็น justification ของเกณฑ์
-ที่ผูกกับเลขรุ่น ซึ่ง `docs/RELEASE.md` ข้อ 3 สั่งให้แก้ทุกรุ่นอยู่แล้ว
+**สี่แถวบนนี้เพิ่มตอน audit รอบ 24** — คำถามของรอบคือ *ใครเทียบของที่อยู่นอกรีโป
+กับของจริง* และคำตอบสำหรับใบตอบ badge คือ **ไม่มีใคร นอกจากรอบตรวจ 12 เดือน** ·
+ตัวเลขที่ค้างอยู่ไม่ได้ค้างเพราะใครประมาท แต่เพราะมันอยู่ในที่ที่ `git diff`
+มองไม่เห็น: `26` กับ `27` นั่งอยู่บนหน้าเดียวกันคนละช่อง และ `58 ADRs` เขียน
+ตอนที่มัน *เคย* เป็น 58 จริง ๆ · ผิวนอกรีโปทั้งกองอยู่ใน
+[EXTERNAL-SURFACE.md](EXTERNAL-SURFACE.md) แล้ว (ADR 0072)
+
+**ช่อง `description` เป็นสำเนาที่สามของตัวเลขชุดเดียวกัน** — อยู่ที่ About ของ repo
+· ที่นี่ · และในไฟล์นี้ · **ไม่มีที่ไหนในสามที่นั้นที่เทสต์อ่านคู่ได้เลย** เพราะสองที่แรก
+อยู่นอก repo · นี่คือเหตุผลที่ `docs/RELEASE.md` ข้อ 7 ต้องระบุทุกเลขพร้อมแหล่ง
+ที่ต้องเทียบ แทนที่จะเขียนว่า "อัปเดต About"
+
+**ตอน v2.2.0 ทั้งสามที่ค้างพร้อมกัน แล้วถูกไล่ปิดทีละที่ในสามรอบ** — About ก่อน
+· ใบตอบนี้ · แล้วช่องบนเว็บเป็นที่สุดท้าย · แต่ละรอบผ่านไปโดยที่ "ก็อัปเดตแล้วนี่"
+เป็นคำตอบที่จริงบางส่วนเสมอ **วิธีเดียวที่จบคือไล่เทียบทีละที่กับของบนดิสก์**
+ไม่ใช่เทียบกับความจำว่าแก้ไปแล้วหรือยัง
+
+### เกณฑ์ที่ยังไม่ Met (อ่านจาก API ตรง ๆ ไม่ใช่จากความจำ)
+
+- **`?` (ยังไม่ตอบ)** — `small_tasks` (ตอนนี้ตอบได้แล้ว: issue #186 ติดป้าย
+  `good first issue` และเปิดอยู่) · `build_reproducible` · `homepage_url` ·
+  `report_url` · และชุด `OSPS-*` ทั้งหมดซึ่งเป็นกรอบคนละใบ
+- **`Unmet` (ตัดสินแล้วว่าไม่ผ่าน)** — `bus_factor` · `contributors_unassociated`
+  · `two_person_review` · `dco` · `copyright_per_file` · `license_per_file` ·
+  `version_tags_signed` · เจ็ดข้อนี้เป็นผลของการเป็นโครงการคนเดียวโดยตรง
+  ห้าข้อแรกแก้ด้วยการมีคนที่สองเท่านั้น
 
 **กับดักของฟอร์มที่ยังใช้ได้อยู่**: บันทึกทีละแท็บ และดูว่า `updated_at`
 ใน JSON ขยับจริงหลังกด Save — ถ้าไม่ขยับ แปลว่าไม่ได้บันทึก
+
+## ชุด baseline — OSPS Baseline v2026.02.19 (**baseline-1 ได้แล้ว 2026-08-22**)
+
+`bestpractices.dev` ออก badge **สองชุดจากโปรเจกต์เดียวกัน** (ID 14085) —
+ชุด *metal* (passing → silver → gold) ที่ไฟล์นี้ตอบไว้ข้างบน และชุด
+**baseline** (baseline-1 → 2 → 3) ซึ่งเป็น [OSPS Baseline](https://baseline.openssf.org/)
+ชุดข้อ **MUST ล้วน** ที่ derive มาจากกรอบกฎหมาย/regulation · รูปของชุดนี้อยู่คนละ
+URL: `https://www.bestpractices.dev/projects/14085/baseline`
+
+**สถานะที่ดึงจาก API เมื่อ 2026-08-23**: `badge_percentage_baseline_1 = 100`
+(`achieved_baseline_1_at = 2026-08-22T23:19Z`) · baseline-2 และ 3 ยังเป็น 0 ·
+จำนวนข้อยืนยันจากไฟล์เกณฑ์ทางการ `criteria/baseline_criteria.yml` ของ
+ossf/best-practices-badge: **L1 24 · L2 19 · L3 21 รวม 64** (หน้าสรุปบนเว็บเขียน
+21/16/27 ซึ่งไม่ตรงกับไฟล์ที่ระบบใช้จริง)
+
+ตารางข้างล่างคือ**คำตอบที่กรอกไปจริงทั้ง 24 ข้อ** พร้อมหลักฐานในรีโป ·
+รูป badge อยู่บน `README.md` แล้วทั้งฉบับอังกฤษและไทย
+(`https://www.bestpractices.dev/projects/14085/baseline`)
+
+| เกณฑ์ | ตอบ | ข้อความที่วางลงฟอร์มได้เลย (อังกฤษ — ฟอร์มเป็นอังกฤษทั้งใบ) |
+|---|---|---|
+| `OSPS-AC-01.01` | Met | The sole maintainer's GitHub account requires 2FA with a passkey as the primary method (phishing-resistant), with TOTP and GitHub Mobile as backups; SMS is deliberately not enabled. Re-verified on a 12-month cadence recorded in docs/SECURITY-CADENCE.md. |
+| `OSPS-AC-02.01` | Met | GitHub requires an explicit permission choice when a collaborator is invited, and the repository has a single collaborator (the maintainer). The collaborator count is a tracked row in docs/EXTERNAL-SURFACE.md. |
+| `OSPS-AC-03.01` | Met | main accepts changes only through pull requests (ADR 0053) with enforce_admins enabled, so the maintainer cannot bypass it either. The posture CI job compares the live branch-protection settings against what the ADR declares on every push (ADR 0061). |
+| `OSPS-AC-03.02` | Met | Branch protection sets allow_deletions=false and allow_force_pushes=false on main; both are verified against the GitHub API by the posture job on every push. |
+| `OSPS-BR-01.01` | Met | No workflow interpolates untrusted text into a run block; every job declares its own permissions and the repository default is read-only. OpenSSF Scorecard scores Dangerous-Workflow 10/10 and Token-Permissions 10/10. |
+| `OSPS-BR-01.03` | Met | Workflows triggered by fork pull requests receive no secrets, and workflow runs from first-time contributors require manual approval. Release signing uses keyless sigstore OIDC, so there is no long-lived credential for a pipeline to leak. |
+| `OSPS-BR-03.01` | Met | Every official channel is HTTPS: the GitHub repository, GitHub Releases, and the DOI at doi.org. No http:// URL appears in project documentation. |
+| `OSPS-BR-03.02` | Met | Releases are distributed through GitHub over TLS; every release asset is signed keyless with cosign/sigstore and carries SLSA build provenance that consumers can verify with gh attestation verify (ADR 0058). |
+| `OSPS-BR-07.01` | Met | gitleaks runs on every push, GitHub secret scanning and push protection are enabled, .env is gitignored, and the application refuses to start unless SECRET_KEY is supplied at runtime — there is no default in the source. |
+| `OSPS-DO-01.01` | Met | README.md documents installation, configuration and daily use in English and Thai; docs/OPERATIONS.md covers deployment and operations; docs/openapi.json, generated from the code, documents the HTTP API. |
+| `OSPS-DO-02.01` | Met | CONTRIBUTING.md explains how to report defects, .github/ISSUE_TEMPLATE/bug_report.md provides the form, and SECURITY.md gives the private channel for security defects together with response deadlines. |
+| `OSPS-GV-02.01` | Met | GitHub Issues is the public discussion channel — searchable, threaded and archived. Issues aimed at newcomers carry the good first issue and help wanted labels. |
+| `OSPS-GV-03.01` | Met | CONTRIBUTING.md documents the contribution process end to end: pull-request-only flow, Conventional Commits with a 72-character subject limit, mutation testing for every new test, and registration of new test files in gates.yaml. |
+| `OSPS-LE-02.01` | Met | The source code is licensed AGPL-3.0-or-later, an OSI-approved license (ADR 0070). |
+| `OSPS-LE-02.02` | Met | Released assets are built from the same AGPL-3.0-or-later source, and the source archive attached to every tag contains the LICENSE file. |
+| `OSPS-LE-03.01` | Met | LICENSE at the repository root holds the AGPL-3.0-or-later text and LICENSE-docs holds CC BY-SA 4.0 for documentation; tests/test_licensing.py fails if either drifts. |
+| `OSPS-LE-03.02` | Met | The GitHub-generated source archive for every tag includes LICENSE, so the license travels with the released assets. |
+| `OSPS-QA-01.01` | Met | The repository is public and served from a stable URL: https://github.com/sayam/flask-todolist |
+| `OSPS-QA-01.02` | Met | The full git history is public on main with an author and timestamp for every commit; history is linear and never squashed (ADR 0053). |
+| `OSPS-QA-02.01` | Met | Pipfile and Pipfile.lock pin every direct and transitive Python dependency by hash; CI tooling is pinned separately under pins/ with --require-hashes; an SBOM per dependency category is attached to every release. |
+| `OSPS-QA-04.01` | N/A | The project is a single repository; there are no other codebases to list. |
+| `OSPS-QA-05.01` | Met | No executable artifact is committed to version control. OpenSSF Scorecard scores Binary-Artifacts 10/10. |
+| `OSPS-QA-05.02` | Met | The only binary files in version control are two compiled gettext catalogues (app/translations/{en,th}/LC_MESSAGES/messages.mo). Their reviewable source (.po) sits beside them and tests/test_i18n.py fails if the compiled output does not match, so the binaries cannot contain anything the reviewable source does not. |
+| `OSPS-VM-02.01` | Met | SECURITY.md names the reporting channel (GitHub private vulnerability reporting, enabled) and commits to acknowledgement within 7 days, initial assessment within 14, and fixes within 7/30/90 days by severity. |
+
+**ทั้ง 24 ข้ออยู่ในกลุ่มเดียวบนเว็บ** (`General → Controls`) เรียงตามลำดับนี้พอดี
+
+
+## ชุด baseline — ระดับ baseline-2 (19 ข้อ · ผ่านครบบนดิสก์แล้ว · รอกรอกบนเว็บ)
+
+จำนวนข้อมาจากไฟล์เกณฑ์ทางการ `criteria/baseline_criteria.yml` · อยู่กลุ่มเดียว
+(`General → Controls`) เหมือน baseline-1 และเรียงตามลำดับนี้พอดี
+
+**ผ่านครบทั้ง 19 ข้อแล้ว** — ข้อสุดท้ายที่ค้างคือ `OSPS-LE-01.01` (ผู้ส่งโค้ด
+ต้องยืนยันสิทธิ์ตามกฎหมายในทุก commit) ปิดด้วย **DCO ตาม
+[ADR 0073](adr/0073-dco-sign-off.md)** เมื่อ 2026-08-23 · ทุก commit ต่อจากนี้
+ต้องมี `Signed-off-by` ซึ่ง hook `commit-msg` กับ job `commit-lint` บังคับทั้งสองที่
+
+**ปิดทีเดียวได้สองที่** — เกณฑ์ `dco` ของชุด metal ระดับ **silver** เป็น `Unmet`
+มาตั้งแต่ต้นด้วยเหตุผลเดียวกัน ตอนกรอกให้เปลี่ยนเป็น `Met` พร้อมข้อความนี้:
+
+> Every commit must carry a Signed-off-by line (Developer Certificate of Origin
+> 1.1), added by git commit -s. The commit-msg hook rejects an unsigned commit
+> locally and the commit-lint CI job checks every commit a pull request adds,
+> including pull requests from forks. ADR 0073 records the rule and the
+> deliberate choice not to rewrite history that predates it.
+
+| เกณฑ์ | ตอบ | ข้อความที่วางลงฟอร์มได้เลย (อังกฤษ) |
+|---|---|---|
+| `OSPS-AC-04.01` | Met | The repository default for GITHUB_TOKEN is read-only (default_workflow_permissions=read, and workflows cannot approve pull requests); every job additionally declares its own permissions block. OpenSSF Scorecard scores Token-Permissions 10/10. |
+| `OSPS-BR-02.01` | Met | Every release carries a unique SemVer git tag (v1.0.0 through v2.2.0); the version is also asserted in app/__init__.py and a test fails if the tag, the code and CHANGELOG.md disagree. |
+| `OSPS-BR-04.01` | Met | CHANGELOG.md follows Keep a Changelog with a section per release, and release notes repeat it. Releases that fix published CVEs name them explicitly — v1.5.0 lists all seven cryptography advisories. |
+| `OSPS-BR-05.01` | Met | Dependencies are ingested with standard tooling only: pipenv with a hash-pinned Pipfile.lock for the application, pip --require-hashes for CI tools under pins/, and npm ci for the JavaScript tooling. A test fails the build if any workflow installs without hashes. |
+| `OSPS-BR-06.01` | Met | Every asset attached to a release is signed keyless with cosign/sigstore — each SBOM ships with its .sigstore.json bundle — and the build carries SLSA provenance verified with gh attestation verify before the assets are published (ADR 0058). Note: GitHub's auto-generated source archives and the git tags themselves are not separately signed; ADR 0058 records that decision and the condition for revisiting it. |
+| `OSPS-DO-06.01` | Met | docs/SUPPLY-CHAIN.md documents how dependencies are selected, obtained and tracked across every layer (application, CI tooling, container base image, service images), including the pinning rules and the two-way CVE registers. ADR 0025 documents how plugin dependencies are kept separable. |
+| `OSPS-DO-07.01` | Met | README.md and CONTRIBUTING.md give the full build path: Python 3.13, pipenv sync --dev, the plugin dependency categories, and the single preflight command that runs what CI runs. docs/OPERATIONS.md covers container and compose builds. |
+| `OSPS-GV-01.01` | Met | CONTRIBUTING.md section 'Who holds what' lists every member with access to sensitive resources: a single maintainer (@sayam) who is the only account with write access, administration rights and repository secrets. There are no teams or service accounts with write access. |
+| `OSPS-GV-01.02` | Met | The same section describes the roles and their responsibilities, and ADR 0053 records the compensating controls that stand in for separation of duties in a single-maintainer project, together with the condition that ends the arrangement. |
+| `OSPS-GV-03.02` | Met | CONTRIBUTING.md states what an acceptable contribution must satisfy: pull-request-only flow, Conventional Commits with a 72-character subject, ruff and mypy clean, mutation proof for every new test, registration of new test files in gates.yaml, and an ADR for any new decision. |
+| `OSPS-LE-01.01` | Met | Every commit must carry a Signed-off-by line (Developer Certificate of Origin 1.1), added by git commit -s. The commit-msg hook rejects an unsigned commit on the contributor's machine and the commit-lint CI job checks every commit a pull request adds, including pull requests from forks. ADR 0073 records the decision, including the deliberate choice not to rewrite history that predates the rule. |
+| `OSPS-QA-03.01` | Met | main is protected: 27 required status checks must pass before merge and enforce_admins is on, so the maintainer cannot bypass them either. The posture job compares the live settings with ADR 0053 on every push. |
+| `OSPS-QA-06.01` | Met | Every pull request runs the full test suite (1,773 tests) plus the same suite against MySQL and MariaDB, an authenticated DAST scan, an accessibility scan and a real compose stack — 27 required checks in total. |
+| `OSPS-SA-01.01` | Met | docs/ARCHITECTURE.md is an ISO/IEC 42010 style description: system context, stakeholders and their concerns, viewpoints and views, and correspondence rules between them. docs/DESIGN.md covers the user-facing side, and every decision links back to an ADR. |
+| `OSPS-SA-02.01` | Met | docs/openapi.json describes the HTTP API and is generated from the code, with CI failing if it drifts. The CLI surface is documented in CONTRIBUTING.md and docs/OPERATIONS.md, and the plugin interfaces are specified in the ADRs they were introduced by. |
+| `OSPS-SA-03.01` | Met | docs/RISK-ASSESSMENT.md holds a risk register with a documented likelihood x impact method and a machine-checked level formula. It sits alongside a full ASVS 5.0 L2 self-assessment (253 requirements) and an ISO/IEC 27001:2022 self-assessment (116 controls). |
+| `OSPS-VM-01.01` | Met | SECURITY.md is a coordinated disclosure policy with explicit timeframes: acknowledgement within 7 days, initial assessment within 14, and fixes within 7/30/90 days by severity. A test fails CI when a scheduled security review is overdue. |
+| `OSPS-VM-03.01` | Met | GitHub private vulnerability reporting is enabled and SECURITY.md points to it as the primary channel, giving the reporter a private thread with the maintainer. |
+| `OSPS-VM-04.01` | Met | Fixed vulnerabilities are published in CHANGELOG.md and in the release notes, naming each advisory; accepted-but-unfixed advisories are published with their reasoning in pins/accepted-advisories.txt, app/plugins/accepted-advisories.txt and deploy/accepted-image-advisories.txt, all of which CI checks in both directions. |
+
+
+## รูป badge บน README อ่านจาก API ไหน (2026-08-23)
+
+**OpenSSF มี API สองโดเมนและให้คนละคำตอบ** — วัดเมื่อ 2026-08-23:
+
+| แหล่ง | คะแนน | วันที่ของผล | Branch-Protection |
+|---|---|---|---|
+| `api.securityscorecards.dev` (เดิม) | 7.2 | 22 ส.ค. 14:15 | `-1` (อ่านไม่ได้) |
+| `api.scorecard.dev` (ปัจจุบัน) | **6.9** | 23 ส.ค. | **3** |
+
+รูปสำเร็จรูปของ shields (`/ossf-scorecard/...`) อ่านจากโดเมนเดิม ซึ่งค้างอยู่ที่ผล
+ก่อนที่ `repo_token` จะทำให้ Scorecard อ่าน branch protection ได้ · README จึงใช้
+รูปแบบ `dynamic/json` ที่ชี้ `api.scorecard.dev` ตรง ๆ แทน — **โฮสต์ของรูปยังเป็น
+`img.shields.io` เหมือนเดิม** จึงไม่ต้องเพิ่มโฮสต์ใหม่ในรายการที่วัดผ่าน camo แล้ว
+
+**คะแนนลดลงเพราะเราทำให้มันมองเห็นได้** ไม่ใช่เพราะถอยหลัง: `-1` แปลว่า *อ่านไม่ได้*
+และถูกตัดออกจากการเฉลี่ย พอมองเห็นได้จริงมันเข้าสูตรที่ 3/10 — สามในสี่คำเตือน
+ต้องมีผู้ดูแลคนที่สอง (ADR 0053) ส่วนข้อที่สี่ `up-to-date branches` ปิดไว้โดยตั้งใจ
+
+## ชุด baseline — ระดับ baseline-3 (21 ข้อ · ตอบได้ 18 · ค้าง 3)
+
+**ระดับนี้ยังไปไม่ถึงด้วยเหตุผลเชิงโครงสร้างหนึ่งข้อ** — `OSPS-QA-07.01` ต้องมี
+**คนที่ไม่ใช่ผู้เขียนอนุมัติก่อน merge** ซึ่งเป็นไปไม่ได้กับโปรเจกต์ผู้ดูแลคนเดียว ·
+[ADR 0053](adr/0053-solo-maintainer-sod-compensating-controls.md) บันทึกมาตรการ
+ชดเชยและเงื่อนไขที่ทำให้ข้อนี้เปลี่ยนไว้แล้ว (วันที่มีผู้ร่วมพัฒนาประจำคนที่สอง)
+
+อีกสองข้อเป็น **งานจริงที่ทำได้ ไม่ใช่ข้อจำกัด**:
+
+- `OSPS-SA-03.02` — ยังไม่มี **threat model + attack surface analysis** ของเส้นทาง
+  โค้ดสำคัญ (ทะเบียนความเสี่ยงกับ ASVS/ISO ที่มีอยู่เป็นคนละชนิดของงาน)
+- `OSPS-VM-04.02` — เหตุผลของ CVE ที่ไม่กระทบเราอยู่ในทะเบียนร้อยแก้วที่ CI ตรวจ
+  สองทิศแล้ว แต่**ยังไม่ได้ออกเป็น VEX** ที่เครื่องอ่านได้
+
+ที่เหลือ 18 ข้อตอบได้ทั้งหมด (17 Met · 1 N/A) — ระหว่างเตรียมใบตอบนี้ได้ปิดช่องว่าง
+เอกสารสี่ที่ไปด้วย: นโยบายความลับใน [OPERATIONS.md](OPERATIONS.md) · นโยบายทบทวน
+ก่อนให้สิทธิ์ที่สูงขึ้นใน `CONTRIBUTING.md` · ตารางรุ่นที่รองรับใน `SECURITY.md`
+(ค้างอยู่ที่ v1.x ทั้งที่รุ่นจริงคือ v2.2.0) · และประโยคที่บอกว่าเมื่อไหร่รุ่นหนึ่ง
+หยุดได้รับ security update
+
+| เกณฑ์ | ตอบ | ข้อความที่วางลงฟอร์มได้เลย (อังกฤษ) |
+|---|---|---|
+| `OSPS-AC-04.02` | Met | Every workflow job declares its own permissions block with only what that job needs (for example the scorecard job takes security-events: write and actions: read and nothing else); the repository default is read-only. OpenSSF Scorecard scores Token-Permissions 10/10. |
+| `OSPS-BR-01.04` | Met | Untrusted or collaborator-supplied text is never interpolated into a shell command: values such as the pull request body are passed to a Python script through the environment (PR_BODY) rather than into the run block. OpenSSF Scorecard scores Dangerous-Workflow 10/10. |
+| `OSPS-BR-02.02` | Met | Every asset is attached to the tagged release itself, which is the association to the release identifier, and each signature bundle is named after the asset it signs (sbom-core.json / sbom-core.json.sigstore.json). The SBOMs record the component versions they describe. |
+| `OSPS-BR-07.02` | Met | docs/OPERATIONS.md has a secrets policy that covers all three layers (application runtime secrets behind SECRETS_URL, CI secrets in GitHub Actions, external service tokens), naming for each where it is stored, who can read it, and when it is rotated — with the rotation deadlines carried as rows in docs/SECURITY-CADENCE.md. Storage in version control is blocked by gitleaks on every push plus GitHub secret scanning with push protection. |
+| `OSPS-DO-03.01` | Met | SECURITY.md, section 'Release artifacts are signed', gives the exact commands to verify a downloaded asset: cosign verify-blob against the sigstore bundle, and gh attestation verify for the SLSA build provenance. |
+| `OSPS-DO-03.02` | Met | The same verification command pins the expected identity of the release process: --certificate-identity-regexp bound to this repository's release.yml workflow and --certificate-oidc-issuer bound to GitHub's OIDC issuer, so a signature made by any other workflow or account fails the check. |
+| `OSPS-DO-04.01` | Met | SECURITY.md, section 'Supported versions', states the scope: main and the latest release are supported, earlier releases are superseded, and pre-1.0 releases promised nothing. |
+| `OSPS-DO-05.01` | Met | The same section states when security updates stop: a release stops receiving them the moment a newer release exists. There is no long-term support branch; fixes land on main and go out in the next tag, and releases are never patched in place. |
+| `OSPS-GV-04.01` | Met | CONTRIBUTING.md, section 'Who holds what', states that escalated access is reviewed before it is granted — the maintainer reviews the person's contribution history and confirms the identity behind the account, and the grant is recorded in that section so the list always names everyone who holds it. |
+| `OSPS-QA-02.02` | Met | Every release carries an SBOM per dependency category (core plus one per installable plugin), generated in CI and attached to the release together with its signature. |
+| `OSPS-QA-04.02` | N/A | The project is a single repository; there are no subprojects to hold to the same requirements. |
+| `OSPS-QA-06.02` | Met | CONTRIBUTING.md documents when and how tests run: one preflight command reproduces CI's lint and test steps locally by reading the workflow itself, the commit hook covers formatting and typing, and every pull request runs 27 required checks including the full suite against three database engines. |
+| `OSPS-QA-06.03` | Met | CONTRIBUTING.md rule 1 requires every new test to be proven by mutation before it counts, and diff-cover gates every pull request at 100% coverage of changed lines, so a change that adds behaviour without tests cannot merge. |
+| `OSPS-QA-07.01` | Unmet | The project has a single maintainer, so no non-author human approval is possible; required approvals are set to 0. ADR 0053 records the compensating controls (pull-request-only main enforced against admins, 27 required checks, an append-only audit chain, a fully public history) and the condition that ends the arrangement: the day a second regular contributor arrives, required reviews turn on. |
+| `OSPS-SA-03.02` | Met | docs/THREAT-MODEL.md is a threat model and attack surface analysis: scope and assumptions, the assets ranked by what their loss costs, actors and the trust boundaries each one cannot cross, an enumeration of every entry point with the threat considered and the control that stands in the way, and a deeper walk through the three paths that hurt most if they break (login to session, appending to the audit chain, loading a plugin). It ends with what is knowingly left unprotected and what the model cannot answer. It is bound to the code rather than left as prose: tests/test_threat_model.py fails if a route that needs no login is added without updating the model, if the model names a route that no longer exists, or if it cites a gate or an ADR that does not exist. |
+| `OSPS-VM-04.02` | Met | docs/vex.openvex.json is an OpenVEX document generated from the same advisory registers that CI already checks in both directions (scripts/build_vex.py). Advisories that live in CI tooling are not_affected with justification component_not_present; advisories in the image's OS layer are reported as affected with the action being waited on, because claiming otherwise would be a lie the consumer's own scanner could catch. tests/test_vex.py enforces both directions between the registers and the document, the OpenVEX shape, and that nothing inside the image is claimed to be absent. SECURITY.md points readers to it. |
+| `OSPS-VM-05.01` | Met | docs/SECURITY-CADENCE.md defines the remediation thresholds for SCA findings: critical within 7 days, high within 30, medium within 90, counted from the day the project becomes aware; an advisory without a score is treated as high until scored. Licence findings are gated separately by the licensing check, which fails on copyleft conflicts. |
+| `OSPS-VM-05.02` | Met | A release cannot be cut while an SCA violation is open: the release path requires the same required checks as any change, and the dependency audits fail the build unless every finding is either fixed or recorded with its reasoning in the accepted-advisories registers, which are themselves checked in both directions. |
+| `OSPS-VM-05.03` | Met | Every change is evaluated automatically: pip-audit for the application and for CI tooling, npm audit for the JavaScript tooling, trivy for the container image, and Dependabot for updates. All dependencies are hash-pinned (Pipfile.lock, pins/ with --require-hashes, npm ci), so a substituted or malicious artefact fails installation rather than being trusted. |
+| `OSPS-VM-06.01` | Met | SAST findings follow the same documented thresholds as other vulnerabilities in docs/SECURITY-CADENCE.md (critical 7 / high 30 / medium 90 days from awareness), and every alert that stays open must carry its reasoning in .github/accepted-code-scanning-alerts.txt, which CI checks in both directions. |
+| `OSPS-VM-06.02` | Met | Every change runs CodeQL (Python and JavaScript), semgrep with a proven scan scope, and gitleaks as required checks; a finding blocks the pull request unless it is declared with its reasoning in .github/accepted-code-scanning-alerts.txt, and a declaration that no longer matches a real alert fails the build too. |
+
+**ที่ยังต้องทำด้วยมือ**: ล็อกอินที่ <https://www.bestpractices.dev/en/projects/14085>
+แล้วสลับไปแท็บชุด baseline · กรอกตามตารางนี้ · ครบ 100% เมื่อไหร่ได้ badge
+`baseline-1` แล้วค่อยเพิ่มรูปลง `README.md`
 
 ## ทบทวน 2026-08-14 (หลังปิดเฟส 8–12)
 
