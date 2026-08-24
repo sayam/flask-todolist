@@ -55,8 +55,18 @@ def log_rows():
     return rows()
 
 
+def latest_possible_today() -> dt.date:
+    """วันที่ "วันนี้" ในโซนเวลาที่ล้ำสุดของโลก (UTC+14) — ไม่ใช่ของเครื่องที่รันเทสต์
+
+    แถวถูกเขียนตามวันของคนเขียน (ไทย UTC+7) แต่ CI รันที่ UTC ซึ่งยังเป็นเมื่อวาน
+    · เทสต์ที่ใช้ `date.today()` ของเครื่องจึงเขียวบนเครื่อง dev แดงบน CI —
+    คลาสเดียวกับ `test_pseudo_zones_are_never_offered` ใน CLAUDE.md
+    """
+    return (dt.datetime.now(dt.UTC) + dt.timedelta(hours=14)).date()
+
+
 def test_every_row_is_machine_readable(log_rows):
-    today = dt.date.today()
+    today = latest_possible_today()
     problems = []
     for index, row in enumerate(log_rows, start=2):
         day = dt.date.fromisoformat(row["date"])
