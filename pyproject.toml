@@ -210,6 +210,11 @@ suppressions_without_reason = 48
 # 18 → 19 (2026-08-25): repo placeholder `verifiable-gates` เกิดตาม ADR 0075 ข้อ 6 —
 # ผิวนอกชิ้นใหม่ที่ยังไม่มีเครื่องตรวจ จนกว่ามันจะมี posture ของตัวเอง
 external_surface_unowned = 19
+# จำนวน gate ทั้งหมดใน gates.yaml — เพดาน*บน* (ADR 0075 ข้อ 3) · กติกาเดิมกันแค่การถอด
+# (`removals.gates_total`) แต่ไม่มีอะไรกันการโต: 109 → 116 ใน 6 วัน ขณะที่หลักฐาน
+# `proved_by` ครอบ 44/116 และการทดลองเฟส 12 บอกว่ากฎเพิ่มให้ผลตอบแทนลดลง ·
+# gate ใหม่ต้องมาพร้อมการถอด gate เก่า หรือ ADR ที่ขยับเลขนี้
+gates_ceiling = 116
 
 [tool.todolist.removals]
 # gate ทั้งหมดใน gates.yaml — ถอด gate ทิ้งเคยเขียวได้ทั้ง CI ถ้าเก็บกวาดครบ 6 ที่

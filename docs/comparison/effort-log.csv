@@ -1,4 +1,4 @@
 date,minutes,track,kind,note
 2026-08-24,90,thesis,writing,ร้อยเรียงปรัชญา/กลไก/ผลการทดลองของ repo เป็น prompt สำหรับคณะที่ปรึกษา (สำรวจ repo + เขียน + artifact)
 2026-08-24,120,thesis,review,ตรวจส่วนที่ 2 ของ prompt กับ repo แล้วเขียนบทวิเคราะห์คณะที่ปรึกษา 8 หัวข้อ · พบ 6 จุดที่ prompt คลาด
-2026-08-25,240,thesis,governance,วางแผน 6 ข้อจากบทวิเคราะห์ · ตัดสิน CLA/time-log/freeze · effort log + เทสต์ (mutation 5 ทิศ) · ADR 0075/0076 · CLA.md · แก้ CONTRIBUTING/CHANGELOG · รันชุดเทสต์เต็ม · ตรวจความเป็นไปได้ของการถอด core (29/33 scripts ไม่ import app) · ตัดสินชื่อ verifiable-gates + Apache-2.0/CC BY 4.0 · CLA จำกัดตาม path · สร้าง placeholder repo verifiable-gates + ลงทะเบียนผิวนอก
+2026-08-25,290,thesis,governance,วางแผน 6 ข้อจากบทวิเคราะห์ · ตัดสิน CLA/time-log/freeze · effort log + เทสต์ (mutation 5 ทิศ) · ADR 0075/0076 · CLA.md · แก้ CONTRIBUTING/CHANGELOG · รันชุดเทสต์เต็ม · ตรวจความเป็นไปได้ของการถอด core (29/33 scripts ไม่ import app) · ตัดสินชื่อ verifiable-gates + Apache-2.0/CC BY 4.0 · CLA จำกัดตาม path · สร้าง placeholder repo verifiable-gates + ลงทะเบียนผิวนอก · PR C เพดาน gates_ceiling (mutation 2 ทิศ) + กฎเอกสาร

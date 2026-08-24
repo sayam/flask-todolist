@@ -103,7 +103,14 @@ REMOVAL_GUARDS = ("gates_total", "cadence_rows", "risk_rows", "deferred_rows")
 #
 # **สองทิศเหมือนเพดานของ `CLAUDE.md`**: เกินเพดาน = ต้องเป็นคำตัดสิน · ลดลงแล้ว
 # ไม่ลดเพดานตาม = ที่ว่างจะถูกถมกลับเงียบ ๆ
-CEILINGS = ("suppressions", "suppressions_without_reason", "external_surface_unowned")
+# `gates_ceiling` นับตัวเดียวกับ `removals.gates_total` แต่คนละทิศ — พื้นกันถอด เพดานกันโต
+# (ADR 0075 ข้อ 3) · ทั้งคู่ต้องเท่ากับของจริง จึงล็อกจำนวน gate ไว้จนกว่าจะมีคำตัดสิน
+CEILINGS = (
+    "suppressions",
+    "suppressions_without_reason",
+    "external_surface_unowned",
+    "gates_ceiling",
+)
 
 SUPPRESSION_SOURCES = ("app/**/*.py", "scripts/*.py", "tests/*.py")
 # `app/sun_data.py` generate มา · `migrations/` กับ `skill/` อยู่นอกขอบเขต ruff อยู่แล้ว
@@ -312,6 +319,7 @@ def measured() -> dict[str, float]:
         "enforced_prohibitions": float(enforced_prohibitions()),
         "scripts_coverage": scripts_coverage(),
         "external_surface_unowned": float(external_surface_unowned()),
+        "gates_ceiling": float(removal_counts()["gates_total"]),
         **{name: float(value) for name, value in removal_counts().items()},
         **{name: float(value) for name, value in suppression_counts().items()},
     }
