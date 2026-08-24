@@ -15,6 +15,56 @@ from config import Config
 PASSWORD = "pytest-fixture-passphrase"
 
 
+# ------------------------------------------- ปลายทางของชุดเทสต์ต้องเป็นของทิ้ง
+#
+# **ทุก fixture ที่สร้างแอปเรียก `db.create_all()` แล้ว `db.drop_all()`**
+# (ดู `_app_with_tables` ข้างล่าง) และปลายทางมาจาก `TEST_DATABASE_URL` ซึ่ง
+# `CLAUDE.md` บอกให้คนตั้งเองเวลาอยากยิงยี่ห้ออื่น — พิมพ์ host หรือชื่อฐานผิด
+# ครั้งเดียวคือ **drop ตารางทั้งฐาน** และเป็นความเสียหายที่ย้อนไม่ได้
+#
+# `docs/ISO27001.md` ประกาศมานานแล้วว่า A.8.31/A.8.33 ผ่านเพราะ "fixture ปฏิเสธ
+# ฐานข้อมูลจริง" — แต่ตัวที่ปฏิเสธจริงคือ `scripts/a11y_fixture.py` ซึ่งเป็นคนละ
+# เส้นทางกับชุดเทสต์ และเกณฑ์ของมันจับได้เฉพาะรูป sqlite ของ dev เท่านั้น
+# (`"instance" in uri`) · เส้นทางที่อันตรายที่สุดจึงไม่เคยมีอะไรกันเลย
+#
+# **เกณฑ์เป็น opt-in ด้วยชื่อ ไม่ใช่ blocklist ของสิ่งที่ห้าม** — blocklist ต้อง
+# เดาให้ครบว่าฐานจริงหน้าตาอย่างไร ซึ่งเดาไม่มีวันครบ ส่วน allowlist ผิดพลาดไป
+# ทางที่ปลอดภัย: ฐานที่ไม่ได้ประกาศตัวว่าเป็นของทิ้ง จะไม่ถูกแตะเลย
+THROWAWAY_MARK = "test"
+
+
+def throwaway_problem(uri: str) -> str | None:
+    """คืนข้อความอธิบายถ้า `uri` ไม่ใช่ฐานข้อมูลของทิ้ง · คืน `None` ถ้าใช้ได้
+
+    ผ่านสองรูปเท่านั้น: **sqlite ในหน่วยความจำ** (หายไปพร้อม process อยู่แล้ว)
+    กับ **ฐานที่ชื่อบอกเองว่าเป็นของทดสอบ** — ตัดสินจากส่วนสุดท้ายของ path
+    ซึ่งคือชื่อฐาน (`.../todolist_test`) หรือชื่อไฟล์ (`/tmp/todolist_test.db`)
+    ไม่ใช่จากทั้ง URL เพราะ host ที่ชื่อ `test-db` ไม่ได้แปลว่าฐานในนั้นทิ้งได้
+    """
+    if ":memory:" in uri or uri in {"sqlite://", "sqlite:///"}:
+        return None
+    name = uri.split("?", 1)[0].rstrip("/").rsplit("/", 1)[-1]
+    if THROWAWAY_MARK in name.casefold():
+        return None
+    return (
+        f"ปฏิเสธ: TEST_DATABASE_URL ชี้ไปที่ฐานชื่อ {name!r} ซึ่งไม่ได้บอกว่าเป็นของทิ้ง — "
+        f"ชุดเทสต์ `drop_all()` ทุก fixture ปลายทางที่ไม่ใช่ของทิ้งจะเสียหายถาวร · "
+        f"ตั้งชื่อฐานให้มีคำว่า {THROWAWAY_MARK!r} (เช่น `todolist_test` แบบที่ CI ใช้) "
+        f"หรือใช้ sqlite ในหน่วยความจำซึ่งเป็นค่าเริ่มต้นอยู่แล้ว"
+    )
+
+
+def refuse_a_database_that_is_not_throwaway() -> None:
+    """ด่านที่ถูกเรียกตอน import — ต้องตัดก่อน fixture ตัวไหนได้แตะ schema"""
+    configured = os.environ.get("TEST_DATABASE_URL")
+    problem = throwaway_problem(configured) if configured else None
+    if problem:
+        raise pytest.UsageError(problem)
+
+
+refuse_a_database_that_is_not_throwaway()
+
+
 # ---------------------------------------------------------------- marker ที่ derive มา
 #
 # **เทสต์ชั้นกติกาอ่านไฟล์อย่างเดียว — ผลไม่ขึ้นกับยี่ห้อฐานข้อมูลเลย** (audit รอบ 18)

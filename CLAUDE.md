@@ -531,7 +531,9 @@ session มาก่อนโปรไฟล์เพื่อให้กดส
   เพราะ "ล้มเหลวยี่ห้อเดียว" กับ "ล้มเหลวทั้งสอง" เป็นคนละอาการ
 - **เลือกยี่ห้อตอนรันเทสต์ด้วย `TEST_DATABASE_URL` ไม่ใช่ `DATABASE_URL`**
   (`.env` ของเครื่องต้องไม่มีผลกับเทสต์ — หลักเดียวกับ `RATELIMIT_ENABLED`)
-  ยิงเองในเครื่องได้: `TEST_DATABASE_URL="mysql+pymysql://u:p@host/db" pipenv run pytest`
+  ยิงเองในเครื่องได้: `TEST_DATABASE_URL="mysql+pymysql://u:p@host/todolist_test" pipenv run pytest`
+  · **ชื่อฐานต้องมีคำว่า `test`** ไม่งั้นชุดเทสต์ปฏิเสธตั้งแต่ยังไม่เริ่ม —
+  ทุก fixture `drop_all()` ปลายทางที่พิมพ์ผิดจึงเสียหายถาวร (ISO A.8.31/A.8.33)
 - **ทุก fixture ที่สร้างแอปต้องเดินผ่าน `_app_with_tables()`** ห้ามเรียก
   `db.create_all()` เอง — `sqlite:///:memory:` หายไปพร้อม engine จึงให้อภัยการ
   ลืมเก็บกวาดมาตลอด แต่ยี่ห้ออื่นเก็บตารางไว้ข้ามเทสต์ ข้อมูลของตัวก่อนหน้าจะ
