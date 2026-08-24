@@ -4,8 +4,13 @@
 > อยู่ใน [ADR 0076](docs/adr/0076-cla-for-relicensing.md) — อ่านก่อนลงนาม
 
 This agreement is between you (the "Contributor") and the copyright holder of
-this project, Sayam Sriphua (the "Maintainer"). It applies to every contribution
-you submit to this repository after you sign.
+this project, Sayam Sriphua (the "Maintainer"). It applies to contributions
+that touch the **governance core** of this repository — `scripts/`, `overlays/`,
+`skill/`, `gates.yaml`, `docs/comparison/`, and their tests — which is being
+extracted into its own project, `verifiable-gates`, under Apache-2.0
+([ADR 0075 §6](docs/adr/0075-thesis-track-freeze-effort-and-ceilings.md)).
+Changes to the application itself (`app/`, `migrations/`, its tests) need no CLA
+and stay under AGPL-3.0-or-later exactly as before.
 
 **What you keep.** You keep the copyright in everything you write. Nothing here
 transfers ownership.
@@ -13,8 +18,9 @@ transfers ownership.
 **What you grant.** You grant the Maintainer a perpetual, worldwide, non-exclusive,
 royalty-free, irrevocable licence to reproduce, modify, distribute, sublicense,
 and publicly display your contribution — **including the right to distribute it
-under licence terms other than the project's current ones** (for example a
-commercial licence alongside the AGPL). The project itself stays open source: the
+under licence terms other than this repository's current ones**: in particular
+under Apache-2.0 as part of `verifiable-gates`, and under a commercial licence
+alongside it. The project itself stays open source: the
 Maintainer commits to keeping every version that includes your contribution
 available under an OSI-approved licence.
 
@@ -42,14 +48,18 @@ are needed.
 ## ข้อตกลงสิทธิ์ของผู้ร่วมพัฒนา (รายบุคคล)
 
 ข้อตกลงนี้อยู่ระหว่างคุณ ("ผู้ร่วมพัฒนา") กับผู้ถือลิขสิทธิ์ของโปรเจกต์นี้ คือ
-สยาม ศรีเผือก ("ผู้ดูแล") มีผลกับทุกสิ่งที่คุณส่งเข้ามาหลังลงนาม
+สยาม ศรีเผือก ("ผู้ดูแล") มีผลกับสิ่งที่คุณส่งซึ่งแตะ**แกน governance** ของ repo —
+`scripts/` · `overlays/` · `skill/` · `gates.yaml` · `docs/comparison/` และเทสต์
+ของพวกนั้น — ซึ่งกำลังถูกถอดไปเป็นโปรเจกต์ `verifiable-gates` ภายใต้ Apache-2.0
+(ADR 0075 ข้อ 6) · การแก้ตัวแอป (`app/` · `migrations/` · เทสต์ของแอป) ไม่ต้องมี CLA
+และอยู่ใต้ AGPL-3.0-or-later เหมือนเดิม
 
 **สิ่งที่คุณยังถือ** — ลิขสิทธิ์ในทุกสิ่งที่คุณเขียนยังเป็นของคุณ ไม่มีการโอน
 
 **สิ่งที่คุณให้** — สิทธิ์ที่ไม่ผูกขาด ถาวร เพิกถอนไม่ได้ ไม่มีค่าตอบแทน ให้ผู้ดูแล
 ทำซ้ำ ดัดแปลง เผยแพร่ ให้สิทธิ์ช่วง และแสดงต่อสาธารณะ ซึ่งสิ่งที่คุณส่ง —
 **รวมถึงสิทธิ์ที่จะเผยแพร่มันภายใต้เงื่อนไขอื่นนอกจากสัญญาอนุญาตปัจจุบันของ
-โปรเจกต์** (เช่นสัญญาเชิงพาณิชย์ควบคู่กับ AGPL) · ตัวโปรเจกต์ยังเป็น open source:
+repo นี้** — โดยเฉพาะภายใต้ Apache-2.0 ใน `verifiable-gates` และสัญญาเชิงพาณิชย์ควบคู่ · ตัวโปรเจกต์ยังเป็น open source:
 ผู้ดูแลผูกพันว่าทุกรุ่นที่มีงานของคุณจะยังเผยแพร่ภายใต้สัญญาที่ OSI รับรอง
 
 **สิ่งที่คุณรับรอง** — คุณมีสิทธิ์ให้สิ่งนี้ตามกฎหมาย · งานเป็นของคุณเอง (หรือระบุ

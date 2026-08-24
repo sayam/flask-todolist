@@ -343,10 +343,13 @@ same terms as the rest of the project: [AGPL-3.0-or-later](LICENSE) for code and
 [CC BY-SA 4.0](LICENSE-docs) for documentation. You keep the copyright in what
 you wrote — there is no copyright assignment.
 
-**External contributors sign [`CLA.md`](CLA.md) before their first merge** — one
-line in the pull request description. It grants the maintainer the right to
-relicense your contribution (for example under a commercial licence alongside
-the AGPL) while the project itself stays under an OSI-approved licence. This
+**External contributors whose PR touches the governance core — `scripts/`,
+`overlays/`, `skill/`, `gates.yaml`, `docs/comparison/`, their tests — sign
+[`CLA.md`](CLA.md) before merge** — one line in the pull request description. It
+grants the maintainer the right to relicense that contribution, because the core
+is being extracted into `verifiable-gates` under Apache-2.0 (ADR 0075 §6); the
+project itself stays under an OSI-approved licence. **Changes to the app itself
+need no CLA** — that part of ADR 0070 still holds. This
 reverses an earlier, published decision to have no CLA; the reasons are in
 [ADR 0076](docs/adr/0076-cla-for-relicensing.md), which replaced point 4 of
 [ADR 0070](docs/adr/0070-relicense-to-agpl-and-cc-by-sa.md). The `Signed-off-by:`
@@ -490,8 +493,9 @@ generate ทั้งหมดสร้างใหม่จาก source ที
 สำหรับโค้ด และ [CC BY-SA 4.0](LICENSE-docs) สำหรับเอกสาร · คุณยังถือลิขสิทธิ์ใน
 สิ่งที่คุณเขียน ไม่มีการโอน
 
-**ผู้ร่วมพัฒนาภายนอกลงนาม [`CLA.md`](CLA.md) ก่อน merge ครั้งแรก** — บรรทัดเดียว
-ในคำอธิบาย PR · ใบนั้นให้สิทธิ์ผู้ดูแล relicense งานของคุณ (เช่นสัญญาเชิงพาณิชย์
-ควบคู่ AGPL) โดยตัวโปรเจกต์ยังอยู่ใต้สัญญาที่ OSI รับรอง · นี่กลับคำตัดสินเดิมที่
+**PR ที่แตะแกน governance (`scripts/` · `overlays/` · `skill/` · `gates.yaml` ·
+`docs/comparison/` และเทสต์ของพวกนั้น) ต้องลงนาม [`CLA.md`](CLA.md) ก่อน merge** —
+บรรทัดเดียวในคำอธิบาย PR · เพราะแกนนั้นกำลังถูกถอดไปเป็น `verifiable-gates` ภายใต้
+Apache-2.0 (ADR 0075 ข้อ 6) · **แก้ตัวแอปไม่ต้องมี CLA** — ส่วนนั้นของ ADR 0070 ยังจริง · นี่กลับคำตัดสินเดิมที่
 เคยประกาศว่า "ไม่มี CLA" — เหตุผลอยู่ใน ADR 0076 (แทนที่ ADR 0070 ข้อ 4) ·
 `Signed-off-by:` ทุก commit (DCO) ยังต้องมี — DCO รับรองความเป็นผู้เขียน CLA ให้สิทธิ์
