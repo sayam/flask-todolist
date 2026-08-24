@@ -7,7 +7,7 @@
 
 The code, commit messages, and this file are in English. **Almost everything that
 explains *why* the code looks the way it does is in Thai** — [`CLAUDE.md`](CLAUDE.md)
-(the working notes), the 74 records in [`docs/adr/`](docs/adr/), and the rest of
+(the working notes), the 76 records in [`docs/adr/`](docs/adr/), and the rest of
 `docs/`. Machine translation handles them acceptably, but you should know that
 before you invest an afternoon.
 
@@ -340,15 +340,18 @@ records what changes when a second regular contributor arrives).
 
 By opening a pull request you agree that your contribution is published under the
 same terms as the rest of the project: [AGPL-3.0-or-later](LICENSE) for code and
-[CC BY-SA 4.0](LICENSE-docs) for documentation. **There is no CLA** and no
-copyright assignment — you keep the copyright in what you wrote. See
-[ADR 0070](docs/adr/0070-relicense-to-agpl-and-cc-by-sa.md), which replaced
-[ADR 0038](docs/adr/0038-mit-license.md).
+[CC BY-SA 4.0](LICENSE-docs) for documentation. You keep the copyright in what
+you wrote — there is no copyright assignment.
 
-One consequence worth stating plainly: because contributors keep their copyright
-and there is no CLA, **a second regular contributor makes the license effectively
-permanent** — changing it again would need everyone's agreement. That is a
-deliberate trade, and it is why the change was made now rather than later.
+**External contributors sign [`CLA.md`](CLA.md) before their first merge** — one
+line in the pull request description. It grants the maintainer the right to
+relicense your contribution (for example under a commercial licence alongside
+the AGPL) while the project itself stays under an OSI-approved licence. This
+reverses an earlier, published decision to have no CLA; the reasons are in
+[ADR 0076](docs/adr/0076-cla-for-relicensing.md), which replaced point 4 of
+[ADR 0070](docs/adr/0070-relicense-to-agpl-and-cc-by-sa.md). The `Signed-off-by:`
+line on every commit (DCO) is still required — it attests authorship, the CLA
+grants rights.
 
 ## Conduct
 
@@ -484,9 +487,11 @@ generate ทั้งหมดสร้างใหม่จาก source ที
 ## license ของสิ่งที่คุณส่งมา
 
 เปิด PR = ยอมให้เผยแพร่ภายใต้เงื่อนไขเดียวกับส่วนที่เหลือ: [AGPL-3.0-or-later](LICENSE)
-สำหรับโค้ด และ [CC BY-SA 4.0](LICENSE-docs) สำหรับเอกสาร · **ไม่มี CLA** และไม่มี
-การโอนลิขสิทธิ์ คุณยังถือลิขสิทธิ์ในสิ่งที่คุณเขียน (ADR 0070 แทน ADR 0038)
+สำหรับโค้ด และ [CC BY-SA 4.0](LICENSE-docs) สำหรับเอกสาร · คุณยังถือลิขสิทธิ์ใน
+สิ่งที่คุณเขียน ไม่มีการโอน
 
-ผลที่ตามมาซึ่งควรพูดตรง ๆ: เพราะผู้ร่วมพัฒนาถือลิขสิทธิ์ของตัวเองและไม่มี CLA
-**พอมีผู้ร่วมพัฒนาประจำคนที่สอง สัญญาอนุญาตจะเปลี่ยนอีกไม่ได้โดยง่าย** —
-ต้องได้ความยินยอมจากทุกคน · นี่เป็นการแลกที่ตั้งใจ และเป็นเหตุผลที่เปลี่ยนตอนนี้
+**ผู้ร่วมพัฒนาภายนอกลงนาม [`CLA.md`](CLA.md) ก่อน merge ครั้งแรก** — บรรทัดเดียว
+ในคำอธิบาย PR · ใบนั้นให้สิทธิ์ผู้ดูแล relicense งานของคุณ (เช่นสัญญาเชิงพาณิชย์
+ควบคู่ AGPL) โดยตัวโปรเจกต์ยังอยู่ใต้สัญญาที่ OSI รับรอง · นี่กลับคำตัดสินเดิมที่
+เคยประกาศว่า "ไม่มี CLA" — เหตุผลอยู่ใน ADR 0076 (แทนที่ ADR 0070 ข้อ 4) ·
+`Signed-off-by:` ทุก commit (DCO) ยังต้องมี — DCO รับรองความเป็นผู้เขียน CLA ให้สิทธิ์

@@ -442,7 +442,7 @@ gates:
     title: ตัววัดของการทดลองต้องแยกแอปที่ทำครบออกจากแอปที่ละเมิดได้ทุกข้อ
     kind: test
     severity: blocking
-    enforced_by: {job: test, tests: [tests/test_asvs_probe.py]}
+    enforced_by: {job: test, tests: [tests/test_asvs_probe.py, tests/test_effort_log.py]}
     standard: []
     requires: []
     portable: false
