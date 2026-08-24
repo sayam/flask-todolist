@@ -20,6 +20,11 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Added
 
+- **Gate count now has a ceiling, and new documents need a reader.**
+  `[tool.todolist.ceilings].gates_ceiling` is checked by `check_ratchets.py`
+  next to the removal floor — a new gate must retire an old one or move the
+  number by ADR; CONTRIBUTING rule 12 (both languages) states the same for
+  files under `docs/`. [ADR 0075 §3–4](docs/adr/0075-thesis-track-freeze-effort-and-ceilings.md).
 - **The thesis track now leaves a trail that cannot be reconstructed later.**
   `docs/comparison/effort-log.csv` records time per session from 2026-08-24
   (`tests/test_effort_log.py` fails if a day with commits has no row — the one

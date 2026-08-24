@@ -193,6 +193,22 @@ append-only audit chain, the public history) only work if they sit on the
 mandatory path. Review count is intentionally 0 — the day a second regular
 contributor arrives, required reviews turn on and ADR 0053 gets revisited.
 
+### 12. New documents need a reader, and the gate count has a ceiling
+
+Every number this repository advertises has a test that reads it against the
+source of truth — and audit round 25 measured what that discipline costs: 12.5%
+of recent commits were pure number-syncing. So two things are now capped rather
+than grown ([ADR 0075](docs/adr/0075-thesis-track-freeze-effort-and-ceilings.md)):
+
+- **A new file under `docs/` must either be generated, or come with a test that
+  reads part of it against something real.** Prose with no reader is the class
+  of document that goes stale silently; the review will ask what reads it.
+- **`gates.yaml` has an upper ceiling** (`[tool.todolist.ceilings].gates_ceiling`,
+  checked by `scripts/check_ratchets.py` alongside the removal floor). A new gate
+  must retire an old one or come with an ADR that moves the number — the
+  experiment in `docs/comparison/` found that rules past a point buy consistency,
+  not safety, and 74 of 116 gates still carry no evidence of ever having gone red.
+
 ## Who holds what
 
 The project has one maintainer, **[@sayam](https://github.com/sayam)**, who is
@@ -228,7 +244,7 @@ authentication (a passkey as the primary method, TOTP and GitHub Mobile as
 backups, SMS deliberately not enabled); this is re-verified on a twelve-month
 cadence recorded in [docs/SECURITY-CADENCE.md](docs/SECURITY-CADENCE.md).
 
-### 12. A `good first issue` is an invitation that is still out
+### 13. A `good first issue` is an invitation that is still out
 
 The label is not decoration: someone may already be working on it, and you will
 not know, because a first-time contributor has no reason to announce it and no
@@ -451,6 +467,14 @@ pipenv run flask create-user <ชื่อ>
     branch → PR → required check เขียวครบ 27 → merge · review count เป็น 0
     โดยตั้งใจ (คนเดียว review ตัวเองไม่ได้ — มาตรการชดเชยอยู่ใน ADR) ·
     มี contributor ประจำคนที่สองเมื่อไหร่ เปิด required review ทันที
+
+12. **เอกสารใหม่ต้องมีเครื่องอ่านคู่ และจำนวน gate มีเพดานบน**
+    ([ADR 0075](docs/adr/0075-thesis-track-freeze-effort-and-ceilings.md)) —
+    ไฟล์ใหม่ใต้ `docs/` ต้อง generate หรือมีเทสต์ที่อ่านเนื้อบางส่วนเทียบของจริง
+    ไม่งั้นรีวิวจะถามว่า "ใครอ่านมัน" · gate ใหม่ต้องถอด gate เก่าหรือมี ADR ขยับ
+    `gates_ceiling` ใน `pyproject.toml` (`scripts/check_ratchets.py` ตรวจคู่กับ
+    พื้นกันถอด) — audit รอบ 25 วัดแล้วว่าทะเบียนเก็บภาษี 12.5% ของ commit และ
+    การทดลองเฟส 12 บอกว่ากฎเพิ่มให้ผลตอบแทนลดลง
 
 ## ก่อนเปิด pull request
 
