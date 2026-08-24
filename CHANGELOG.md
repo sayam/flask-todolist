@@ -20,6 +20,28 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Added
 
+- **The test suite could be pointed at a real database, and nothing stopped it.**
+  Every fixture that builds an app goes through `_app_with_tables()`, which calls
+  `db.create_all()` and then `db.drop_all()`; the destination comes from
+  `TEST_DATABASE_URL`, which `CLAUDE.md` tells people to set by hand when they
+  want to run against another engine. One typo in a host or a database name and
+  the whole schema is gone, permanently. `docs/ISO27001.md` had claimed A.8.31
+  and A.8.33 as passing since they were first assessed, on the grounds that "the
+  fixture refuses a real database" — but the thing that refuses is
+  `scripts/a11y_fixture.py`, which is a different code path, tests only
+  `"instance" in uri` so it catches only the dev SQLite shape, and declares its
+  own role as `helper`, defined in `tests/test_script_roles.py` as "does not
+  decide and is not cited as evidence." The most dangerous path had nothing on it
+  at all. `tests/conftest.py` now refuses, at import time and before any fixture
+  can touch a schema, any destination that does not say it is disposable. The
+  rule is an allowlist rather than a blocklist — guessing every shape a real
+  database might take never finishes, while an allowlist fails safe — and it
+  reads the database name, not the whole URL, because a host called `test-db`
+  says nothing about what lives in it. The direction that matters most is proved
+  by launching a child pytest with a production-shaped URL and requiring the run
+  to stop; the direction that must keep passing is bound to the value `ci.yml`
+  really uses, read from that file rather than copied into the test.
+
 - **The watcher that was built to notice our cron dying runs inside that cron.**
   Governance audit round 26 asked, for the first time, where this project fails
   *first* if the maintainer disappears for a year — the order of failure, not
