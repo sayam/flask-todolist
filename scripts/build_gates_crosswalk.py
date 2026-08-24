@@ -24,7 +24,7 @@ import sys
 
 # pyyaml มากับ dev tools และไม่มี stub — ไม่คุ้มเพิ่ม dependency (types-PyYAML)
 # เพื่อ type ของ safe_load ที่โครงถูกตรวจโดย tests/test_gates.py อยู่แล้ว
-import yaml  # type: ignore[import-untyped]
+import yaml  # type: ignore[import-untyped] - library lacks type stubs
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 GATES = ROOT / "gates.yaml"
