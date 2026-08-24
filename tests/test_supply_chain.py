@@ -101,22 +101,80 @@ def test_the_register_names_everything_we_pull_from_outside(register):
     )
 
 
-def test_every_supplier_row_says_what_would_go_red(register):
-    """ทุกแถวต้องตอบครบสามช่อง และ "ไม่มีเครื่องตรวจ" ต้องมีตัวทวงกำกับ"""
-    rows = [
+def _supplier_rows(register: str) -> list[list[str]]:
+    """แถวของทะเบียนผู้ให้บริการ (ตัดหัวตารางออกแล้ว)"""
+    return [
         [cell.strip() for cell in line.strip().strip("|").split("|")]
         for line in register.splitlines()
         if line.startswith("| ") and "---" not in line
     ][1:]
+
+
+def test_every_supplier_row_says_what_would_go_red(register):
+    """ทุกแถวต้องตอบครบสี่ช่อง และ "ไม่มีเครื่องตรวจ" ต้องมีตัวทวงกำกับ"""
+    rows = _supplier_rows(register)
     assert len(rows) >= 5, f"ทะเบียนมีแค่ {len(rows)} แถว — ตัวดึงตารางพังหรือเปล่า"
 
     for row in rows:
-        assert len(row) == 3, f"แถวต้องมีสามช่อง: {row}"
+        assert len(row) == 4, f"แถวต้องมีสี่ช่อง: {row}"
         assert all(row), f"แถวที่มีช่องว่าง: {row}"
         if "ไม่มีเครื่องตรวจ" in row[2]:
             assert "SECURITY-CADENCE" in row[2], (
                 f"{row[0]}: ไม่มีด่านแล้วต้องมีแถวทวงใน SECURITY-CADENCE กำกับ ไม่ใช่ปล่อยว่าง"
             )
+
+
+# ---------------------------------------- ช่องที่สี่ (audit รอบ 27)
+#
+# สามช่องแรกถามถึงความล้มเหลวที่ **ดัง** — เขาเปลี่ยนสัญญา ของพัง job แดง ·
+# ช่องที่สี่ถามถึงความล้มเหลวที่ **เงียบ**: เขายังทำงานปกติทุกอย่าง แต่เลิกทำให้เรา
+# ตามนโยบายที่เป็นเรื่องของ *เรา* ไม่ใช่ของเขา (Dependabot pause 90 วัน · GitHub
+# ปิด schedule 60 วัน) · ไม่มีอะไรแดงในกรณีพวกนี้ เพราะ**ไม่มีอะไรเกิดขึ้นเลย**
+#
+# **"ไม่มีที่รู้จัก" เป็นคำตอบที่ถูกต้อง** และต้องเขียนออกมา — ช่องว่างแปลว่า
+# ยังไม่มีใครถาม ส่วน "ไม่มีที่รู้จัก" แปลว่าถามแล้วและนี่คือคำตอบ ซึ่งเป็นคนละเรื่อง
+NO_KNOWN_CLOCK = "ไม่มีที่รู้จัก"
+
+
+def test_every_supplier_row_says_when_they_stop_serving_us(register):
+    """ช่องที่สี่ต้องเป็นคำตอบ ไม่ใช่ที่ว่าง — และนาฬิกาที่มีอยู่ต้องมีคนกัน"""
+    unanswered = []
+    unguarded = []
+    for row in _supplier_rows(register):
+        answer = row[3]
+        if len(answer) < 20:
+            unanswered.append(f"{row[0][:40]}: {answer!r}")
+        elif NO_KNOWN_CLOCK not in answer and not any(
+            hint in answer
+            for hint in ("ADR", "SECURITY-CADENCE", "รักษาชีพ", "RELEASE.md", "ci:", "gate ")
+        ):
+            unguarded.append(f"{row[0][:40]}: {answer[:70]}")
+
+    assert not unanswered, (
+        "แถวที่ยังไม่ตอบว่าเขาหยุดทำให้เราเมื่อไหร่:\n  "
+        + "\n  ".join(unanswered)
+        + f"\nเขียน {NO_KNOWN_CLOCK!r} ได้ถ้าถามแล้วไม่มีจริง — แต่ห้ามปล่อยว่าง"
+    )
+    assert not unguarded, (
+        "นาฬิกาของคนอื่นที่ไม่มีอะไรกัน:\n  "
+        + "\n  ".join(unguarded)
+        + "\nนาฬิกาที่เดินอยู่แล้วไม่มีใครรีเซ็ต คือความเสี่ยงที่ยังไม่ได้ตัดสินใจ — "
+        "ผูกกับ ADR หรือแถวใน SECURITY-CADENCE"
+    )
+
+
+def test_the_supplier_that_provably_stopped_serving_us_has_its_own_row(register):
+    """ทิศกลับ — Dependabot ต้องเป็น *แถว* ไม่ใช่คำที่โผล่ในช่องของคนอื่น
+
+    ตอน audit รอบ 27 ตรวจ มันซ่อนอยู่ในช่อง "อะไรจะแดง" ของแถว Debian ·
+    ผู้ให้บริการที่พิสูจน์แล้วว่าหยุดให้เราได้ แต่ไม่มีแถวของตัวเอง คือผู้ให้บริการ
+    ที่ไม่มีใครต้องตอบคำถามสี่ข้อแทนมัน
+    """
+    owners = [row[0] for row in _supplier_rows(register)]
+    assert any("Dependabot" in owner for owner in owners), (
+        "ไม่มีแถวของ Dependabot ในทะเบียนผู้ให้บริการ — "
+        "มันเป็นตัวขยับของทุกอย่างที่เราตรึงไว้ และเป็นตัวที่หยุดให้เราได้เองที่ 90 วัน"
+    )
 
 
 def test_the_jobs_the_register_leans_on_exist(register):

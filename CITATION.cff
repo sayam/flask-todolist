@@ -23,7 +23,7 @@ abstract: >-
   each rule must carry evidence that it once failed for a real defect, the
   portable subset is generated into an agent skill and an overlay that can be
   applied to other projects, and the effect on generated code is measured
-  against controlled arms. 26 recorded audit rounds, each asking a
+  against controlled arms. 27 recorded audit rounds, each asking a
   question the previous round could not, are part of the artefact.
 keywords:
   - software governance

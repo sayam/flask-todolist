@@ -20,6 +20,31 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Added
 
+- **The supplier register asked what breaks loudly, and nothing else.** Its third
+  column — "what goes red if they change" — is answered by all ten rows, which is
+  the good half. Governance audit round 27 asked the other half: what happens when
+  a supplier keeps working perfectly and simply stops serving *us*, under a policy
+  that is about our behaviour rather than theirs. Three such clocks were already
+  proven in round 26: Dependabot stops opening pull requests after ninety days
+  with none of its own touched, GitHub disables scheduled workflows in a public
+  repository after sixty quiet days, and a dismissed code-scanning alert is never
+  reopened even when its subject becomes true again. Nothing goes red in any of
+  them, because nothing happens. Zero of the ten rows mentioned this; the sharpest
+  case was Dependabot itself, the one supplier proven to stop serving us, which had
+  no row of its own — it appeared inside Debian's "what goes red" cell. There is
+  now a fourth column, a row for Dependabot, and a test that requires every row to
+  answer it. "None known" is a valid answer and must be written; a blank is not.
+
+- **The badge answer sheet now has a machine reading it.** `bestpractices.dev` was
+  the only supplier row whose answer to "what goes red" was "nothing does", backed
+  by a twelve-month review — which means a stale number can stay stale for a year.
+  The clock there belongs entirely to them: they can revise a criterion and an
+  answer that used to pass stops passing, with the badge quietly dropping a level.
+  `audit_posture.py` now reads the project's public JSON on every `posture` run and
+  compares all six percentages against a table in `docs/BEST-PRACTICES.md`. Setting
+  it up found a stale number immediately: the status line claimed gold was at 26%
+  while the site had said 57% since v2.1.0.
+
 - **The script that knew the right numbers was never wired to where they are
   advertised.** The repository's About line carries four counts and a version;
   `ci:posture` has checked them since round 24, and `sync_counts.py --about` has
@@ -135,6 +160,18 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
   for others is worse than no column.
 
 ### Fixed
+
+- **A dismissal justified by a fact with an expiry date, and nothing scheduled for
+  that date.** `Scorecard/MaintainedID` was dismissed because the repository is
+  younger than ninety days — accurate, and the register even said so: "a fact that
+  expires on its own". Scorecard's documentation is explicit ("This check will only
+  succeed if a GitHub project is >90 days old"), so the expiry is 2026-10-31. The
+  row that revisits dismissed alerts falls due 2027-02-18, a hundred and ten days
+  later — the same shape as [ADR 0074](docs/adr/0074-watcher-windows-fit-platform-silence.md),
+  where our clock ran slower than the clock of the fact we were relying on. Worse,
+  because the alert is dismissed, GitHub will not reopen one for the same rule, so
+  the signal that would report an unmaintained repository is muted exactly when it
+  starts to mean something. There is now a one-off review dated to the expiry.
 
 - **`dependabot.yml` justified a decision by pointing at a safety net that
   GitHub removes under the same condition.** The file explains at length why
