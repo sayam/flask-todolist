@@ -74,6 +74,7 @@
 | label (13 ใบ) | `.github/ISSUE_TEMPLATE/*` อ้าง `bug` และ `enhancement` · Dependabot อ้างอีกสาม | ยังไม่มีใคร |
 | collaborator | 1 คน (เจ้าของ) | `cadence:hardening ของบัญชีเจ้าของ` |
 | ruleset · environment · deploy key · GitHub Pages | ไม่มีเลยสักอัน — ท่าทีทั้งหมดอยู่ที่ branch protection แบบเก่า | ยังไม่มีใคร |
+| repo `sayam/verifiable-gates` (placeholder — ADR 0075 ข้อ 6) | public · README บอกว่ายังไม่มีโค้ด · Apache-2.0 + CLA · CC BY 4.0 · ยังไม่มี branch protection/posture ของตัวเอง | ยังไม่มีใคร |
 | หัวเรื่องของ issue ที่เปิดให้คนนอก | #186 โฆษณาเลข 48 ซึ่งลอกมาจาก `suppressions_without_reason` ใน `pyproject.toml` — เลขนั้นเป็น ratchet ที่ออกแบบมาให้*ลด* | ยังไม่มีใคร |
 
 ## บริการภายนอกที่ตีพิมพ์แทนเรา
