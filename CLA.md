@@ -7,7 +7,7 @@ This agreement is between you (the "Contributor") and the copyright holder of
 this project, Sayam Sriphua (the "Maintainer"). It applies to contributions
 that touch the **governance core** of this repository — `scripts/`, `overlays/`,
 `skill/`, `gates.yaml`, `docs/comparison/`, and their tests — which is being
-extracted into its own project, `verifiable-gates`, under Apache-2.0
+extracted into its own project, [`verifiable-gates`](https://github.com/sayam/verifiable-gates), under Apache-2.0
 ([ADR 0075 §6](docs/adr/0075-thesis-track-freeze-effort-and-ceilings.md)).
 Changes to the application itself (`app/`, `migrations/`, its tests) need no CLA
 and stay under AGPL-3.0-or-later exactly as before.

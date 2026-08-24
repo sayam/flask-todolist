@@ -347,7 +347,7 @@ you wrote — there is no copyright assignment.
 `overlays/`, `skill/`, `gates.yaml`, `docs/comparison/`, their tests — sign
 [`CLA.md`](CLA.md) before merge** — one line in the pull request description. It
 grants the maintainer the right to relicense that contribution, because the core
-is being extracted into `verifiable-gates` under Apache-2.0 (ADR 0075 §6); the
+is being extracted into [`verifiable-gates`](https://github.com/sayam/verifiable-gates) under Apache-2.0 (ADR 0075 §6); the
 project itself stays under an OSI-approved licence. **Changes to the app itself
 need no CLA** — that part of ADR 0070 still holds. This
 reverses an earlier, published decision to have no CLA; the reasons are in
