@@ -46,6 +46,8 @@ import shutil
 import subprocess
 import sys
 import typing
+import urllib.error
+import urllib.request
 
 # pyyaml มากับ dev tools และไม่มี stub — เหตุผลเดียวกับ build_gates_crosswalk.py
 import yaml  # type: ignore[import-untyped]
@@ -476,6 +478,70 @@ def description_problems(description: str | None, required: int) -> list[str]:
     return problems
 
 
+# ------------------------------------------- ใบตอบ badge (audit รอบ 27 ข้อ 3)
+#
+# `docs/SUPPLY-CHAIN.md` มีแถวเดียวที่ตอบว่า "**ไม่มีเครื่องตรวจ**" คือ
+# bestpractices.dev — และมันเป็นแถวที่นาฬิกาเป็นของเขาล้วน ๆ: **เขาแก้เกณฑ์ได้
+# โดยที่เราไม่ได้ทำอะไร** แล้วคำตอบที่เคยผ่านกลายเป็นไม่ผ่าน badge ลดระดับเงียบ ๆ
+# ตัวทวงที่มีคือแถวรอบ **12 เดือน** ซึ่งแปลว่าเลขที่ค้างจะค้างได้นานสุดหนึ่งปี
+#
+# ตอนตั้งด่านนี้ก็พบของค้างจริงทันที: บรรทัดสถานะเขียน `gold เริ่มนับ 26%`
+# ขณะที่เว็บตอบ 57% มาตั้งแต่ v2.1.0
+#
+# **อ่านอย่างเดียว ไม่ต้องล็อกอิน** — endpoint สาธารณะ · อ่านไม่ได้ = แดง ไม่ใช่ข้าม
+# ตามหลักเดียวกับทั้งไฟล์นี้ (job `posture` เป็น `severity: watched` จึงไม่บล็อกใคร)
+BEST_PRACTICES_URL = "https://www.bestpractices.dev/projects/14085.json"
+BEST_PRACTICES_DOC = ROOT / "docs" / "BEST-PRACTICES.md"
+# `| passing | `badge_percentage_0` | 100% |`
+BADGE_ROW = re.compile(
+    r"^\|\s*([\w-]+)\s*\|\s*`(badge_percentage_[\w]+)`\s*\|\s*(\d+)%\s*\|", re.MULTILINE
+)
+
+
+def advertised_badges() -> dict[str, tuple[str, int]]:
+    """ชุด → (ชื่อฟิลด์, เปอร์เซ็นต์) ที่ `docs/BEST-PRACTICES.md` ประกาศ"""
+    text = BEST_PRACTICES_DOC.read_text(encoding="utf-8")
+    return {name: (field, int(pct)) for name, field, pct in BADGE_ROW.findall(text)}
+
+
+def badge_problems(answer: dict | None, advertised: dict[str, tuple[str, int]]) -> list[str]:
+    """เลขที่เอกสารประกาศ ต้องตรงกับที่เว็บตอบ — และตารางต้องไม่หายไปเงียบ ๆ"""
+    if answer is None:
+        return [
+            (
+                f"อ่าน {BEST_PRACTICES_URL} ไม่ได้ — ด่านที่ข้ามตอนอ่านไม่ได้ "
+                "คือด่านที่รายงานว่าเลขตรงในวันที่มันไม่เคยอ่านอะไรเลย"
+            )
+        ]
+    if not advertised:
+        return [
+            (
+                "docs/BEST-PRACTICES.md ไม่มีตารางเปอร์เซ็นต์ที่เครื่องอ่านได้แล้ว — "
+                "ถ้าตั้งใจถอด ให้ถอดด่านนี้ออกในคอมมิตเดียวกัน ไม่งั้นมันเขียวโดยไม่ได้ตรวจอะไร"
+            )
+        ]
+    found = []
+    for name, (field, said) in sorted(advertised.items()):
+        if field not in answer:
+            found.append(f"ใบตอบ badge ไม่มีฟิลด์ {field} แล้ว (แถว {name}) — เกณฑ์ของเขาเปลี่ยนรูป")
+        elif int(answer[field]) != said:
+            found.append(f"badge {name}: เอกสารบอก {said}% แต่เว็บตอบ {answer[field]}%")
+    return found
+
+
+def best_practices() -> dict | None:
+    """ใบตอบ badge — `None` เมื่ออ่านไม่ได้ (ตัวเรียกเป็นคนตัดสินว่าจะดังแค่ไหน)
+
+    ปลายทางเป็นค่าคงที่ `https://` ในไฟล์นี้ ไม่มีอินพุตจากใครมาประกอบเป็น URL
+    จึงไม่ต้องปิดเครื่องตรวจข้อไหนเลย
+    """
+    try:
+        with urllib.request.urlopen(BEST_PRACTICES_URL, timeout=NETWORK_TIMEOUT_SECONDS) as answer:
+            return dict(json.loads(answer.read()))
+    except (urllib.error.URLError, TimeoutError, ValueError):
+        return None
+
+
 def fetch() -> dict:
     """รวมท่าทีจากสี่ endpoint ให้เป็นก้อนเดียวที่ตัวตัดสินอ่านได้"""
     protection = _gh("repos/:owner/:repo/branches/main/protection")
@@ -536,6 +602,7 @@ def main(argv: list[str] | None = None) -> int:
     problems += description_problems(
         state.get("description"), len(state.get("required_checks") or [])
     )
+    problems += badge_problems(best_practices(), advertised_badges())
     if problems:
         print("ท่าทีของแพลตฟอร์มไม่ตรงกับสิ่งที่ประกาศไว้:", file=sys.stderr)
         for line in problems:

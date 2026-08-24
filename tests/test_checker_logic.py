@@ -1764,6 +1764,72 @@ def test_dropping_a_number_from_the_about_box_is_not_silent():
     )
 
 
+# ---------------------------------- ใบตอบ badge (audit รอบ 27 ข้อ 3)
+#
+# `docs/SUPPLY-CHAIN.md` มีแถวเดียวที่ตอบว่า "ไม่มีเครื่องตรวจ" คือ bestpractices.dev
+# — และนาฬิกาของแถวนั้นเป็นของเขาล้วน ๆ: **เขาแก้เกณฑ์ได้โดยที่เราไม่ได้ทำอะไร**
+# แล้ว badge ลดระดับเงียบ ๆ · ตัวทวงที่มีคือแถวรอบ 12 เดือน ซึ่งแปลว่าเลขที่ค้าง
+# จะค้างได้นานสุดหนึ่งปี · ตอนตั้งด่านนี้ก็พบของค้างจริง (เอกสารเขียน gold 26%
+# ขณะที่เว็บตอบ 57% มาตั้งแต่ v2.1.0)
+#
+# **เทสต์ที่นี่ไม่แตะเครือข่าย** — ปลอมใบตอบเอา ส่วนการอ่านจริงพิสูจน์ตอนเขียน
+
+ADVERTISED = {
+    "passing": ("badge_percentage_0", 100),
+    "gold": ("badge_percentage_2", 57),
+}
+
+
+def test_badge_numbers_that_match_the_site_are_silent():
+    """ทิศ "ผ่านเมื่อควรผ่าน" — ตรงกันแล้วต้องไม่บ่น"""
+    answer = {"badge_percentage_0": 100, "badge_percentage_2": 57}
+
+    assert audit_posture.badge_problems(answer, ADVERTISED) == []
+
+
+def test_a_badge_that_was_downgraded_is_reported():
+    """เขาลดระดับให้เราโดยที่เราไม่ได้ทำอะไร — ต้องดัง ไม่ใช่รอแถวรอบ 12 เดือน"""
+    answer = {"badge_percentage_0": 100, "badge_percentage_2": 41}
+
+    problems = audit_posture.badge_problems(answer, ADVERTISED)
+
+    assert len(problems) == 1, problems
+    assert "gold" in problems[0], problems
+    assert "57" in problems[0], "ไม่ได้บอกเลขที่เอกสารประกาศ"
+    assert "41" in problems[0], "ไม่ได้บอกเลขที่เว็บตอบจริง"
+
+
+def test_a_field_the_site_stopped_returning_is_reported_not_skipped():
+    """เกณฑ์ของเขาเปลี่ยนรูปจนฟิลด์หาย = ต้องดัง ไม่ใช่เงียบเพราะไม่มีอะไรให้เทียบ"""
+    problems = audit_posture.badge_problems({"badge_percentage_0": 100}, ADVERTISED)
+
+    assert any("badge_percentage_2" in line for line in problems), problems
+
+
+def test_a_site_we_cannot_read_is_a_problem_not_a_pass():
+    """อ่านไม่ได้ = แดง — ด่านที่ข้ามตอนอ่านไม่ได้ รายงานว่าเลขตรงในวันที่ไม่เคยอ่าน"""
+    assert audit_posture.badge_problems(None, ADVERTISED)
+
+
+def test_removing_the_table_from_the_doc_is_reported():
+    """ทิศกลับ — ถอดตารางออกแล้วด่านต้องดัง ไม่ใช่ผ่านฟรีเพราะไม่มีอะไรให้เทียบ"""
+    assert audit_posture.badge_problems({"badge_percentage_0": 100}, {})
+
+
+def test_the_table_in_the_repo_is_the_one_the_checker_reads():
+    """ตารางจริงในเอกสารต้องย่อยได้ครบหกชุด — regex ที่อ่านไม่เจอคือด่านที่เขียวเปล่า"""
+    advertised = audit_posture.advertised_badges()
+
+    assert set(advertised) == {
+        "passing",
+        "silver",
+        "gold",
+        "baseline-1",
+        "baseline-2",
+        "baseline-3",
+    }, advertised
+
+
 def test_an_about_box_that_names_the_current_version_passes():
     """ทิศ "ผ่านเมื่อควรผ่าน" — ต้องอ่าน `__version__` จริง ไม่ใช่เลขที่ฝังไว้
 

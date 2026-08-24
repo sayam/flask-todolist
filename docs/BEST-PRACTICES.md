@@ -9,10 +9,33 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 > "สิ่งที่ต้องกรอกบนเว็บก่อนออกรุ่นถัดไป" ท้ายไฟล์ (ตรวจกับ API แล้ว ไม่ใช่จากความจำ)
 
 **สถานะ: badge อยู่ระดับ SILVER (100% · `achieved_silver_at`
-2026-08-16T14:45Z — verify จาก API) · passing คง 100% · gold เริ่มนับ 26%**
+2026-08-16T14:45Z — verify จาก API)**
 — ระดับ passing: 66 ผ่าน · 1 ไม่เกี่ยวข้อง · ระดับ silver: 46 Met · 6 N/A ·
 3 Unmet โดยตั้งใจ (ตาราง silver อยู่ท้ายไฟล์) · คำตอบในไฟล์นี้กับบนเว็บ
 ตรงกันทั้งสองระดับ (รอบก่อนหน้า 2026-08-14/15 ดูหมายเหตุท้ายไฟล์)
+
+## เปอร์เซ็นต์ที่เว็บตอบ — ตารางนี้มีเครื่องอ่านคู่
+
+**อ่านสดจาก `https://www.bestpractices.dev/projects/14085.json` ทุกครั้งที่ job
+`posture` รัน** (audit รอบ 27 ข้อ 3) · ก่อนหน้านี้ทั้งไฟล์พึ่งแถวทบทวนรอบ 12 เดือน
+อย่างเดียว ซึ่งแปลว่าเลขที่ค้างจะค้างได้นานสุดหนึ่งปี — และตอนตั้งตารางนี้ก็พบว่า
+บรรทัดสถานะข้างบนเขียน `gold เริ่มนับ 26%` อยู่จริง ขณะที่เว็บตอบ **57%** มาตั้งแต่
+v2.1.0 · **นี่คือแถวสุดท้ายในทะเบียนผู้ให้บริการที่ยังไม่มีเครื่องอ่านคู่**
+
+**เกณฑ์ของเขาเปลี่ยนได้โดยที่เราไม่ได้ทำอะไร** — คำตอบที่เคยผ่านกลายเป็นไม่ผ่าน
+แล้ว badge ลดระดับเงียบ ๆ · ตารางนี้ทำให้การลดระดับนั้นเป็นความแดง ไม่ใช่ความเงียบ
+
+| ชุด | ฟิลด์ใน API | เปอร์เซ็นต์ |
+|---|---|---|
+| passing | `badge_percentage_0` | 100% |
+| silver | `badge_percentage_1` | 100% |
+| gold | `badge_percentage_2` | 57% |
+| baseline-1 | `badge_percentage_baseline_1` | 100% |
+| baseline-2 | `badge_percentage_baseline_2` | 100% |
+| baseline-3 | `badge_percentage_baseline_3` | 95% |
+
+`OSPS-BR-01.02` ที่เว็บแสดงเป็น Unmet ถูก retire ตั้งแต่ v2026.02.19 จึงไม่นับใน
+เปอร์เซ็นต์ของ baseline-3 (20/21 = 95.2%)
 
 เกณฑ์ทั้งหมด 67 ข้อ: MUST 43 · SHOULD 10 · SUGGESTED 14
 **MUST ผ่านครบทั้ง 43 ข้อ** ซึ่งเป็นเงื่อนไขของ badge ระดับ passing
@@ -242,7 +265,7 @@ badge ถูกทบทวนเป็นรอบ และคำตอบท�
 | `test_statement_coverage90` | MUST | **วัดแล้ว 97.17%** (`fail_under = 97` ใน `pyproject.toml` เป็นพื้นที่ขยับขึ้นทางเดียว · job `test` บังคับทุก push) |
 | `test_branch_coverage80` | MUST | **วัดแล้ว 93.96%** (1,058 จาก 1,126 สาขา · `[tool.coverage.run] branch = true`) |
 | `code_review_standards` | MUST (ต้องมี URL) | `CONTRIBUTING.md` — PR-only, Conventional Commits, กติกา mutation test, การลงทะเบียนไฟล์เทสต์ใน `gates.yaml` · คำตัดสินอยู่ใน ADR 0053 |
-| `security_review` | MUST | `docs/ASVS.md` (ประเมิน ASVS 5.0 L2 ครบ 253 ข้อ) · `docs/ISO27001.md` (116 ข้อ) · `docs/RISK-ASSESSMENT.md` · และรอบ audit 26 รอบที่มีทะเบียนใน [AUDIT-LOG.md](AUDIT-LOG.md) |
+| `security_review` | MUST | `docs/ASVS.md` (ประเมิน ASVS 5.0 L2 ครบ 253 ข้อ) · `docs/ISO27001.md` (116 ข้อ) · `docs/RISK-ASSESSMENT.md` · และรอบ audit 27 รอบที่มีทะเบียนใน [AUDIT-LOG.md](AUDIT-LOG.md) |
 | `hardened_site` | MUST (ต้องมี URL) | หน้าโครงการคือ GitHub ซึ่งส่ง header ครบ · ตัวแอปเองบังคับ CSP/HSTS ผ่าน Talisman และมี gate คุม (`tests/test_security_headers.py`) |
 | `require_2FA` | MUST | ผู้ดูแลคนเดียวเปิด 2FA ไว้ (ตรวจตามรอบ "hardening ของบัญชีเจ้าของ" — ทบทวนล่าสุด 2026-08-17) · GitHub บังคับ 2FA กับผู้ร่วมพัฒนาตั้งแต่ 2023 |
 | `secure_2FA` | SHOULD | ถ้าเป็น TOTP/passkey (ไม่ใช่ SMS) — **เจ้าของยืนยันเองก่อนตอบ** |
@@ -293,7 +316,7 @@ curl -s https://www.bestpractices.dev/projects/14085.json > badge.json
 | `governance_justification` | "…all decisions recorded as ADRs (**72** to date)…" | **แก้แล้ว 2026-08-22 โดยเจ้าของ** — เดิมค้างอยู่ที่ 58 (`ls docs/adr/0*.md`) · ห่างจากความจริง 14 ใบ |
 | `test_most_justification` · `test_statement_coverage80_justification` | "Coverage gate fail_under = **96**" | **ค้าง** — `pyproject.toml` เป็น 97 มาตั้งแต่ ratchet ขยับ · ช่อง `test_statement_coverage90_justification` บนเว็บเดียวกันเขียน 97 ถูกแล้ว |
 | `test_statement_coverage90_justification` · `test_branch_coverage80_justification` | 97.17% · 93.96% (1,058/1,126) | ห่างเล็กน้อยจากของวันนี้ (97.18% · 93.98% — 1,062/1,130) · ช่องพวกนี้เขียนว่า "measured on the current tree" จึงเป็นภาพถ่าย ไม่ใช่คำสัญญา — แก้ตอนรอบ release ถัดไปพอ |
-| `description` | "… v2.2.0 … **112** machine-checked gates, 72 ADRs, **26** recorded governance audits …" | **ตรงกันสามที่แล้ว (2026-08-23)** — เว็บ badge · ช่อง About ของ repo · และของบนดิสก์ (`gates.yaml` · `docs/adr/` · [AUDIT-LOG.md](AUDIT-LOG.md)) · ฝั่ง About มี `ci:posture` อ่านคู่ให้แล้วตั้งแต่ ADR 0072 ส่วนฝั่งเว็บ badge ยังต้องไล่ด้วยมือ |
+| `description` | "… v2.2.0 … **112** machine-checked gates, 72 ADRs, **27** recorded governance audits …" | **ตรงกันสามที่แล้ว (2026-08-23)** — เว็บ badge · ช่อง About ของ repo · และของบนดิสก์ (`gates.yaml` · `docs/adr/` · [AUDIT-LOG.md](AUDIT-LOG.md)) · ฝั่ง About มี `ci:posture` อ่านคู่ให้แล้วตั้งแต่ ADR 0072 ส่วนฝั่งเว็บ badge ยังต้องไล่ด้วยมือ |
 
 **สี่แถวบนนี้เพิ่มตอน audit รอบ 24** — คำถามของรอบคือ *ใครเทียบของที่อยู่นอกรีโป
 กับของจริง* และคำตอบสำหรับใบตอบ badge คือ **ไม่มีใคร นอกจากรอบตรวจ 12 เดือน** ·
