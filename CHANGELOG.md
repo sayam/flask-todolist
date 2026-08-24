@@ -26,9 +26,12 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
   kind of data this repository had none of); the artifact the thesis describes is
   pinned at tag `thesis-freeze-1`; and gate count gains an upper ceiling so rules
   stop growing faster than their evidence. [ADR 0075](docs/adr/0075-thesis-track-freeze-effort-and-ceilings.md).
-- **External contributors sign `CLA.md`.** A one-line grant in the PR description
-  that keeps relicensing possible without transferring copyright; DCO stays.
-  This reverses the published "no CLA" position of ADR 0070 —
+- **The governance core gets a name and a home: `verifiable-gates`**, to be
+  extracted under Apache-2.0 (code, with a CLA) and CC BY 4.0 (rules); this
+  application stays AGPL-3.0-or-later + CC BY-SA 4.0 with no CLA for app code.
+- **PRs that touch the core paths sign `CLA.md`.** A one-line grant in the PR
+  description that makes the extraction possible without transferring copyright;
+  DCO stays. This narrows, rather than reverses, the "no CLA" position of ADR 0070 —
   [ADR 0076](docs/adr/0076-cla-for-relicensing.md) says why, and what it does not settle.
 - **The supplier register asked what breaks loudly, and nothing else.** Its third
   column — "what goes red if they change" — is answered by all ten rows, which is
