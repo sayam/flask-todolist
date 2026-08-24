@@ -39,7 +39,7 @@
 | `allow_merge_commit` | `false` | `ci:posture` |
 | `allow_rebase_merge` | `true` | `ci:posture` |
 | `delete_branch_on_merge` | `true` | `ci:posture` |
-| `description` (ช่อง About) | เลขรุ่น + สี่ตัวเลขที่นับจากดิสก์ได้ | `ci:posture` |
+| `description` (ช่อง About) | เลขรุ่น + สี่ตัวเลขที่นับจากดิสก์ได้ — **ซิงก์สามเลขกับรุ่นด้วย `scripts/sync_counts.py --about --write` ได้แล้ว** (audit รอบ 26) ส่วน `required checks` ยังเป็นงานมือเพราะนับจากดิสก์ไม่ได้ | `ci:posture` |
 | `homepage` | ชี้ release ล่าสุด | ยังไม่มีใคร |
 | `topics` | 8 คำ | ยังไม่มีใคร |
 | `has_wiki` · `has_projects` | เปิดอยู่ทั้งคู่และไม่มีเนื้อ — พื้นผิวเอกสารที่อยู่นอก git ทั้งหมด | ยังไม่มีใคร |
