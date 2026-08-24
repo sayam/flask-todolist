@@ -46,7 +46,7 @@ import sys
 import typing
 
 # pyyaml มากับ dev tools และไม่มี stub — เหตุผลเดียวกับ build_gates_crosswalk.py
-import yaml  # type: ignore[import-untyped]
+import yaml  # type: ignore[import-untyped] - library lacks type stubs
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 

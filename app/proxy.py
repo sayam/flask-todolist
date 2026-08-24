@@ -46,7 +46,7 @@ def init_proxy_fix(app: Flask) -> None:
     # `x_proto` (Talisman/HSTS ตอน TLS จบที่ proxy) และ `x_host` (url_for แบบเต็ม)
     # ไม่เปิด `x_port`/`x_prefix` เพราะไม่มีอะไรในแอปนี้พึ่งมัน และทุก header
     # ที่เราประกาศว่าเชื่อ คือหนึ่งค่าที่ proxy ต้องรับผิดชอบล้างให้
-    app.wsgi_app = ProxyFix(  # type: ignore[method-assign]
+    app.wsgi_app = ProxyFix(  # type: ignore[method-assign] - intentionally suppressed
         app.wsgi_app, x_for=hops, x_proto=hops, x_host=hops
     )
     app.logger.info("trusting reverse proxy headers", extra={"trusted_proxy_hops": hops})

@@ -60,7 +60,7 @@ import subprocess
 import sys
 import tomllib
 
-import yaml  # type: ignore[import-untyped]
+import yaml  # type: ignore[import-untyped] - library lacks type stubs
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 PYPROJECT = ROOT / "pyproject.toml"
@@ -291,7 +291,7 @@ def enforced_prohibitions() -> int:
         if isinstance(node, ast.Assign) and any(
             isinstance(t, ast.Name) and t.id == "RULES" for t in node.targets
         ):
-            return len(node.value.elts)  # type: ignore[attr-defined]
+            return len(node.value.elts)  # type: ignore[attr-defined] - intentionally suppressed
     raise RuntimeError("หาทะเบียน RULES ใน tests/test_declared_prohibitions.py ไม่เจอ")
 
 

@@ -10,7 +10,7 @@ import pathlib
 import re
 
 import pytest
-import yaml  # type: ignore[import-untyped]
+import yaml  # type: ignore[import-untyped] - library lacks type stubs
 
 from tests.test_asvs import _unresolved
 
