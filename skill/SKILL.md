@@ -72,14 +72,6 @@ description: Universal production-discipline rules for web applications, distill
 
 **ตัวบังคับใน reference:** `tests/test_skill.py`
 
-### `overlay-covers-every-portable-gate`
-
-**กฎ:** overlay ต้องครอบกฎสากลครบทุกข้อ และ checker พิสูจน์สองทิศ
-
-**เกิดจาก:** กฎสากลที่ไม่มี enforcement ใน overlay คือคำขวัญ — และ checker ที่ไม่เคย ถูกพิสูจน์ว่าแดงเมื่อควรแดง ก็เขียวได้ตลอดกาลโดยไม่ตรวจอะไร
-
-**ตัวบังคับใน reference:** `tests/test_overlay.py`
-
 ### `logic-knows-no-http`
 
 **กฎ:** ตรรกะทั้งหมดอยู่ใน service layer และไม่รู้จัก HTTP
@@ -126,7 +118,7 @@ description: Universal production-discipline rules for web applications, distill
 
 **เกิดจาก:** harness ที่รายงานผ่านตอนเทสต์แดง ป้อนความมั่นใจผิด ๆ ให้ loop ที่เชื่อมัน สนิท — และการพิสูจน์ 11-03 รอบแรกก็ย้ำบทเรียนเดิม: plant ที่ตกใน docstring ทำให้ "ผ่านทั้งที่ควรแดง" โดยที่ด่านไม่ได้บอด · audit รอบ 6 ต่ออีกชั้น (ADR 0060): preflight ที่ *ลอก* คำสั่งของ CI มาไว้เองจะ drift แล้วบอกว่า "ผ่าน" ในจังหวะที่ CI กำลังจะบอกว่าไม่
 
-**ตัวบังคับใน reference:** `tests/test_harness.py` · `tests/test_preflight.py`
+**ตัวบังคับใน reference:** `tests/test_vendored_tooling.py`
 
 ### `csrf-guards-every-form`
 

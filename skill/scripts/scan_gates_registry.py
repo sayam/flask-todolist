@@ -1,22 +1,26 @@
-"""gate: gates-registry-total — ดัชนี gate ของโปรเจกต์ต้องตรงกับความจริงสองทิศ
+"""gate: gates-registry-total — a project's gate index has to match reality, both ways.
 
-กฎอีก 70 กว่าข้อในกล่องนี้ลงท้ายเหมือนกันหมดว่า "ลงทะเบียนใน gates.yaml ของ
-โปรเจกต์" — คำสั่งนั้นไม่มีความหมายเลยถ้าไม่มีอะไรบังคับว่าทะเบียนตรงกับความจริง
-ตัวนี้คือเสาต้นนั้น: ดัชนีที่ไม่ถูกบังคับให้ตรงกับความจริง คือดัชนีที่โกหกเงียบ ๆ
+Most of the rules in this bundle end the same way: "register it in your project's
+gates.yaml". That instruction means nothing unless something holds the register to
+reality. This is that something — an index nobody holds to reality is an index
+that lies quietly.
 
-สี่ทิศที่ตรวจ (แบบเดียวกับ `tests/test_gates.py` ของ reference implementation):
-- **ทิศไป (job)**: ทุก gate ชี้ไปหา job ที่มีจริงใน workflow
-- **ทิศไป (step/test)**: `kind: step` ชี้ชื่อ step ที่มีจริง · `kind: test`
-  ชี้ไฟล์ที่มีจริง
-- **ทิศกลับ (job)**: ทุก job ในทุก workflow ต้องมี gate — job ใหม่ที่ไม่มี = พบ
-- **ทิศกลับ (เทสต์)**: ไฟล์เทสต์ทุกไฟล์ถูกตัดสินว่าเป็นของ gate ตัวเดียว
-  (partition — ของใหม่ที่ไม่ถูกตัดสินต้องดัง ไม่ใช่หลุดสายตา)
+Four directions:
 
-**ตัวอ่าน YAML เป็นสับเซตที่แคบโดยตั้งใจ** — stdlib ล้วน ไม่มี pyyaml ให้พึ่ง
-และของที่มันอ่านไม่ออกจะ **ดัง** ไม่ใช่ข้ามเงียบ ๆ (ตัวอ่านที่ใจดีกว่าของจริง
-คือตัวที่รายงานเขียวบนไฟล์ที่มันไม่เข้าใจ)
+- **forward (job)**: every gate points at a job that exists in the workflows
+- **forward (step/test)**: `kind: step` names a step that exists; `kind: test`
+  names files that exist
+- **back (job)**: every job in every workflow has a gate — a new job with none is
+  a finding
+- **back (tests)**: every test file is claimed by exactly one gate, a partition,
+  so anything new and unclaimed has to speak rather than slip past
 
-exit 0 = สะอาด/NA · 1 = พบ · 2 = เรียกผิด
+**The YAML reader is a deliberately narrow subset**: stdlib only, because this
+file is shipped into projects that have installed nothing. Anything outside the
+subset makes it **raise**, never skip — a reader more forgiving than the real one
+reports green on files it did not understand.
+
+exit 0 = clean or N/A · 1 = findings · 2 = called wrongly
 """
 
 from __future__ import annotations
@@ -25,20 +29,21 @@ import json
 import pathlib
 import re
 import sys
+from typing import Any
 
 KINDS = {"test", "step", "job"}
 GATE_ID = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
-# ตัวเปิด block scalar ต้องอยู่ท้ายบรรทัดและตามหลัง `: ` หรือ `- ` เท่านั้น
-# (`title: a|` ไม่ใช่ block scalar — ตัวจับที่หยาบกว่านี้จะกลืนบรรทัดถัดไปทิ้ง)
+# A block scalar opener sits at end of line and only after `: ` or `- `.
+# (`title: a|` is not one — a looser pattern swallows the following lines.)
 BLOCK_SCALAR = re.compile(r"(?:^|(?<=: )|(?<=- ))[|>][-+]?$")
 
 
 class SubsetError(Exception):
-    """ไฟล์ใช้ YAML นอกสับเซตที่ตัวอ่านนี้รับ — ต้องดัง ไม่ใช่เดา"""
+    """The file uses YAML outside the subset this reader accepts — say so, do not guess."""
 
 
 def _uncomment(line: str) -> str:
-    """ตัดคอมเมนต์ท้ายบรรทัด โดยไม่แตะ `#` ที่อยู่ในเครื่องหมายคำพูด"""
+    """Strip a trailing comment without touching a `#` inside quotes."""
     quote = None
     for index, char in enumerate(line):
         if quote:
@@ -52,10 +57,10 @@ def _uncomment(line: str) -> str:
 
 
 def _significant(text: str) -> list[tuple[int, str]]:
-    """(คอลัมน์, เนื้อ) ของบรรทัดที่มีความหมาย — `- x` ถูกแยกเป็นสองรายการ
+    """(column, content) for lines that carry meaning; `- x` becomes two entries.
 
-    เนื้อของ block scalar ถูกทิ้ง (เราไม่ใช้ค่าของมัน) แต่ **ต้องถูกข้ามให้ถูก**
-    ไม่งั้นร้อยแก้วในนั้นจะถูกอ่านเป็นโครงสร้าง
+    The body of a block scalar is discarded — we never use those values — but it
+    has to be **skipped correctly**, or the prose inside gets read as structure.
     """
     raw = text.splitlines()
     out: list[tuple[int, str]] = []
@@ -64,16 +69,19 @@ def _significant(text: str) -> list[tuple[int, str]]:
         line = raw[index]
         index += 1
         if "\t" in line:
-            raise SubsetError(f"บรรทัด {index}: มีแท็บ — YAML เยื้องด้วยช่องว่างเท่านั้น")
+            message = f"line {index}: contains a tab — YAML indents with spaces only"
+            raise SubsetError(message)
         content = _uncomment(line).rstrip()
         if not content.strip():
             continue
         column = len(content) - len(content.lstrip(" "))
         content = content.strip()
         if content.startswith(("---", "...")):
-            raise SubsetError(f"บรรทัด {index}: เอกสารหลายชุดในไฟล์เดียว — นอกสับเซต")
+            message = f"line {index}: more than one document in the file — outside the subset"
+            raise SubsetError(message)
         if content[0] in "&*!":
-            raise SubsetError(f"บรรทัด {index}: anchor/alias/tag — นอกสับเซต")
+            message = f"line {index}: anchor, alias or tag — outside the subset"
+            raise SubsetError(message)
         if BLOCK_SCALAR.search(content):
             while index < len(raw) and (
                 not raw[index].strip() or len(raw[index]) - len(raw[index].lstrip(" ")) > column
@@ -93,7 +101,7 @@ def _significant(text: str) -> list[tuple[int, str]]:
 
 
 def _flow_value(text: str) -> tuple[object, str]:
-    """ค่าเดี่ยวในรูป flow — คืน (ค่า, ส่วนที่เหลือ)"""
+    """One value in flow style — returns (value, what is left)."""
     text = text.lstrip()
     if text[:1] in ("[", "{"):
         return _flow(text)
@@ -101,7 +109,8 @@ def _flow_value(text: str) -> tuple[object, str]:
         quote = text[0]
         end = text.find(quote, 1)
         if end < 0:
-            raise SubsetError(f"เครื่องหมายคำพูดไม่ปิด: {text!r}")
+            message = f"unclosed quote: {text!r}"
+            raise SubsetError(message)
         return text[1:end], text[end + 1 :]
     end = 0
     while end < len(text):
@@ -113,7 +122,7 @@ def _flow_value(text: str) -> tuple[object, str]:
 
 
 def _flow(text: str) -> tuple[object, str]:
-    """`[a, b]` หรือ `{k: v}` — รูปเดียวที่ดัชนีใช้เขียนค่าสั้น ๆ ในบรรทัดเดียว"""
+    """`[a, b]` or `{k: v}` — the one shorthand the index uses on a single line."""
     closing = "]" if text[0] == "[" else "}"
     rest = text[1:].lstrip()
     items: list[object] = []
@@ -127,7 +136,8 @@ def _flow(text: str) -> tuple[object, str]:
         else:
             rest = rest.lstrip()
             if not rest.startswith(":"):
-                raise SubsetError(f"flow map ขาด ':' ที่ {rest!r}")
+                message = f"flow mapping missing ':' at {rest!r}"
+                raise SubsetError(message)
             value, rest = _flow_value(rest[1:])
             mapping[str(key)] = value
         rest = rest.lstrip()
@@ -136,7 +146,8 @@ def _flow(text: str) -> tuple[object, str]:
             continue
         if rest.startswith(closing):
             return (items if closing == "]" else mapping), rest[1:]
-        raise SubsetError(f"flow ปิดไม่ถูก ที่ {rest!r}")
+        message = f"flow closed wrongly at {rest!r}"
+        raise SubsetError(message)
 
 
 def _scalar(raw: str) -> object:
@@ -144,10 +155,32 @@ def _scalar(raw: str) -> object:
     if raw[:1] in ("[", "{"):
         value, rest = _flow(raw)
         if rest.strip():
-            raise SubsetError(f"มีของเกินหลัง flow: {rest!r}")
+            message = f"trailing content after a flow value: {rest!r}"
+            raise SubsetError(message)
         return value
-    if len(raw) >= 2 and raw[0] == raw[-1] and raw[0] in "\"'":
+    # An anchor, alias or tag in *value* position. The check at the start of the
+    # line misses these, and without this they are read as ordinary text: the
+    # reader would then be more permissive than YAML, which is the failure this
+    # subset exists to avoid.
+    if raw[:1] in ("&", "*", "!"):
+        message = f"anchor, alias or tag in a value — outside the subset: {raw!r}"
+        raise SubsetError(message)
+    if raw[:1] in ('"', "'"):
+        if len(raw) < 2 or raw[-1] != raw[0]:
+            message = f"unclosed quote: {raw!r}"
+            raise SubsetError(message)
         return raw[1:-1]
+    # An unquoted true/false/null means what YAML says it means. Returning the
+    # *string* "false" for `portable: false` would be truthy, so a rule that ever
+    # reads a boolean would read it backwards — and read it that way silently.
+    # Numbers stay as text on purpose: nothing here compares them numerically,
+    # and guessing int from float is a second way to be subtly wrong.
+    if raw in ("true", "True"):
+        return True
+    if raw in ("false", "False"):
+        return False
+    if raw in ("null", "Null", "~"):
+        return None
     return raw
 
 
@@ -166,7 +199,8 @@ def _split_key(text: str) -> tuple[str, str]:
             depth -= 1
         elif char == ":" and depth == 0 and text[index + 1 : index + 2] in ("", " "):
             return str(_scalar(text[:index])), text[index + 1 :].strip()
-    raise SubsetError(f"ไม่ใช่คู่คีย์: {text!r}")
+    message = f"not a key/value pair: {text!r}"
+    raise SubsetError(message)
 
 
 def _is_key(text: str) -> bool:
@@ -181,7 +215,7 @@ def _parse(lines: list[tuple[int, str]], index: int, column: int) -> tuple[objec
     if lines[index][1] == "-":
         return _parse_sequence(lines, index, column)
     if not _is_key(lines[index][1]):
-        # scalar เดี่ยว ๆ (สมาชิกของรายการ เช่น `- tests/test_x.py`)
+        # A bare scalar — an item of a list, such as `- tests/test_x.py`
         return _scalar(lines[index][1]), index + 1
     return _parse_mapping(lines, index, column)
 
@@ -220,18 +254,19 @@ def _parse_mapping(
 
 
 def load(text: str) -> object:
-    """อ่าน YAML สับเซตที่ดัชนีกับ workflow ใช้ — ของนอกสับเซตต้อง raise"""
+    """Read the YAML subset the index and the workflows use. Anything else raises."""
     lines = _significant(text)
     if not lines:
         return None
     value, index = _parse(lines, 0, lines[0][0])
     if index != len(lines):
-        raise SubsetError(f"อ่านไม่จบ — การเยื้องไม่สม่ำเสมอที่ {lines[index][1]!r}")
+        message = f"stopped early — inconsistent indentation at {lines[index][1]!r}"
+        raise SubsetError(message)
     return value
 
 
 def workflow_jobs(root: pathlib.Path) -> tuple[dict[str, list[str]], list[str]]:
-    """job → ชื่อ step ที่ตั้งชื่อไว้ · พร้อมรายการไฟล์ที่อ่านไม่ออก"""
+    """job → the names of its named steps, plus a list of files that could not be read."""
     jobs: dict[str, list[str]] = {}
     unreadable: list[str] = []
     for path in sorted((root / ".github" / "workflows").glob("*.y*ml")):
@@ -241,7 +276,7 @@ def workflow_jobs(root: pathlib.Path) -> tuple[dict[str, list[str]], list[str]]:
             unreadable.append(f"{path.relative_to(root)}: {error}")
             continue
         if not isinstance(workflow, dict):
-            unreadable.append(f"{path.relative_to(root)}: ไม่ใช่ mapping")
+            unreadable.append(f"{path.relative_to(root)}: not a mapping")
             continue
         for name, job in (workflow.get("jobs") or {}).items():
             steps = (job or {}).get("steps") or [] if isinstance(job, dict) else []
@@ -251,59 +286,65 @@ def workflow_jobs(root: pathlib.Path) -> tuple[dict[str, list[str]], list[str]]:
     return jobs, unreadable
 
 
-def _gate_findings(gates: list[object]) -> tuple[list[str], list[dict]]:
-    """คัดเฉพาะ gate ที่มีรูปถูกต้องออกมาใช้ต่อ — ที่เหลือรายงานเป็นสิ่งที่พบ"""
+def _gate_findings(gates: list[object]) -> tuple[list[str], list[dict[str, Any]]]:
+    """Keep the well-formed gates for the checks below; report the rest as findings."""
     findings: list[str] = []
-    usable: list[dict] = []
+    usable: list[dict[str, Any]] = []
     seen: set[str] = set()
     for gate in gates:
         if not isinstance(gate, dict):
-            findings.append(f"แถวที่ไม่ใช่ mapping ในดัชนี: {gate!r}")
+            findings.append(f"a row in the index is not a mapping: {gate!r}")
             continue
         gid = str(gate.get("id") or "")
         if not GATE_ID.match(gid):
-            findings.append(f"id ไม่ใช่ kebab-case: {gid!r}")
+            findings.append(f"id is not kebab-case: {gid!r}")
             continue
         if gid in seen:
-            findings.append(f"id ซ้ำ: {gid}")
+            findings.append(f"duplicate id: {gid}")
             continue
         seen.add(gid)
         if not gate.get("title"):
-            findings.append(f"{gid}: ไม่มี title")
+            findings.append(f"{gid}: no title")
         if gate.get("kind") not in KINDS:
-            findings.append(f"{gid}: kind {gate.get('kind')!r} ไม่รู้จัก (ต้องเป็น {sorted(KINDS)})")
+            findings.append(f"{gid}: kind {gate.get('kind')!r} is not one of {sorted(KINDS)}")
         if not isinstance(gate.get("enforced_by"), dict) or not gate["enforced_by"].get("job"):
-            findings.append(f"{gid}: enforced_by ต้องบอก job ที่บังคับกฎนี้")
+            findings.append(f"{gid}: enforced_by must name the job that enforces this rule")
             continue
         usable.append(gate)
     return findings, usable
 
 
-def _forward(gates: list[dict], jobs: dict[str, list[str]], root: pathlib.Path) -> list[str]:
-    """ทิศไป: gate ชี้ไปหา job/step/ไฟล์ที่มีจริงไหม"""
+def _forward(
+    gates: list[dict[str, Any]], jobs: dict[str, list[str]], root: pathlib.Path
+) -> list[str]:
+    """Forward: does each gate point at a job, step, or file that exists?"""
     findings: list[str] = []
     for gate in gates:
         gid, enforced = gate["id"], gate["enforced_by"]
         job = str(enforced["job"])
         if job not in jobs:
-            findings.append(f"{gid}: ชี้ไปหา job {job!r} ที่ไม่มีใน workflow")
+            findings.append(f"{gid}: points at job {job!r}, which no workflow defines")
         elif gate["kind"] == "step":
             step = enforced.get("step")
             if not step or str(step) not in jobs[job]:
-                findings.append(f"{gid}: ไม่มี step {step!r} ใน job {job!r}")
+                findings.append(f"{gid}: job {job!r} has no step {step!r}")
         elif gate["kind"] == "test":
             files = enforced.get("tests") or []
             if not isinstance(files, list) or not files:
-                findings.append(f"{gid}: kind test ต้องมีรายชื่อไฟล์เทสต์")
+                findings.append(f"{gid}: kind 'test' must list test files")
             else:
                 findings += [
-                    f"{gid}: ไม่มีไฟล์ {name}" for name in files if not (root / str(name)).is_file()
+                    f"{gid}: no such file {name}"
+                    for name in files
+                    if not (root / str(name)).is_file()
                 ]
     return findings
 
 
-def _partition(gates: list[dict], root: pathlib.Path, tests_dir: pathlib.Path) -> list[str]:
-    """ทิศกลับ (เทสต์): ไฟล์เทสต์ทุกไฟล์ถูกตัดสิน และถูกตัดสินโดย gate เดียว"""
+def _partition(
+    gates: list[dict[str, Any]], root: pathlib.Path, tests_dir: pathlib.Path
+) -> list[str]:
+    """Back (tests): every test file is claimed, and claimed by exactly one gate."""
     if not tests_dir.is_dir():
         return []
     claims: dict[str, list[str]] = {}
@@ -314,11 +355,13 @@ def _partition(gates: list[dict], root: pathlib.Path, tests_dir: pathlib.Path) -
     prefix = tests_dir.relative_to(root).as_posix()
     on_disk = {f"{prefix}/{path.name}" for path in tests_dir.glob("test_*.py")}
     findings = [
-        f"ไฟล์เทสต์ที่ยังไม่ถูกตัดสินว่าเป็นของ gate ไหน: {name}" for name in sorted(on_disk - claims.keys())
+        f"no gate claims this test file: {name}" for name in sorted(on_disk - claims.keys())
     ]
-    findings += [f"ดัชนีอ้างไฟล์ที่ไม่มีแล้ว: {name}" for name in sorted(claims.keys() - on_disk)]
     findings += [
-        f"partition แตก — {name} ถูกอ้างโดย {sorted(owners)}"
+        f"the index claims a file that is gone: {name}" for name in sorted(claims.keys() - on_disk)
+    ]
+    findings += [
+        f"the partition is broken — {name} is claimed by {sorted(owners)}"
         for name, owners in sorted(claims.items())
         if len(owners) > 1
     ]
@@ -326,13 +369,13 @@ def _partition(gates: list[dict], root: pathlib.Path, tests_dir: pathlib.Path) -
 
 
 def _read_registry(registry: pathlib.Path) -> tuple[list[str], list[object]]:
-    """อ่านดัชนี — อ่านไม่ออกหรือรูปผิดคือสิ่งที่พบ ไม่ใช่ข้ออ้างให้ข้าม"""
+    """Read the index. Unreadable or malformed is a finding, not an excuse to skip."""
     try:
         document = load(registry.read_text(encoding="utf-8"))
     except SubsetError as error:
-        return [f"{registry.name} อ่านไม่ออก — {error}"], []
+        return [f"{registry.name} could not be read — {error}"], []
     if not isinstance(document, dict) or not isinstance(document.get("gates"), list):
-        return [f"{registry.name} ต้องมีคีย์ `gates` ที่เป็นรายการ"], []
+        return [f"{registry.name} must have a 'gates' key holding a list"], []
     return [], document["gates"]
 
 
@@ -342,7 +385,7 @@ def main(root: pathlib.Path) -> int:
     declared = config.get("gates_path", "gates.yaml")
     registry = root / declared
     if not registry.is_file():
-        print(f"NA: ไม่มี {declared} — ยังไม่มีดัชนีให้ตรวจ")
+        print(f"NA: no {declared} — there is no index to check yet")
         return 0
 
     findings, rows = _read_registry(registry)
@@ -350,15 +393,16 @@ def main(root: pathlib.Path) -> int:
         shape, gates = _gate_findings(rows)
         findings += shape
         if not gates and not shape:
-            findings.append(f"{registry.name} ไม่มี gate สักตัว — ดัชนีที่ว่างไม่บังคับอะไรเลย")
+            findings.append(f"{registry.name} lists no gates — an empty index enforces nothing")
 
         jobs, unreadable = workflow_jobs(root)
-        findings += [f"workflow อ่านไม่ออก — {problem}" for problem in unreadable]
+        findings += [f"a workflow could not be read — {problem}" for problem in unreadable]
         findings += _forward(gates, jobs, root)
 
         covered = {str(gate["enforced_by"]["job"]) for gate in gates}
         findings += [
-            f"job ที่ไม่มี gate ในดัชนี: {job} — เพิ่ม gate ให้มัน" for job in sorted(set(jobs) - covered)
+            f"job with no gate in the index: {job} — give it one"
+            for job in sorted(set(jobs) - covered)
         ]
         findings += _partition(gates, root, root / config.get("tests_path", "tests"))
 
@@ -369,6 +413,6 @@ def main(root: pathlib.Path) -> int:
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("ใช้: scan_gates_registry.py <root>", file=sys.stderr)
+        print("usage: scan_gates_registry.py <root>", file=sys.stderr)
         sys.exit(2)
     sys.exit(main(pathlib.Path(sys.argv[1]).resolve()))

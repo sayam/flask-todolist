@@ -1,0 +1,3 @@
+[submodule "vendor/verifiable-gates"]
+	path = vendor/verifiable-gates
+	url = https://github.com/sayam/verifiable-gates.git

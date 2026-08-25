@@ -1,9 +1,11 @@
-"""gate: adr-index-complete — ดัชนี ADR ครอบทุกใบ เลขไม่ซ้ำไม่มีรู
+"""gate: adr-index-complete — the ADR index covers every record, numbered without gaps.
 
-ดัชนีที่ค้างแย่กว่าไม่มีดัชนี — คนอ่านเชื่อว่าเห็นครบทั้งที่การตัดสินใจล่าสุด
-ไม่อยู่ในนั้น (reference เคยค้าง 7 ใบจากเฟสที่ตัดสินเรื่องใหญ่ที่สุด)
+A stale index is worse than no index: the reader believes they are seeing all of
+it while the most recent decisions are missing. In the reference implementation
+the index once trailed by seven records, from the phase that decided the largest
+things in the project.
 
-exit 0 = สะอาด/NA · 1 = พบ · 2 = เรียกผิด
+exit 0 = clean or N/A · 1 = findings · 2 = called wrongly
 """
 
 from __future__ import annotations
@@ -21,7 +23,7 @@ def main(root: pathlib.Path) -> int:
     config = json.loads((root / "scaffold.json").read_text(encoding="utf-8"))
     adr_dir = root / config.get("adr_path", "docs/adr")
     if not adr_dir.is_dir():
-        print(f"NA: ไม่มี {adr_dir.relative_to(root)} — ยังไม่มีอะไรให้ตรวจ")
+        print(f"NA: no {adr_dir.relative_to(root)} — nothing to check yet")
         return 0
 
     on_disk = {m.group(1): p.name for p in adr_dir.glob("*.md") if (m := FILENAME.match(p.name))}
@@ -30,13 +32,18 @@ def main(root: pathlib.Path) -> int:
 
     findings: list[str] = []
     if on_disk and not index.is_file():
-        findings.append("มี ADR แต่ไม่มีดัชนี README.md")
-    findings += [f"ไม่อยู่ในดัชนี: {on_disk[n]}" for n in sorted(on_disk.keys() - listed.keys())]
-    findings += [f"ดัชนีชี้ไฟล์ที่ไม่มี: {listed[n]}" for n in sorted(listed.keys() - on_disk.keys())]
+        findings.append("records exist but there is no README.md index")
+    findings += [
+        f"missing from the index: {on_disk[n]}" for n in sorted(on_disk.keys() - listed.keys())
+    ]
+    findings += [
+        f"index points at a file that is gone: {listed[n]}"
+        for n in sorted(listed.keys() - on_disk.keys())
+    ]
 
     numbers = sorted(int(n) for n in on_disk)
     if numbers and numbers != list(range(numbers[0], numbers[0] + len(numbers))):
-        findings.append(f"เลขมีรู: {numbers}")
+        findings.append(f"gap in the numbering: {numbers}")
 
     for finding in findings:
         print(f"adr-index-complete: {finding}")
@@ -45,6 +52,6 @@ def main(root: pathlib.Path) -> int:
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("ใช้: scan_adr_index.py <root>", file=sys.stderr)
+        print("usage: scan_adr_index.py <root>", file=sys.stderr)
         sys.exit(2)
     sys.exit(main(pathlib.Path(sys.argv[1]).resolve()))

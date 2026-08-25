@@ -20,6 +20,20 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Added
 
+- **This repository now consumes `verifiable-gates` instead of carrying a copy of
+  it** ([ADR 0077](docs/adr/0077-consume-verifiable-gates-as-a-submodule.md)).
+  `vendor/verifiable-gates` is a submodule pinned by SHA and watched by Dependabot;
+  `scripts/build_skill.py`, `run_gates.py`, and `preflight.py` are now thin
+  adapters that say where *this* project's registry, preamble, and root are.
+
+### Removed
+
+- **`overlays/` and the three test files whose subject moved** — the logic they
+  covered is tested at source, under a suite that starts its coverage floor at
+  100%. The gate `overlay-covers-every-portable-gate` went with them: its claim is
+  about an overlay this repository no longer has, and it is still enforced where
+  the overlay now lives. Ceilings moved down to match: gates 116 → 115,
+  suppressions 95 → 88, unexplained suppressions 48 → 43.
 - **`verifiable-gates` now has the same branch-protection posture as this
   repository** — required checks, `enforce_admins`, linear history, no
   force-pushes, conversation resolution — verified by attempting a direct push
@@ -1560,7 +1574,7 @@ graph. Nothing in the `/api/v1` contract changed; it only gained fields.
 ## [1.0.0] — 2026-08-12
 
 First public release. Everything below arrived across seven planned phases of
-work; the reasoning for each decision lives in the 76 records in
+work; the reasoning for each decision lives in the 77 records in
 [`docs/adr/`](docs/adr/), and the phase-by-phase plan in
 [`docs/ROADMAP.md`](docs/ROADMAP.md).
 

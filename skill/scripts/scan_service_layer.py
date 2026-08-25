@@ -1,10 +1,10 @@
-"""gate: logic-knows-no-http — service layer ห้าม import ของฝั่ง request
+"""gate: logic-knows-no-http — the service layer imports nothing from the request side.
 
-สแกน AST ของทุกไฟล์ใต้ `services_path` — import สัญลักษณ์ฝั่ง request จาก
-framework หรือ import โมดูล session ผู้ใช้ = ตรรกะรู้จัก HTTP แล้ว
-(`current_app` ไม่ห้าม — มันผูกกับแอป ไม่ใช่กับ request)
+Walks the AST of every file under `services_path`. Importing a request-side symbol
+from the framework, or importing a user-session module, means the logic knows about
+HTTP. (`current_app` is allowed — it is bound to the application, not to a request.)
 
-exit 0 = สะอาด/ไม่มีไดเรกทอรี (NA) · 1 = พบ · 2 = เรียกผิด
+exit 0 = clean or no such directory (N/A) · 1 = findings · 2 = called wrongly
 """
 
 from __future__ import annotations
@@ -33,7 +33,7 @@ def main(root: pathlib.Path) -> int:
     config = json.loads((root / "scaffold.json").read_text(encoding="utf-8"))
     services = root / config.get("services_path", "app/services")
     if not services.is_dir():
-        print(f"NA: ไม่มี {services.relative_to(root)} — ยังไม่มีอะไรให้ตรวจ")
+        print(f"NA: no {services.relative_to(root)} — nothing to check yet")
         return 0
 
     findings: list[str] = []
@@ -61,6 +61,6 @@ def main(root: pathlib.Path) -> int:
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("ใช้: scan_service_layer.py <root>", file=sys.stderr)
+        print("usage: scan_service_layer.py <root>", file=sys.stderr)
         sys.exit(2)
     sys.exit(main(pathlib.Path(sys.argv[1]).resolve()))

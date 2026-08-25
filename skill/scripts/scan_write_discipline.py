@@ -1,12 +1,15 @@
-"""gate: delete-means-soft-delete — `.delete(` นอกโมดูล purge ที่ประกาศไว้ = พบ
+"""gate: delete-means-soft-delete — a real delete outside the declared purge modules is a finding.
 
-ลบจริงต้องอยู่ในที่ที่ประกาศ (`purge_paths` — รับ glob) — ที่อื่นทั้งหมดต้องเป็น
-soft delete · จับ `session.delete(` ของ ORM ไม่ใช่ `.delete(` ทุกตัว เพราะ
-`.delete(key)` ของ cache client ไม่ใช่การลบข้อมูลผู้ใช้ (dogfood กับ reference
-จับ false positive นี้ได้) · ด่านลึกกว่า (bulk/Core/raw SQL) เป็นของ suite
-ของโปรเจกต์ — scan นี้คือชั้นแรก ไม่ใช่ชั้นเดียว
+Deleting for real belongs where the project declared it (`purge_paths`, which takes
+globs); everywhere else has to be a soft delete. This matches the ORM's
+`session.delete(` rather than every `.delete(`, because a cache client's
+`.delete(key)` is not the removal of somebody's data — dogfooding against the
+reference implementation caught that false positive.
 
-exit 0 = สะอาด/NA · 1 = พบ · 2 = เรียกผิด
+The deeper cases (bulk operations, Core DML, raw SQL) belong to the project's own
+test suite. This scan is the first layer, not the only one.
+
+exit 0 = clean or N/A · 1 = findings · 2 = called wrongly
 """
 
 from __future__ import annotations
@@ -24,7 +27,7 @@ def main(root: pathlib.Path) -> int:
     config = json.loads((root / "scaffold.json").read_text(encoding="utf-8"))
     src = root / config.get("src_path", "app")
     if not src.is_dir():
-        print(f"NA: ไม่มี {src.relative_to(root)} — ยังไม่มีอะไรให้ตรวจ")
+        print(f"NA: no {src.relative_to(root)} — nothing to check yet")
         return 0
     patterns = config.get("purge_paths", ["app/purge.py"])
 
@@ -44,6 +47,6 @@ def main(root: pathlib.Path) -> int:
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("ใช้: scan_write_discipline.py <root>", file=sys.stderr)
+        print("usage: scan_write_discipline.py <root>", file=sys.stderr)
         sys.exit(2)
     sys.exit(main(pathlib.Path(sys.argv[1]).resolve()))

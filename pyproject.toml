@@ -3,6 +3,10 @@
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+# เก็บเฉพาะเทสต์ของ repo นี้ — `vendor/` เป็น submodule ที่มีชุดเทสต์ของตัวเอง
+# ซึ่ง CI ของ repo ต้นทางรันไปแล้วก่อน pin SHA นี้ (ADR 0077) · เก็บมาด้วยจะได้
+# ทั้งชื่อไฟล์ชนกันและเกณฑ์ coverage ที่ไม่ใช่ของเรา
+testpaths = ["tests"]
 # `--strict-markers`: พิมพ์ชื่อ marker ผิดต้องแดงทันที ไม่ใช่กลายเป็น marker ใหม่
 # ที่ไม่มีใครกรองด้วย (job `bare` จะรันเทสต์ที่ตั้งใจให้ข้ามโดยไม่มีใครรู้)
 addopts = "--strict-markers"
@@ -27,7 +31,9 @@ target-version = "py313"
 # (กติกา dialect ของ migration คุมด้วย tests/test_migration_lint.py แทน)
 # skill/ ไม่ lint: แพ็กเกจ generate ล้วน (ADR 0050) — สำเนา checker ถูก lint
 # ที่ต้นทาง overlays/flask/ แล้ว และ tests/test_agent_skill.py เทียบไบต์ต่อไบต์
-extend-exclude = ["migrations", "app/sun_data.py", "skill"]
+# vendor/ ไม่ lint: เป็น submodule ของอีก repo ที่มี lint ของตัวเองเข้มกว่า —
+# ตรวจซ้ำที่นี่คือการตั้งเกณฑ์ให้โค้ดที่เราไม่ได้เป็นคนแก้ (ADR 0077)
+extend-exclude = ["migrations", "app/sun_data.py", "skill", "vendor"]
 
 [tool.ruff.lint]
 select = ["ALL"]
@@ -84,6 +90,9 @@ max-complexity = 10  # ลดจาก 12 ได้หลัง Phase 3 ย้�
 # ---------------------------------------------------------------- mypy
 [tool.mypy]
 python_version = "3.13"
+# โค้ดที่ย้ายไป vendor/ ยังต้องถูก type-check ตอนที่ scripts/ เรียกมัน — บอก mypy
+# ว่าหาแพ็กเกจได้ที่ไหน ส่วนตัว vendor เองไม่ถูกตรวจซ้ำ (มี mypy strict ของตัวเอง)
+mypy_path = "vendor/verifiable-gates/src"
 # โหมด gradual: ทั้งแอปตรวจแบบหลวม + module ที่ประกาศแล้วต้อง strict
 # **ขยายได้ ห้ามหด** — และตั้งแต่ audit รอบ 14 มีตัวบังคับจริงแล้ว ไม่ใช่แค่ประโยคนี้:
 # `[tool.todolist.ratchets]` ข้างล่างเก็บจำนวนโมดูลที่อยู่ในลิสต์ และ
@@ -114,6 +123,15 @@ check_untyped_defs = true
 # อยู่แล้ว) และสัญญาของมันถูกบังคับด้วย host ตอนรัน + เทสต์สแกน import ของ Phase 4.5
 exclude = ["app/plugins/.*/enhancements/"]
 
+
+[[tool.mypy.overrides]]
+# **ใช้ type ของ vendor ได้ แต่ไม่รายงานความผิดของมัน** — โค้ดใน submodule ถูก
+# mypy strict ของ repo ต้นทางตรวจไปแล้วก่อน pin SHA นี้ (ADR 0077) · ตรวจซ้ำที่นี่
+# จะแดงด้วยเรื่องที่ไม่เกี่ยวกับความถูกต้อง (เช่นไม่มี stub ของ pyyaml ในสภาพแวดล้อมนี้)
+# และตั้งเกณฑ์ให้โค้ดที่เราไม่ได้เป็นคนแก้
+module = "verifiable_gates.*"
+ignore_errors = true
+follow_imports = "silent"
 [[tool.mypy.overrides]]
 module = [
     "flask_login.*", "flask_limiter.*", "flask_wtf.*",
@@ -201,9 +219,13 @@ scripts_coverage = 65
 # 95 → 96 ตอน audit รอบ 25: `scripts/sync_counts.py` อ่าน `gates.yaml` จึงต้อง
 # มี `# type: ignore[import-untyped]` ของ pyyaml เหมือนทุกตัวที่อ่าน YAML —
 # **มีเหตุผลกำกับ** จึงไม่กระทบเพดานของบรรทัดที่ไม่มีเหตุผล (ยังเป็น 48)
-suppressions = 95
+# 95 → 88 (ADR 0077): overlays/ กับเทสต์ที่ตามของไป verifiable-gates พาบรรทัด
+# ที่ปิดเครื่องตรวจของตัวเองไปด้วย 7 บรรทัด — เพดานต้องลดตามทันที ไม่งั้นที่ว่าง
+# ที่เพิ่งได้จะถูกถมกลับโดยไม่มีใครสังเกต
+suppressions = 88
 # ในจำนวนนั้น กี่บรรทัดที่ไม่มีข้อความบอกเหตุผลต่อท้าย
-suppressions_without_reason = 48
+# 48 → 43 ด้วยเหตุผลเดียวกัน
+suppressions_without_reason = 43
 # แถวใน docs/EXTERNAL-SURFACE.md ที่ยอมรับตรง ๆ ว่ายังไม่มีใครเทียบกับของจริง
 # (ADR 0072) — วัดตอนตั้งเพดาน 2026-08-22 · ผิวนอกโตทุกครั้งที่ GitHub เพิ่ม
 # setting ใหม่ และของใหม่เกิดมาไม่มีเจ้าของเสมอ
@@ -214,7 +236,9 @@ external_surface_unowned = 19
 # (`removals.gates_total`) แต่ไม่มีอะไรกันการโต: 109 → 116 ใน 6 วัน ขณะที่หลักฐาน
 # `proved_by` ครอบ 44/116 และการทดลองเฟส 12 บอกว่ากฎเพิ่มให้ผลตอบแทนลดลง ·
 # gate ใหม่ต้องมาพร้อมการถอด gate เก่า หรือ ADR ที่ขยับเลขนี้
-gates_ceiling = 116
+# 116 → 115 (ADR 0077): `overlay-covers-every-portable-gate` ตามของไป
+# verifiable-gates แล้ว — คำอ้างของมันเป็นเรื่องของ overlay ซึ่ง repo นี้ไม่มีอีก
+gates_ceiling = 115
 
 [tool.todolist.removals]
 # gate ทั้งหมดใน gates.yaml — ถอด gate ทิ้งเคยเขียวได้ทั้ง CI ถ้าเก็บกวาดครบ 6 ที่

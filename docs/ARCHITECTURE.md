@@ -119,7 +119,6 @@ proxy เชื่อ header ตามจำนวนชั้นที่ปร
 | model ↔ migration | `tests/test_migrations.py` |
 | gates.yaml ↔ CI jobs ↔ ไฟล์เทสต์ | `tests/test_gates.py` |
 | gates.yaml ↔ SKILL สองใบ | `tests/test_skill.py` |
-| gates.yaml ↔ overlay | `tests/test_overlay.py` |
 | ASVS ↔ หลักฐาน ↔ crosswalk | `tests/test_asvs.py` · `tests/test_gates.py` |
 | ROPA/runbook ↔ ตาราง/ค่าจริงในโค้ด | `tests/test_ropa.py` |
 | ชั้นข้อมูล ↔ คอลัมน์จริง | `tests/test_data_classification.py` |

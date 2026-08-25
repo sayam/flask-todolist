@@ -1,11 +1,12 @@
-"""gate: no-debug-entrypoint — entrypoint ห้ามเปิด debug console ได้แม้รันผิดตัว
+"""gate: no-debug-entrypoint — an entrypoint cannot open a debug console, even run wrongly.
 
-debug console ของ dev server รันโค้ดจากหน้าเว็บได้ — และไฟล์ entrypoint
-มักถูกก๊อปเข้า image · ตรวจด้วย **AST ไม่ใช่ regex** เพราะไฟล์พวกนี้ชอบเล่า
-ในคอมเมนต์/docstring ว่าทำไมถึง*ไม่มี* `debug=True` — ตัวอักษรเดียวกัน
-คนละความหมาย (dogfood กับ reference จับ false positive นี้ได้ตั้งแต่วันแรก)
+A dev server's debug console executes code from the browser, and entrypoint files
+are exactly the ones that get copied into an image. This reads the **AST, not a
+regex**, because these files like to explain in a comment or docstring why they do
+*not* set `debug=True` — the same characters, the opposite meaning. Dogfooding
+against the reference implementation caught that false positive on day one.
 
-exit 0 = สะอาด/NA · 1 = พบ · 2 = เรียกผิด
+exit 0 = clean or N/A · 1 = findings · 2 = called wrongly
 """
 
 from __future__ import annotations
@@ -17,7 +18,7 @@ import sys
 
 
 def _debug_run_calls(tree: ast.AST) -> list[int]:
-    """บรรทัดของ `<อะไรก็ตาม>.run(..., debug=True, ...)` — ค่าคงที่จริงเท่านั้น"""
+    """Lines holding `<anything>.run(..., debug=True, ...)` — real constants only."""
     return [
         node.lineno
         for node in ast.walk(tree)
@@ -38,7 +39,7 @@ def main(root: pathlib.Path) -> int:
     names = config.get("entrypoints", ["run.py", "wsgi.py", "app.py", "main.py"])
     present = [root / n for n in names if (root / n).is_file()]
     if not present:
-        print("NA: ไม่มีไฟล์ entrypoint ที่ประกาศไว้ — ยังไม่มีอะไรให้ตรวจ")
+        print("NA: none of the declared entrypoints exist — nothing to check yet")
         return 0
 
     findings: list[str] = []
@@ -54,6 +55,6 @@ def main(root: pathlib.Path) -> int:
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("ใช้: scan_entrypoint_debug.py <root>", file=sys.stderr)
+        print("usage: scan_entrypoint_debug.py <root>", file=sys.stderr)
         sys.exit(2)
     sys.exit(main(pathlib.Path(sys.argv[1]).resolve()))

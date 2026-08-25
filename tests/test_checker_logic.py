@@ -1413,10 +1413,19 @@ def test_the_length_limit_is_measured_in_characters_not_bytes():
 # และต้องเอ่ยถึงสคริปต์นั้นจริง
 PROVEN_ELSEWHERE = {
     "run_gates": (
-        "tests/test_harness.py",
+        "tests/test_vendored_tooling.py",
         (
-            "ยิงผ่าน subprocess พร้อม fixture ที่พังจริงและที่สะอาดจริง — เหมือนที่ "
-            "loop ของ agent ใช้ ซึ่งเป็นรูปที่ import แล้วเรียกฟังก์ชันพิสูจน์ไม่ได้"
+            "ตรรกะย้ายไป `verifiable-gates` แล้วและถูกทดสอบที่นั่น (ADR 0077) — "
+            "ที่เหลือให้พิสูจน์คือ *รอยต่อ*: adapter ชี้ทะเบียนกับรากของ repo นี้จริง "
+            "ไหม · ทำให้มันชี้ผิดแล้วเทสต์ต้องแดง"
+        ),
+    ),
+    "preflight": (
+        "tests/test_vendored_tooling.py",
+        (
+            "เหมือน `run_gates` — ตรรกะอยู่ใน vendor ส่วนที่นี่พิสูจน์ว่า adapter "
+            "ส่ง `--root` ของ repo นี้ และแผนที่ได้อ่านคำสั่งจาก workflow จริง "
+            "ไม่ใช่จากสำเนาที่สอง"
         ),
     ),
     "n1_smoke": (
@@ -1542,8 +1551,7 @@ def test_subprocess_children_are_counted_or_the_number_punishes_the_better_test(
     """`COVERAGE_PROCESS_START` ต้องถูกตั้ง ไม่งั้นเทสต์ที่ยิงผ่าน subprocess ได้ 0%
 
     repo นี้บังคับเองว่าการยิงสคริปต์ **ผ่าน subprocess** ดีกว่าการ import แล้ว
-    เรียกฟังก์ชัน (`tests/test_harness.py` · `tests/test_preflight.py` ·
-    `tests/test_measure_generated.py` ทำแบบนั้นทั้งหมด) · ถ้าตัววัดไม่นับลูก
+    เรียกฟังก์ชัน (`tests/test_measure_generated.py` ทำแบบนั้น) · ถ้าตัววัดไม่นับลูก
     เกณฑ์จะสูงขึ้นเมื่อเขียนเทสต์ให้**แย่ลง** ซึ่งเป็นแรงจูงใจที่กลับด้าน
     """
     workflow = yaml.safe_load(CI_WORKFLOW.read_text(encoding="utf-8"))
