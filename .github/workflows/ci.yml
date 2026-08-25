@@ -51,6 +51,8 @@ jobs:
           --health-retries=20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: true
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
@@ -160,6 +162,8 @@ jobs:
           --health-retries=20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: true
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
@@ -198,6 +202,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: true
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
@@ -257,6 +263,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          submodules: true
           # **ต้องมีประวัติจริง** — `scripts/removals_census.py` อ่านจาก git log
           # (audit รอบ 16) · checkout แบบตื้นทำให้มันรายงาน "ไม่มีอะไรถูกถอด"
           # ทุกครั้งอย่างมั่นใจ ซึ่งเป็นคำตอบที่ผิดที่อันตรายกว่าการไม่มีคำตอบ
@@ -340,6 +347,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          submodules: true
           # ต้องเห็น tag ทั้งหมด — checkout ตื้นทำให้ git describe หา tag ไม่เจอ
           fetch-depth: 0
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -383,6 +391,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: true
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
@@ -420,6 +430,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: true
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
@@ -447,6 +459,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          submodules: true
           fetch-depth: 0
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
@@ -474,6 +487,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: true
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
@@ -557,6 +572,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: true
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
@@ -610,6 +627,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: true
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
@@ -670,6 +689,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: true
       - name: build
         run: docker build -t todolist:ci .
       - name: ต้องไม่รันเป็น root
@@ -778,6 +799,8 @@ jobs:
       TLS: docker compose -f compose.yaml -f compose.mysql.yaml -f compose.scale.yaml -f compose.tls.yaml
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: true
       - name: up
         run: |
           $COMPOSE up -d --build --quiet-pull
@@ -1000,6 +1023,8 @@ jobs:
       COMPOSE: docker compose -f compose.yaml -f compose.sso.yaml
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: true
       - name: up
         run: |
           $COMPOSE up -d --build --quiet-pull
@@ -1072,6 +1097,8 @@ jobs:
       COMPOSE: docker compose -f compose.yaml -f compose.ldap.yaml
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: true
       - name: up
         run: |
           $COMPOSE up -d --build --quiet-pull
@@ -1158,6 +1185,8 @@ jobs:
       COMPOSE: docker compose -f compose.yaml -f compose.vault.yaml
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: true
       - name: up
         run: |
           $COMPOSE up -d --build --quiet-pull
@@ -1236,6 +1265,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: true
       - name: วาง repo ไว้นอก home เหมือน deploy จริง
         run: |
           # **ไดเรกทอรี checkout ของ GitHub อยู่ใต้ /home/runner** ซึ่งตัวติดตั้ง
@@ -1322,6 +1353,8 @@ jobs:
       TLS: docker compose -f compose.yaml -f compose.mysql.yaml -f compose.scale.yaml -f compose.tls.yaml
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: true
       - name: ขึ้น stack ที่มี TLS และ 2 replica
         run: |
           ./scripts/dev_tls_cert.sh
@@ -1399,6 +1432,8 @@ jobs:
       C: docker compose -f compose.yaml -f compose.mysql.yaml -f compose.siem.yaml
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: true
       - name: ขึ้น stack พร้อมปลายทางของ log
         run: |
           $C up -d --build --quiet-pull
@@ -1490,6 +1525,8 @@ jobs:
       COMPOSE: docker compose -f compose.yaml -f compose.metrics.yaml
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: true
       - name: ออก token ก่อน start ตัวดูด — /metrics ไม่มีโหมดสาธารณะ (ADR 0031)
         run: |
           touch metrics-token
@@ -1592,6 +1629,8 @@ jobs:
       SECRET_KEY: ci-only-secret-key-not-used-in-production-1234
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: true
       - name: ขึ้นแอปจาก image จริง (SQLite) แล้ว migrate + สร้างผู้ใช้
         run: |
           docker compose up -d --build --quiet-pull
@@ -1622,6 +1661,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          submodules: true
           fetch-depth: 0
       - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
@@ -1636,6 +1676,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          submodules: true
           # ตัวติดตั้งอยู่ใน submodule แล้ว (ADR 0077) — ไม่ดึงมาก็ไม่มีอะไรให้รัน
           submodules: true
       - name: ติดตั้งลง repo เปล่า — ด่านต้องครบ รันได้ และไม่พังบนความว่าง
@@ -1658,6 +1699,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: true
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
@@ -1706,6 +1749,8 @@ jobs:
         language: [python, javascript-typescript]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: true
       - uses: github/codeql-action/init@db488ddef3bf6cb639b32c2e9a7c0a7ea8271d28 # v4.37.8
         with:
           languages: ${{ matrix.language }}
