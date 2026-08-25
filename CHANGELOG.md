@@ -18,6 +18,15 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ## [Unreleased]
 
+### Changed
+
+- **The commit gate and the newcomer-issue gate moved to `verifiable-gates`**
+  (extraction stage 3a — ADR 0077). `scripts/lint_commits.py` and
+  `scripts/check_issue_handoff.py` are thin adapters now, 244 lines down to 72,
+  and the paths the `commit-msg` hook and CI call are unchanged.
+- **`tests/test_dependabot.py` reads the accepted commit types by importing
+  them**, not by running a regex over the file. The regex worked while the value
+  was a literal in that file; importing walks the same path the hook and CI walk.
 ### Added
 
 - **Tag `evidence-freeze-1`.** The state the dissertation's claims point at, set on

@@ -19,11 +19,9 @@ audit governance รอบ 4 ชี้ช่องว่างที่สาม
 """
 
 import ast
-import functools
 import json
 import pathlib
 import re
-import subprocess
 import typing
 
 import pytest
@@ -34,10 +32,8 @@ from scripts import (
     audit_pins,
     audit_plugin_deps,
     audit_posture,
-    check_issue_handoff,
     check_ratchets,
     check_semgrep,
-    lint_commits,
     red_streak_census,
     removals_census,
     rerun_census,
@@ -1358,23 +1354,6 @@ def test_the_report_prints_the_pile_it_chose_not_to_count(monkeypatch):
     assert "ไม่นับเป็นการถอด" in text
 
 
-# ------------- ตัวตัดสินทุกตัวต้องอยู่ในรายการนี้ (audit r17 · ข้อ 3)
-#
-# gate `checkers-proven-two-way` (จาก r4) บังคับว่าไฟล์นี้ต้องมีเทสต์ planted
-# violation ให้ทุกตัว**ที่อยู่ในนั้น** — แต่ไม่มีอะไรบังคับว่าตัวตัดสินตัวใหม่ต้อง
-# เข้ามาอยู่ · ผลคือ `lint_commits.py` ซึ่ง **บล็อกทุก commit (hook `commit-msg`)
-# และทุก PR (job `commit-lint`)** อยู่นอกรายการมาตลอด โดยมี coverage 0%
-#
-# รายการที่ไม่มีการตรวจสมาชิก คือรายการที่ครบเฉพาะวันที่มีคนนึกได้
-
-
-CLEAN_TITLES = [
-    "feat(auth): เพิ่มปัจจัยที่สอง",
-    "fix: แก้ตัวกรองวันที่ที่ย่อยไม่ได้",
-    "docs(adr): บันทึกคำตัดสินเรื่อง license",
-    "refactor(gates)!: ยกชั้นของ gate ใหม่ทั้งชุด",
-]
-
 DIRTY_TITLES = [
     ("แก้บั๊ก", "ไม่มี type นำหน้า"),
     ("feat เพิ่มของ", "ไม่มีเครื่องหมาย :"),
@@ -1385,29 +1364,6 @@ DIRTY_TITLES = [
     ("feat: " + "ก" * 71, "ยาวเกิน 72 ตัว ทั้งที่รูปแบบถูก"),
     ("feat: " + "ก" * 80, "ยาวเกินและรูปแบบก็ไม่ผ่าน"),
 ]
-
-
-@pytest.mark.parametrize("title", CLEAN_TITLES)
-def test_a_well_formed_subject_is_not_punished(title):
-    """ทิศ "ผ่านเมื่อควรผ่าน" — ตัวตัดสินที่จับของถูกด้วย คือตัวที่คนจะปิดเสียง"""
-    assert lint_commits.check_title(title) == [], f"หัวที่ถูกต้องถูกจับ: {title!r}"
-
-
-@pytest.mark.parametrize(("title", "why"), DIRTY_TITLES)
-def test_a_broken_subject_is_caught(title, why):
-    """ทิศ "พังเมื่อควรพัง" — ฝังความผิดทีละแบบแล้วต้องจับได้"""
-    assert lint_commits.check_title(title), f"ไม่จับ: {why} ({title!r})"
-
-
-def test_the_length_limit_is_measured_in_characters_not_bytes():
-    """หัวเรื่องภาษาไทยยาว 3 ไบต์ต่อตัว — นับไบต์เมื่อไหร่ commit ปกติจะถูกปฏิเสธ
-
-    เป็นกับดักที่ repo นี้เสี่ยงที่สุดเพราะ commit ทุกใบเป็นภาษาไทย
-    """
-    thai = "feat: " + "ก" * 60  # 66 ตัวอักษร · 186 ไบต์
-
-    assert len(thai) <= lint_commits.MAX_TITLE
-    assert lint_commits.check_title(thai) == [], "นับเป็นไบต์แทนตัวอักษร"
 
 
 # ตัวตัดสินที่พิสูจน์ไว้ที่อื่นแล้ว — **ต้องบอกว่าที่ไหน และด้วยวิธีอะไร** ·
@@ -1428,6 +1384,22 @@ PROVEN_ELSEWHERE = {
             "เหมือน `run_gates` — ตรรกะอยู่ใน vendor ส่วนที่นี่พิสูจน์ว่า adapter "
             "ส่ง `--root` ของ repo นี้ และแผนที่ได้อ่านคำสั่งจาก workflow จริง "
             "ไม่ใช่จากสำเนาที่สอง"
+        ),
+    ),
+    "lint_commits": (
+        "tests/test_vendored_tooling.py",
+        (
+            "ตรรกะย้ายไป `verifiable-gates` ขั้น 3a และถูกทดสอบสองทิศที่นั่น "
+            "(6 มิวเทชันแดง รวมข้อที่นับความยาวหัวเป็นไบต์) — ที่นี่พิสูจน์ *รอยต่อ*: "
+            "พาธที่ hook `commit-msg` เรียก ยังเดินไปถึงตัวจริงและยังบล็อกของผิดได้"
+        ),
+    ),
+    "check_issue_handoff": (
+        "tests/test_vendored_tooling.py",
+        (
+            "เหมือน `lint_commits` — ตรรกะอยู่ใน vendor (5 มิวเทชันแดง) ส่วนที่นี่ "
+            "พิสูจน์ว่า job `lint` เรียกพาธนี้แล้วถึงตัวจริง และบริบทจาก env "
+            "ยังถูกอ่านเหมือนเดิม"
         ),
     ),
     "n1_smoke": (
@@ -1981,117 +1953,6 @@ GOOD_FIRST = {"good first issue", "help wanted"}
 TAKEN = [{"number": 171, "title": "data-doctor check"}]
 
 
-def test_closing_an_invitation_that_is_still_open_is_a_problem():
-    found = check_issue_handoff.problems(TAKEN, {171: GOOD_FIRST}, body="ทำเอง")
-
-    assert found, "ปิด issue ที่ยังติดป้ายอยู่ ต้องแดง"
-    assert "171" in found[0]
-
-
-def test_an_issue_without_the_label_is_not_a_problem():
-    """ป้ายอื่นไม่เกี่ยว — ด่านที่ดังกับทุก PR จะถูกปิดเสียงภายในสัปดาห์เดียว"""
-    assert check_issue_handoff.problems(TAKEN, {171: {"bug"}}, body="") == []
-
-
-def test_a_pr_that_closes_nothing_is_not_a_problem():
-    assert check_issue_handoff.problems([], {}, body="") == []
-
-
-def test_a_declared_takeback_passes():
-    """ไม่ได้ห้ามผู้ดูแลทำเอง — ห้ามทำเงียบ ๆ"""
-    body = "good-first-issue-taken-back: ต้องใช้ในงาน audit วันนี้ รอไม่ได้"
-
-    assert check_issue_handoff.problems(TAKEN, {171: GOOD_FIRST}, body=body) == []
-
-
-def test_a_takeback_without_a_reason_does_not_pass():
-    """คำสั่งเปล่า ๆ ไม่ใช่การประกาศ — หลักเดียวกับทุกทะเบียนข้อยกเว้นในโปรเจกต์นี้"""
-    found = check_issue_handoff.problems(
-        TAKEN, {171: GOOD_FIRST}, body="good-first-issue-taken-back:"
-    )
-
-    assert found, "ประกาศโดยไม่มีเหตุผล ต้องไม่ผ่าน"
-
-
-def test_the_message_names_both_ways_out():
-    """ข้อความตอนแดงต้องบอกทางออก **ทั้งสองทาง** ไม่ใช่แค่บอกว่าผิด
-
-    รุ่นแรกของเทสต์นี้หาแค่คำว่า "ปลดป้าย" ในข้อความทั้งก้อน — ซึ่งโผล่ในประโยค
-    ที่บอก*อาการ*อยู่แล้ว มันจึงยังเขียวตอนที่ถอดบรรทัดทางออกข้อ 1 ออกไปทั้งบรรทัด
-    (จับได้ตอน mutation) · ตอนนี้จึงนับ *บรรทัด* ที่เป็นทางออกจริง
-    """
-    message = check_issue_handoff.report(["#171 ยังติดป้ายอยู่"])
-    ways = [line.strip() for line in message.splitlines() if line.strip()[:2] in {"1.", "2."}]
-
-    assert len(ways) == 2, f"ต้องมีทางออกสองทาง ได้ {ways}"
-    assert "ปลดป้าย" in ways[0], "ทางที่หนึ่งต้องคือการปลดป้าย"
-    assert "good-first-issue-taken-back:" in message, "ไม่ได้บอกรูปของการประกาศ"
-
-
-# ตัวที่คุยกับ GitHub — ทดสอบโดยปลอม `_gh` ไม่ใช่โดยต่อเน็ต · **เกณฑ์ coverage
-# ของ `scripts/` จับได้เองว่าครึ่งนี้ไม่มีเทสต์** ตอนที่ด่านนี้ถูกเพิ่มเข้ามา
-# (พื้นตก 62.14 → 61.80) ซึ่งเป็นเหตุผลที่เกณฑ์นั้นมีอยู่
-
-
-@pytest.fixture
-def fake_gh(monkeypatch):
-    """แทน `gh` ด้วยตารางคำตอบ — คืน list ของ argument ที่ถูกเรียกจริงด้วย"""
-    calls = []
-
-    def answer(*args):
-        calls.append(args)
-        if args[0] == "pr":
-            return json.dumps({"closingIssuesReferences": answer.closing})
-        return json.dumps({"labels": [{"name": name} for name in answer.labels]})
-
-    answer.closing = []
-    answer.labels = []
-    monkeypatch.setattr(check_issue_handoff, "_gh", answer)
-    return answer, calls
-
-
-def test_closing_issues_reads_what_github_would_actually_close(fake_gh):
-    """อ่านจาก `closingIssuesReferences` ไม่ใช่จากการ grep คำว่า Closes ในเนื้อ PR"""
-    answer, calls = fake_gh
-    answer.closing = [{"number": 171, "title": "x"}]
-
-    assert check_issue_handoff.closing_issues("9") == [{"number": 171, "title": "x"}]
-    assert "closingIssuesReferences" in calls[0]
-
-
-def test_labels_of_returns_the_names(fake_gh):
-    answer, _calls = fake_gh
-    answer.labels = ["good first issue", "bug"]
-
-    assert check_issue_handoff.labels_of(171) == {"good first issue", "bug"}
-
-
-def test_without_a_pull_request_number_the_check_is_silent(capsys):
-    """ด่านนี้มีความหมายเฉพาะบน pull_request — บน push ต้องผ่านเงียบ ๆ"""
-    assert check_issue_handoff.main(["--pr", "", "--body", ""]) == 0
-
-
-def test_a_pull_request_closing_nothing_passes(fake_gh):
-    assert check_issue_handoff.main(["--pr", "9", "--body", ""]) == 0
-
-
-def test_closing_a_labelled_issue_fails_the_build(fake_gh):
-    answer, _calls = fake_gh
-    answer.closing = [{"number": 171, "title": "data-doctor check"}]
-    answer.labels = ["good first issue"]
-
-    assert check_issue_handoff.main(["--pr", "9", "--body", "ทำเอง"]) == 1
-
-
-def test_a_declared_takeback_lets_the_build_through(fake_gh):
-    answer, _calls = fake_gh
-    answer.closing = [{"number": 171, "title": "data-doctor check"}]
-    answer.labels = ["good first issue"]
-    body = "good-first-issue-taken-back: จำเป็นต้องใช้ผลในวันเดียวกัน"
-
-    assert check_issue_handoff.main(["--pr", "9", "--body", body]) == 0
-
-
 # --------------------------------- พื้นผิว API ของไฟล์ Python (`scripts/skeleton.py`)
 #
 # ไอเดียมาจาก `graft` — แต่รับมาเฉพาะชั้นที่ deterministic · ไม่มี index ไม่มี
@@ -2321,78 +2182,6 @@ def test_rendering_a_file_parses_it_exactly_once(tmp_path, monkeypatch):
     assert len(calls) == 1, f"parse {len(calls)} ครั้งต่อไฟล์ — ควรเป็นครั้งเดียว"
 
 
-# ------------- DCO: ทุก commit ต้องรับรองสิทธิ์ตามกฎหมาย (ADR 0073)
-#
-# ข้อนี้เป็นข้อเดียวจาก 19 ข้อของ OSPS Baseline ระดับ 2 ที่เราไม่ผ่าน และเป็น
-# เหตุผลเดียวกับที่เกณฑ์ `dco` ของ badge ระดับ silver เป็น Unmet มาตั้งแต่ต้น
-
-
-@pytest.mark.parametrize(
-    "message",
-    [
-        "feat(x): ok\n\nSigned-off-by: Sayam Sriphua <sayams@hotmail.com>\n",
-        "fix: ok\n\nเนื้อความไทย\n\nSigned-off-by: A B <a@b.co>\nCo-Authored-By: C <c@d.io>\n",
-    ],
-)
-def test_a_signed_off_commit_passes(message):
-    """ทิศ "ผ่านเมื่อควรผ่าน" — ลายเซ็นที่ `git commit -s` เขียนให้ ต้องไม่ถูกจับ"""
-    assert lint_commits.check_sign_off(message) == []
-
-
-@pytest.mark.parametrize(
-    ("message", "why"),
-    [
-        ("feat(x): ไม่มีลายเซ็นเลย\n\nเนื้อความ\n", "ไม่มีบรรทัดลายเซ็น"),
-        ("feat(x): ok\n\nSigned-off-by: ไม่มีอีเมล\n", "ลายเซ็นที่ไม่มีที่อยู่ติดต่อกลับ"),
-        ("feat(x): ok\n\nsigned-off-by: a <a@b.co>\n", "พิมพ์เล็กทั้งบรรทัด — ไม่ใช่รูปที่ git เขียน"),
-        ("feat(x): ok\n\nSigned-off-by: A B <a@b.co> ต่อท้าย\n", "มีข้อความต่อท้ายลายเซ็น"),
-    ],
-)
-def test_an_unsigned_commit_is_caught(message, why):
-    """ทุกทางที่ลายเซ็นจะขาดหรือปลอมรูป ต้องแดง — ไม่ใช่แค่กรณีที่นึกถึงตอนเขียน"""
-    found = lint_commits.check_sign_off(message)
-
-    assert found, why
-    assert "git commit -s" in found[0], "แดงแล้วแต่ไม่ได้บอกว่าจะเซ็นยังไง"
-
-
-def test_the_log_reader_keeps_multiline_bodies_in_one_commit():
-    """เนื้อ commit มีขึ้นบรรทัดใหม่ได้ — ตัวอ่านที่คั่นด้วยบรรทัดจะแตกใบเดียวเป็นหลายใบ
-
-    ทิศนี้สำคัญกว่าที่เห็น: ถ้าตัวอ่านแตกใบ ลายเซ็นจะไปอยู่คนละ "commit" กับหัว
-    แล้วด่านจะแดงกับ commit ที่เซ็นถูกต้อง ซึ่งสอนให้คนข้ามด่านด้วย --no-verify
-
-    **ป้อนผลของ `git log` เอง ไม่เรียก git จริง** — ฉบับแรกอ่าน `HEAD~1..HEAD`
-    ของรีโปนี้ แล้วเขียวบนเครื่องแต่แดงบน CI เพราะ checkout ของ CI เป็น shallow
-    (`HEAD~1` ไม่มีอยู่) ซึ่งเป็นคลาสที่ `CLAUDE.md` เตือนไว้ตรง ๆ
-    """
-    sep, field = lint_commits.RECORD_SEP, lint_commits.FIELD_SEP
-    out = (
-        f"aaaaaaaaaaaa{field}feat: ฐาน{field}Signed-off-by: A B <a@b.co>\n{sep}"
-        f"bbbbbbbbbbbb{field}feat: หลายย่อหน้า{field}"
-        f"ย่อหน้าแรก\n\nย่อหน้าที่สอง\n\nSigned-off-by: A B <a@b.co>\n{sep}"
-    )
-
-    rows = lint_commits.parse_log(out)
-
-    assert len(rows) == 2, f"เนื้อหลายบรรทัดถูกแตกเป็นหลายใบ: {rows}"
-    _sha, subject, body = rows[1]
-    assert subject == "feat: หลายย่อหน้า"
-    assert "ย่อหน้าที่สอง" in body, "เนื้อถูกตัดหายไประหว่างทาง"
-    assert lint_commits.check_sign_off(body) == []
-
-
-def test_the_format_git_gets_matches_the_separators_the_parser_splits_on():
-    """สองฝั่งเขียนตัวคั่นคนละรูป (`%x1e` กับ `\x1e`) — ถ้าไม่ตรงกันจะพังเงียบ"""
-    record = f"%x{ord(lint_commits.RECORD_SEP):02x}"
-    field = f"%x{ord(lint_commits.FIELD_SEP):02x}"
-
-    assert lint_commits.LOG_FORMAT.endswith(record), (
-        f"รูปที่ส่งให้ git ลงท้ายด้วย {lint_commits.LOG_FORMAT[-4:]!r} แต่ตัวอ่านตัดด้วย {record!r}"
-    )
-    assert lint_commits.LOG_FORMAT.count(field) == 2, "ตัวคั่นช่องต้องมีสองที่ (sha|หัว|เนื้อ)"
-
-
 # ------------- คีย์ซ้ำใน workflow: Python ยอมรับ GitHub ปฏิเสธ (ขั้น 2e · ADR 0077)
 
 
@@ -2436,109 +2225,3 @@ def test_no_workflow_has_a_key_written_twice(path):
         f"{path.name} มีคีย์ที่เขียนซ้ำในบล็อกเดียวกัน: {duplicates}\n"
         "GitHub จะปฏิเสธทั้งไฟล์ แล้ว PR จะขึ้นว่าไม่มี check แทนที่จะแดง"
     )
-
-
-# --------------------------------------------------------------- ตัวสั่งงานของ lint_commits
-#
-# `check_title`/`check_sign_off`/`parse_log` มีเทสต์ครบมานานแล้ว แต่ **ตัวสั่งงาน
-# ไม่เคยถูกเดินเลย** ทั้งที่มันคือทางที่ทุกคนใช้จริง: hook `commit-msg` เรียกโหมด
-# `--msg-file` ทุกครั้งที่ commit และ job `commit-lint` เรียกโหมด `--range` ทุก push
-# · ชิ้นส่วนที่ถูกต้องกับตัวประกอบที่ต่อผิดให้สัญญาณเหมือนกันทุกอย่าง จนถึงวันที่
-# มีคนพิมพ์หัว commit ผิดแล้วไม่มีอะไรฟ้อง (หลักเดียวกับที่ ADR 0077 จ่ายคืนให้ generator)
-
-
-def run_linter(monkeypatch, argv):
-    """เรียก main() ผ่าน argv จริง — ไม่ลัดไปเรียกฟังก์ชันข้างใน"""
-    monkeypatch.setattr("sys.argv", ["lint_commits.py", *argv])
-    return lint_commits.main()
-
-
-def test_the_hook_mode_passes_a_well_formed_message(tmp_path, monkeypatch, capsys):
-    path = tmp_path / "COMMIT_EDITMSG"
-    path.write_text("feat(x): หัวที่ถูกต้อง\n\nSigned-off-by: A B <a@b.co>\n", encoding="utf-8")
-
-    assert run_linter(monkeypatch, ["--msg-file", str(path)]) == 0
-    assert "ผ่านทุกตัว" in capsys.readouterr().out
-
-
-@pytest.mark.parametrize(
-    ("message", "why"),
-    [
-        ("แก้บั๊ก\n\nSigned-off-by: A B <a@b.co>\n", "หัวไม่ใช่ Conventional Commits"),
-        ("feat(x): ok\n\nไม่มีลายเซ็น\n", "ไม่มี DCO"),
-    ],
-)
-def test_the_hook_mode_refuses_and_says_why(tmp_path, monkeypatch, capsys, message, why):
-    """โหมดนี้บล็อกทุก commit บนเครื่อง — เงียบเมื่อควรแดงคือการปล่อยของเสียเข้า repo"""
-    path = tmp_path / "COMMIT_EDITMSG"
-    path.write_text(message, encoding="utf-8")
-
-    assert run_linter(monkeypatch, ["--msg-file", str(path)]) == 1, why
-    assert "FAIL" in capsys.readouterr().out
-
-
-def a_repo(tmp_path, *messages):
-    """รีโปจริงที่มี commit ตามข้อความที่ให้ — `commits_in_range` เรียก git จริง"""
-    run = functools.partial(subprocess.run, cwd=tmp_path, check=True, capture_output=True)
-    run(["git", "init", "-q", "-b", "main"])
-    run(["git", "config", "user.email", "a@b.co"])
-    run(["git", "config", "user.name", "A B"])
-    run(["git", "commit", "-q", "--allow-empty", "-m", "feat: ฐาน\n\nSigned-off-by: A B <a@b.co>"])
-    for message in messages:
-        run(["git", "commit", "-q", "--allow-empty", "-m", message])
-    return tmp_path
-
-
-def test_the_range_mode_reads_real_commits(tmp_path, monkeypatch, capsys):
-    a_repo(tmp_path, "fix: ตัวที่สอง\n\nSigned-off-by: A B <a@b.co>")
-    monkeypatch.chdir(tmp_path)
-
-    assert run_linter(monkeypatch, ["--range", "HEAD~1..HEAD"]) == 0
-    assert "ผ่านทุกตัว" in capsys.readouterr().out
-
-
-def test_the_range_mode_names_the_commit_it_refused(tmp_path, monkeypatch, capsys):
-    """รายงานที่ไม่บอกว่า commit ไหน ทำให้คนแก้ต้องไล่เดาเองบนกิ่งที่มีหลายใบ"""
-    a_repo(tmp_path, "หัวที่ผิดรูป\n\nSigned-off-by: A B <a@b.co>")
-    monkeypatch.chdir(tmp_path)
-
-    assert run_linter(monkeypatch, ["--range", "HEAD~1..HEAD"]) == 1
-    out = capsys.readouterr().out
-    assert "FAIL" in out
-    head = subprocess.run(
-        ["git", "rev-parse", "HEAD"],  # noqa: S607
-        cwd=tmp_path,
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.strip()
-    assert head[:9] in out, "แดงแล้วแต่ไม่ได้บอกว่า commit ไหน"
-
-
-def test_the_range_mode_skips_merge_commits(tmp_path, monkeypatch, capsys):
-    """ข้อความของ merge commit เป็นของที่ GitHub สร้าง ไม่ใช่ของที่คนเขียน
-
-    บังคับรูปแบบกับมันเท่ากับทำให้ปุ่ม "Update branch" ทำให้ด่านแดงเสมอ
-    โดยที่ไม่มีใครพิมพ์อะไรผิด — ซึ่งสอนให้คนข้ามด่านด้วย `--no-verify`
-    """
-    a_repo(tmp_path)
-    run = functools.partial(subprocess.run, cwd=tmp_path, check=True, capture_output=True)
-    base = subprocess.run(
-        ["git", "rev-parse", "HEAD"],  # noqa: S607
-        cwd=tmp_path,
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.strip()
-    run(["git", "checkout", "-q", "-b", "side"])
-    run(["git", "commit", "-q", "--allow-empty", "-m", "fix: ข้าง\n\nSigned-off-by: A B <a@b.co>"])
-    run(["git", "checkout", "-q", "main"])
-    run(["git", "commit", "-q", "--allow-empty", "-m", "feat: หลัก\n\nSigned-off-by: A B <a@b.co>"])
-    run(["git", "merge", "--no-ff", "-q", "-m", "Merge branch 'side' into main", "side"])
-    monkeypatch.chdir(tmp_path)
-
-    assert run_linter(monkeypatch, ["--range", f"{base}..HEAD"]) == 0, (
-        "merge commit ถูกบังคับรูปแบบด้วย ทั้งที่ข้อความไม่ใช่ของคนเขียน"
-    )
-    subjects = [row[1] for row in lint_commits.commits_in_range(f"{base}..HEAD")]
-    assert not any(s.startswith("Merge branch") for s in subjects), subjects

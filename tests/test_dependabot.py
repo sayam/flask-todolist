@@ -11,7 +11,6 @@
 """
 
 import pathlib
-import re
 
 import pytest
 import yaml
@@ -32,10 +31,17 @@ def config():
 
 @pytest.fixture(scope="module")
 def accepted_types():
-    """ชนิดของ commit ที่ `scripts/lint_commits.py` ยอมรับ — อ่านจากตัวจริง"""
-    match = re.search(r'^TYPES\s*=\s*"([^"]+)"', LINTER.read_text(encoding="utf-8"), re.MULTILINE)
-    assert match, "อ่าน TYPES จาก scripts/lint_commits.py ไม่ได้ — ชื่อตัวแปรเปลี่ยนไปแล้ว"
-    return set(match.group(1).split("|"))
+    """ชนิดของ commit ที่ตัวตัดสินยอมรับ — **import มาจากตัวจริง ไม่ใช่ grep ข้อความ**
+
+    เดิมอ่านด้วย regex บนไฟล์ ซึ่งใช้ได้ตราบที่ค่าเป็นตัวอักษรอยู่ในไฟล์นั้น ·
+    ตั้งแต่ ADR 0077 ขั้น 3a ตัวจริงอยู่ที่ `verifiable-gates` และที่นี่เหลือ adapter
+    · การ import จึงเดินเส้นทางเดียวกับที่ hook กับ CI ใช้จริง แทนที่จะเดาว่า
+    ค่านั้นหน้าตายังเหมือนเดิม
+    """
+    from scripts.lint_commits import TYPES
+
+    assert LINTER.is_file(), "ไม่มี scripts/lint_commits.py — hook กับ CI เรียกพาธนี้"
+    return set(TYPES.split("|"))
 
 
 def test_every_prefix_is_a_type_the_commit_linter_accepts(config, accepted_types):
