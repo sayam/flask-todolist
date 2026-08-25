@@ -18,6 +18,15 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ## [Unreleased]
 
+### Added
+
+- **Tag `evidence-freeze-1`.** The state the dissertation's claims point at, set on
+  both this repository and `verifiable-gates` (ADR 0075 §2). ADR 0075 said to set it
+  once the core extraction was done; that is recorded there as meaning the rules and
+  the main tooling have moved — stages 1, 2 and 6 — with stages 3 to 5 moving
+  peripheral checkers *into* `verifiable-gates` without changing what the claims
+  refer to.
+
 ### Changed
 
 - **The freeze tag is `evidence-freeze-1`, not `thesis-freeze-1`** (ADR 0075 §2).
