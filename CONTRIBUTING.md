@@ -81,15 +81,17 @@ transactions. See [ADR 0016](docs/adr/0016-service-layer-boundary.md).
 ### 5. Some files are generated — do not hand-edit them
 
 `docs/openapi.json`, `app/password_blocklist.txt`, `app/sun_data.py`, the compiled
-`.mo` catalogues, and — since the scaffolding phases — [`SKILL.md`](SKILL.md),
-[`SKILL-TODOLIST.md`](SKILL-TODOLIST.md),
-[`docs/GATES-ASVS.md`](docs/GATES-ASVS.md), and the whole
-[`skill/`](skill/) package (ADR 0050). Each has a script in `scripts/` that
-produces it, and CI compares the committed copy against a fresh run. Changing
-`app/api/` without running
-`PYTHONPATH=. pipenv run python scripts/generate_openapi.py` turns CI red, and a
-rule written into `SKILL.md` by hand is overwritten the next time it is
-regenerated — add a portable gate instead (see rule 8).
+`.mo` catalogues, and [`docs/GATES-ASVS.md`](docs/GATES-ASVS.md). Each has a
+script in `scripts/` that produces it, and CI compares the committed copy against
+a fresh run. Changing `app/api/` without running
+`PYTHONPATH=. pipenv run python scripts/generate_openapi.py` turns CI red.
+
+The rule sheets are no longer among them. Since
+[ADR 0078](docs/adr/0078-the-rules-move-to-verifiable-gates.md) the rules
+themselves live in
+[`verifiable-gates`](https://github.com/sayam/verifiable-gates), which renders
+them; this repository holds their enforcement and a test comparing the two in
+both directions.
 
 ### 6. English in code, Thai in translations
 
@@ -137,10 +139,11 @@ file without an entry turns CI red on purpose. You have two options:
   (`security` / `performance` / `manageability` / `devx`, ADR 0051;
   see rule 10). If the rule would
   hold in any project, mark it `portable: true` and write `born_from`: the trap
-  that produced the rule. Portable gates are what [`SKILL.md`](SKILL.md),
-  [`SKILL-TODOLIST.md`](SKILL-TODOLIST.md), and
-  [`vendor/verifiable-gates`](https://github.com/sayam/verifiable-gates) enforces, so the entry has to
-  carry its own reason for existing.
+  that produced the rule. **A new universal rule starts in
+  [`verifiable-gates`](https://github.com/sayam/verifiable-gates)**, in its
+  `rules.yaml`, and the row here records how this project enforces it — that
+  order is deliberate, and `tests/test_rule_catalogue_agreement.py` holds both
+  sides to each other.
 
 **Before you push**, a `pre-push` hook runs the subset that checks files derived
 from `gates.yaml` (about nine seconds), and only for pushes that touch those
@@ -417,8 +420,8 @@ pipenv run flask create-user <ชื่อ>
    หมุนคือเพดานที่ไม่ได้ตั้ง
 4. **ตรรกะอยู่ใน `app/services/`** route เป็น adapter บาง ๆ (มี AST scan บังคับ)
 5. **ไฟล์ที่ generate มาห้ามแก้ด้วยมือ** — `docs/openapi.json`,
-   `app/password_blocklist.txt`, `app/sun_data.py`, ไฟล์ `.mo`, `SKILL.md`,
-   `SKILL-TODOLIST.md`, `docs/GATES-ASVS.md` และทั้งโฟลเดอร์ `skill/`
+   `app/password_blocklist.txt`, `app/sun_data.py`, ไฟล์ `.mo` และ
+   `docs/GATES-ASVS.md`
    (แพ็กเกจ agent skill — ADR 0050)
 6. **ข้อความในโค้ดเป็นภาษาอังกฤษ** เพราะ msgid คือภาษาอังกฤษ · ไทยอยู่ใน `.po`
 7. **commit เป็น Conventional Commits หัวไม่เกิน 72 ตัว** · merge ด้วย
@@ -430,9 +433,9 @@ pipenv run flask create-user <ชื่อ>
    ประกาศ `layer:` ด้วย (`baseline`/`business`/`internal` — baseline ต้อง
    portable) **และ `pillar:`** — รับใช้ชั้นไหนของธรรมนูญ (`security`/
    `performance`/`manageability`/`devx` — ADR 0051 ดูกฎข้อ 10) ·
-   ถ้ากฎนั้นใช้ได้กับโปรเจกต์อื่นด้วย ให้ตั้ง `portable: true` +
-   `born_from` (กับดักที่ให้กำเนิดกฎข้อนั้น) เพราะ `SKILL.md`,
-   `SKILL-TODOLIST.md` generate มาจากตรงนั้น ·
+   ถ้ากฎนั้นใช้ได้กับโปรเจกต์อื่นด้วย **ให้เริ่มที่ `rules.yaml` ของ
+   verifiable-gates ก่อน** (ADR 0078) แล้วค่อยตั้ง `portable: true` +
+   `born_from` ที่แถวบังคับตรงนี้ให้ตรงกัน ·
    **`severity:` ต้องตรงกับอำนาจจริง** (ADR 0066): `blocking` ได้เฉพาะ job ที่รัน
    บน `pull_request` · ที่เหลือเป็น `watched`/`warning` และต้องมี `watched_by:`
    (ใคร · ภายในกี่วัน · ด้วยกลไกอะไร) · รายละเอียดของกลไกทั้งหมดอยู่ใน

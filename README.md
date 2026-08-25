@@ -139,9 +139,8 @@ and measured:
 | | |
 |---|---|
 | [`gates.yaml`](gates.yaml) | an index of every gate, verified **in both directions** — every CI job must have a gate, and every test file must belong to exactly one gate. A gate may only cite an ASVS requirement whose own evidence points back at it |
-| [`SKILL.md`](SKILL.md) | 80 framework-agnostic baseline rules, **generated** from the portable gates. Each one carries the trap that produced it. You cannot write a rule into this file by hand — you add a gate and regenerate. App-type agreements (the rules a different app could legitimately choose differently, like soft delete) live in their own generated sheet, [`SKILL-TODOLIST.md`](SKILL-TODOLIST.md) |
+| [`vendor/verifiable-gates/rules.yaml`](https://github.com/sayam/verifiable-gates/blob/main/rules.yaml) | the rules themselves — 79 framework-agnostic baseline rules plus the app-type agreements — and since [ADR 0078](docs/adr/0078-the-rules-move-to-verifiable-gates.md) they live **there**, not here. This repository holds their *enforcement*: which test file, which job, which step. A test compares the two in both directions, so neither the wording nor the citation can drift — including the direction that matters most, that every rule the catalogue publishes really is enforced here |
 | [`vendor/verifiable-gates`](https://github.com/sayam/verifiable-gates) | the enforcement half, now its own project and consumed here as a submodule pinned by SHA ([ADR 0077](docs/adr/0077-consume-verifiable-gates-as-a-submodule.md)). CI proves on every push that it installs into an empty repo **and** that this repo passes the scanners it ships |
-| [`skill/`](skill/) | the same rules packaged as an installable agent skill (ADR 0050) — frontmatter + the generated rule sheets + the overlay's checkers, every byte derived; a test rejects hand edits and stray files |
 | [`docs/comparison/`](docs/comparison/) | does any of it change the code that actually gets written? One spec, three arms of five generated apps, one measurement battery — including the finding that a plain "review your own work once" pass closes about three quarters of the gap |
 
 ## Documentation
@@ -296,11 +295,12 @@ export และวัดผลแล้ว:
 - [`gates.yaml`](gates.yaml) — ดัชนี gate ทั้ง repo **ตรวจสองทิศ**: ทุก job
   ต้องมี gate และไฟล์เทสต์ทุกไฟล์ต้องเป็นของ gate เดียว · gate จะอ้างข้อ ASVS
   ได้ก็ต่อเมื่อหลักฐานของข้อนั้นชี้กลับมาหามันจริง · ทุก gate ประกาศ `layer`
-  (`baseline`/`business`/`internal`) ซึ่งเป็นตัวแบ่งใบ SKILL สองใบ
-- [`SKILL.md`](SKILL.md) — กฎ baseline 80 ข้อ **generate จาก gate ที่ portable**
-  แต่ละข้อพก "กับดักที่ให้กำเนิดมัน" มาด้วย · เขียนกฎลงไฟล์นี้ตรง ๆ ไม่ได้
-  ต้องเพิ่ม gate แล้ว regenerate · ข้อตกลงระดับตัวแอป (ที่แอปอื่นเลือกต่างได้
-  โดยชอบ เช่น soft delete) แยกอยู่ [`SKILL-TODOLIST.md`](SKILL-TODOLIST.md)
+  (`baseline`/`business`/`internal`) ซึ่งเป็นตัวแบ่งแผ่นกฎสองใบที่ vg เรนเดอร์
+- **ตัวกฎเองอยู่ที่ [`rules.yaml`](https://github.com/sayam/verifiable-gates/blob/main/rules.yaml)
+  ของ verifiable-gates แล้ว ไม่ใช่ที่นี่** (ADR 0078) — กฎ baseline 79 ข้อ
+  บวกข้อตกลงระดับตัวแอป ทุกข้อพกกับดักที่ให้กำเนิดมันมาด้วย · repo นี้ถือ *การบังคับ* ของกฎเหล่านั้น (ไฟล์เทสต์ · job · step)
+  และมีด่านเทียบสองทิศไม่ให้ถ้อยคำหรือคำอ้างอิงเพี้ยนจากกัน — รวมทิศที่สำคัญที่สุด
+  คือ **กฎทุกข้อที่คลังเผยแพร่ ต้องมีตัวบังคับอยู่ที่นี่จริง**
 - [`vendor/verifiable-gates`](https://github.com/sayam/verifiable-gates) — ฝั่งบังคับใช้ ย้ายไปเป็น repo ของตัวเองแล้ว (ADR 0077)
   (scan 9 ตัวที่ใช้ stdlib ล้วน + doctor + installer + **ดัชนี `gates.yaml`
   ตั้งต้น** — ADR 0071) · CI พิสูจน์ทุก push ว่าติดตั้งลง repo เปล่าได้จริง

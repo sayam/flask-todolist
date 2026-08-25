@@ -27,10 +27,11 @@ MANIFEST = ROOT / "extraction.yaml"
 
 DECISIONS = frozenset({"move", "stay", "split"})
 STAGES = frozenset({2, 3, 4, 5, 6})
-# เทสต์ที่เอ่ยถึง scripts / overlays / skill — รูปเดียวกับ grep ที่ใช้ตอนทำสำมะโน
-MENTIONS = re.compile(r"scripts[./]|overlays/|skill/|SKILL")
-TREES = ("scripts", "overlays", "skill", "docs/comparison")
-ROOT_FILES = ("gates.yaml", "scaffold.json", "SKILL.md", "SKILL-TODOLIST.md", "CLA.md")
+# เทสต์ที่เอ่ยถึง scripts — รูปเดียวกับ grep ที่ใช้ตอนทำสำมะโน · `overlays/`
+# กับ `skill/` ถูกถอดจากรูปนี้เมื่อทั้งสองหายไปจากดิสก์ (ขั้น 2e และ 6)
+MENTIONS = re.compile(r"scripts[./]")
+TREES = ("scripts", "docs/comparison")
+ROOT_FILES = ("gates.yaml", "scaffold.json", "CLA.md")
 
 
 def in_scope() -> set[str]:

@@ -39,7 +39,7 @@ repos:
         language: system
         pass_filenames: false
         stages: [pre-push]
-        files: ^(gates\.yaml|vendor/|docs/skill/|SKILL.*\.md|skill/|docs/(SUPPLY-CHAIN|COMPLIANCE)\.md|README\.md)
+        files: ^(gates\.yaml|vendor/|docs/(SUPPLY-CHAIN|COMPLIANCE)\.md|README\.md)
 
       - id: conventional-commit
         name: conventional commit message

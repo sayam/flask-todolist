@@ -18,7 +18,27 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ## [Unreleased]
 
+### Removed
+
+- **The rule sheets, and the two generators behind them, moved to
+  `verifiable-gates`** (extraction stage 6 — ADR 0078). `SKILL.md`,
+  `SKILL-TODOLIST.md`, the `skill/` agent-skill package, `scripts/build_skill.py`,
+  `scripts/build_agent_skill.py`, their preambles and their tests are gone from
+  here. The rules themselves now live in that project's `rules.yaml`; this
+  repository keeps their *enforcement* — which test file, which job, which step.
+- **The gate `skill-mirrors-portable-gates` is removed** from both sides. There is
+  no sheet here to hold to a registry any more, and a catalogue publishing a rule
+  nobody enforces is exactly what the new agreement check is there to catch.
+
 ### Added
+
+- **`tests/test_rule_catalogue_agreement.py` — the two registers are held to each
+  other in both directions.** Every portable gate here must exist in the vendored
+  catalogue, and every rule the catalogue publishes must be enforced here. The
+  Thai wording is compared byte for byte against the catalogue's `*_th` fields,
+  along with the layer, the pillar, and the enforcement the catalogue cites — the
+  last being the direction that goes stale most easily, since reorganising tests
+  here does nothing to remind anyone to edit a file in another repository.
 
 - **Workflows are now checked for a key written twice.** `yaml.safe_load` accepts
   a duplicate key and keeps the last one, so every test here that reads a workflow

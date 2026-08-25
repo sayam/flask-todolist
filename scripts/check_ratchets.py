@@ -113,7 +113,7 @@ CEILINGS = (
 )
 
 SUPPRESSION_SOURCES = ("app/**/*.py", "scripts/*.py", "tests/*.py")
-# `app/sun_data.py` generate มา · `migrations/` กับ `skill/` อยู่นอกขอบเขต ruff อยู่แล้ว
+# `app/sun_data.py` generate มา · `migrations/` อยู่นอกขอบเขต ruff อยู่แล้ว
 SUPPRESSION_SKIP = ("sun_data.py",)
 SUPPRESSION = (
     re.compile(r"#\s*noqa(?::\s*[A-Z]+[0-9]+(?:\s*,\s*[A-Z]+[0-9]+)*)?(?P<rest>.*)$"),

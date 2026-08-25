@@ -6,7 +6,7 @@
 ตามจริง** ไม่ใช่ขยับเพดาน) — เนื้อทั้งหมดข้างล่างคือของเดิม**คำต่อคำ**
 
 **อ่านไฟล์นี้เมื่อ**: จะเพิ่ม/แก้ gate · แตะ `gates.yaml` · แตะ workflow ที่เป็น
-ด่าน · แก้ของที่ generate ไป `SKILL.md`/`skill/` · หรือจะอ่านผลของ
+ด่าน · หรือจะอ่านผลของ
 สำมะโน (`rerun_census.py` · `schedule_census.py` · `red_streak_census.py` ·
 `audit_posture.py`) · รอบ audit ที่ให้กำเนิดกลไกพวกนี้อยู่ใน [`AUDIT-LOG.md`](AUDIT-LOG.md)
 
@@ -76,8 +76,8 @@
   ชื่อออก และห้ามเติมชื่อใหม่แทนการพิสูจน์ · เพราะ "ไม่เคยแดง" แยกไม่ออกจาก
   "ไม่ได้ตรวจอะไร" (วัดจาก 200 run ตอนตั้งกติกา: 21 job ไม่เคยแดงเลย — **เลขนั้น
   ต่ำกว่าจริงเพราะวัดด้วยวิธีที่มองไม่เห็นของที่ถูก rerun** ดู `rerun_census.py`)
-- **ทุก gate ประกาศ `layer:`** — `baseline` (สากล ต้อง portable → `SKILL.md`) ·
-  `business` (ข้อตกลงระดับชนิดแอป → `SKILL-TODOLIST.md` ที่ generate จากตัว
+- **ทุก gate ประกาศ `layer:`** — `baseline` (สากล ต้อง portable → คลังกฎของ vg) ·
+  `business` (ข้อตกลงระดับชนิดแอป → แผ่น business ของ vg ที่ generate จากตัว
   render เดียวกัน) · `internal` (ของ repo นี้) — ADR 0042 · `tests/test_gates.py`
   บังคับความสอดคล้องของชั้น
 - **ทุก job ใน workflow ประกาศ `timeout-minutes` เอง** (ADR 0067) — ค่าเริ่มต้น
@@ -105,16 +105,18 @@
   ชนกันเมื่อไหร่ชั้นบนชนะ · ของใหม่จากภายนอกเข้าผ่าน intake (CONTRIBUTING
   กฎข้อ 10) — baseline ห้าม break · แผนงาน governance อยู่ใน
   `docs/ROADMAP-GOVERNANCE.md` (G1–G5 ปิดครบทั้งใบแล้ว 2026-08-16 — ADR 0052 accepted)
-- `SKILL.md` — กฎสากลของ scaffolding **generate มา ห้ามแก้ด้วยมือ**
-  (`scripts/build_skill.py` จาก portable gate ใน `gates.yaml`) · กฎใหม่ที่เป็น
-  สากล = เพิ่ม gate `portable: true` + `born_from` แล้ว regenerate — ห้ามเขียน
-  กฎลงไฟล์นี้ตรง ๆ · **ห้ามมีชื่อไลบรารีของ Flask ในชั้นนี้** (`tests/test_skill.py`
-  ตรวจที่ผล render สด จับได้ตั้งแต่ตอนพิมพ์ลง gates.yaml)
-- `skill/` — **แพ็กเกจ agent skill ที่ generate ล้วน ห้ามแก้ด้วยมือ** (ADR 0050
-  — `scripts/build_agent_skill.py`): frontmatter + render ชั้น baseline ตัวเดียว
-  กับ `SKILL.md` + business sheet ใน `reference/` + checker คัดลอกตาม manifest
-  ของ overlay · `tests/test_agent_skill.py` เทียบผล generate สด**รวมทั้งเซตไฟล์**
-  (ไฟล์แปลกปลอม = แดง) — แก้กฎ = แก้ `gates.yaml` แล้ว regenerate สองที่
+- **ตัวกฎอยู่ที่ `rules.yaml` ของ vg แล้ว ไม่ใช่ที่นี่** (ADR 0078) · ที่นี่ถือ
+  *การบังคับ*: แถวใน `gates.yaml` ที่บอกว่ากฎข้อนั้นถูกบังคับด้วยไฟล์เทสต์ไหน
+  job ไหน step ไหน · **กฎสากลข้อใหม่เริ่มที่ vg ก่อนเสมอ** แล้วค่อยเพิ่มแถว
+  บังคับที่นี่ — ลำดับกลับด้านจากเดิมโดยตั้งใจ
+  · `tests/test_rule_catalogue_agreement.py` เทียบสองทิศ: ถ้อยคำไทย (byte-for-byte
+  กับฟิลด์ `*_th` ของคลัง) · ชั้น · pillar · และ**ตัวบังคับที่คลังอ้างว่ามีที่นี่**
+  ซึ่งเป็นทิศที่ล้าสมัยง่ายที่สุด เพราะจัดระเบียบเทสต์ที่นี่แล้วไม่มีอะไรเตือน
+  ให้ไปแก้ไฟล์ในอีก repo หนึ่ง · **ห้ามมีชื่อไลบรารีของ framework ในกฎสากล**
+  ตอนนี้ถูกบังคับที่ vg (`verifiable_gates.rules`) ตั้งแต่ตอนพิมพ์ลงคลัง
+  · แผ่นกฎที่ agent อ่านได้ (`SKILL.md` · `SKILL-BUSINESS.md`) vg เรนเดอร์จาก
+  คลังของมันเอง — repo นี้ไม่ถือสำเนาอีก เพราะสำเนาที่ generate จากไฟล์ในอีก
+  repo หนึ่ง คือของที่ล้าสมัยได้โดยไม่มีอะไรที่นี่รู้
 - `vendor/verifiable-gates` (ADR 0077) — enforcement ของกฎสากลสำหรับโปรเจกต์อื่น: scan
   checker 9 ตัว (stdlib ล้วน) + `gates_doctor.py` + `install.py` (copy ตาม
   manifest `overlay.json` — ไม่ครบ = ล้มดัง) + **`preflight.py`** (ADR 0063 —
