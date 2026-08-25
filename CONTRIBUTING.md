@@ -7,7 +7,7 @@
 
 The code, commit messages, and this file are in English. **Almost everything that
 explains *why* the code looks the way it does is in Thai** — [`CLAUDE.md`](CLAUDE.md)
-(the working notes), the 77 records in [`docs/adr/`](docs/adr/), and the rest of
+(the working notes), the 78 records in [`docs/adr/`](docs/adr/), and the rest of
 `docs/`. Machine translation handles them acceptably, but you should know that
 before you invest an afternoon.
 
@@ -363,7 +363,7 @@ same terms as the rest of the project: [AGPL-3.0-or-later](LICENSE) for code and
 you wrote — there is no copyright assignment.
 
 **External contributors whose PR touches the governance core — `scripts/`,
-`skill/`, `gates.yaml`, `docs/comparison/`, their tests — sign
+`gates.yaml`, `docs/comparison/`, their tests — sign
 [`CLA.md`](CLA.md) before merge** — one line in the pull request description. It
 grants the maintainer the right to relicense that contribution, because the core
 is being extracted into [`verifiable-gates`](https://github.com/sayam/verifiable-gates) under Apache-2.0 (ADR 0075 §6); the
@@ -520,7 +520,7 @@ generate ทั้งหมดสร้างใหม่จาก source ที
 สำหรับโค้ด และ [CC BY-SA 4.0](LICENSE-docs) สำหรับเอกสาร · คุณยังถือลิขสิทธิ์ใน
 สิ่งที่คุณเขียน ไม่มีการโอน
 
-**PR ที่แตะแกน governance (`scripts/` · `skill/` · `gates.yaml` ·
+**PR ที่แตะแกน governance (`scripts/` · `gates.yaml` ·
 `docs/comparison/` และเทสต์ของพวกนั้น) ต้องลงนาม [`CLA.md`](CLA.md) ก่อน merge** —
 บรรทัดเดียวในคำอธิบาย PR · เพราะแกนนั้นกำลังถูกถอดไปเป็น `verifiable-gates` ภายใต้
 Apache-2.0 (ADR 0075 ข้อ 6) · **แก้ตัวแอปไม่ต้องมี CLA** — ส่วนนั้นของ ADR 0070 ยังจริง · นี่กลับคำตัดสินเดิมที่

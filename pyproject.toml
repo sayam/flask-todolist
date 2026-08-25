@@ -29,11 +29,9 @@ line-length = 100
 target-version = "py313"
 # migrations ไม่ lint: โค้ดกึ่ง generate + raw SQL เก่าที่จะถูกล้างตอน Phase 5 squash
 # (กติกา dialect ของ migration คุมด้วย tests/test_migration_lint.py แทน)
-# skill/ ไม่ lint: แพ็กเกจ generate ล้วน (ADR 0050) — สำเนา checker ถูก lint
-# ที่ต้นทาง overlays/flask/ แล้ว และ tests/test_agent_skill.py เทียบไบต์ต่อไบต์
 # vendor/ ไม่ lint: เป็น submodule ของอีก repo ที่มี lint ของตัวเองเข้มกว่า —
 # ตรวจซ้ำที่นี่คือการตั้งเกณฑ์ให้โค้ดที่เราไม่ได้เป็นคนแก้ (ADR 0077)
-extend-exclude = ["migrations", "app/sun_data.py", "skill", "vendor"]
+extend-exclude = ["migrations", "app/sun_data.py", "vendor"]
 
 [tool.ruff.lint]
 select = ["ALL"]
@@ -71,12 +69,6 @@ ignore = [
 "scripts/generate_sun_table.py" = ["C901"]  # main() เป็นไปป์ไลน์เส้นตรงของขั้นตอน
     # generate ที่อ่านไล่บนลงล่างได้ การหั่นให้ผ่าน gate ทำให้ตามลำดับยากกว่าเดิม
 "scripts/**" = ["T201", "INP001", "PLR2004", "S101"]  # สคริปต์รันมือ: print คือ output,
-"overlays/flask/preflight.py" = ["RUF100"]  # สำเนาที่ส่งมอบต้องตรงกับ
-    # `scripts/preflight.py` **ไบต์ต่อไบต์** (ADR 0063 — tests/test_overlay.py บังคับ)
-    # ต้นทางอยู่ใต้ `scripts/**` ซึ่งเปิดกฎ S จึงต้องมี `# noqa: S603` ส่วนที่นี่ปิด S
-    # ไว้ทั้งหมด noqa ตัวเดียวกันเลยกลายเป็น "ไม่ได้ใช้" — ลบออกไม่ได้เพราะจะ drift
-"overlays/**" = ["T201", "INP001", "S603", "PLR2004"]  # เครื่องมือที่ส่งมอบ:
-    # stdlib ล้วน รันเดี่ยว print คือรายงาน · subprocess เรียก checker ของตัวเองด้วย path คงที่
     # ไม่ใช่ package, ตัวเลขในสูตรดาราศาสตร์อ่านคู่กับสูตรตรง ๆ, assert เป็น sanity check
 "app/plugins/*/*/*.py" = ["INP001"]  # ไฟล์ของ plugin ถูกโหลดตาม path ไม่ใช่ตามชื่อ
     # โมดูล (ดู `load_module()`) จึงไม่ต้องเป็น package — ใส่ __init__.py กลับเข้าไป
@@ -210,6 +202,13 @@ enforced_prohibitions = 14
 # **จ่ายคืนก่อนลดพื้น**: เติมเทสต์ให้ตัวสั่งงานของ generator ทั้งสอง (`--check`
 # ของ build_skill และ `main()` ของ build_agent_skill ซึ่งเป็นตัวเดียวที่เก็บกวาด
 # ไฟล์ค้าง) ได้คืนมา 1.04 จุด 63.17 → 64.21 · ที่เหลือคือผลของประชากร ไม่ใช่ของหนี้
+#
+# **ADR 0078 จ่ายคืนอีกรอบด้วยเหตุเดียวกัน** — generator สองตัวข้างบนตามแผ่นกฎไป
+# verifiable-gates ทั้งคู่ ประชากรที่วัดจึงเปลี่ยนอีกครั้งและตกไป 63.36 · คราวนี้
+# จ่ายคืนที่ `lint_commits.py`: `check_title`/`check_sign_off`/`parse_log` มีเทสต์
+# ครบมานาน แต่**ตัวสั่งงานไม่เคยถูกเดินเลย** ทั้งที่ hook `commit-msg` เรียกโหมด
+# `--msg-file` ทุกครั้งที่ commit และ job `commit-lint` เรียกโหมด `--range` ทุก push
+# · 52.9% → 97.1% ดันภาพรวมกลับเป็น 64.25 · **พื้นจึงไม่ต้องลด**
 scripts_coverage = 64
 
 # ---------------------------------------------------------------------------
@@ -235,7 +234,10 @@ scripts_coverage = 64
 # ของตัวเอง ซึ่ง S506 ห้ามไว้ — แต่ loader นั้นสืบทอด `SafeLoader` ทั้งดุ้น
 # และแค่เพิ่มการรายงานคีย์ซ้ำ ไม่ได้เปิดชนิดใดเพิ่ม · **มีเหตุผลกำกับ** จึงไม่
 # กระทบเพดานของบรรทัดที่ไม่มีเหตุผล (ยังเป็น 43)
-suppressions = 89
+# 89 → 88 (ADR 0078): รายการยกเว้นของ `overlays/flask/preflight.py` ถูกถอด —
+# ไดเรกทอรีนั้นหายไปตั้งแต่ขั้น 2e แต่บรรทัดยกเว้นยังค้าง · ที่ว่างที่เพิ่งได้
+# ต้องถูกปิดใน PR เดียวกับที่ทำให้มันดีขึ้น ไม่งั้นมันจะถูกถมกลับเงียบ ๆ
+suppressions = 88
 # ในจำนวนนั้น กี่บรรทัดที่ไม่มีข้อความบอกเหตุผลต่อท้าย
 # 48 → 43 ด้วยเหตุผลเดียวกัน
 suppressions_without_reason = 43
@@ -251,7 +253,10 @@ external_surface_unowned = 19
 # gate ใหม่ต้องมาพร้อมการถอด gate เก่า หรือ ADR ที่ขยับเลขนี้
 # 116 → 115 (ADR 0077): `overlay-covers-every-portable-gate` ตามของไป
 # verifiable-gates แล้ว — คำอ้างของมันเป็นเรื่องของ overlay ซึ่ง repo นี้ไม่มีอีก
-gates_ceiling = 115
+# 115 → 114 (ADR 0078): `skill-mirrors-portable-gates` ไม่มีอะไรให้บังคับที่นี่แล้ว
+# เพราะแผ่นกฎย้ายไป vg — และคลังที่เผยแพร่กฎซึ่งไม่มีใครบังคับ ถูกด่านทิศที่สอง
+# ของ `test_rule_catalogue_agreement.py` จับได้ตั้งแต่รันแรก
+gates_ceiling = 114
 
 [tool.todolist.removals]
 # gate ทั้งหมดใน gates.yaml — ถอด gate ทิ้งเคยเขียวได้ทั้ง CI ถ้าเก็บกวาดครบ 6 ที่

@@ -149,7 +149,7 @@ Written in Thai, because that is the language the thinking happened in.
 
 | | |
 |---|---|
-| [`docs/adr/`](docs/adr/) | 77 architecture decision records — every choice, the options rejected, and what would reverse it |
+| [`docs/adr/`](docs/adr/) | 78 architecture decision records — every choice, the options rejected, and what would reverse it |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | the first seven phases — the application itself — what each closed, and what was deliberately deferred |
 | [`docs/ROADMAP-INFRA.md`](docs/ROADMAP-INFRA.md) | phases 8–12 — the index, the exported skill, the overlay, the fail-fix harness, and the comparison experiment |
 | [`docs/GOVERNANCE.md`](docs/GOVERNANCE.md) | how the gate machinery itself works — the index and its two-way checks, red-evidence, layers, severity and watchers, the censuses, and what gets exported to other projects |
@@ -305,16 +305,13 @@ export และวัดผลแล้ว:
   (scan 9 ตัวที่ใช้ stdlib ล้วน + doctor + installer + **ดัชนี `gates.yaml`
   ตั้งต้น** — ADR 0071) · CI พิสูจน์ทุก push ว่าติดตั้งลง repo เปล่าได้จริง
   **และ repo นี้ผ่าน overlay ของตัวเอง**
-- [`skill/`](skill/) — กฎชุดเดียวกันแพ็กเป็น **agent skill ที่ติดตั้งได้**
-  (ADR 0050): frontmatter + ใบกฎที่ generate + checker ของ overlay —
-  ทุกไบต์ derive มีเทสต์กันแก้มือและไฟล์แปลกปลอม
 - [`docs/comparison/`](docs/comparison/) — แล้วมันเปลี่ยนโค้ดที่เขียนออกมาจริงไหม
   spec เดียว 3 แขน แขนละ 5 แอป วัดด้วยชุดเดียวกัน — รวมถึงผลที่ว่า **การสั่งให้
   "ทบทวนงานตัวเองหนึ่งรอบ" เฉย ๆ ปิดช่องว่างไปได้ราวสามในสี่**
 
 ## เอกสาร
 
-[`docs/adr/`](docs/adr/) 77 ใบ (ทุกการตัดสินใจ ทางที่ไม่ได้เลือก และเงื่อนไข
+[`docs/adr/`](docs/adr/) 78 ใบ (ทุกการตัดสินใจ ทางที่ไม่ได้เลือก และเงื่อนไข
 ที่จะทำให้มันหมดอายุ) · [`docs/ROADMAP.md`](docs/ROADMAP.md) (เฟส 0–7 ของตัวแอป)
 · [`docs/ROADMAP-INFRA.md`](docs/ROADMAP-INFRA.md) (เฟส 8–12 ของ scaffolding) ·
 [`docs/ROADMAP-GOVERNANCE.md`](docs/ROADMAP-GOVERNANCE.md) (แผน G — ธรรมนูญ

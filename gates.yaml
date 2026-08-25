@@ -16,8 +16,8 @@
 # `tests/test_gate_evidence.py` ซึ่งหดได้ทางเดียว — gate ใหม่ต้องมาพร้อมหลักฐาน
 #
 # `portable: true` = กฎที่ export ได้ และต้องมี `born_from` (กับดักที่ให้กำเนิดกฎ)
-# `layer:` = ชั้นของกฎ (ADR 0042): `baseline` (สากล → SKILL.md · ต้อง portable)
-# · `business` (ข้อตกลงของตัวแอป → SKILL-TODOLIST.md ถ้า portable)
+# `layer:` = ชั้นของกฎ (ADR 0042): `baseline` (สากล · ต้อง portable) · `business`
+# (ข้อตกลงของตัวแอป) — สองชั้นนี้เผยแพร่ผ่านคลังกฎของ vg (ADR 0078)
 # · `internal` (ของ repo นี้เอง · ห้าม portable)
 # `standard` อ้างข้อ ASVS ได้เฉพาะแถวที่ประเมินว่า "ผ่าน"
 
@@ -72,20 +72,6 @@ gates:
           UNPROVEN เป็นชื่อผี · ใส่ ref ที่ผิดรูปของ kind นั้น · ทิ้ง gate ที่
           พิสูจน์แล้วไว้ใน UNPROVEN ต่อ · ขยับเพดาน ratchet ขึ้น
           (สองทิศกลางต้องล้มเหลวแบบคงจำนวนไว้ ไม่งั้น ratchet แดงบังตัวที่ทดสอบอยู่)
-
-  - id: skill-mirrors-portable-gates
-    title: SKILL.md ที่ export เป็นเงาของ portable gate — generate ห้ามเขียนคู่ขนาน
-    kind: test
-    severity: blocking
-    enforced_by: {job: test, tests: [tests/test_skill.py]}
-    standard: []
-    requires: []
-    portable: true
-    layer: baseline
-    pillar: devx
-    born_from: >-
-      เอกสาร skill ที่เขียนมือจะกลายเป็นทะเบียนที่สามที่ drift จากดัชนี —
-      และชั้นที่ประกาศว่าสากลต้องมีเครื่องกันชื่อ framework รั่วเข้ามา
 
   - id: logic-knows-no-http
     title: ตรรกะทั้งหมดอยู่ใน service layer และไม่รู้จัก HTTP
@@ -1027,21 +1013,6 @@ gates:
       G2 ของ ADR 0051 — มาตรฐานสากลเป็นแกนหนึ่งของชั้น security ตามธรรมนูญ
       และ worksheet ที่ไม่มีด่านคือ worksheet ที่ล้าสมัยแบบเดียวกับที่ ASVS/PDPA
       เคยพิสูจน์มาแล้วว่ากันได้ด้วยเทสต์
-
-  - id: agent-skill-package-derived
-    title: แพ็กเกจ agent skill (skill/) derive จากแหล่งเดิมทุกไบต์ — กฎจาก gates.yaml · checker จาก overlay
-    kind: test
-    severity: blocking
-    enforced_by: {job: test, tests: [tests/test_agent_skill.py]}
-    standard: []
-    requires: []
-    portable: false
-    layer: internal
-    pillar: devx
-    born_from: >-
-      ADR 0050 — ช่องทางแจกจ่ายที่สามตามข้อเสนอจากการวิเคราะห์ impeccable/
-      skillsmp · สำเนาที่แก้เองได้คือทะเบียนที่สามที่ drift เงียบ ๆ จึงเทียบ
-      กับผล generate สดทุกไฟล์รวมทั้งเซตไฟล์
 
   - id: design-doc-matches-the-ui
     title: docs/DESIGN.md ตรงกับ UI จริง — ทุกหน้าเต็มถูกตัดสินโหมด และตัวแปรสีตรงกับ base.css สองทิศ
@@ -2382,3 +2353,35 @@ gates:
           ทำให้ job `posture` ของ ADR 0061 ไม่เคยรันเลยสักครั้ง · อีกสองทิศ:
           job ที่ไม่มี steps · workflow ที่ไม่มีทริกเกอร์
 
+  - id: rules-and-enforcement-agree
+    title: กฎที่คลังของ vg เผยแพร่ กับการบังคับที่นี่ ต้องเป็นเรื่องเดียวกันสองทิศ
+    kind: test
+    severity: blocking
+    enforced_by: {job: test, tests: [tests/test_rule_catalogue_agreement.py]}
+    standard: []
+    requires: []
+    portable: false
+    layer: internal
+    pillar: devx
+    born_from: >-
+      ADR 0078 — ตั้งแต่ขั้น 6 บ้านของ *กฎ* คือ `rules.yaml` ของ verifiable-gates
+      ส่วนที่นี่ถือ *การบังคับ* · ถ้อยคำยังอยู่สองที่โดยตั้งใจ เพราะเครื่องมืออีก
+      หลายตัวของ repo นี้อ่าน `title`/`born_from` จากไฟล์เดียวกับที่มันอ่านอยู่แล้ว
+      · การเก็บสำเนาโดยไม่มีใครเทียบ คือสิ่งที่ทั้งโปรเจกต์นี้ไม่ทำ ด่านนี้จึงเทียบ
+      byte-for-byte กับฟิลด์ `*_th` ของคลัง · **ทิศที่สองสำคัญกว่า**: กฎทุกข้อที่
+      คลังเผยแพร่ต้องมีตัวบังคับอยู่ที่นี่จริง — reference implementation ที่ไม่
+      บังคับกฎของตัวเองคือคำโฆษณา และทิศนั้นจับของจริงได้ทันทีที่เขียนเสร็จ คือ
+      `skill-mirrors-portable-gates` ที่ยังถูกเผยแพร่อยู่ทั้งที่ไม่มีใครบังคับแล้ว
+      · ทิศที่ล้าสมัยง่ายที่สุดคือ `reference` ที่คลังอ้างว่าบังคับด้วยไฟล์ไหน
+      เพราะจัดระเบียบเทสต์ที่นี่แล้วไม่มีอะไรเตือนให้ไปแก้ไฟล์ในอีก repo หนึ่ง
+    proved_by:
+      - kind: mutation
+        ref: pr/234
+        date: 2026-08-25
+        caught: >-
+          ปลูกความผิดห้าจุด แดงทุกจุด — แก้ถ้อยคำไทยข้างเดียว · แก้บทเรียนข้างเดียว
+          · ย้าย pillar ข้างเดียว · เปลี่ยนชื่อไฟล์เทสต์ใน `enforced_by` · และ
+          เพิ่ม gate portable ที่คลังไม่รู้จัก · รอบแรกจุดที่สี่รายงานว่าไม่แดง
+          ซึ่งเป็นความผิดของผู้ปลูก ไม่ใช่ของด่าน — มันไปโดนคอมเมนต์ ไม่ใช่ข้อมูล
+          · harness จึงถูกแก้ให้ยืนยันว่า *ข้อมูลที่ parse แล้ว* เปลี่ยนจริง
+          ไม่ใช่แค่ไบต์เปลี่ยน ไม่งั้น "ไม่แดง" อ่านได้สองแบบ

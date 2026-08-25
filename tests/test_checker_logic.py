@@ -19,9 +19,11 @@ audit governance รอบ 4 ชี้ช่องว่างที่สาม
 """
 
 import ast
+import functools
 import json
 import pathlib
 import re
+import subprocess
 import typing
 
 import pytest
@@ -2434,3 +2436,109 @@ def test_no_workflow_has_a_key_written_twice(path):
         f"{path.name} มีคีย์ที่เขียนซ้ำในบล็อกเดียวกัน: {duplicates}\n"
         "GitHub จะปฏิเสธทั้งไฟล์ แล้ว PR จะขึ้นว่าไม่มี check แทนที่จะแดง"
     )
+
+
+# --------------------------------------------------------------- ตัวสั่งงานของ lint_commits
+#
+# `check_title`/`check_sign_off`/`parse_log` มีเทสต์ครบมานานแล้ว แต่ **ตัวสั่งงาน
+# ไม่เคยถูกเดินเลย** ทั้งที่มันคือทางที่ทุกคนใช้จริง: hook `commit-msg` เรียกโหมด
+# `--msg-file` ทุกครั้งที่ commit และ job `commit-lint` เรียกโหมด `--range` ทุก push
+# · ชิ้นส่วนที่ถูกต้องกับตัวประกอบที่ต่อผิดให้สัญญาณเหมือนกันทุกอย่าง จนถึงวันที่
+# มีคนพิมพ์หัว commit ผิดแล้วไม่มีอะไรฟ้อง (หลักเดียวกับที่ ADR 0077 จ่ายคืนให้ generator)
+
+
+def run_linter(monkeypatch, argv):
+    """เรียก main() ผ่าน argv จริง — ไม่ลัดไปเรียกฟังก์ชันข้างใน"""
+    monkeypatch.setattr("sys.argv", ["lint_commits.py", *argv])
+    return lint_commits.main()
+
+
+def test_the_hook_mode_passes_a_well_formed_message(tmp_path, monkeypatch, capsys):
+    path = tmp_path / "COMMIT_EDITMSG"
+    path.write_text("feat(x): หัวที่ถูกต้อง\n\nSigned-off-by: A B <a@b.co>\n", encoding="utf-8")
+
+    assert run_linter(monkeypatch, ["--msg-file", str(path)]) == 0
+    assert "ผ่านทุกตัว" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize(
+    ("message", "why"),
+    [
+        ("แก้บั๊ก\n\nSigned-off-by: A B <a@b.co>\n", "หัวไม่ใช่ Conventional Commits"),
+        ("feat(x): ok\n\nไม่มีลายเซ็น\n", "ไม่มี DCO"),
+    ],
+)
+def test_the_hook_mode_refuses_and_says_why(tmp_path, monkeypatch, capsys, message, why):
+    """โหมดนี้บล็อกทุก commit บนเครื่อง — เงียบเมื่อควรแดงคือการปล่อยของเสียเข้า repo"""
+    path = tmp_path / "COMMIT_EDITMSG"
+    path.write_text(message, encoding="utf-8")
+
+    assert run_linter(monkeypatch, ["--msg-file", str(path)]) == 1, why
+    assert "FAIL" in capsys.readouterr().out
+
+
+def a_repo(tmp_path, *messages):
+    """รีโปจริงที่มี commit ตามข้อความที่ให้ — `commits_in_range` เรียก git จริง"""
+    run = functools.partial(subprocess.run, cwd=tmp_path, check=True, capture_output=True)
+    run(["git", "init", "-q", "-b", "main"])
+    run(["git", "config", "user.email", "a@b.co"])
+    run(["git", "config", "user.name", "A B"])
+    run(["git", "commit", "-q", "--allow-empty", "-m", "feat: ฐาน\n\nSigned-off-by: A B <a@b.co>"])
+    for message in messages:
+        run(["git", "commit", "-q", "--allow-empty", "-m", message])
+    return tmp_path
+
+
+def test_the_range_mode_reads_real_commits(tmp_path, monkeypatch, capsys):
+    a_repo(tmp_path, "fix: ตัวที่สอง\n\nSigned-off-by: A B <a@b.co>")
+    monkeypatch.chdir(tmp_path)
+
+    assert run_linter(monkeypatch, ["--range", "HEAD~1..HEAD"]) == 0
+    assert "ผ่านทุกตัว" in capsys.readouterr().out
+
+
+def test_the_range_mode_names_the_commit_it_refused(tmp_path, monkeypatch, capsys):
+    """รายงานที่ไม่บอกว่า commit ไหน ทำให้คนแก้ต้องไล่เดาเองบนกิ่งที่มีหลายใบ"""
+    a_repo(tmp_path, "หัวที่ผิดรูป\n\nSigned-off-by: A B <a@b.co>")
+    monkeypatch.chdir(tmp_path)
+
+    assert run_linter(monkeypatch, ["--range", "HEAD~1..HEAD"]) == 1
+    out = capsys.readouterr().out
+    assert "FAIL" in out
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"],  # noqa: S607
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    assert head[:9] in out, "แดงแล้วแต่ไม่ได้บอกว่า commit ไหน"
+
+
+def test_the_range_mode_skips_merge_commits(tmp_path, monkeypatch, capsys):
+    """ข้อความของ merge commit เป็นของที่ GitHub สร้าง ไม่ใช่ของที่คนเขียน
+
+    บังคับรูปแบบกับมันเท่ากับทำให้ปุ่ม "Update branch" ทำให้ด่านแดงเสมอ
+    โดยที่ไม่มีใครพิมพ์อะไรผิด — ซึ่งสอนให้คนข้ามด่านด้วย `--no-verify`
+    """
+    a_repo(tmp_path)
+    run = functools.partial(subprocess.run, cwd=tmp_path, check=True, capture_output=True)
+    base = subprocess.run(
+        ["git", "rev-parse", "HEAD"],  # noqa: S607
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    run(["git", "checkout", "-q", "-b", "side"])
+    run(["git", "commit", "-q", "--allow-empty", "-m", "fix: ข้าง\n\nSigned-off-by: A B <a@b.co>"])
+    run(["git", "checkout", "-q", "main"])
+    run(["git", "commit", "-q", "--allow-empty", "-m", "feat: หลัก\n\nSigned-off-by: A B <a@b.co>"])
+    run(["git", "merge", "--no-ff", "-q", "-m", "Merge branch 'side' into main", "side"])
+    monkeypatch.chdir(tmp_path)
+
+    assert run_linter(monkeypatch, ["--range", f"{base}..HEAD"]) == 0, (
+        "merge commit ถูกบังคับรูปแบบด้วย ทั้งที่ข้อความไม่ใช่ของคนเขียน"
+    )
+    subjects = [row[1] for row in lint_commits.commits_in_range(f"{base}..HEAD")]
+    assert not any(s.startswith("Merge branch") for s in subjects), subjects
