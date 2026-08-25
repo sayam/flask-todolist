@@ -16,6 +16,7 @@ import re
 
 import pytest
 
+from scripts import build_skill
 from scripts.build_skill import OUT, OUT_BUSINESS, portable_gates, render
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -149,3 +150,31 @@ def test_every_doc_that_says_how_many_rules_there_are_now_says_the_real_number()
 def test_the_central_practices_survive_in_the_preamble(word):
     """หลักปฏิบัติกลาง (ของคน อยู่ใน PREAMBLE) ต้องไม่หายตอนมีคนแก้ generator"""
     assert word in OUT.read_text(encoding="utf-8"), f"หลักปฏิบัติเรื่อง {word!r} หายจาก SKILL.md"
+
+
+# ---------------- ทางที่คนพิมพ์จริง — `--check` คือตัวที่ควรจับ drift (ขั้น 2e)
+#
+# `render()` ถูกเทสต์ไว้แน่นแล้ว แต่ *ตัวสั่งงาน* ไม่เคยถูกเดินผ่านเลย — ซึ่งเป็น
+# ทางเดียวที่คนกับ CI ใช้จริง · ตัวสั่งงานที่ไม่มีใครเรียกในเทสต์ คือตัวที่พังได้
+# โดยที่ `render()` ยังเขียวสนิท
+
+
+def test_check_says_up_to_date_when_the_committed_sheets_match(capsys):
+    """ไม่เขียนอะไร แค่บอกว่าตรงไหม — CI ใช้ทางนี้"""
+    assert build_skill.build(check=True) == 0
+    out = capsys.readouterr().out
+    assert out.count("up to date") == 2, "ต้องรายงานทั้งสองใบ ไม่ใช่ใบเดียว"
+
+
+def test_the_worst_exit_code_wins(monkeypatch, capsys):
+    """ใบแรกผ่านแล้วใบที่สองแดง ต้องได้ 1 — ไม่ใช่ 0 ของใบสุดท้ายที่บังเอิญผ่าน"""
+    codes = iter([0, 1])
+    monkeypatch.setattr(build_skill.skill, "main", lambda _argv: next(codes))
+    assert build_skill.build() == 1
+    capsys.readouterr()
+
+
+def test_the_command_line_passes_check_through(monkeypatch, capsys):
+    monkeypatch.setattr("sys.argv", ["build_skill.py", "--check"])
+    assert build_skill.main() == 0
+    assert "up to date" in capsys.readouterr().out
