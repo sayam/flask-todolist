@@ -18,6 +18,17 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ## [Unreleased]
 
+### Changed
+
+- **The freeze tag is `evidence-freeze-1`, not `thesis-freeze-1`** (ADR 0075 §2).
+  What the tag pins is the *evidence* — the code, the rules, the measured numbers
+  and the documents citing them — and whoever checks it out later may not have
+  arrived from the dissertation. A name tied to the setter's reason leaves
+  everybody else guessing what they get. The same name is used in
+  `verifiable-gates`, because one claim usually spans both repositories now: the
+  rules live there, their enforcement lives here. No tag existed yet, so nothing
+  had to be moved.
+
 ### Removed
 
 - **The rule sheets, and the two generators behind them, moved to
@@ -87,7 +98,7 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
   `docs/comparison/effort-log.csv` records time per session from 2026-08-24
   (`tests/test_effort_log.py` fails if a day with commits has no row — the one
   kind of data this repository had none of); the artifact the thesis describes is
-  pinned at tag `thesis-freeze-1`; and gate count gains an upper ceiling so rules
+  pinned at tag `evidence-freeze-1`; and gate count gains an upper ceiling so rules
   stop growing faster than their evidence. [ADR 0075](docs/adr/0075-thesis-track-freeze-effort-and-ceilings.md).
 - **The governance core gets a name and a home: `verifiable-gates`**, to be
   extracted under Apache-2.0 (code, with a CLA) and CC BY 4.0 (rules); this
