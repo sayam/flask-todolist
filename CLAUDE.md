@@ -173,12 +173,12 @@
   (ADR 0065 — ไฟล์นี้มีเพดาน) · ที่นั่นมี: ดัชนี `gates.yaml` และการบังคับสองทิศ ·
   `proved_by`/`UNPROVEN` · `layer`/`pillar`/`severity`+`watched_by` · `guards:` ·
   ท่าทีฝั่ง GitHub (`audit_posture.py`) · สำมะโนความล้มเหลวและตารางเวลา ·
-  ขอบเขต semgrep · `SKILL.md`/`skill/`/`overlays/flask/` และ `docs/comparison/`
+  ขอบเขต semgrep · `SKILL.md`/`skill/` และ `docs/comparison/`
   · **สามข้อที่ผิดบ่อยที่สุด และต้องรู้ก่อนแตะอะไรก็ตามในนั้น**:
   **(1)** เพิ่มไฟล์เทสต์ใหม่ต้องลงทะเบียนใน `gates.yaml` ไม่งั้นแดง ·
   **(2)** `SKILL.md`/`skill/`/`docs/GATES-ASVS.md` **generate มา ห้ามแก้ด้วยมือ**
   แก้ที่ `gates.yaml` แล้ว regenerate ทั้งสองที่ ·
-  **(3)** เพิ่ม portable gate ต้องเพิ่ม entry ใน `overlays/flask/overlay.json` ด้วย
+  **(3)** ตัวบังคับกฎสากลอยู่ใน submodule `vendor/verifiable-gates` แล้ว (ADR 0077)
 - `pins/` — **ล็อกไฟล์ของเครื่องมือที่ CI ติดตั้งเอง** (pipenv, pip, semgrep, pa11y-ci)
   ไม่ใช่ dependency ของแอป (ของแอปอยู่ใน `Pipfile.lock`) · ทุก `pip install` ใน
   workflow และ `Dockerfile` ต้องเป็น `--require-hashes -r pins/<ชื่อ>/requirements.txt`
@@ -1142,7 +1142,7 @@ log ขึ้น "Running upgrade" ครบทุกตัว exit code เป�
 ## Phase 8–12 ปิดแล้ว — scaffolding ที่ export ได้และวัดผลแล้ว (2026-08-14)
 
 **อะไรเปลี่ยนไป**: `gates.yaml` เป็นดัชนี gate ที่ตรวจสองทิศ · `SKILL.md`
-generate จาก portable gate · `overlays/flask/` เอากฎไปบังคับที่โปรเจกต์อื่นได้
+generate จาก portable gate · `verifiable-gates` เอากฎไปบังคับที่โปรเจกต์อื่นได้
 และ repo นี้ dogfood ตัวเองทุก push · ทุก plugin ประกาศ `migration` class ที่มี
 ตัวเลขวัดหนุน · `scripts/run_gates.py` เป็น fail-fix loop · และ `docs/comparison/`
 วัดว่าทั้งหมดนี้เปลี่ยนโค้ดจริงไหม
