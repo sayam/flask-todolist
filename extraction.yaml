@@ -1,0 +1,153 @@
+# สำมะโนการถอดแกน governance ไป repo `verifiable-gates` — ADR 0075 ข้อ 6 · ขั้น 0
+#
+# **ไฟล์นี้เป็นคำตัดสิน ไม่ใช่สถานะ** — ทุกไฟล์ในขอบเขต (scripts/ · overlays/ · skill/ ·
+# docs/comparison/ · ไฟล์ governance ที่ราก · เทสต์ที่เอ่ยถึงของพวกนั้น) ต้องถูกตัดสิน
+# หนึ่งในสาม: `move` (ไปทั้งไฟล์) · `stay` (อยู่ทั้งไฟล์) · `split` (บางส่วนไป — บอกว่าอะไร
+# ไปอะไรอยู่) · `tests/test_extraction_manifest.py` บังคับ partition สองทิศ: ไฟล์ที่ไม่ถูก
+# ตัดสิน = แดง · รายการที่ชี้ไฟล์ผี = แดง (รูปเดียวกับ DATA-CLASSIFICATION และ gates.yaml)
+#
+# `stage` = ขั้นที่ย้ายตามแผน (2 แกน overlay · 3 ตัวตรวจ governance · 4 ตัวตรวจ supply chain
+# · 5 เครื่องมือวิจัย) · เมื่อขั้นนั้นเสร็จ รายการ move ของขั้นนั้นต้องหายไปจากไฟล์นี้
+# พร้อมไฟล์ (ไฟล์นี้หดลงเรื่อย ๆ จนเหลือแต่ stay/split แล้วถูกถอดในขั้น 6)
+#
+# วัดจริง 2026-08-25: scripts 33 ตัว import กันเอง 2 คู่ · CI เรียก scripts 14 จุด ·
+# overlay ส่งออก 14 ไฟล์ · เทสต์ที่เอ่ยถึง scripts/overlays/skill 29 ไฟล์
+
+version: 1
+scope:
+  - scripts/
+  - overlays/
+  - skill/
+  - docs/comparison/
+  - gates.yaml
+  - scaffold.json
+  - SKILL.md
+  - SKILL-TODOLIST.md
+  - CLA.md
+
+files:
+  # ---------------------------------------------------------------- scripts — ของแอป (stay)
+  - {path: scripts/a11y_fixture.py, decision: stay, reason: สร้างข้อมูลหน้าจอของแอปนี้ให้ pa11y}
+  - {path: scripts/backup_drill.py, decision: stay, reason: ซ้อม backup/restore ของฐานข้อมูลของแอปนี้ (RUNBOOK-BACKUP)}
+  - {path: scripts/bench_swap.sh, decision: stay, reason: bench การสลับ plugin ของแอปนี้ (ADR 0041)}
+  - {path: scripts/build_password_blocklist.py, decision: stay, reason: generate ไฟล์ของแอป}
+  - {path: scripts/check_tls_pfs.sh, decision: stay, reason: ตรวจ TLS ของ stack deploy ของแอปนี้}
+  - {path: scripts/dast_scan.sh, decision: stay, reason: ZAP ใส่ stack ของแอปนี้ — login flow เฉพาะตัว}
+  - {path: scripts/dev_tls_cert.sh, decision: stay, reason: ใบรับรอง dev ของ compose.tls}
+  - {path: scripts/generate_openapi.py, decision: stay, reason: import app — สัญญา API ของแอป}
+  - {path: scripts/generate_sun_table.py, decision: stay, reason: generate app/sun_data.py}
+  - {path: scripts/install_purge_timer.sh, decision: stay, reason: systemd ของงาน purge ของแอป}
+  - {path: scripts/loadtest_curve.sh, decision: stay, reason: k6 journey ของแอปนี้}
+  - {path: scripts/n1_smoke.py, decision: stay, reason: import app — สัญญา N-1 ของ schema แอป}
+  - {path: scripts/purge_cron.sh, decision: stay, reason: ตัวห่อ cron ของ flask purge-expired}
+
+  # ---------------------------------------------------------------- scripts — แกน overlay (ขั้น 2)
+  - {path: scripts/build_skill.py, decision: move, stage: 2, reason: generate SKILL.md จาก gate portable — เป็นของ method}
+  - {path: scripts/build_agent_skill.py, decision: move, stage: 2, reason: แพ็กเกจ skill/ (ADR 0050) — import build_skill}
+  - {path: scripts/preflight.py, decision: move, stage: 2, reason: overlay ส่งออกตัวเดียวกันอยู่แล้ว (ADR 0063) — สองสำเนาคือ drift}
+  - {path: scripts/run_gates.py, decision: move, stage: 2, reason: fail-fix loop ของ doctor (เฟส 11)}
+
+  # ---------------------------------------------------------------- scripts — ตัวตรวจ governance (ขั้น 3 · หนึ่ง PR ต่อตัว)
+  - {path: scripts/check_ratchets.py, decision: move, stage: 3, reason: อ่าน pyproject sections ของ todolist — ย้าย section names เข้า scaffold.json}
+  - {path: scripts/removals_census.py, decision: move, stage: 3, reason: อ่าน git + ทะเบียนตาม pattern — pattern เข้า config}
+  - {path: scripts/whats_pending.py, decision: move, stage: 3, reason: อ่าน 8 แหล่งตามชื่อไฟล์ของ todolist — ชื่อเข้า config}
+  - {path: scripts/sync_counts.py, decision: move, stage: 3, reason: regex ของ README/CONTRIBUTING ของ todolist — เข้า config · ส่วน --about ผูก GitHub ของ repo ปลายทาง}
+  - {path: scripts/red_streak_census.py, decision: move, stage: 3, reason: อ่าน GitHub runs ผ่าน gh.py — ไม่รู้จักแอป}
+  - {path: scripts/rerun_census.py, decision: move, stage: 3, reason: เหมือน red_streak_census}
+  - {path: scripts/schedule_census.py, decision: move, stage: 3, reason: เหมือน red_streak_census}
+  - {path: scripts/audit_posture.py, decision: move, stage: 3, reason: ท่าทีฝั่ง GitHub (ADR 0061) — ฟิลด์ที่คาดหวังเข้า config}
+  - {path: scripts/gh.py, decision: move, stage: 3, reason: ตัวห่อ GitHub API ที่ census ทุกตัวใช้}
+  - {path: scripts/workflows.py, decision: move, stage: 3, reason: ตัวอ่าน workflow ที่ใช้ร่วม (audit r18 ยุบจาก 5 ที่)}
+  - {path: scripts/lint_commits.py, decision: move, stage: 3, reason: Conventional Commits + DCO — ไม่รู้จักแอป}
+  - {path: scripts/check_issue_handoff.py, decision: move, stage: 3, reason: กติกา good-first-issue — ไม่รู้จักแอป}
+  - {path: scripts/skeleton.py, decision: move, stage: 3, reason: ชั้นโครงสร้างสำหรับ agent (graft) — ไม่รู้จักแอป}
+
+  # ---------------------------------------------------------------- scripts — ตัวตรวจ supply chain (ขั้น 4)
+  - {path: scripts/audit_pins.py, decision: move, stage: 4, reason: pip-audit + npm audit สองทิศกับทะเบียนยกเว้น — path ทะเบียนเข้า config}
+  - {path: scripts/audit_image.py, decision: move, stage: 4, reason: trivy สองทิศกับทะเบียนยกเว้น (ADR 0054)}
+  - {path: scripts/audit_plugin_deps.py, decision: move, stage: 4, reason: CVE ต่อ category ต้องถูกตัดสิน — convention ของ category เข้า config}
+  - {path: scripts/build_vex.py, decision: move, stage: 4, reason: OpenVEX จากทะเบียนยกเว้น — อ่าน path ของ todolist 6 จุด ต้อง parametrize}
+  - {path: scripts/build_eol_table.py, decision: move, stage: 4, reason: ตาราง EOL ของ runtime — ไม่รู้จักแอป}
+  - {path: scripts/check_semgrep.py, decision: move, stage: 4, reason: ขอบเขต semgrep ประกาศที่เดียว (audit r7)}
+  - {path: scripts/secret_scan_history.sh, decision: move, stage: 4, reason: สแกนความลับในประวัติ git — ไม่รู้จักแอป}
+
+  # ---------------------------------------------------------------- scripts — เครื่องมือวิจัย (ขั้น 5)
+  - {path: scripts/asvs_probe.py, decision: move, stage: 5, reason: battery ของการทดลองเฟส 12 — วัด method}
+  - {path: scripts/measure_generated.py, decision: move, stage: 5, reason: ตัวสั่งงานการทดลอง — import asvs_probe}
+  - {path: scripts/build_asvs_worksheet.py, decision: move, stage: 5, reason: สร้าง worksheet จากมาตรฐานที่ตรึง — todolist เก็บเฉพาะคำตัดสินใน docs/ASVS.md}
+  - {path: scripts/build_gates_crosswalk.py, decision: move, stage: 5, reason: crosswalk gate↔ASVS generate — เป็นของ registry}
+
+  # ---------------------------------------------------------------- overlays/ + skill/ (ขั้น 2 — ย้ายทั้งก้อน)
+  - {path: overlays/flask/overlay.json, decision: move, stage: 2, reason: manifest ของ overlay}
+  - {path: overlays/flask/install.py, decision: move, stage: 2, reason: ตัวติดตั้งตาม manifest}
+  - {path: overlays/flask/gates_doctor.py, decision: move, stage: 2, reason: fail-fix harness}
+  - {path: overlays/flask/preflight.py, decision: move, stage: 2, reason: สำเนาที่ส่งออกของ scripts/preflight.py — เหลือตัวเดียวใน vg}
+  - {path: overlays/flask/ci-template.yml, decision: move, stage: 2, reason: workflow ตั้งต้นของปลายทาง}
+  - {path: overlays/flask/gates.yaml.default, decision: move, stage: 2, reason: ทะเบียนตั้งต้น (ADR 0071)}
+  - {path: overlays/flask/scaffold.json.default, decision: move, stage: 2, reason: config ตั้งต้น}
+  - {path: overlays/flask/checks/scan_adr_index.py, decision: move, stage: 2, reason: check}
+  - {path: overlays/flask/checks/scan_dockerfile_digest.py, decision: move, stage: 2, reason: check}
+  - {path: overlays/flask/checks/scan_entrypoint_debug.py, decision: move, stage: 2, reason: check}
+  - {path: overlays/flask/checks/scan_gates_registry.py, decision: move, stage: 2, reason: check}
+  - {path: overlays/flask/checks/scan_install_pinning.py, decision: move, stage: 2, reason: check}
+  - {path: overlays/flask/checks/scan_service_layer.py, decision: move, stage: 2, reason: check}
+  - {path: overlays/flask/checks/scan_templates_inline.py, decision: move, stage: 2, reason: check}
+  - {path: overlays/flask/checks/scan_workflow_pinning.py, decision: move, stage: 2, reason: check}
+  - {path: overlays/flask/checks/scan_write_discipline.py, decision: move, stage: 2, reason: check}
+  - {path: skill/SKILL.md, decision: move, stage: 2, reason: generate — regenerate ใน vg}
+  - {path: skill/reference/SKILL-TODOLIST.md, decision: move, stage: 2, reason: สำเนาที่แพ็กมา — แหล่งคือ SKILL-TODOLIST.md ที่ราก (stay)}
+  - {path: skill/scripts/scan_adr_index.py, decision: move, stage: 2, reason: สำเนาของ check}
+  - {path: skill/scripts/scan_dockerfile_digest.py, decision: move, stage: 2, reason: สำเนาของ check}
+  - {path: skill/scripts/scan_entrypoint_debug.py, decision: move, stage: 2, reason: สำเนาของ check}
+  - {path: skill/scripts/scan_gates_registry.py, decision: move, stage: 2, reason: สำเนาของ check}
+  - {path: skill/scripts/scan_install_pinning.py, decision: move, stage: 2, reason: สำเนาของ check}
+  - {path: skill/scripts/scan_service_layer.py, decision: move, stage: 2, reason: สำเนาของ check}
+  - {path: skill/scripts/scan_templates_inline.py, decision: move, stage: 2, reason: สำเนาของ check}
+  - {path: skill/scripts/scan_workflow_pinning.py, decision: move, stage: 2, reason: สำเนาของ check}
+  - {path: skill/scripts/scan_write_discipline.py, decision: move, stage: 2, reason: สำเนาของ check}
+
+  # ---------------------------------------------------------------- docs/comparison/ (ขั้น 5 — คำตัดสินเจ้าของ 2026-08-25)
+  - {path: docs/comparison/README.md, decision: move, stage: 5, reason: วิธีการทดลอง — ของ method}
+  - {path: docs/comparison/spec-notes-app.md, decision: move, stage: 5, reason: spec ของการทดลอง}
+  - {path: docs/comparison/results-2026-08-14.md, decision: move, stage: 5, reason: ผลการทดลอง}
+  - {path: docs/comparison/results-2026-08-14.json, decision: move, stage: 5, reason: ข้อมูลดิบ}
+  - {path: docs/comparison/effort-log.csv, decision: move, stage: 5, reason: ข้อมูลวิจัยอยู่กับ method (เจ้าของตัดสิน) — เติมใน todolist ต่อจนถึงขั้น 5}
+
+  # ---------------------------------------------------------------- ไฟล์ governance ที่ราก
+  - {path: gates.yaml, decision: split, stage: 6, reason: แถว baseline/business (94) เป็นทะเบียนตั้งต้นของ vg · แถว internal (21) + แถวที่พูดถึงแอปอยู่ที่นี่ — ถอดออกต้องผ่าน ADR ตามพื้น/เพดาน}
+  - {path: scaffold.json, decision: stay, reason: config ของ instantiation นี้ — คือสิ่งที่ปลายทางทุกแห่งมีของตัวเอง}
+  - {path: SKILL.md, decision: move, stage: 2, reason: กฎสากล generate จาก gate portable — บ้านคือ vg · todolist อ่านจาก vendor}
+  - {path: SKILL-TODOLIST.md, decision: stay, reason: ชั้น business ของแอปนี้ (ADR 0042) — generate ด้วยเครื่องมือของ vg แต่เนื้อเป็นของแอป}
+  - {path: CLA.md, decision: stay, reason: CLA ของ repo นี้ — vg มีฉบับของตัวเองแล้ว}
+
+  # ---------------------------------------------------------------- tests/ ที่เอ่ยถึงของในขอบเขต
+  - {path: tests/conftest.py, decision: stay, reason: fixture ของแอป — เอ่ยถึง scripts แค่ในคอมเมนต์}
+  - {path: tests/test_asvs_probe.py, decision: move, stage: 5, reason: ทดสอบ probe + fixtures สามสำนวน}
+  - {path: tests/test_measure_generated.py, decision: move, stage: 5, reason: ทดสอบตัวสั่งงานการทดลอง}
+  - {path: tests/test_effort_log.py, decision: move, stage: 5, reason: ตามไฟล์ข้อมูล}
+  - {path: tests/test_overlay.py, decision: move, stage: 2, reason: ทดสอบ install/doctor/checks}
+  - {path: tests/test_preflight.py, decision: move, stage: 2, reason: ทดสอบ preflight}
+  - {path: tests/test_agent_skill.py, decision: move, stage: 2, reason: ทดสอบแพ็กเกจ skill}
+  - {path: tests/test_skill.py, decision: move, stage: 2, reason: ทดสอบ generate SKILL.md — ส่วนที่เทียบกับ gates.yaml ของ todolist กลายเป็น check ของ vendor}
+  - {path: tests/test_checker_logic.py, decision: split, stage: 3, reason: unit test ของตัวตรวจแต่ละตัวไปกับตัวตรวจ · assertion ที่ผูกกับตัวเลข/ทะเบียนของ todolist อยู่}
+  - {path: tests/test_script_roles.py, decision: split, stage: 3, reason: ทะเบียนบทบาทของ scripts — ตัวตรวจไป · แถวของ scripts ที่ stay 13 ตัวอยู่}
+  - {path: tests/test_external_surface.py, decision: split, stage: 3, reason: logic ของ audit_posture ไป · ทะเบียนผิวนอกของ todolist อยู่}
+  - {path: tests/test_pending_page.py, decision: split, stage: 3, reason: logic ของ whats_pending/sync_counts ไป · กองของ todolist อยู่}
+  - {path: tests/test_pins_audit.py, decision: split, stage: 4, reason: logic สองทิศไป · ทะเบียน pins/accepted-advisories ของ todolist อยู่}
+  - {path: tests/test_image_audit.py, decision: split, stage: 4, reason: logic ไป · ทะเบียน deploy/accepted-image-advisories อยู่}
+  - {path: tests/test_semgrep_gate.py, decision: split, stage: 4, reason: logic ขอบเขตไป · ขอบเขตจริงของ todolist อยู่}
+  - {path: tests/test_vex.py, decision: split, stage: 4, reason: logic OpenVEX ไป · เนื้อ vex ของ todolist อยู่}
+  - {path: tests/test_gates.py, decision: stay, reason: ตรวจทะเบียนของ todolist สองทิศ — logic สากลถูกส่งออกเป็น scan_gates_registry อยู่แล้ว}
+  - {path: tests/test_declared_prohibitions.py, decision: stay, reason: ข้อห้ามของ CLAUDE.md ของแอปนี้}
+  - {path: tests/test_backup_drill.py, decision: stay, reason: ตามสคริปต์ที่ stay}
+  - {path: tests/test_throwaway_database.py, decision: stay, reason: กันฐานจริงของแอป}
+  - {path: tests/test_cadence.py, decision: stay, reason: ตารางรอบตรวจของ todolist — เรียก whats_pending จาก vendor หลังขั้น 3}
+  - {path: tests/test_asvs.py, decision: stay, reason: คำตัดสิน ASVS ของแอป — เรียก build_asvs_worksheet จาก vendor หลังขั้น 5}
+  - {path: tests/test_generated_tables.py, decision: stay, reason: generate ของแอป}
+  - {path: tests/test_openapi.py, decision: stay, reason: สัญญา API ของแอป}
+  - {path: tests/test_contributor_docs.py, decision: stay, reason: เอกสารของ repo นี้}
+  - {path: tests/test_dependabot.py, decision: stay, reason: config ของ repo นี้ — เรียก lint_commits จาก vendor หลังขั้น 3}
+  - {path: tests/test_exception_registers.py, decision: stay, reason: ทะเบียนยกเว้นของ repo นี้}
+  - {path: tests/test_mode.py, decision: stay, reason: ของแอป}
+  - {path: tests/test_plugins.py, decision: stay, reason: ของแอป — อ้าง check_ratchets แค่ในคอมเมนต์}
+  - {path: tests/test_extraction_manifest.py, decision: split, stage: 6, reason: ตัวบังคับสำมะโนนี้เอง — ถูกถอดพร้อมสำมะโนในขั้น 6 เมื่อไม่เหลืออะไรให้ตัดสิน}

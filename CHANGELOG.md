@@ -20,6 +20,13 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Added
 
+- **Extraction census for `verifiable-gates` (stage 0).** `extraction.yaml`
+  decides every file in scope — `scripts/`, `overlays/`, `skill/`,
+  `docs/comparison/`, the root governance files, and every test that mentions
+  them — as move / stay / split with a stage and a reason (107 files: 68 move ·
+  30 stay · 9 split). `tests/test_extraction_manifest.py` enforces it both ways:
+  an undecided file is red, and so is an entry pointing at a file that has
+  already left. Nothing moves in this stage. [ADR 0075 §6](docs/adr/0075-thesis-track-freeze-effort-and-ceilings.md).
 - **Gate count now has a ceiling, and new documents need a reader.**
   `[tool.todolist.ceilings].gates_ceiling` is checked by `check_ratchets.py`
   next to the removal floor — a new gate must retire an old one or move the
