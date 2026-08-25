@@ -30,6 +30,16 @@
 # แล้วคนดูแลจะเรียนรู้ที่จะเมินมัน — `tests/test_dependabot.py` บังคับข้อนี้ไว้
 version: 2
 updates:
+  # submodule ที่ตรึงด้วย SHA ก็คือ pin — และ pin ที่ไม่มีใครขยับคือการแช่ของเก่าไว้
+  # (ADR 0077 · หลักเดียวกับ pins/README.md)
+  - package-ecosystem: "gitsubmodule"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "build"
+    open-pull-requests-limit: 3
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

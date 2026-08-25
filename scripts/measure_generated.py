@@ -39,8 +39,11 @@ CHECKER_TIMEOUT_SECONDS = 300  # checker ตัวเดียวบนแอป
 SEMGREP_TIMEOUT_SECONDS = 1800  # semgrep สแกนทั้งแอป
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
-CHECKERS = sorted((REPO / "overlays" / "flask" / "checks").glob("scan_*.py"))
-DEFAULT_CONFIG = REPO / "overlays" / "flask" / "scaffold.json.default"
+# ตัววัดใช้ checker ของ bundle ที่ repo นี้บริโภคอยู่จริง (ADR 0077) — วัดด้วย
+# สำเนาที่ไม่ใช่ตัวที่ใช้งาน คือการวัดของคนละชิ้นกับที่รายงานอ้าง
+_BUNDLE = REPO / "vendor" / "verifiable-gates" / "src" / "verifiable_gates"
+CHECKERS = sorted((_BUNDLE / "checks").glob("scan_*.py"))
+DEFAULT_CONFIG = _BUNDLE / "scaffold.json.default"
 
 # ของที่ `install.py` วางให้เอง — ไม่ใช่ผลงานของ agent ฝั่งไหน จึงตัดออกก่อนวัด
 # ทั้งสองฝั่ง (ฝั่งที่ไม่ได้ติดตั้ง overlay ก็ไม่มีอยู่แล้ว — การตัดจึงไม่ทำให้ใครเสียเปรียบ)

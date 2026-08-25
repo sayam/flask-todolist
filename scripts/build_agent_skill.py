@@ -27,7 +27,9 @@ sys.path.insert(0, str(SCRIPT_DIR))
 from build_skill import render  # noqa: E402
 
 SKILL_DIR = ROOT / "skill"
-OVERLAY_DIR = ROOT / "overlays" / "flask"
+# checker กับ manifest อยู่ใน submodule แล้ว (ADR 0077) — แพ็กเกจนี้ยัง generate
+# ที่นี่เพราะกฎที่มันห่ออยู่ยังเป็นของ repo นี้ ส่วนตัว checker เป็นของ vendor
+OVERLAY_DIR = ROOT / "vendor" / "verifiable-gates" / "src" / "verifiable_gates"
 MANIFEST = OVERLAY_DIR / "overlay.json"
 
 DESCRIPTION = (

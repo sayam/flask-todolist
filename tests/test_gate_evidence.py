@@ -35,7 +35,6 @@ REF_SHAPE = {"ci-red": re.compile(r"^run/\d+$"), "mutation": re.compile(r"^pr/\d
 UNPROVEN = frozenset(
     {
         "skill-mirrors-portable-gates",
-        "overlay-covers-every-portable-gate",
         "logic-knows-no-http",
         "delete-means-soft-delete",
         "every-write-audited",

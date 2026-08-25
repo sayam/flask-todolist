@@ -1,10 +1,10 @@
-"""gate: image-digest-pinned — base image ต้อง pin ด้วย digest ไม่ใช่แค่ tag
+"""gate: image-digest-pinned — a base image is pinned by digest, not only by tag.
 
-tag ถูกย้ายทับได้ — image ที่ทดสอบผ่านกับที่ deploy จะไม่ใช่ตัวเดียวกัน
-· pin แล้วต้องมีอะไรขยับให้ด้วย (Dependabot docker ecosystem) — ครึ่งนั้น
-ตรวจโดยด่าน dependabot ของโปรเจกต์ ไม่ใช่ที่นี่
+A tag can be re-pointed, and then the image that passed the tests is not the image
+that was deployed. Pinning also needs someone moving the pins (Dependabot's docker
+ecosystem); that half is checked by the project's own dependabot gate, not here.
 
-exit 0 = สะอาด/NA · 1 = พบ · 2 = เรียกผิด
+exit 0 = clean or N/A · 1 = findings · 2 = called wrongly
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ def main(root: pathlib.Path) -> int:
     names = config.get("dockerfiles", ["Dockerfile"])
     dockerfiles = [root / n for n in names if (root / n).is_file()]
     if not dockerfiles:
-        print("NA: ไม่มี Dockerfile — ยังไม่มีอะไรให้ตรวจ")
+        print("NA: no Dockerfile — nothing to check yet")
         return 0
 
     findings: list[str] = []
@@ -44,6 +44,6 @@ def main(root: pathlib.Path) -> int:
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("ใช้: scan_dockerfile_digest.py <root>", file=sys.stderr)
+        print("usage: scan_dockerfile_digest.py <root>", file=sys.stderr)
         sys.exit(2)
     sys.exit(main(pathlib.Path(sys.argv[1]).resolve()))

@@ -87,21 +87,6 @@ gates:
       เอกสาร skill ที่เขียนมือจะกลายเป็นทะเบียนที่สามที่ drift จากดัชนี —
       และชั้นที่ประกาศว่าสากลต้องมีเครื่องกันชื่อ framework รั่วเข้ามา
 
-  - id: overlay-covers-every-portable-gate
-    title: overlay ต้องครอบกฎสากลครบทุกข้อ และ checker พิสูจน์สองทิศ
-    kind: test
-    severity: blocking
-    enforced_by: {job: test, tests: [tests/test_overlay.py]}
-    standard: []
-    requires: []
-    portable: true
-    layer: baseline
-    pillar: devx
-    born_from: >-
-      กฎสากลที่ไม่มี enforcement ใน overlay คือคำขวัญ — และ checker ที่ไม่เคย
-      ถูกพิสูจน์ว่าแดงเมื่อควรแดง ก็เขียวได้ตลอดกาลโดยไม่ตรวจอะไร
-
-  # ------------------------------------------------- กฎสถาปัตยกรรมของ core
   - id: logic-knows-no-http
     title: ตรรกะทั้งหมดอยู่ใน service layer และไม่รู้จัก HTTP
     kind: test
@@ -232,7 +217,7 @@ gates:
     title: harness ของนักพัฒนารายงานตรงความจริง ไม่ผ่านเงียบ ๆ และไม่ลอกคำสั่งของ CI มาเก็บที่สอง
     kind: test
     severity: blocking
-    enforced_by: {job: test, tests: [tests/test_harness.py, tests/test_preflight.py]}
+    enforced_by: {job: test, tests: [tests/test_vendored_tooling.py]}
     standard: []
     requires: []
     portable: true

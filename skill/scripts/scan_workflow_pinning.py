@@ -1,8 +1,9 @@
-"""gate: actions-sha-pinned — action ทุกตัวใน workflow ต้อง pin ด้วย commit SHA
+"""gate: actions-sha-pinned — every action in a workflow is pinned to a commit SHA.
 
-tag ย้ายได้ commit ย้ายไม่ได้ — และ action รันด้วยสิทธิ์ของ workflow ของโปรเจกต์
+A tag can be moved; a commit cannot. And an action runs with the permissions of
+the project's own workflow, reading its source and whatever token that job holds.
 
-exit 0 = สะอาด/NA · 1 = พบ · 2 = เรียกผิด
+exit 0 = clean or N/A · 1 = findings · 2 = called wrongly
 """
 
 from __future__ import annotations
@@ -19,7 +20,7 @@ LOCAL = ("./", "docker://")
 def main(root: pathlib.Path) -> int:
     workflows = sorted((root / ".github" / "workflows").glob("*.y*ml"))
     if not workflows:
-        print("NA: ไม่มี workflow — ยังไม่มีอะไรให้ตรวจ")
+        print("NA: no workflows — nothing to check yet")
         return 0
 
     findings: list[str] = []
@@ -37,6 +38,6 @@ def main(root: pathlib.Path) -> int:
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("ใช้: scan_workflow_pinning.py <root>", file=sys.stderr)
+        print("usage: scan_workflow_pinning.py <root>", file=sys.stderr)
         sys.exit(2)
     sys.exit(main(pathlib.Path(sys.argv[1]).resolve()))

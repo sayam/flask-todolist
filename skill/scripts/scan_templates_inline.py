@@ -1,9 +1,10 @@
-"""gate: csp-no-inline — template ห้ามมี inline handler/style/script
+"""gate: csp-no-inline — templates carry no inline handler, style, or script.
 
-CSP ที่เป็น 'self' ล้วนจะทำให้ browser บล็อกของพวกนี้**เงียบ ๆ** ไม่มี error
-ฝั่ง server — ด่านจึงต้องตรวจไฟล์ตรง ๆ ไม่ใช่รอดูอาการ
+Under a `'self'`-only Content Security Policy the browser blocks these **silently**;
+there is no server-side error to notice. So the check has to read the files rather
+than wait for a symptom.
 
-exit 0 = สะอาด/NA · 1 = พบ · 2 = เรียกผิด
+exit 0 = clean or N/A · 1 = findings · 2 = called wrongly
 """
 
 from __future__ import annotations
@@ -25,7 +26,7 @@ def main(root: pathlib.Path) -> int:
     config = json.loads((root / "scaffold.json").read_text(encoding="utf-8"))
     templates = root / config.get("templates_path", "app/templates")
     if not templates.is_dir():
-        print(f"NA: ไม่มี {templates.relative_to(root)} — ยังไม่มีอะไรให้ตรวจ")
+        print(f"NA: no {templates.relative_to(root)} — nothing to check yet")
         return 0
 
     findings: list[str] = []
@@ -44,6 +45,6 @@ def main(root: pathlib.Path) -> int:
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("ใช้: scan_templates_inline.py <root>", file=sys.stderr)
+        print("usage: scan_templates_inline.py <root>", file=sys.stderr)
         sys.exit(2)
     sys.exit(main(pathlib.Path(sys.argv[1]).resolve()))

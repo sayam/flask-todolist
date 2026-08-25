@@ -1635,17 +1635,22 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # ตัวติดตั้งอยู่ใน submodule แล้ว (ADR 0077) — ไม่ดึงมาก็ไม่มีอะไรให้รัน
+          submodules: true
       - name: ติดตั้งลง repo เปล่า — ด่านต้องครบ รันได้ และไม่พังบนความว่าง
         run: |
+          export PYTHONPATH=vendor/verifiable-gates/src
           target=$(mktemp -d)
-          python3 overlays/flask/install.py "$target"
+          python3 -m verifiable_gates.install "$target" --manifest vendor/verifiable-gates/src/verifiable_gates/overlay.json
           python3 "$target/tools/gates_doctor.py" --installed
           # repo เปล่า: scan ทุกตัวต้อง NA หรือผ่าน — "พังบนของว่าง" คือ checker ที่พัง
           python3 "$target/tools/gates_doctor.py"
       - name: dogfood — reference ต้องผ่าน scan ของ overlay ตัวเอง
         run: |
+          export PYTHONPATH=vendor/verifiable-gates/src
           target=$(mktemp -d)
-          python3 overlays/flask/install.py "$target" >/dev/null
+          python3 -m verifiable_gates.install "$target" --manifest vendor/verifiable-gates/src/verifiable_gates/overlay.json >/dev/null
           python3 "$target/tools/gates_doctor.py" "$GITHUB_WORKSPACE"
 
   sbom:
