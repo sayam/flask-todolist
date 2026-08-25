@@ -33,13 +33,13 @@ repos:
         entry: >-
           pipenv run pytest -q --no-header
           tests/test_gates.py tests/test_gate_evidence.py tests/test_skill.py
-          tests/test_agent_skill.py tests/test_overlay.py
+          tests/test_agent_skill.py tests/test_vendored_tooling.py
           tests/test_supply_chain.py tests/test_compliance_index.py
           tests/test_contributor_docs.py
         language: system
         pass_filenames: false
         stages: [pre-push]
-        files: ^(gates\.yaml|overlays/|SKILL.*\.md|skill/|docs/(SUPPLY-CHAIN|COMPLIANCE)\.md|README\.md)
+        files: ^(gates\.yaml|vendor/|docs/skill/|SKILL.*\.md|skill/|docs/(SUPPLY-CHAIN|COMPLIANCE)\.md|README\.md)
 
       - id: conventional-commit
         name: conventional commit message
