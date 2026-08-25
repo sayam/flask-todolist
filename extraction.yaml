@@ -53,8 +53,8 @@ files:
   - {path: scripts/audit_posture.py, decision: move, stage: 3, reason: ท่าทีฝั่ง GitHub (ADR 0061) — ฟิลด์ที่คาดหวังเข้า config}
   - {path: scripts/gh.py, decision: move, stage: 3, reason: ตัวห่อ GitHub API ที่ census ทุกตัวใช้}
   - {path: scripts/workflows.py, decision: move, stage: 3, reason: ตัวอ่าน workflow ที่ใช้ร่วม (audit r18 ยุบจาก 5 ที่)}
-  - {path: scripts/lint_commits.py, decision: move, stage: 3, reason: Conventional Commits + DCO — ไม่รู้จักแอป}
-  - {path: scripts/check_issue_handoff.py, decision: move, stage: 3, reason: กติกา good-first-issue — ไม่รู้จักแอป}
+  - {path: scripts/lint_commits.py, decision: stay, reason: adapter บาง ๆ เหนือตัวตัดสินใน vendor — hook `commit-msg` กับ job `commit-lint` เรียกพาธนี้ (ADR 0077 ขั้น 3a)}
+  - {path: scripts/check_issue_handoff.py, decision: stay, reason: adapter บาง ๆ เหนือตัวตัดสินใน vendor — job `lint` เรียกพาธนี้ (ADR 0077 ขั้น 3a)}
   - {path: scripts/skeleton.py, decision: move, stage: 3, reason: ชั้นโครงสร้างสำหรับ agent (graft) — ไม่รู้จักแอป}
 
   # ---------------------------------------------------------------- scripts — ตัวตรวจ supply chain (ขั้น 4)

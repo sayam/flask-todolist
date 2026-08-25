@@ -99,3 +99,59 @@ def test_the_vendored_tools_are_the_ones_being_used() -> None:
     for module in (run_gates.harness, preflight.preflight):
         where = pathlib.Path(module.__file__ or "")
         assert (ROOT / "vendor") in where.parents, f"{module.__name__} ไม่ได้มาจาก vendor: {where}"
+
+
+# ---------------------------------------------------- ตัวตัดสินที่ย้ายไปขั้น 3a
+#
+# `lint_commits` กับ `check_issue_handoff` ย้ายไป `verifiable-gates` แล้ว (ADR 0077
+# ขั้น 3a) และถูกทดสอบสองทิศที่นั่น · ที่เหลือให้พิสูจน์ที่นี่คือ **รอยต่อ** —
+# พาธที่ hook กับ workflow เรียกถึง ยังเดินไปถึงตัวจริงไหม
+#
+# เทสต์ที่เรียกฟังก์ชันปลายทางตรง ๆ พิสูจน์เรื่องนั้นไม่ได้ (บทเรียนของขั้น 2e:
+# ฉบับแรกข้าม adapter ไปเลย แล้วยังเขียวตอนชี้รากผิด) — จึงขับผ่าน `main()`
+# ของ adapter ด้วย argv จริง
+
+
+def test_the_commit_linter_adapter_reaches_the_real_decider(tmp_path, monkeypatch, capsys):
+    """โหมด `--msg-file` คือทางที่ hook `commit-msg` ใช้ทุกครั้งที่มีคน commit"""
+    from scripts import lint_commits as adapter
+
+    message = tmp_path / "COMMIT_EDITMSG"
+    message.write_text("feat(x): หัวที่ถูกต้อง\n\nSigned-off-by: A B <a@b.co>\n", encoding="utf-8")
+
+    monkeypatch.setattr("sys.argv", ["lint_commits.py", "--msg-file", str(message)])
+    assert adapter.main() == 0
+    assert "passes" in capsys.readouterr().out
+
+    message.write_text("แก้บั๊ก\n\nSigned-off-by: A B <a@b.co>\n", encoding="utf-8")
+    assert adapter.main() == 1, "adapter ปล่อยหัวที่ผิดรูปผ่าน — hook จะเงียบตอนที่ควรบล็อก"
+
+
+def test_the_commit_linter_adapter_exports_what_its_callers_read():
+    """`tests/test_dependabot.py` อ่าน `TYPES` จากที่นี่ — ค่าต้องมาจากตัวจริง ไม่ใช่สำเนา"""
+    from verifiable_gates import lint_commits as real
+
+    from scripts import lint_commits as adapter
+
+    assert adapter.TYPES is real.TYPES
+    assert adapter.MAX_TITLE == real.MAX_TITLE
+
+
+def test_the_issue_handoff_adapter_reaches_the_real_decider(monkeypatch, capsys):
+    """job `lint` เรียกพาธนี้โดยไม่ส่ง flag — บริบทมาจาก env ล้วน"""
+    from scripts import check_issue_handoff as adapter
+
+    monkeypatch.delenv("PR_NUMBER", raising=False)
+    monkeypatch.setattr("sys.argv", ["check_issue_handoff.py"])
+
+    assert adapter.main() == 0
+    assert "only means anything" in capsys.readouterr().out
+
+
+def test_the_issue_handoff_adapter_exports_the_real_label():
+    from verifiable_gates import check_issue_handoff as real
+
+    from scripts import check_issue_handoff as adapter
+
+    assert adapter.LABEL == real.LABEL
+    assert adapter.problems is real.problems
