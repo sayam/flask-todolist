@@ -93,7 +93,7 @@ def test_every_script_is_touched_by_something(script):
 # ชื่อค่าคงที่ที่ generator ใช้ชี้ปลายทาง — รับหลายชื่อโดยตั้งใจ เพราะการบังคับให้
 # ทุกไฟล์ใช้ชื่อเดียวกันคือการแก้โค้ดที่ถูกอยู่แล้วเพื่อให้ด่านสบายใจ
 GENERATOR_OUTPUT = re.compile(
-    r"^(?:OUT|OUTPUT|OUTPUT_PATH|TARGET|DEST|SPEC_PATH|WORKSHEET|SKILL_DIR)\w* = (.+)$",
+    r"^(?:OUT|OUTPUT|OUTPUT_PATH|TARGET|DEST|SPEC_PATH|WORKSHEET)\w* = (.+)$",
     re.MULTILINE,
 )
 

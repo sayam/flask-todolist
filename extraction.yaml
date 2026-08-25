@@ -17,12 +17,9 @@ version: 1
 scope:
   - scripts/
   - overlays/
-  - skill/
   - docs/comparison/
   - gates.yaml
   - scaffold.json
-  - SKILL.md
-  - SKILL-TODOLIST.md
   - CLA.md
 
 files:
@@ -42,8 +39,6 @@ files:
   - {path: scripts/purge_cron.sh, decision: stay, reason: ตัวห่อ cron ของ flask purge-expired}
 
   # ---------------------------------------------------------------- scripts — แกน overlay (ขั้น 2)
-  - {path: scripts/build_skill.py, decision: stay, reason: adapter บาง ๆ เหนือตัวเรนเดอร์ใน vendor — คำนำกับหัวข้อฟิลด์เป็นของ repo นี้ (ADR 0077)}
-  - {path: scripts/build_agent_skill.py, decision: move, stage: 6, reason: แพ็กเกจ skill/ (ADR 0050) — import build_skill}
   - {path: scripts/preflight.py, decision: stay, reason: adapter บาง ๆ เหนือ preflight ใน vendor (ADR 0077)}
   - {path: scripts/run_gates.py, decision: stay, reason: adapter บาง ๆ เหนือ harness ใน vendor (ADR 0077)}
 
@@ -78,17 +73,6 @@ files:
   - {path: scripts/build_gates_crosswalk.py, decision: move, stage: 5, reason: crosswalk gate↔ASVS generate — เป็นของ registry}
 
   # ---------------------------------------------------------------- overlays/ + skill/ (ขั้น 2 — ย้ายทั้งก้อน)
-  - {path: skill/SKILL.md, decision: move, stage: 6, reason: generate — ตามกฎไปตอน registry handover}
-  - {path: skill/reference/SKILL-TODOLIST.md, decision: move, stage: 6, reason: สำเนาที่แพ็กมา — แหล่งคือ SKILL-TODOLIST.md ที่ราก (stay)}
-  - {path: skill/scripts/scan_adr_index.py, decision: move, stage: 6, reason: สำเนาของ check}
-  - {path: skill/scripts/scan_dockerfile_digest.py, decision: move, stage: 6, reason: สำเนาของ check}
-  - {path: skill/scripts/scan_entrypoint_debug.py, decision: move, stage: 6, reason: สำเนาของ check}
-  - {path: skill/scripts/scan_gates_registry.py, decision: move, stage: 6, reason: สำเนาของ check}
-  - {path: skill/scripts/scan_install_pinning.py, decision: move, stage: 6, reason: สำเนาของ check}
-  - {path: skill/scripts/scan_service_layer.py, decision: move, stage: 6, reason: สำเนาของ check}
-  - {path: skill/scripts/scan_templates_inline.py, decision: move, stage: 6, reason: สำเนาของ check}
-  - {path: skill/scripts/scan_workflow_pinning.py, decision: move, stage: 6, reason: สำเนาของ check}
-  - {path: skill/scripts/scan_write_discipline.py, decision: move, stage: 6, reason: สำเนาของ check}
 
   # ---------------------------------------------------------------- docs/comparison/ (ขั้น 5 — คำตัดสินเจ้าของ 2026-08-25)
   - {path: docs/comparison/README.md, decision: move, stage: 5, reason: วิธีการทดลอง — ของ method}
@@ -100,8 +84,6 @@ files:
   # ---------------------------------------------------------------- ไฟล์ governance ที่ราก
   - {path: gates.yaml, decision: split, stage: 6, reason: แถว baseline/business (94) เป็นทะเบียนตั้งต้นของ vg · แถว internal (21) + แถวที่พูดถึงแอปอยู่ที่นี่ — ถอดออกต้องผ่าน ADR ตามพื้น/เพดาน}
   - {path: scaffold.json, decision: stay, reason: config ของ instantiation นี้ — คือสิ่งที่ปลายทางทุกแห่งมีของตัวเอง}
-  - {path: SKILL.md, decision: move, stage: 6, reason: กฎสากล generate จาก gate portable — บ้านคือ vg · todolist อ่านจาก vendor}
-  - {path: SKILL-TODOLIST.md, decision: stay, reason: ชั้น business ของแอปนี้ (ADR 0042) — generate ด้วยเครื่องมือของ vg แต่เนื้อเป็นของแอป}
   - {path: CLA.md, decision: stay, reason: CLA ของ repo นี้ — vg มีฉบับของตัวเองแล้ว}
 
   # ---------------------------------------------------------------- tests/ ที่เอ่ยถึงของในขอบเขต
@@ -109,8 +91,6 @@ files:
   - {path: tests/test_asvs_probe.py, decision: move, stage: 5, reason: ทดสอบ probe + fixtures สามสำนวน}
   - {path: tests/test_measure_generated.py, decision: move, stage: 5, reason: ทดสอบตัวสั่งงานการทดลอง}
   - {path: tests/test_effort_log.py, decision: move, stage: 5, reason: ตามไฟล์ข้อมูล}
-  - {path: tests/test_agent_skill.py, decision: move, stage: 6, reason: ทดสอบแพ็กเกจ skill}
-  - {path: tests/test_skill.py, decision: move, stage: 6, reason: ทดสอบ generate SKILL.md — ส่วนที่เทียบกับ gates.yaml ของ todolist กลายเป็น check ของ vendor}
   - {path: tests/test_checker_logic.py, decision: split, stage: 3, reason: unit test ของตัวตรวจแต่ละตัวไปกับตัวตรวจ · assertion ที่ผูกกับตัวเลข/ทะเบียนของ todolist อยู่}
   - {path: tests/test_script_roles.py, decision: split, stage: 3, reason: ทะเบียนบทบาทของ scripts — ตัวตรวจไป · แถวของ scripts ที่ stay 13 ตัวอยู่}
   - {path: tests/test_external_surface.py, decision: split, stage: 3, reason: logic ของ audit_posture ไป · ทะเบียนผิวนอกของ todolist อยู่}

@@ -124,8 +124,8 @@ def _mini_repo(root: pathlib.Path, adrs: int, gates: int, audits: int, said: int
     (root / "README.md").write_text(
         f"| [`docs/adr/`](docs/adr/) | {said} architecture decision records — x\n"
         f"[`docs/adr/`](docs/adr/) {said} ใบ\n"
-        f"| [`SKILL.md`](SKILL.md) | {said} framework-agnostic baseline rules, x\n"
-        f"- [`SKILL.md`](SKILL.md) — กฎ baseline {said} ข้อ x\n",
+        f"| rules.yaml | the rules themselves — {said} framework-agnostic baseline rules — x\n"
+        f"- กฎ baseline {said} ข้อ x\n",
         encoding="utf-8",
     )
     (root / "CONTRIBUTING.md").write_text(
