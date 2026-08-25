@@ -59,7 +59,7 @@ Python/Flask — overlay ของ framework อื่นเขียน enforce
 - `SKILL.md` แกนกลาง: กฎสากล (logic ไม่รู้จัก protocol, delete = soft-delete
   เท่านั้น, ทุก write ถูก audit, เทสต์ใหม่ต้องพิสูจน์ว่าจับของจริงได้,
   plugin dependency แยก category) — เขียนโดย**ไม่เอ่ยชื่อ library ของ Flask**
-- `overlays/flask/`: enforcement เฉพาะทาง — AST scan, pipenv category rule,
+- `verifiable-gates` (เดิม `overlays/flask/` — ADR 0077): enforcement เฉพาะทาง — AST scan, pipenv category rule,
   Talisman/Flask-Limiter config, CI template — ทุกอันอ้าง gate id จาก
   `gates.yaml`
 

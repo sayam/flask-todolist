@@ -139,7 +139,7 @@ file without an entry turns CI red on purpose. You have two options:
   hold in any project, mark it `portable: true` and write `born_from`: the trap
   that produced the rule. Portable gates are what [`SKILL.md`](SKILL.md),
   [`SKILL-TODOLIST.md`](SKILL-TODOLIST.md), and
-  [`overlays/flask/`](overlays/flask/) are generated from, so the entry has to
+  [`vendor/verifiable-gates`](https://github.com/sayam/verifiable-gates) enforces, so the entry has to
   carry its own reason for existing.
 
 **Before you push**, a `pre-push` hook runs the subset that checks files derived
@@ -360,7 +360,7 @@ same terms as the rest of the project: [AGPL-3.0-or-later](LICENSE) for code and
 you wrote — there is no copyright assignment.
 
 **External contributors whose PR touches the governance core — `scripts/`,
-`overlays/`, `skill/`, `gates.yaml`, `docs/comparison/`, their tests — sign
+`skill/`, `gates.yaml`, `docs/comparison/`, their tests — sign
 [`CLA.md`](CLA.md) before merge** — one line in the pull request description. It
 grants the maintainer the right to relicense that contribution, because the core
 is being extracted into [`verifiable-gates`](https://github.com/sayam/verifiable-gates) under Apache-2.0 (ADR 0075 §6); the
@@ -432,7 +432,7 @@ pipenv run flask create-user <ชื่อ>
    `performance`/`manageability`/`devx` — ADR 0051 ดูกฎข้อ 10) ·
    ถ้ากฎนั้นใช้ได้กับโปรเจกต์อื่นด้วย ให้ตั้ง `portable: true` +
    `born_from` (กับดักที่ให้กำเนิดกฎข้อนั้น) เพราะ `SKILL.md`,
-   `SKILL-TODOLIST.md` กับ `overlays/flask/` generate มาจากตรงนั้น ·
+   `SKILL-TODOLIST.md` generate มาจากตรงนั้น ·
    **`severity:` ต้องตรงกับอำนาจจริง** (ADR 0066): `blocking` ได้เฉพาะ job ที่รัน
    บน `pull_request` · ที่เหลือเป็น `watched`/`warning` และต้องมี `watched_by:`
    (ใคร · ภายในกี่วัน · ด้วยกลไกอะไร) · รายละเอียดของกลไกทั้งหมดอยู่ใน
@@ -517,7 +517,7 @@ generate ทั้งหมดสร้างใหม่จาก source ที
 สำหรับโค้ด และ [CC BY-SA 4.0](LICENSE-docs) สำหรับเอกสาร · คุณยังถือลิขสิทธิ์ใน
 สิ่งที่คุณเขียน ไม่มีการโอน
 
-**PR ที่แตะแกน governance (`scripts/` · `overlays/` · `skill/` · `gates.yaml` ·
+**PR ที่แตะแกน governance (`scripts/` · `skill/` · `gates.yaml` ·
 `docs/comparison/` และเทสต์ของพวกนั้น) ต้องลงนาม [`CLA.md`](CLA.md) ก่อน merge** —
 บรรทัดเดียวในคำอธิบาย PR · เพราะแกนนั้นกำลังถูกถอดไปเป็น `verifiable-gates` ภายใต้
 Apache-2.0 (ADR 0075 ข้อ 6) · **แก้ตัวแอปไม่ต้องมี CLA** — ส่วนนั้นของ ADR 0070 ยังจริง · นี่กลับคำตัดสินเดิมที่

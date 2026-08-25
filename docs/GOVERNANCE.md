@@ -6,7 +6,7 @@
 ตามจริง** ไม่ใช่ขยับเพดาน) — เนื้อทั้งหมดข้างล่างคือของเดิม**คำต่อคำ**
 
 **อ่านไฟล์นี้เมื่อ**: จะเพิ่ม/แก้ gate · แตะ `gates.yaml` · แตะ workflow ที่เป็น
-ด่าน · แก้ของที่ generate ไป `SKILL.md`/`skill/`/`overlays/` · หรือจะอ่านผลของ
+ด่าน · แก้ของที่ generate ไป `SKILL.md`/`skill/` · หรือจะอ่านผลของ
 สำมะโน (`rerun_census.py` · `schedule_census.py` · `red_streak_census.py` ·
 `audit_posture.py`) · รอบ audit ที่ให้กำเนิดกลไกพวกนี้อยู่ใน [`AUDIT-LOG.md`](AUDIT-LOG.md)
 
@@ -115,7 +115,7 @@
   กับ `SKILL.md` + business sheet ใน `reference/` + checker คัดลอกตาม manifest
   ของ overlay · `tests/test_agent_skill.py` เทียบผล generate สด**รวมทั้งเซตไฟล์**
   (ไฟล์แปลกปลอม = แดง) — แก้กฎ = แก้ `gates.yaml` แล้ว regenerate สองที่
-- `overlays/flask/` — enforcement ของกฎสากลสำหรับโปรเจกต์ Flask อื่น: scan
+- `vendor/verifiable-gates` (ADR 0077) — enforcement ของกฎสากลสำหรับโปรเจกต์อื่น: scan
   checker 9 ตัว (stdlib ล้วน) + `gates_doctor.py` + `install.py` (copy ตาม
   manifest `overlay.json` — ไม่ครบ = ล้มดัง) + **`preflight.py`** (ADR 0063 —
   สำเนาที่ต้องตรงกับ `scripts/preflight.py` **ไบต์ต่อไบต์** แก้ตัวไหนแล้ว `cp` ทับ

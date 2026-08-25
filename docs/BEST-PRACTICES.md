@@ -514,7 +514,7 @@ ossf/best-practices-badge: **L1 24 · L2 19 · L3 21 รวม 64** (หน้�
   ลืมแล้ว CI แดงทันที
 - `contribution` — required check ขยับมาเรื่อย ๆ ตาม job ใหม่ (ปัจจุบัน 27 จาก 30 — `perf-smoke` เข้าเมื่อ ADR 0056 · `posture` ของ ADR 0061 ไม่รันบน PR จึงไม่บังคับ) (job `scaffold` เข้าเป็น
   ด่านบังคับตอนเฟส 9) และ `CONTRIBUTING.md` มีกติกา `gates.yaml` แล้ว
-- `build_reproducible` / `installation_common` — ไม่เปลี่ยน แต่ `overlays/flask/`
+- `build_reproducible` / `installation_common` — ไม่เปลี่ยน แต่ `verifiable-gates`
   ทำให้มีของที่ *คนอื่น* ติดตั้งได้จริงเป็นครั้งแรก และ job `scaffold` พิสูจน์
   ทุก push ว่าติดตั้งลง repo เปล่าได้
 

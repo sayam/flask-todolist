@@ -105,7 +105,7 @@ proxy เชื่อ header ตามจำนวนชั้นที่ปร
 กฎทุกข้อของ repo อยู่ในดัชนี `gates.yaml` ที่ตรวจสองทิศ (`ADR 0039`) และ
 ประกาศชั้นของตัวเอง: baseline → `SKILL.md` · business → `SKILL-TODOLIST.md`
 · internal ไม่ export (`ADR 0042`) · ตัวบังคับสำหรับโปรเจกต์อื่นคือ
-`overlays/flask/` ซึ่ง dogfood กับ repo นี้เองทุก push · ผลลัพธ์ถูกวัดจริง
+`vendor/verifiable-gates` (ADR 0077) ซึ่ง dogfood กับ repo นี้เองทุก push · ผลลัพธ์ถูกวัดจริง
 ด้วยการทดลองสามแขนใน `docs/comparison/` · วินัยการพัฒนาโดยละเอียดอยู่ใน
 `docs/DEVELOPMENT.md` และ `CONTRIBUTING.md` · งาน UI มีเอกสารตัวตนของตัวเอง
 ที่ `docs/DESIGN.md` (โหมดต่อหน้า + refine/redesign)
