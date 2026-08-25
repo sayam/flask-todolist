@@ -33,11 +33,11 @@ def test_the_harness_reads_this_repos_registry(
 ) -> None:
     """adapter ที่ชี้ทะเบียนผิดจะรายงาน 0 gate ซึ่งอ่านเหมือน "ไม่มีอะไรเสีย"."""
     report = tmp_path / "report.json"
-    run_gates.main(["--only", "skill-mirrors-portable-gates", "--output", str(report)])
+    run_gates.main(["--only", "gates-carry-red-evidence", "--output", str(report)])
     capsys.readouterr()
 
     results = json.loads(report.read_text(encoding="utf-8"))["results"]
-    assert [r["gate"] for r in results] == ["skill-mirrors-portable-gates"]
+    assert [r["gate"] for r in results] == ["gates-carry-red-evidence"]
     assert results[0]["status"] == "pass"
 
 

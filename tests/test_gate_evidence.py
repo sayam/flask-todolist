@@ -34,7 +34,6 @@ REF_SHAPE = {"ci-red": re.compile(r"^run/\d+$"), "mutation": re.compile(r"^pr/\d
 # gate ที่เกิดก่อน ADR 0059 และยังไม่มีหลักฐานว่าเคยแดง — **รายการนี้หดได้ทางเดียว**
 UNPROVEN = frozenset(
     {
-        "skill-mirrors-portable-gates",
         "logic-knows-no-http",
         "delete-means-soft-delete",
         "every-write-audited",
@@ -68,7 +67,6 @@ UNPROVEN = frozenset(
         "backup-restore-drilled-every-push",
         "country-compliance-indexed",
         "iso27001-worksheet-honest",
-        "agent-skill-package-derived",
         "design-doc-matches-the-ui",
         "admin-masking-by-classification",
         "admin-panels-read-real-state",

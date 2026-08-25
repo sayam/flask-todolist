@@ -113,4 +113,3 @@ files:
   - {path: tests/test_mode.py, decision: stay, reason: ของแอป}
   - {path: tests/test_plugins.py, decision: stay, reason: ของแอป — อ้าง check_ratchets แค่ในคอมเมนต์}
   - {path: tests/test_vendored_tooling.py, decision: stay, reason: ตรวจ *รอยต่อ* ระหว่าง repo นี้กับ vendor — เป็นของ repo นี้โดยนิยาม ปลายทางไม่มีรอยต่อนี้ (ADR 0077)}
-  - {path: tests/test_extraction_manifest.py, decision: split, stage: 6, reason: ตัวบังคับสำมะโนนี้เอง — ถูกถอดพร้อมสำมะโนในขั้น 6 เมื่อไม่เหลืออะไรให้ตัดสิน}

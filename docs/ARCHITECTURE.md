@@ -103,7 +103,7 @@ proxy เชื่อ header ตามจำนวนชั้นที่ปร
 ### 3.5 การพัฒนา (Development)
 
 กฎทุกข้อของ repo อยู่ในดัชนี `gates.yaml` ที่ตรวจสองทิศ (`ADR 0039`) และ
-ประกาศชั้นของตัวเอง: baseline → `SKILL.md` · business → `SKILL-TODOLIST.md`
+ประกาศชั้นของตัวเอง: baseline และ business ถูกเผยแพร่ผ่านคลังกฎของ vg
 · internal ไม่ export (`ADR 0042`) · ตัวบังคับสำหรับโปรเจกต์อื่นคือ
 `vendor/verifiable-gates` (ADR 0077) ซึ่ง dogfood กับ repo นี้เองทุก push · ผลลัพธ์ถูกวัดจริง
 ด้วยการทดลองสามแขนใน `docs/comparison/` · วินัยการพัฒนาโดยละเอียดอยู่ใน
@@ -118,7 +118,7 @@ proxy เชื่อ header ตามจำนวนชั้นที่ปร
 |---|---|
 | model ↔ migration | `tests/test_migrations.py` |
 | gates.yaml ↔ CI jobs ↔ ไฟล์เทสต์ | `tests/test_gates.py` |
-| gates.yaml ↔ SKILL สองใบ | `tests/test_skill.py` |
+| gates.yaml ↔ คลังกฎของ vg (สองทิศ) | `tests/test_rule_catalogue_agreement.py` |
 | ASVS ↔ หลักฐาน ↔ crosswalk | `tests/test_asvs.py` · `tests/test_gates.py` |
 | ROPA/runbook ↔ ตาราง/ค่าจริงในโค้ด | `tests/test_ropa.py` |
 | ชั้นข้อมูล ↔ คอลัมน์จริง | `tests/test_data_classification.py` |
@@ -132,7 +132,7 @@ proxy เชื่อ header ตามจำนวนชั้นที่ปร
 | ทะเบียนความเสี่ยง ↔ สูตรระดับ + กลไกที่อ้าง | `tests/test_risk_assessment.py` |
 | runbook backup ↔ การซ้อม restore ที่รันจริง | `tests/test_backup_drill.py` |
 | เอกสารฉบับนี้ ↔ ไฟล์/เทสต์ที่มันอ้าง | `tests/test_architecture.py` |
-| เลขที่โฆษณาในเอกสาร ↔ ดิสก์ | `tests/test_contributor_docs.py` · `tests/test_changelog.py` · `tests/test_skill.py` |
+| เลขที่โฆษณาในเอกสาร ↔ ดิสก์ | `tests/test_contributor_docs.py` · `tests/test_changelog.py` |
 
 ## 5. เหตุผลของการตัดสินใจ (rationale)
 

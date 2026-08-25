@@ -40,9 +40,10 @@ pipenv run python scripts/preflight.py              # job ที่ scaffold.jso
 pipenv run python scripts/preflight.py --only lint  # เฉพาะที่เร็ว (~1 นาที)
 ```
 
-**ไฟล์นี้ถูกส่งออกไปกับ overlay ด้วย** (ADR 0063) — `overlays/flask/preflight.py`
-ต้องตรงกับ `scripts/preflight.py` **ไบต์ต่อไบต์** และเทสต์ติดตั้งลง repo เปล่า
-แล้วรันจริงทุกครั้ง · ชื่อ job จึงมาจาก config ไม่ใช่ฝังในโค้ด
+**ตัวนี้ถูกส่งออกไปกับ bundle ด้วย** (ADR 0063 · 0077) — ตอนนี้อยู่ที่
+`vendor/verifiable-gates` และ `scripts/preflight.py` ที่นี่เหลือเป็น adapter
+บาง ๆ เหนือมัน จึงไม่มีสำเนาที่สองให้ drift อีก · ชื่อ job มาจาก config
+ไม่ใช่ฝังในโค้ด เพราะ bundle ต้องใช้กับโปรเจกต์ที่ตั้งชื่อ job ต่างออกไปได้
 
 เหมือนกันข้อสำคัญคือ **ข้ามอะไรต้องบอกเหตุผล** — preflight ข้าม step ที่เป็น
 action (ตัวตัดสินคือรุ่นใน CI) · step ที่จัดสภาพแวดล้อม (`pipenv sync` แก้

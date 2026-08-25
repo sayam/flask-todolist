@@ -15,7 +15,7 @@
 | Secure coding (OWASP) | ประเมิน ASVS 5.0 L2 ครบทุกข้อ · SAST สองตัว · DAST แบบ login แล้ว | `docs/ASVS.md` · `ci:security` · `ci:dast` · `ci:codeql` |
 | Security management & compliance | ISO/IEC 27001:2022 ครบ 116 ข้อ · แกน supply chain · ดัชนี legal รายประเทศ (ธรรมนูญ ADR 0051) | `docs/ISO27001.md` · `docs/SUPPLY-CHAIN.md` · `docs/COMPLIANCE.md` · `tests/test_iso27001.py` |
 | Bug tracking / issue management | GitHub Issues + template ที่บังคับข้อมูลจำเป็น (repro, expected, actual) | `.github/ISSUE_TEMPLATE/` · PR template ถามว่า "ถ้าไม่แก้จะล้มเหลวอย่างไร" |
-| Documentation | เอกสาร derive ได้ = generate · เอกสารคำตัดสิน = ตรวจอ้างอิงสองทิศ · เลขที่โฆษณามีเทสต์อ่านคู่ | `tests/test_skill.py` · `tests/test_asvs.py` · `tests/test_contributor_docs.py` |
+| Documentation | เอกสาร derive ได้ = generate · เอกสารคำตัดสิน = ตรวจอ้างอิงสองทิศ · เลขที่โฆษณามีเทสต์อ่านคู่ | `tests/test_rule_catalogue_agreement.py` · `tests/test_asvs.py` · `tests/test_contributor_docs.py` |
 | Version control | Conventional Commits (หัว ≤72) · merge ด้วย rebase ผ่าน auto-merge (`--auto`) · linear history | commit-msg hook + `ci:commit-lint` + branch protection |
 | CI/CD | 28 job (30 check) ยิงของจริงทุก push — สามยี่ห้อฐานข้อมูล, stack จริง, IdP จริง | `.github/workflows/ci.yml` · required checks |
 | Small batches | ทุกเฟสแตกเป็นขั้นที่ merge ได้ทีละขั้นโดย CI เขียว | ธรรมเนียมใน `docs/ROADMAP-FEATURES.md` (ภาพรวมเฟส) |
