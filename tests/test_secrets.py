@@ -184,7 +184,7 @@ class _FakeKv:
     last: dict = {}
 
     # รับพารามิเตอร์ให้ตรงกับ hvac แม้จะไม่ได้ใช้ทุกตัว
-    def read_secret_version(self, mount_point, path, **kwargs):  # noqa: ARG002
+    def read_secret_version(self, mount_point, path, **kwargs):  # noqa: ARG002 - required by interface
         _FakeKv.last = {"mount_point": mount_point, "path": path}
         return {"data": {"data": dict(self.stored)}}
 

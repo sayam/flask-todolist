@@ -291,7 +291,7 @@ class _FakeDirectories:
     down: frozenset = frozenset()
     consulted: list | None = None
 
-    def __init__(self, server, user=None, password=None, **kwargs):  # noqa: ARG002
+    def __init__(self, server, user=None, password=None, **kwargs):  # noqa: ARG002 - required by interface
         import ldap3
 
         if server.host in type(self).down:
@@ -310,7 +310,7 @@ class _FakeDirectories:
             return True  # unauthenticated bind — ด่านของโค้ดเราต้องกันเอง
         return _DIRECTORY_USERS[self.host].get(self.user) == self.password
 
-    def search(self, base, search_filter, attributes=None):  # noqa: ARG002
+    def search(self, base, search_filter, attributes=None):  # noqa: ARG002 - required by interface
         username = search_filter[len("(uid=") : -1]
         matches = [dn for dn in _DIRECTORY_USERS[self.host] if dn.startswith(f"uid={username},")]
         self.entries = [_FakeEntry(dn) for dn in matches]

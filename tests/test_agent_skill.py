@@ -8,7 +8,7 @@
 import re
 
 import pytest
-import yaml  # type: ignore[import-untyped]
+import yaml  # type: ignore[import-untyped] - library lacks type stubs
 
 from scripts.build_agent_skill import MANIFEST, SKILL_DIR, targets
 from scripts.build_skill import render

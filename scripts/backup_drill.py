@@ -35,7 +35,7 @@ def _row_counts(db: pathlib.Path) -> dict[str, int]:
         ]
         # ชื่อตารางมาจาก sqlite_master ของไฟล์เอง ไม่ใช่ input ภายนอก — parametrize ชื่อตารางไม่ได้
         return {
-            t: conn.execute(f'SELECT COUNT(*) FROM "{t}"').fetchone()[0]  # noqa: S608
+            t: conn.execute(f'SELECT COUNT(*) FROM "{t}"').fetchone()[0]  # noqa: S608 - documented suppression
             for t in tables
         }
 

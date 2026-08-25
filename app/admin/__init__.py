@@ -63,4 +63,4 @@ def index():
     return render_template("admin_index.html", groups=panels_by_category())
 
 
-from app.admin import system, teams, users  # noqa: E402,F401 — ลงทะเบียน view + panel ตอน import
+from app.admin import system, teams, users  # noqa: E402 - import order required here,F401 — ลงทะเบียน view + panel ตอน import

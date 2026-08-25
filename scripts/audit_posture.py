@@ -50,7 +50,7 @@ import urllib.error
 import urllib.request
 
 # pyyaml มากับ dev tools และไม่มี stub — เหตุผลเดียวกับ build_gates_crosswalk.py
-import yaml  # type: ignore[import-untyped]
+import yaml  # type: ignore[import-untyped] - library lacks type stubs
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import workflows as gha

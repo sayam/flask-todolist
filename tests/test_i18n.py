@@ -260,8 +260,8 @@ def test_the_gate_reads_the_same_messages_as_the_command_people_run():
     try:
         # S603/S607: อาร์กิวเมนต์ทุกตัวเป็นค่าคงที่ในไฟล์นี้ ไม่มีอะไรมาจากภายนอก
         # และเจตนาคือเรียก `pybabel` ตัวเดียวกับที่คนพิมพ์เอง จึงต้องหาจาก PATH
-        subprocess.run(  # noqa: S603
-            [  # noqa: S607
+        subprocess.run(  # noqa: S603 - trusted executable and input
+            [  # noqa: S607 - executable is in PATH
                 "pybabel",
                 "extract",
                 "-F",

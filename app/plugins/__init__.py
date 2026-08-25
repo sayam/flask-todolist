@@ -821,7 +821,7 @@ def active_profile() -> str | None:
 
 
 @contextlib.contextmanager
-def using_profile(name: str | None):  # type: ignore[no-untyped-def]
+def using_profile(name: str | None):  # type: ignore[no-untyped-def] - intentionally suppressed
     """ขอบเขตที่การอ่าน config ของ plugin เป็นของ profile นี้ — reset เสมอแม้ raise"""
     token = _active_profile.set(name)
     try:

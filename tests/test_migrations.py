@@ -86,7 +86,7 @@ def test_upgrade_actually_stamps_the_version(migrated):
     """ด่านที่จับบั๊ก rollback เงียบ — ตารางเวอร์ชันว่าง = migration ไม่ได้ commit"""
     with sqlite3.connect(migrated) as conn:
         # S608: VERSION_TABLE เป็นค่าคงที่ในไฟล์นี้ ไม่ได้มาจาก input ภายนอก
-        stamped = conn.execute(f"SELECT version_num FROM {VERSION_TABLE}").fetchall()  # noqa: S608
+        stamped = conn.execute(f"SELECT version_num FROM {VERSION_TABLE}").fetchall()  # noqa: S608 - documented suppression
     assert len(stamped) == 1, f"{VERSION_TABLE} ต้องมีเวอร์ชันหัวปัจจุบันหนึ่งแถว ได้ {stamped}"
 
 
@@ -192,13 +192,13 @@ MID_CHAIN = "18dccb13a980"
 def _version_of(db_path):
     with sqlite3.connect(db_path) as conn:
         # S608 ปลอดภัยตรงนี้ — VERSION_TABLE เป็นค่าคงที่ในไฟล์นี้ ไม่ได้มาจากภายนอก
-        return conn.execute(f"SELECT version_num FROM {VERSION_TABLE}").fetchone()[0]  # noqa: S608
+        return conn.execute(f"SELECT version_num FROM {VERSION_TABLE}").fetchone()[0]  # noqa: S608 - documented suppression
 
 
 def _stamp(db_path, revision):
     """ตั้งเวอร์ชันที่ฐานข้อมูลอ้าง เพื่อจำลองฐานที่ค้างอยู่ที่จุดต่าง ๆ ของสายเดิม"""
     with sqlite3.connect(db_path) as conn:
-        conn.execute(f"UPDATE {VERSION_TABLE} SET version_num = ?", (revision,))  # noqa: S608
+        conn.execute(f"UPDATE {VERSION_TABLE} SET version_num = ?", (revision,))  # noqa: S608 - documented suppression
         conn.commit()
 
 

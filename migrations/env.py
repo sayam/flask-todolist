@@ -61,7 +61,7 @@ def get_metadata():
     return target_db.metadata
 
 
-def include_object(object_, name, type_, reflected, compare_to):  # noqa: ARG001
+def include_object(object_, name, type_, reflected, compare_to):  # noqa: ARG001 - documented suppression
     """ตารางของ plugin ไม่อยู่ในสาย migration ของ core (Phase 4 — ADR 0023)
 
     ถ้าไม่กรองออก: วาง plugin ลงไปแล้ว `flask db migrate` ตัวถัดไปของ core จะมี

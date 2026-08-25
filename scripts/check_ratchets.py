@@ -60,7 +60,7 @@ import subprocess
 import sys
 import tomllib
 
-import yaml  # type: ignore[import-untyped]
+import yaml  # type: ignore[import-untyped] - library lacks type stubs
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 PYPROJECT = ROOT / "pyproject.toml"
@@ -174,7 +174,7 @@ def declared() -> dict[str, float]:
 # parser ตัวที่สองที่นี่ จะ drift ทันทีที่มีคนแก้รูปตารางฝั่งเดียว
 # (เจอกับตัวเองระหว่างเขียน: ตัวนับที่เขียนใหม่ได้ 24 ขณะที่ตัวจริงได้ 23)
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-import whats_pending  # noqa: E402
+import whats_pending  # noqa: E402 - import order required here
 
 # แถวของทะเบียนความเสี่ยง — รูปเดียวกับที่ `tests/test_risk_assessment.py` ใช้
 RISK_ROW = re.compile(
@@ -291,7 +291,7 @@ def enforced_prohibitions() -> int:
         if isinstance(node, ast.Assign) and any(
             isinstance(t, ast.Name) and t.id == "RULES" for t in node.targets
         ):
-            return len(node.value.elts)  # type: ignore[attr-defined]
+            return len(node.value.elts)  # type: ignore[attr-defined] - intentionally suppressed
     raise RuntimeError("หาทะเบียน RULES ใน tests/test_declared_prohibitions.py ไม่เจอ")
 
 

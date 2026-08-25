@@ -145,7 +145,7 @@ def _fetch(url: str, data: bytes | None = None) -> dict[str, Any]:
     try:
         # urllib ตรวจใบรับรองให้เองตั้งแต่ Python 3.6 — **การยืนยันตัวตนของ
         # server ตรงนี้คือสิ่งที่มาแทนการตรวจลายเซ็นของ ID token**
-        with urllib.request.urlopen(request, timeout=HTTP_TIMEOUT_SECONDS) as response:  # noqa: S310
+        with urllib.request.urlopen(request, timeout=HTTP_TIMEOUT_SECONDS) as response:  # noqa: S310 - documented suppression
             return dict(json.loads(response.read()))
     except (urllib.error.URLError, TimeoutError, ValueError) as error:
         # **ไม่เอาข้อความของ IdP มาแสดงต่อผู้ใช้** มันอาจมีรายละเอียดภายใน

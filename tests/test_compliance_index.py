@@ -9,7 +9,7 @@ import pathlib
 import re
 
 import pytest
-import yaml  # type: ignore[import-untyped]
+import yaml  # type: ignore[import-untyped] - library lacks type stubs
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 DOC = ROOT / "docs" / "COMPLIANCE.md"
