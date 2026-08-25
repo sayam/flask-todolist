@@ -20,6 +20,11 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Added
 
+- **Extraction stage 1 landed in `verifiable-gates`** (not in this repository):
+  a package skeleton, hash-pinned CI tools, and the gate-registry schema every
+  later stage reads — mypy `strict` and coverage at 100% from the first commit,
+  which is possible there because that repository started empty.
+  Nothing has moved out of this repository yet; stage 2 is the first that does.
 - **Extraction census for `verifiable-gates` (stage 0).** `extraction.yaml`
   decides every file in scope — `scripts/`, `overlays/`, `skill/`,
   `docs/comparison/`, the root governance files, and every test that mentions
