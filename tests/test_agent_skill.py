@@ -10,6 +10,7 @@ import re
 import pytest
 import yaml  # type: ignore[import-untyped]
 
+from scripts import build_agent_skill
 from scripts.build_agent_skill import MANIFEST, SKILL_DIR, targets
 from scripts.build_skill import render
 
@@ -70,3 +71,33 @@ def test_every_manifest_checker_ships(fresh):
         f"checker ไม่ตรง manifest — ขาด: {sorted(expected - shipped)} · "
         f"เกิน: {sorted(shipped - expected)}"
     )
+
+
+# ---------------- ตัวสั่งงาน: เขียนลงจริงและเก็บของค้าง (ขั้น 2e)
+#
+# `targets()` ถูกเทสต์ไว้แล้ว แต่ `main()` ไม่เคยถูกเรียก — และหน้าที่ที่มีแต่
+# `main()` ทำคือ **ลบไฟล์ที่ไม่อยู่ในเป้าทิ้ง** ซึ่งเป็นสิ่งเดียวที่กันไม่ให้
+# แพ็กเกจสะสมของค้างจากรุ่นก่อน · ถ้ามันพัง `targets()` ยังเขียวสนิท
+
+
+def test_main_writes_the_package_and_sweeps_what_is_no_longer_a_target(monkeypatch, tmp_path):
+    monkeypatch.setattr(build_agent_skill, "SKILL_DIR", tmp_path)
+    stale = tmp_path / "scripts" / "scan_gone.py"
+    stale.parent.mkdir(parents=True)
+    stale.write_text("ของค้างจากรุ่นก่อน\n", encoding="utf-8")
+
+    assert build_agent_skill.main() == 0
+
+    fresh = build_agent_skill.targets()
+    for rel in fresh:
+        assert (tmp_path / rel).is_file(), f"ไม่ได้เขียน {rel}"
+    assert not stale.exists(), "ของค้างไม่ถูกเก็บกวาด — แพ็กเกจจะสะสมไฟล์ผีไปเรื่อย ๆ"
+
+
+def test_main_reports_nothing_changed_on_a_second_run(monkeypatch, tmp_path, capsys):
+    monkeypatch.setattr(build_agent_skill, "SKILL_DIR", tmp_path)
+    build_agent_skill.main()
+    capsys.readouterr()
+
+    assert build_agent_skill.main() == 0
+    assert "ไม่มีอะไรเปลี่ยน" in capsys.readouterr().out
