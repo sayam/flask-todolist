@@ -1676,7 +1676,6 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          submodules: true
           # ตัวติดตั้งอยู่ใน submodule แล้ว (ADR 0077) — ไม่ดึงมาก็ไม่มีอะไรให้รัน
           submodules: true
       - name: ติดตั้งลง repo เปล่า — ด่านต้องครบ รันได้ และไม่พังบนความว่าง
