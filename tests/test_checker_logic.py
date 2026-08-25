@@ -2389,3 +2389,48 @@ def test_the_format_git_gets_matches_the_separators_the_parser_splits_on():
         f"รูปที่ส่งให้ git ลงท้ายด้วย {lint_commits.LOG_FORMAT[-4:]!r} แต่ตัวอ่านตัดด้วย {record!r}"
     )
     assert lint_commits.LOG_FORMAT.count(field) == 2, "ตัวคั่นช่องต้องมีสองที่ (sha|หัว|เนื้อ)"
+
+
+# ------------- คีย์ซ้ำใน workflow: Python ยอมรับ GitHub ปฏิเสธ (ขั้น 2e · ADR 0077)
+
+
+def _duplicate_keys(text: str) -> list[tuple[str, int]]:
+    """คีย์ที่ปรากฏสองครั้งใน mapping เดียวกัน — `yaml.safe_load` เอาตัวหลังเงียบ ๆ"""
+
+    class Loud(yaml.SafeLoader):
+        pass
+
+    found: list[tuple[str, int]] = []
+
+    def mapping(loader, node, deep=False):  # ลายเซ็นที่ pyyaml เรียก
+        seen = set()
+        for key_node, _ in node.value:
+            key = loader.construct_object(key_node, deep=deep)
+            if key in seen:
+                found.append((str(key), key_node.start_mark.line + 1))
+            seen.add(key)
+        return yaml.SafeLoader.construct_mapping(loader, node, deep)
+
+    Loud.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, mapping)
+    yaml.load(text, Loud)  # noqa: S506 — Loud สืบทอด SafeLoader ทั้งดุ้น
+    return found
+
+
+@pytest.mark.parametrize("path", sorted(CI_WORKFLOW.parent.glob("*.yml")), ids=lambda p: p.name)
+def test_no_workflow_has_a_key_written_twice(path):
+    """**workflow ที่ GitHub อ่านไม่ได้ ให้ผลเป็น "ไม่มี check เลย" ไม่ใช่ check สีแดง**
+
+    `yaml.safe_load` รับคีย์ซ้ำแล้วเอาตัวหลัง — เทสต์ทุกตัวใน repo นี้ที่อ่าน
+    workflow จึงเขียวสนิทกับไฟล์ที่ GitHub ปฏิเสธทั้งใบ · และเมื่อมันถูกปฏิเสธ
+    run ที่ได้มี 0 job แล้วหน้า PR ขึ้นว่า "no checks reported" ซึ่งอ่านเหมือน
+    ยังไม่รัน ไม่ใช่เหมือนพัง
+
+    เกิดจริงตอนขั้น 2e: ตัวแปลงที่เติม `submodules: true` ให้ทุก checkout ไปเติม
+    ซ้ำในบล็อก `with:` ที่มีคีย์นั้นอยู่แล้ว · การตรวจด้วย `yaml.safe_load` ก่อน
+    push บอกว่าผ่าน แล้ว push ไปได้เงียบ ๆ
+    """
+    duplicates = _duplicate_keys(path.read_text(encoding="utf-8"))
+    assert not duplicates, (
+        f"{path.name} มีคีย์ที่เขียนซ้ำในบล็อกเดียวกัน: {duplicates}\n"
+        "GitHub จะปฏิเสธทั้งไฟล์ แล้ว PR จะขึ้นว่าไม่มี check แทนที่จะแดง"
+    )

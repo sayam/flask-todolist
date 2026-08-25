@@ -20,6 +20,12 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ### Added
 
+- **Workflows are now checked for a key written twice.** `yaml.safe_load` accepts
+  a duplicate key and keeps the last one, so every test here that reads a workflow
+  stayed green on a file GitHub rejects outright — and a rejected workflow produces
+  a run with **zero jobs**, which a pull request shows as "no checks reported"
+  rather than as a failure. Found the hard way while adding `submodules: true` to
+  every checkout. Added to an existing gated test file rather than as a new gate.
 - **This repository now consumes `verifiable-gates` instead of carrying a copy of
   it** ([ADR 0077](docs/adr/0077-consume-verifiable-gates-as-a-submodule.md)).
   `vendor/verifiable-gates` is a submodule pinned by SHA and watched by Dependabot;
