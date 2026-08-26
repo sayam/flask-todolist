@@ -52,10 +52,11 @@ import urllib.request
 # pyyaml มากับ dev tools และไม่มี stub — เหตุผลเดียวกับ build_gates_crosswalk.py
 import yaml  # type: ignore[import-untyped]
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-import workflows as gha
-
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "vendor" / "verifiable-gates" / "src"))
+
+from verifiable_gates import check_names, posture  # noqa: E402 — ต้องต่อ path ให้ vendor ก่อน import
+from verifiable_gates import workflows as gha  # noqa: E402 — ตัวอ่าน workflow ตัวเดียวของโปรเจกต์
 
 # **เพดานเวลาของคำสั่งที่เรายิงออกไป** (audit รอบ 11 · ADR 0067) — `subprocess.run`
 # ที่ไม่มี `timeout=` รอตลอดกาล และเครื่องมือพวกนี้รันอยู่ใน job ของ CI ผลคือ
@@ -89,11 +90,11 @@ EXEMPT = {
 }
 
 # ธงที่ ADR 0053 ประกาศ — ค่าที่ต้องเป็น ไม่ใช่ค่าที่บังเอิญเป็น
-EXPECTED_FLAGS = {
-    "enforce_admins": True,
-    "required_linear_history": True,
-    "allow_force_pushes": False,
-    "allow_deletions": False,
+BRANCH_FLAGS = {
+    "enforce_admins": posture.Setting(want=True, why="ADR 0053 — ผู้ดูแลไม่ได้รับการยกเว้น"),
+    "required_linear_history": posture.Setting(want=True, why="ADR 0053 — ประวัติต้องเป็นเส้นเดียว"),
+    "allow_force_pushes": posture.Setting(want=False, why="ADR 0053 — เขียนทับประวัติของ main ไม่ได้"),
+    "allow_deletions": posture.Setting(want=False, why="ADR 0053 — ลบ main ไม่ได้"),
 }
 
 MATRIX_REF = re.compile(r"\$\{\{\s*matrix\.([a-zA-Z0-9_.]+)\s*\}\}")
@@ -149,135 +150,58 @@ def _gh_pages(path: str, token_env: str | None = None) -> list[dict]:
         page += 1
 
 
-def _resolve(name: str, combo: object) -> str:
-    """แทน `${{ matrix.x.y }}` ในชื่อ job ด้วยค่าจริงของ matrix แถวนั้น"""
-
-    def value(match: re.Match) -> str:
-        node = combo
-        for part in match.group(1).split(".")[1:] if "." in match.group(1) else []:
-            node = node[part] if isinstance(node, dict) else node
-        if isinstance(node, dict):
-            node = node.get(match.group(1).split(".")[-1], node)
-        return str(node)
-
-    return MATRIX_REF.sub(value, name)
+# ตัวแปลง workflow → ชื่อ check อยู่ที่ verifiable-gates แล้ว (ADR 0077 · ขั้น 3e)
+# — สามคำถามที่ต่างกัน: ชื่อที่ขึ้นบน PR · ทุกชื่อที่ repo ผลิตได้ · จำนวนที่เอกสารโฆษณา
+pull_request_checks = check_names.pull_request_checks
+all_checks = check_names.all_checks
+total_checks = check_names.total_checks
 
 
-def pull_request_checks(workflows: dict[str, dict]) -> set[str]:
-    """ชื่อ check ที่ *จะ* ขึ้นบน pull request — matrix นับตามจำนวนแถวเหมือนที่ GitHub ทำ"""
-    names: set[str] = set()
-    for workflow in workflows.values():
-        if not gha.runs_on(workflow, "pull_request"):
-            continue
-        for key, job in gha.jobs(workflow).items():
-            base = job.get("name") or key
-            strategy = job.get("strategy") or {}
-            matrix = strategy.get("matrix") if isinstance(strategy, dict) else None
-            if not matrix:
-                names.add(base)
-                continue
-            names.update(
-                _resolve(base, combo) if _resolve(base, combo) != base else f"{base} ({combo})"
-                for combos in matrix.values()
-                for combo in combos
-            )
-    return names
+# ถ้อยคำของที่นี่ — กลไกอยู่ที่ vg ส่วนคนที่อ่าน CI ของ repo นี้อ่านไทย
+MESSAGES = {
+    "missing_check": "job ที่รันบน PR แต่ไม่ได้ถูกบังคับ: {names}",
+    "ghost_check": "required check ที่ไม่มี job ไหนสร้างได้ (PR จะรอตลอดกาล): {names}",
+    "undeclared_check": (
+        "check ที่ไม่ได้ถูกบังคับและไม่ได้ประกาศไว้: {names} — บังคับมัน หรือประกาศใน "
+        "EXEMPT พร้อมเหตุผล และให้ gate ของมันมี watched_by (ADR 0066: ด่านที่ไม่บล็อกใคร"
+        "ไม่ผิด แต่ต้องบอกได้ว่าใครเห็นและภายในกี่วัน)"
+    ),
+    "stale_exemption": "EXEMPT ยกเว้น {name!r} ไว้ แต่ไม่มี job ชื่อนี้แล้ว — ถอดออก",
+    "wrong_value": "{name} = {said!r} แต่ทะเบียนของโปรเจกต์ประกาศไว้ว่า {want!r} ({why})",
+    "unreadable": "{name} = อ่านไม่ได้ ({why})",
+    "unjudged_alert": (
+        "alert {name} ({state}) ยังไม่ถูกตัดสิน — แก้ หรือ dismiss พร้อมเหตุผล หรือ"
+        "ลงทะเบียนใน .github/accepted-code-scanning-alerts.txt"
+    ),
+    "stale_alert": (
+        "ทะเบียนยกเว้น alert {name} ไว้ แต่ไม่มี alert ชื่อนี้แล้ว — ถอดบรรทัดออก "
+        "(การยกเว้นเงียบเสมอเมื่อของที่ยกเว้นหายไป)"
+    ),
+    "unreadable_alerts": "อ่าน alert ของ code scanning ไม่ได้ — ต้องมี `security-events: read`",
+}
 
 
-def total_checks(workflows: dict[str, dict]) -> int:
-    """จำนวน check ทั้งหมดที่ repo นี้ผลิตได้ — ใช้เทียบกับเลขที่เอกสารโฆษณา"""
-    total = 0
-    for workflow in workflows.values():
-        for job in workflow.get("jobs", {}).values():
-            strategy = job.get("strategy") or {}
-            matrix = strategy.get("matrix") if isinstance(strategy, dict) else None
-            total += len(next(iter(matrix.values()))) if matrix else 1
-    return total
+def compare(state: dict, produced: int, claim: tuple[int, int] | None) -> list[str]:
+    """เทียบท่าทีจริงกับสิ่งที่ประกาศไว้ — คืนรายการปัญหา (ว่าง = ตรงกันหมด)
 
-
-def all_checks(workflows: dict[str, dict]) -> set[str]:
-    """ชื่อ check **ทุกตัวที่ repo นี้ผลิตได้** ไม่ว่าจะรันบนทริกเกอร์ไหน"""
-    names: set[str] = set()
-    for workflow in workflows.values():
-        for key, job in workflow.get("jobs", {}).items():
-            base = job.get("name") or key
-            strategy = job.get("strategy") or {}
-            matrix = strategy.get("matrix") if isinstance(strategy, dict) else None
-            if not matrix:
-                names.add(base)
-                continue
-            names.update(
-                _resolve(base, combo) if _resolve(base, combo) != base else f"{base} ({combo})"
-                for combos in matrix.values()
-                for combo in combos
-            )
-    return names
-
-
-def unrequired_problems(produced: set[str], required: set[str]) -> list[str]:
-    """check ที่ไม่ถูกบังคับ ต้องถูกประกาศไว้ — และรายการที่ประกาศต้องยังมีของจริง
-
-    ทิศนี้คือตัวที่ทำให้ `EXEMPT` ถูกอ่านจริง (ADR 0066) · ก่อนหน้านี้มันถูกใช้
-    กรองเซต "job ที่รันบน PR แต่ไม่ถูกบังคับ" ซึ่งสมาชิกของมันไม่มีทางอยู่ในนั้น
-    ผลคือทะเบียนที่อ่านแล้วเข้าใจว่ามีการบังคับอยู่ แต่ไม่เคยถูกปรึกษาสักครั้ง
+    เลขที่เอกสารโฆษณา (`claim`) เป็นของที่นี่ล้วน ๆ จึงยังตัดสินที่นี่ — ส่วนที่เหลือ
+    เป็นกลไกที่ `verifiable_gates.posture` ถืออยู่แล้ว
     """
-    bare = {name.split(" (")[0] for name in produced - required}
-    undeclared = sorted(bare - set(EXEMPT))
-    problems = []
-    if undeclared:
-        problems.append(
-            f"check ที่ไม่ได้ถูกบังคับและไม่ได้ประกาศไว้: {undeclared} — "
-            "บังคับมัน หรือประกาศใน EXEMPT พร้อมเหตุผล และให้ gate ของมันมี watched_by "
-            "(ADR 0066: ด่านที่ไม่บล็อกใครไม่ผิด แต่ต้องบอกได้ว่าใครเห็นและภายในกี่วัน)"
-        )
-
-    everything = {name.split(" (")[0] for name in produced}
-    problems += [
-        f"EXEMPT ยกเว้น {job!r} ไว้ แต่ไม่มี job ชื่อนี้แล้ว — ถอดออก"
-        for job in sorted(set(EXEMPT) - everything)
-    ]
-    return problems
-
-
-def compare(
-    state: dict, expected: set[str], produced: int, claim: tuple[int, int] | None
-) -> list[str]:
-    """เทียบท่าทีจริงกับสิ่งที่ประกาศไว้ — คืนรายการปัญหา (ว่าง = ตรงกันหมด)"""
-    problems = []
+    problems = posture.setting_problems(state, DECLARED_SETTINGS, MESSAGES)
     required = set(state.get("required_checks") or [])
-
-    missing = sorted(name for name in expected - required if name.split(" (")[0] not in EXEMPT)
-    if missing:
-        problems.append(f"job ที่รันบน PR แต่ไม่ได้ถูกบังคับ: {missing}")
-
-    ghosts = sorted(required - expected)
-    if ghosts:
-        problems.append(f"required check ที่ไม่มี job ไหนสร้างได้ (PR จะรอตลอดกาล): {ghosts}")
-
-    problems.extend(
-        f"{flag} = {state.get(flag)!r} แต่ ADR 0053 ประกาศไว้ว่า {want!r}"
-        for flag, want in EXPECTED_FLAGS.items()
-        if state.get(flag) != want
-    )
-    # **เทียบเฉพาะที่อ่านได้** — `None` แปลว่าสิทธิ์ไม่พอ ไม่ใช่ว่าปิดอยู่
-    problems.extend(
-        f"{flag} = {state.get(flag)!r} แต่ทะเบียน merge setting ประกาศไว้ว่า {want!r}"
-        for flag, (want, _why) in MERGE_SETTINGS.items()
-        if state.get(flag) is not None and state.get(flag) != want
-    )
-    # **เทียบเฉพาะที่อ่านได้** เหมือนกลุ่มบน — `None` = สิทธิ์ไม่พอ ไม่ใช่ปิดอยู่
-    problems.extend(
-        f"{flag} = {state.get(flag)!r} แต่ทะเบียนท่าทีของ Actions ประกาศไว้ว่า {want!r} ({why})"
-        for flag, (want, why) in ACTIONS_FLAGS.items()
-        if state.get(flag) is not None and state.get(flag) != want
-    )
-
     if claim and claim != (len(required), produced):
         problems.append(
             f"เอกสารโฆษณาว่า required {claim[0]} จาก {claim[1]} "
             f"แต่ของจริงคือ {len(required)} จาก {produced}"
         )
     return problems
+
+
+def check_problems(state: dict, on_pull_requests: set[str], produced: set[str]) -> list[str]:
+    """สามทิศของ required check — ทิศที่สามคือตัวที่ทำให้ `EXEMPT` ถูกอ่านจริง (ADR 0066)"""
+    return posture.check_problems(
+        set(state.get("required_checks") or []), on_pull_requests, produced, EXEMPT, MESSAGES
+    )
 
 
 # ฟิลด์ที่ GitHub **ไม่คืนให้ token ที่มีสิทธิ์อ่านอย่างเดียว** — เอกสารของ
@@ -303,23 +227,31 @@ def compare(
 # `use_squash_pr_title_as_default` (มีผลเฉพาะเมื่อเปิด squash ซึ่งปิดแล้ว) ·
 # `allow_update_branch` (ไม่มีกติกาข้อไหนพึ่งมัน)
 MERGE_SETTINGS = {
-    "allow_auto_merge": (True, "วิธี merge มาตรฐานของทุก PR (CONTRIBUTING ข้อ 7)"),
-    "delete_branch_on_merge": (
-        True,
-        (
+    "allow_auto_merge": posture.Setting(
+        want=True, why="วิธี merge มาตรฐานของทุก PR (CONTRIBUTING ข้อ 7)", readable=False
+    ),
+    "delete_branch_on_merge": posture.Setting(
+        want=True,
+        why=(
             "ปิดแล้ว branch ที่ merge ไปกองค้าง — และ `git branch --merged` มองไม่เห็น "
             "เพราะ rebase เขียน commit ใหม่ ทำให้ไม่มีใครสังเกตจนกองถึง 64 ใบ"
         ),
+        readable=False,
     ),
-    "allow_merge_commit": (False, "ประวัติต้องเป็นเส้นเดียว (คู่กับ required_linear_history)"),
-    "allow_rebase_merge": (True, "ทางเดียวที่ ADR 0053 กับ CONTRIBUTING ข้อ 7 รับ"),
-    "allow_squash_merge": (
-        False,
-        (
+    "allow_merge_commit": posture.Setting(
+        want=False, why="ประวัติต้องเป็นเส้นเดียว (คู่กับ required_linear_history)", readable=False
+    ),
+    "allow_rebase_merge": posture.Setting(
+        want=True, why="ทางเดียวที่ ADR 0053 กับ CONTRIBUTING ข้อ 7 รับ", readable=False
+    ),
+    "allow_squash_merge": posture.Setting(
+        want=False,
+        why=(
             "CONTRIBUTING ข้อ 7 ห้ามไว้ตรง ๆ — squash ต่อ ` (#N)` ท้าย subject แล้วดัน "
             "เกิน 72 ตัว และ commit-lint ที่จะจับได้รันหลังของลง main ไปแล้ว · "
             "`required_linear_history` ไม่กันให้เพราะ squash ก็ให้ประวัติเส้นเดียว"
         ),
+        readable=False,
     ),
 }
 
@@ -329,11 +261,21 @@ MERGE_SETTINGS = {
 # `permissions:` ของตัวเอง — **ทั้งคู่อยู่ใน endpoint ที่ตัวตรวจนี้เรียกอยู่แล้ว
 # ตั้งแต่วันแรก แต่ไม่เคยถูกอ่าน** (audit รอบ 24: อ่าน 12 จาก 75 ฟิลด์ที่ถืออยู่
 # ในมือ — ขอบเขตของด่านสืบทอดคำถามที่สร้างมันขึ้นมา ไม่ใช่สิ่งที่มันมองเห็นได้)
-ACTIONS_FLAGS: dict[str, tuple[object, str]] = {
-    "sha_pinning_required": (True, "ให้แพลตฟอร์มบังคับสิ่งที่ gate actions-sha-pinned บังคับอยู่แล้ว"),
-    "default_workflow_permissions": ("read", "GITHUB_TOKEN เริ่มที่อ่านอย่างเดียว · job ที่ต้องเขียนขอเอง"),
-    "can_approve_pull_request_reviews": (False, "workflow อนุมัติ PR แทนคนไม่ได้ — ทางเข้า main ที่ไม่มีคนดู"),
+ACTIONS_FLAGS = {
+    "sha_pinning_required": posture.Setting(
+        want=True, why="ให้แพลตฟอร์มบังคับสิ่งที่ gate actions-sha-pinned บังคับอยู่แล้ว"
+    ),
+    "default_workflow_permissions": posture.Setting(
+        want="read", why="GITHUB_TOKEN เริ่มที่อ่านอย่างเดียว · job ที่ต้องเขียนขอเอง"
+    ),
+    "can_approve_pull_request_reviews": posture.Setting(
+        want=False, why="workflow อนุมัติ PR แทนคนไม่ได้ — ทางเข้า main ที่ไม่มีคนดู"
+    ),
 }
+
+# **ทะเบียนเดียวที่ตัวตัดสินอ่าน** — สามกองข้างบนต่างกันแค่ที่มาของค่า ไม่ใช่ที่วิธี
+# ตัดสิน · `readable=False` คือคำตอบที่สาม: "อ่านไม่ได้" ไม่ใช่ "ปิดอยู่"
+DECLARED_SETTINGS = {**BRANCH_FLAGS, **MERGE_SETTINGS, **ACTIONS_FLAGS}
 
 
 def judged_fields() -> set[str]:
@@ -345,16 +287,8 @@ def judged_fields() -> set[str]:
         "required_checks",
         "alerts",
         "description",
-        *EXPECTED_FLAGS,
-        *MERGE_SETTINGS,
-        *ACTIONS_FLAGS,
+        *DECLARED_SETTINGS,
     }
-
-
-UNREADABLE_AT_LEAST_PRIVILEGE = {
-    flag: f"ต้องการ contents:write จึงจะเห็น — ควรเป็น {want!r} ({why})"
-    for flag, (want, why) in MERGE_SETTINGS.items()
-}
 
 
 def accepted_alerts() -> dict[str, str]:
@@ -381,41 +315,27 @@ def alert_problems(alerts: list[dict] | None, accepted: dict[str, str]) -> list[
     ถูก dismiss พร้อมเหตุผลที่ไม่ว่าง — สิ่งที่ห้ามคือใบที่ไม่มีทั้งสองอย่าง
     เพราะนั่นคือ alert ที่นั่งอยู่บนหน้าที่คนนอกอ่านก่อนเพื่อน โดยไม่มีใครเคยอ่าน
     """
-    if alerts is None:
-        return ["อ่าน alert ของ code scanning ไม่ได้ — ต้องมี `security-events: read`"]
-
-    problems = []
-    seen = set()
-    # `fixed` = หายไปแล้วเพราะโค้ดถูกแก้ ไม่ใช่เพราะมีคนตัดสิน — ไม่ต้องมีทะเบียน
-    # และ**ต้องไม่ถูกนับเป็น "ยังมีอยู่"** ไม่งั้นบรรทัดที่ควรถอดจะอยู่ต่อได้ตลอด
-    for alert in live_alerts(alerts):
-        name = f"{(alert.get('tool') or {}).get('name')}/{(alert.get('rule') or {}).get('id')}"
-        seen.add(name)
-        if name in accepted:
-            continue
-        if alert.get("state") == "dismissed" and (alert.get("dismissed_comment") or "").strip():
-            continue
-        problems.append(
-            f"alert {name} (#{alert.get('number')} · {alert.get('state')}) ยังไม่ถูกตัดสิน — "
-            "แก้ หรือ dismiss พร้อมเหตุผล หรือลงทะเบียนใน "
-            ".github/accepted-code-scanning-alerts.txt"
-        )
-
-    problems.extend(
-        f"ทะเบียนยกเว้น alert {name} ไว้ แต่ไม่มี alert ชื่อนี้แล้ว — ถอดบรรทัดออก "
-        "(การยกเว้นเงียบเสมอเมื่อของที่ยกเว้นหายไป)"
-        for name in sorted(set(accepted) - seen)
-    )
-    return problems
+    return posture.alert_problems(alerts, accepted, MESSAGES)
 
 
 def unreadable(state: dict) -> list[str]:
     """ฟิลด์ที่หายไปจากคำตอบ (None) เพราะสิทธิ์ ไม่ใช่เพราะถูกปิด"""
-    return [
-        f"{flag} = อ่านไม่ได้ ({why})"
-        for flag, why in UNREADABLE_AT_LEAST_PRIVILEGE.items()
-        if state.get(flag) is None
-    ]
+    # **ส่งทะเบียนทั้งใบ ไม่ต้องกรองมาก่อน** — `posture.unreadable` คัดเฉพาะตัวที่
+    # ประกาศว่าอ่านไม่ได้อยู่แล้ว · การกรองซ้ำที่นี่เป็นกิ่งที่ไม่มีอะไรสังเกตได้
+    # (ปลูกความผิดแล้วไม่มีเทสต์ตัวไหนแดง) และกิ่งแบบนั้นจะถูกเข้าใจว่ามีหน้าที่
+    return posture.unreadable(
+        state,
+        DECLARED_SETTINGS,
+        {
+            **MESSAGES,
+            # **ต้องบอกค่าที่ควรเป็นด้วย** — รายงานที่บอกแค่ว่าอ่านไม่ได้ ทิ้งคนอ่านไว้
+            # โดยไม่มีอะไรให้ทำต่อ · ค่าที่ประกาศไว้ทำให้ setting ที่เครื่องพิสูจน์ไม่ได้
+            # กลับมาเป็นของที่คนตรวจด้วยมือได้
+            "unreadable": (
+                "{name} = อ่านไม่ได้ (ต้องการ contents:write จึงจะเห็น — ควรเป็น {want!r} · {why})"
+            ),
+        },
+    )
 
 
 def claimed_counts() -> tuple[int, int] | None:
@@ -570,10 +490,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--input", help="ไฟล์ JSON ของท่าที (ข้ามการต่อเน็ต)")
     args = parser.parse_args(argv)
 
-    workflows = {
-        path.name: yaml.safe_load(path.read_text(encoding="utf-8"))
-        for path in sorted(WORKFLOWS.glob("*.y*ml"))
-    }
+    # **ตัวอ่าน workflow ตัวเดียวของโปรเจกต์** (ADR 0039) — ที่นี่เคยมีสำเนาที่สอง
+    workflows = gha.all_workflows(WORKFLOWS)
 
     try:
         state = (
@@ -594,10 +512,8 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 2
 
-    problems = compare(
-        state, pull_request_checks(workflows), total_checks(workflows), claimed_counts()
-    )
-    problems += unrequired_problems(all_checks(workflows), set(state.get("required_checks") or []))
+    problems = compare(state, total_checks(workflows), claimed_counts())
+    problems += check_problems(state, pull_request_checks(workflows), all_checks(workflows))
     problems += alert_problems(state.get("alerts"), accepted_alerts())
     problems += description_problems(
         state.get("description"), len(state.get("required_checks") or [])
