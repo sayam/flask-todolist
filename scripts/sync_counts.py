@@ -1,5 +1,9 @@
 """เลขที่เอกสารโฆษณาไว้ ต้องซิงก์ได้ด้วยคำสั่งเดียว — audit รอบ 25 ข้อ 3
 
+**กลไกอยู่ที่ verifiable-gates แล้ว** (ADR 0077 · ขั้น 3d) — `verifiable_gates.advertised`
+เป็นคนอ่านและคนแก้ · **ที่นี่เหลือทะเบียนว่าเลขไหนถูกโฆษณาไว้ที่ไหน** กับตัวนับ
+ที่นับจากแหล่งจริงของ repo นี้
+
 ทุกเลขที่ประกาศออกไปมีเทสต์อ่านคู่กับของจริงแล้ว (นั่นคือของดีและต้องคงไว้) แต่
 **การทำให้มันตรงยังเป็นงานมือทุกครั้ง** · วัดด้วยการทดลองจริงในชิ้นงานแยกเมื่อ
 2026-08-22: เพิ่ม ADR หนึ่งใบ ทำให้เทสต์แดงสามไฟล์ที่ต้องไล่แก้ทีละที่
@@ -42,59 +46,69 @@ import sys
 
 import yaml  # type: ignore[import-untyped]  # pyyaml มากับ dev tools และไม่มี stub
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-import gh
-
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "vendor" / "verifiable-gates" / "src"))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+
+import gh  # noqa: E402 — ต้องต่อ path ให้ scripts/ ก่อน import
+from verifiable_gates import advertised  # noqa: E402 — ต้องต่อ path ให้ vendor ก่อน import
+
 ADR_DIR = ROOT / "docs" / "adr"
 GATES = ROOT / "gates.yaml"
 AUDIT_LOG = ROOT / "docs" / "AUDIT-LOG.md"
 AUDIT_ROW = re.compile(r"^\|\s*(\d+)\s*\|", re.MULTILINE)
 
-# (ไฟล์ที่สคริปต์นี้เขียน, รูปแบบที่ล้อมเลขไว้) — กลุ่มที่ 1 คือเลข · รายการนี้มาจากการวัดว่าอะไร
-# *แดงจริง* ตอนเพิ่มของหนึ่งชิ้น ไม่ใช่จากการเดาว่าน่าจะมีที่ไหนบ้าง
+Place = advertised.Place
+
+# **ถ้อยคำเป็นของ repo นี้ ตัว sentinel เป็นของห้องสมุด** — `advertised` รายงาน
+# ค่าที่หาไม่เจอด้วยเครื่องหมายภาษาอังกฤษของมันเอง ส่วนคนที่อ่าน CI ของที่นี่
+# อ่านไทย · การแปลจึงเกิดที่ขอบของการพิมพ์ ไม่ใช่ด้วยการส่งสตริงเข้าไปเป็น config
+MISSING = "(หาไม่เจอ)"
+
+
+def _said(value: str) -> str:
+    """ค่าที่เขียนไว้ — เครื่องหมาย "หาไม่เจอ" ถูกแปลเป็นภาษาที่คนอ่าน"""
+    return MISSING if value == advertised.MISSING else value
+
+
+# (ไฟล์ที่สคริปต์นี้เขียน, รูปแบบที่ล้อมเลขไว้) — **กลุ่มที่ 1 คือค่าที่ต้องตรง**
+# รายการนี้มาจากการวัดว่าอะไร *แดงจริง* ตอนเพิ่มของหนึ่งชิ้น ไม่ใช่จากการเดาว่า
+# น่าจะมีที่ไหนบ้าง
 TARGETS = {
     "adrs": [
-        ("README.md", r"(?<=\| )(\d+)(?= architecture decision records)"),
-        ("README.md", r"(?<=\(docs/adr/\) )(\d+)(?= ใบ)"),
-        ("CONTRIBUTING.md", r"(?<=the )(\d+)(?= records in \[`docs/adr/`\])"),
-        ("CHANGELOG.md", r"(?<=lives in the )(\d+)(?= records in)"),
+        Place("README.md", r"\| (\d+) architecture decision records"),
+        Place("README.md", r"\(docs/adr/\) (\d+) ใบ"),
+        Place("CONTRIBUTING.md", r"the (\d+) records in \[`docs/adr/`\]"),
+        Place("CHANGELOG.md", r"lives in the (\d+) records in"),
     ],
     "gates": [
-        ("docs/ROADMAP-GOVERNANCE.md", r"(?<=รวม )(\d+)(?= gate)"),
+        Place("docs/ROADMAP-GOVERNANCE.md", r"รวม (\d+) gate"),
     ],
-    # จำนวนรอบ audit เปลี่ยนทุกครั้งที่ลงทะเบียนรอบใหม่ — และสองใบแรกคือบัตร
-    # ประจำตัวที่ Zenodo อ่านไปตีพิมพ์ใต้ DOI ถาวร (ADR 0072 · audit รอบ 24)
     # จำนวนกฎ baseline ที่ส่งออกจริง — เปลี่ยนทุกครั้งที่มี gate ใหม่ที่ `portable`
     # และ `layer: baseline` · **ไม่ได้อยู่ในรายการนี้มาจนถึง audit รอบ 26** จึงต้อง
     # ไล่แก้สามที่ด้วยมือทุกครั้ง ซึ่งเป็นภาษีชนิดเดียวกับที่รอบ 25 สร้างสคริปต์นี้มาลด
     "baseline_rules": [
-        ("README.md", r"(\d+)(?= framework-agnostic baseline rules)"),
-        ("README.md", r"(?<=กฎ baseline )(\d+)(?= ข้อ)"),
-        ("docs/ROADMAP-INFRA.md", r"(?<=ปัจจุบัน )(\d+)(?=\))"),
+        Place("README.md", r"(\d+) framework-agnostic baseline rules"),
+        Place("README.md", r"กฎ baseline (\d+) ข้อ"),
+        Place("docs/ROADMAP-INFRA.md", r"ปัจจุบัน (\d+)\)"),
     ],
+    # จำนวนรอบ audit เปลี่ยนทุกครั้งที่ลงทะเบียนรอบใหม่ — และสองใบแรกคือบัตร
+    # ประจำตัวที่ Zenodo อ่านไปตีพิมพ์ใต้ DOI ถาวร (ADR 0072 · audit รอบ 24)
     "audits": [
-        ("CITATION.cff", r"(\d+)(?= recorded audit rounds)"),
-        (".zenodo.json", r"(\d+)(?= recorded audit rounds)"),
-        ("docs/BEST-PRACTICES.md", r"(?<=\*\*)(\d+)(?=\*\* recorded governance audits)"),
-        ("docs/BEST-PRACTICES.md", r"(?<=audit )(\d+)(?= รอบ)"),
+        Place("CITATION.cff", r"(\d+) recorded audit rounds"),
+        Place(".zenodo.json", r"(\d+) recorded audit rounds"),
+        Place("docs/BEST-PRACTICES.md", r"\*\*(\d+)\*\* recorded governance audits"),
+        Place("docs/BEST-PRACTICES.md", r"audit (\d+) รอบ"),
+    ],
+    # **บรรทัดสัดส่วน pillar เป็นเป้าหมายธรรมดาแล้ว ไม่ใช่กรณีพิเศษ** — ค่าที่ซิงก์
+    # เป็นข้อความ ไม่ใช่ตัวเลข กิ่งที่เคยแยกไว้ในทั้ง `drift` และ `write` จึงหายไป
+    "pillar_tally": [
+        Place(
+            "docs/ROADMAP-GOVERNANCE.md",
+            r"เป็น (security \d+ · devx \d+ · manageability \d+ · performance \d+)",
+        ),
     ],
 }
-
-
-def measured() -> tuple[dict[str, int], list[dict]]:
-    """(เลขที่นับได้, ตัว gate ทั้งหมด) — นับจากทะเบียนที่เป็นแหล่งจริง ไม่ใช่จากเอกสารอีกใบ"""
-    gates = yaml.safe_load(GATES.read_text(encoding="utf-8"))["gates"]
-    counted = {
-        "adrs": len([p for p in ADR_DIR.glob("*.md") if p.name[:4].isdigit()]),
-        "gates": len(gates),
-        "baseline_rules": len(
-            [g for g in gates if g.get("portable") and g.get("layer") == "baseline"]
-        ),
-        "audits": len(AUDIT_ROW.findall(AUDIT_LOG.read_text(encoding="utf-8"))),
-    }
-    return counted, gates
-
 
 # ลำดับของ pillar ในบรรทัดที่เอกสารประกาศ — **ตายตัว** เพราะบรรทัดที่สลับลำดับได้
 # คือบรรทัดที่ diff อ่านไม่รู้เรื่อง · ชนิดที่ไม่อยู่ในลำดับนี้ต้องดัง ไม่ใช่หายไปเงียบ
@@ -113,56 +127,49 @@ def pillar_line(gates: list[dict]) -> str:
     return " · ".join(f"{name} {tally.get(name, 0)}" for name in PILLARS)
 
 
-def drift() -> list[tuple[pathlib.Path, str, str, str]]:
-    """(ไฟล์, รูปแบบ, ค่าที่เขียนไว้, ค่าที่ควรเป็น) ของทุกที่ที่ยังไม่ตรง"""
-    real, gates = measured()
-    found = []
-    for fact, places in TARGETS.items():
-        want = str(real[fact])
-        for name, pattern in places:
-            path = ROOT / name
-            body = path.read_text(encoding="utf-8")
-            said = re.search(pattern, body)
-            if said is None:
-                found.append((path, pattern, "(หาไม่เจอ)", want))
-            elif said.group(1) != want:
-                found.append((path, pattern, said.group(1), want))
-
-    roadmap = ROOT / "docs" / "ROADMAP-GOVERNANCE.md"
-    body = roadmap.read_text(encoding="utf-8")
-    want_line = pillar_line(gates)
-    said = re.search(r"เป็น (security \d+ · devx \d+ · manageability \d+ · performance \d+)", body)
-    if said is None:
-        found.append((roadmap, "pillar tally", "(หาไม่เจอ)", want_line))
-    elif said.group(1) != want_line:
-        found.append((roadmap, "pillar tally", said.group(1), want_line))
-    return found
+def measured() -> tuple[dict[str, str], list[dict]]:
+    """(ค่าที่ควรเป็น, ตัว gate ทั้งหมด) — นับจากทะเบียนที่เป็นแหล่งจริง ไม่ใช่จากเอกสารอีกใบ"""
+    gates = yaml.safe_load(GATES.read_text(encoding="utf-8"))["gates"]
+    counted = {
+        "adrs": len([p for p in ADR_DIR.glob("*.md") if p.name[:4].isdigit()]),
+        "gates": len(gates),
+        "baseline_rules": len(
+            [g for g in gates if g.get("portable") and g.get("layer") == "baseline"]
+        ),
+        "audits": len(AUDIT_ROW.findall(AUDIT_LOG.read_text(encoding="utf-8"))),
+    }
+    return {
+        **{name: str(value) for name, value in counted.items()},
+        "pillar_tally": pillar_line(gates),
+    }, gates
 
 
-def write(items: list[tuple[pathlib.Path, str, str, str]]) -> None:
+def drift() -> list[advertised.Drift]:
+    """ทุกที่ที่เลขยังไม่ตรงกับของจริง"""
+    real, _gates = measured()
+    return advertised.drift(ROOT, TARGETS, real)
+
+
+def write(items: list[advertised.Drift]) -> None:
     """แก้ทีละที่ — ไม่แตะอย่างอื่นเลย เพราะ diff ที่กว้างกว่าที่จำเป็นคือ diff ที่ไม่มีใครอ่าน"""
-    for path, pattern, _said, want in items:
-        body = path.read_text(encoding="utf-8")
-        if pattern == "pillar tally":
-            body = re.sub(
-                r"(?<=เป็น )security \d+ · devx \d+ · manageability \d+ · performance \d+",
-                want,
-                body,
-                count=1,
-            )
-        else:
-            body = re.sub(pattern, want, body, count=1)
-        path.write_text(body, encoding="utf-8")
+    advertised.write(ROOT, items)
+
+
+def current_version() -> str:
+    """รุ่นที่ `app/__init__.py` ประกาศ — ช่อง About ต้องบอกรุ่นนี้ (ADR 0072)"""
+    found = re.search(
+        r'__version__ = "([^"]+)"', (ROOT / "app" / "__init__.py").read_text(encoding="utf-8")
+    )
+    if not found:
+        raise ValueError("อ่าน __version__ จาก app/__init__.py ไม่ได้")
+    return found.group(1)
 
 
 def about_text() -> str:
     """ข้อความของช่อง About ที่ `ci:posture` จะยอมรับ (ADR 0072)"""
     real, _gates = measured()
-    version = re.search(
-        r'__version__ = "([^"]+)"', (ROOT / "app" / "__init__.py").read_text(encoding="utf-8")
-    )
     return (
-        f"v{version.group(1) if version else '?'} · {real['gates']} machine-checked gates, "
+        f"v{current_version()} · {real['gates']} machine-checked gates, "
         f"{real['adrs']} ADRs, {real['audits']} recorded governance audits"
     )
 
@@ -176,8 +183,7 @@ def about_text() -> str:
 #
 # `about_text()` รู้คำตอบที่ถูกมาตลอด แต่ไม่มีใครเอาไปยิง — เครื่องมือที่รู้คำตอบ
 # แต่ไม่ได้ต่อสายไปปลายทาง คือรูปเดียวกับที่ audit รอบ 26 ทั้งรอบพูดถึง
-# วลี → คีย์ของเลขที่นับจากดิสก์ได้ · `required checks` **ไม่อยู่ที่นี่โดยตั้งใจ**
-# เพราะมันมาจาก branch protection จริง (ดูหัวไฟล์)
+# `required checks` **ไม่อยู่ที่นี่โดยตั้งใจ** เพราะมันมาจาก branch protection จริง
 ABOUT_NUMBERS = {
     "machine-checked gates": "gates",
     "ADRs": "adrs",
@@ -185,14 +191,16 @@ ABOUT_NUMBERS = {
 }
 
 
-def current_version() -> str:
-    """รุ่นที่ `app/__init__.py` ประกาศ — ช่อง About ต้องบอกรุ่นนี้ (ADR 0072)"""
-    found = re.search(
-        r'__version__ = "([^"]+)"', (ROOT / "app" / "__init__.py").read_text(encoding="utf-8")
-    )
-    if not found:
-        raise ValueError("อ่าน __version__ จาก app/__init__.py ไม่ได้")
-    return found.group(1)
+def about_expectations() -> list[advertised.Expectation]:
+    """สิ่งที่ช่อง About ต้องพูดให้ตรง — รุ่นหนึ่งข้อ กับเลขที่นับจากดิสก์ได้"""
+    real, _gates = measured()
+    return [
+        advertised.Expectation("รุ่น", r"v(\d[\w.+-]*)", current_version()),
+        *(
+            advertised.Expectation(phrase, rf"(\d+) {re.escape(phrase)}", real[key])
+            for phrase, key in ABOUT_NUMBERS.items()
+        ),
+    ]
 
 
 def about_drift(description: str) -> list[tuple[str, str, str]]:
@@ -201,34 +209,15 @@ def about_drift(description: str) -> list[tuple[str, str, str]]:
     วลีที่หายไปจากช่อง About **ถูกรายงาน ไม่ใช่ถูกข้าม** — ตัวซิงก์ที่เงียบตอน
     หาไม่เจอ คือตัวที่บอกว่าตรงกันแล้วในวันที่มันไม่ได้อ่านอะไรเลย
     """
-    real, _gates = measured()
-    found = []
-    version = current_version()
-    said = re.search(r"v(\d[\w.+-]*)", description)
-    if said is None:
-        found.append(("รุ่น", "(หาไม่เจอ)", f"v{version}"))
-    elif said.group(1) != version:
-        found.append(("รุ่น", f"v{said.group(1)}", f"v{version}"))
-    for phrase, key in ABOUT_NUMBERS.items():
-        said = re.search(rf"(\d+) {re.escape(phrase)}", description)
-        if said is None:
-            found.append((phrase, "(หาไม่เจอ)", str(real[key])))
-        elif int(said.group(1)) != real[key]:
-            found.append((phrase, said.group(1), str(real[key])))
-    return found
+    return [
+        (what, _said(said), want)
+        for what, said, want in advertised.field_drift(description, about_expectations())
+    ]
 
 
 def about_patched(description: str) -> str:
-    """ช่อง About ที่เลขถูกแก้ให้ตรงแล้ว — **ประโยคที่เหลือไม่ถูกแตะ**
-
-    แทนที่ทีละเลขในที่เดิม ไม่ใช่เขียนทั้งช่องใหม่จาก `about_text()` เพราะช่องนั้น
-    มีคำโฆษณาอย่างอื่นที่คนเขียนไว้ และการเขียนทับทั้งช่องคือการลบมันทิ้งเงียบ ๆ
-    """
-    real, _gates = measured()
-    patched = re.sub(r"(?<=v)\d[\w.+-]*", current_version(), description, count=1)
-    for phrase, key in ABOUT_NUMBERS.items():
-        patched = re.sub(rf"\d+(?= {re.escape(phrase)})", str(real[key]), patched, count=1)
-    return patched
+    """ช่อง About ที่เลขถูกแก้ให้ตรงแล้ว — **ประโยคที่เหลือไม่ถูกแตะ**"""
+    return advertised.field_patched(description, about_expectations())
 
 
 def about_now() -> str:
@@ -251,6 +240,20 @@ def missing_index_rows() -> list[str]:
     )
 
 
+def _sync_about() -> int:
+    live = about_now()
+    found = about_drift(live)
+    if not found:
+        print("ช่อง About ตรงกับของจริงแล้ว")
+        return 0
+    about_push(about_patched(live))
+    print(f"ยิงขึ้นช่อง About แล้ว {len(found)} ที่:")
+    for what, said, want in found:
+        print(f"  - {what}: {said} → {want}")
+    print("  `required checks` ไม่ได้ถูกแตะ — นับจากดิสก์ไม่ได้ (ci:posture เฝ้าให้)")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--write", action="store_true", help="แก้ให้ตรงแทนที่จะรายงานเฉย ๆ")
@@ -260,31 +263,23 @@ def main(argv: list[str] | None = None) -> int:
     if args.about and not args.write:
         print(about_text())
         return 0
-
     if args.about:
-        live = about_now()
-        found = about_drift(live)
-        if not found:
-            print("ช่อง About ตรงกับของจริงแล้ว")
-            return 0
-        about_push(about_patched(live))
-        print(f"ยิงขึ้นช่อง About แล้ว {len(found)} ที่:")
-        for what, said, want in found:
-            print(f"  - {what}: {said} → {want}")
-        print("  `required checks` ไม่ได้ถูกแตะ — นับจากดิสก์ไม่ได้ (ci:posture เฝ้าให้)")
-        return 0
+        return _sync_about()
 
     items = drift()
     orphans = missing_index_rows()
     if args.write and items:
         write(items)
         print(f"ซิงก์แล้ว {len(items)} ที่:")
-        for path, _pattern, said, want in items:
-            print(f"  - {path.relative_to(ROOT)}: {said} → {want}")
+        for item in items:
+            print(f"  - {item.place.path}: {_said(item.said)} → {item.want}")
     elif items:
         print("เลขที่โฆษณาไว้ยังไม่ตรงกับของจริง:", file=sys.stderr)
-        for path, _pattern, said, want in items:
-            print(f"  - {path.relative_to(ROOT)}: เขียนไว้ {said} ควรเป็น {want}", file=sys.stderr)
+        for item in items:
+            print(
+                f"  - {item.place.path}: เขียนไว้ {_said(item.said)} ควรเป็น {item.want}",
+                file=sys.stderr,
+            )
         print("  แก้ทั้งหมดด้วย: python3 scripts/sync_counts.py --write", file=sys.stderr)
     else:
         print("เลขทุกตัวที่โฆษณาไว้ตรงกับของจริงแล้ว")

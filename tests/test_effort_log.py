@@ -25,7 +25,8 @@ import pathlib
 
 import pytest
 
-from scripts.removals_census import _git
+from scripts.removals_census import ROOT as REPO
+from scripts.removals_census import removals
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 LOG = ROOT / "docs" / "comparison" / "effort-log.csv"
@@ -46,7 +47,11 @@ def rows() -> list[dict[str, str]]:
 
 def commit_dates_since(start: dt.date) -> set[dt.date]:
     """วันที่ (author date, local) ของ commit ทั้งหมดในสายปัจจุบันตั้งแต่ `start`"""
-    out = _git("log", f"--since={start.isoformat()}", "--format=%ad", "--date=short").split()
+    # ตัวอ่านประวัติอยู่ที่ verifiable-gates แล้ว (ADR 0077 · ขั้น 3d) — ยืมตัวเดียว
+    # กับที่สำมะโนใช้ ไม่ใช่เขียนตัวเรียก git ตัวที่สองที่นี่ (ADR 0039)
+    out = removals._git(  # ตัวเรียก git ตัวเดียวของโปรเจกต์ — ยืมมาใช้ซ้ำ ไม่เขียนตัวที่สอง
+        REPO, "log", f"--since={start.isoformat()}", "--format=%ad", "--date=short"
+    ).split()
     return {dt.date.fromisoformat(day) for day in out}
 
 

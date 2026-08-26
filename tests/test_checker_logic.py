@@ -1210,64 +1210,52 @@ def test_the_register_on_disk_is_readable():
 # ทีละ diff ซึ่งไม่มีใครทำ
 
 
-RENAMED_IN_ONE_COMMIT = """abc1234\u241frefactor: เปลี่ยนชื่อ gate
--  - id: old-name
-+  - id: new-name
-"""
-
-EDITED_ROW = """def5678\u241fdocs: แก้ถ้อยคำของแถวเดิม
--| ทบทวนทะเบียนข้อยกเว้นทุกแฟ้ม | 6 เดือน |
-+| ทบทวนทะเบียนข้อยกเว้นทุกแฟ้ม (รวม pins) | 6 เดือน |
-"""
-
-REALLY_REMOVED = """9876fed\u241fchore: ถอดแถวที่ไม่ต้องทำแล้ว
--| ทบทวน alert ของ CodeQL ที่ถูก dismiss ไว้ | 6 เดือน |
-"""
+# **ตรรกะย้ายไป verifiable-gates แล้ว** (ADR 0077 · ขั้น 3d — 8 มิวเทชันแดงที่นั่น
+# รวมข้อที่นับการเปลี่ยนชื่อเป็นการถอด) · ที่เหลือให้พิสูจน์ที่นี่คือ **ทะเบียน**:
+# แต่ละกองยังชี้ไปยังไฟล์ที่มีอยู่จริง และ regex ของมันยังจับของในไฟล์นั้นได้
+# — regex ที่เลิกแมตช์เพราะรูปของไฟล์เปลี่ยน ทำให้สำมะโนรายงาน "ไม่มีอะไรถูกถอด"
+# ตลอดไปโดยไม่มีอะไรฟ้อง ซึ่งเป็นคำตอบที่ทุกคนอยากได้พอดี
 
 
-def _entries(monkeypatch, raw, pattern):
-    monkeypatch.setattr(removals_census, "_git", lambda *_args: raw)
-    return removals_census.removed_entries("x", pattern, "30.days")
+@pytest.mark.parametrize("name", sorted(removals_census.WATCHED))
+def test_every_watched_pile_still_matches_the_file_it_names(name):
+    """กองที่ regex เลิกจับของ = กองที่รายงานว่าว่างตลอดกาล"""
+    root = pathlib.Path(__file__).resolve().parent.parent
+    pile = removals_census.WATCHED[name]
+
+    if pile.is_a_directory:
+        here = root / pile.path
+        assert here.is_dir(), f"{name}: ชี้ไปไดเรกทอรีที่ไม่มีอยู่ ({pile.path})"
+        hits = [path for path in here.rglob("*") if pile.pattern.match(str(path.relative_to(root)))]
+    else:
+        target = root / pile.path
+        assert target.is_file(), f"{name}: ชี้ไปไฟล์ที่ไม่มีอยู่ ({pile.path})"
+        hits = [
+            line
+            for line in target.read_text(encoding="utf-8").splitlines()
+            if pile.pattern.match(line)
+        ]
+
+    assert hits, f"{name}: regex ไม่จับอะไรใน {pile.path} เลย — สำมะโนจะว่างตลอดกาล"
 
 
-def test_a_rename_is_not_a_removal(monkeypatch):
-    """ลบ+เพิ่มใน commit เดียว = เปลี่ยนชื่อ · gate สองตัวที่หายไปตลอดอายุ repo เป็นแบบนี้ทั้งคู่"""
-    gone, edits = _entries(monkeypatch, RENAMED_IN_ONE_COMMIT, removals_census.WATCHED["gate"][1])
+def test_the_census_reads_this_repository_s_own_history():
+    """รอยต่อ — ของที่ถูกถอดจริงในประวัติของ repo นี้ ต้องโผล่ในสำมะโน
 
-    assert gone == [], f"การเปลี่ยนชื่อไม่ใช่การถอด: {gone}"
-    assert edits == 1
+    `skill-mirrors-portable-gates` ถูกถอดจริงตอนปิดขั้น 6 (commit 9c9c8f1) และ
+    ไม่ได้ถูกใส่กลับ · ถ้าตัวอ่านชี้ราก repo ผิด หรือ regex ของกอง `gate` เลิก
+    ทำงาน ข้อนี้จะเงียบทันที
+    """
+    found, _edits = removals_census.census("1.year")
 
-
-def test_an_edited_row_is_not_a_removal(monkeypatch):
-    """แถวที่ถูกแก้ถ้อยคำหน้าตาเหมือนการถอดทุกประการใน `git log -p`"""
-    pattern = removals_census.WATCHED["แถวตรวจตามรอบ"][1]
-    gone, edits = _entries(monkeypatch, EDITED_ROW, pattern)
-
-    assert gone == [], f"การแก้ถ้อยคำไม่ใช่การถอด: {gone}"
-    assert edits == 1
+    assert "skill-mirrors-portable-gates" in [item for _c, _s, item in found["gate"]]
 
 
-def test_a_real_removal_is_reported_with_the_commit_that_did_it(monkeypatch):
-    """ทิศที่ต้องจับได้ — และต้องมาพร้อมหัว commit เพราะเหตุผลอยู่ตรงนั้น"""
-    pattern = removals_census.WATCHED["แถวตรวจตามรอบ"][1]
-    gone, edits = _entries(monkeypatch, REALLY_REMOVED, pattern)
+def test_the_report_carries_this_project_s_own_closing_note(capsys):
+    """หมายเหตุท้ายหน้าเป็นของ repo นี้ — มันบอกว่าต้องไปแก้เลขที่ไหนต่อ"""
+    removals_census.main(["--since", "1.year"])
 
-    assert len(gone) == 1, f"ของที่ถูกถอดจริงต้องถูกรายงาน: {gone}"
-    commit, subject, item = gone[0]
-    assert commit == "9876fed"
-    assert "ถอดแถว" in subject, "ต้องพ่วงหัว commit มาด้วย — เหตุผลของการถอดอยู่ตรงนั้น"
-    assert "CodeQL" in item
-    assert edits == 0
-
-
-def test_the_report_prints_the_pile_it_chose_not_to_count(monkeypatch):
-    """ของที่ถูกตัดออกเงียบ ๆ คือของที่ไม่มีใครทบทวน — ตัวเลขการตีความต้องอยู่ในหน้า"""
-    monkeypatch.setattr(removals_census, "_git", lambda *_args: EDITED_ROW)
-
-    text = removals_census.report("30.days")
-
-    assert "การแก้ข้อความ" in text
-    assert "ไม่นับเป็นการถอด" in text
+    assert "[tool.todolist.removals]" in capsys.readouterr().out
 
 
 DIRTY_TITLES = [

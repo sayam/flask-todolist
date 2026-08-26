@@ -167,8 +167,8 @@ def test_the_sync_sees_every_place_a_number_drifted(mini):
     """
     found = sync_counts.drift()
 
-    assert len(found) == 13, f"ควรเจอครบสิบสามที่ แต่เจอ {[str(f[0].name) for f in found]}"
-    assert {path.name for path, *_ in found} == {
+    assert len(found) == 13, f"ควรเจอครบสิบสามที่ แต่เจอ {[i.place.path for i in found]}"
+    assert {item.place.path.rsplit("/", 1)[-1] for item in found} == {
         "README.md",
         "CONTRIBUTING.md",
         "CHANGELOG.md",
@@ -238,7 +238,8 @@ def test_about_reports_the_version_that_drifted(mini, monkeypatch):
     monkeypatch.setattr(sync_counts, "current_version", lambda: "9.9.9")
     found = [row for row in sync_counts.about_drift(ABOUT) if row[0] == "รุ่น"]
 
-    assert found == [("รุ่น", "v2.2.0", "v9.9.9")]
+    # รายงานเลขรุ่นเปล่า ๆ เหมือนแถวอื่น — `v` เป็นบริบทในประโยค ไม่ใช่ค่าที่ซิงก์
+    assert found == [("รุ่น", "2.2.0", "9.9.9")]
     assert "v9.9.9 (AGPL-3.0" in sync_counts.about_patched(ABOUT), "ต้องแก้ในที่เดิม"
 
 
@@ -255,10 +256,10 @@ def test_a_sentence_that_no_longer_matches_is_reported_not_skipped(mini):
     """ถ้อยคำเปลี่ยนจนรูปแบบหาไม่เจอ = ต้องดัง — การข้ามเงียบคือการรายงานว่าตรงทั้งที่ไม่รู้"""
     (mini / "CONTRIBUTING.md").write_text("ไม่มีเลขอยู่ในประโยคนี้แล้ว\n", encoding="utf-8")
 
-    said = [row for row in sync_counts.drift() if row[0].name == "CONTRIBUTING.md"]
+    said = [item for item in sync_counts.drift() if item.place.path == "CONTRIBUTING.md"]
 
     assert said, "ประโยคที่หารูปแบบไม่เจอกลับเงียบ"
-    assert said[0][2] == "(หาไม่เจอ)"
+    assert said[0].is_missing
 
 
 def test_an_adr_without_a_row_in_the_index_is_named_not_invented(mini):
