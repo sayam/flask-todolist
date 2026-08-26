@@ -22,6 +22,7 @@ import ast
 import json
 import pathlib
 import re
+import subprocess
 import typing
 
 import pytest
@@ -1239,16 +1240,35 @@ def test_every_watched_pile_still_matches_the_file_it_names(name):
     assert hits, f"{name}: regex ไม่จับอะไรใน {pile.path} เลย — สำมะโนจะว่างตลอดกาล"
 
 
-def test_the_census_reads_this_repository_s_own_history():
-    """รอยต่อ — ของที่ถูกถอดจริงในประวัติของ repo นี้ ต้องโผล่ในสำมะโน
+def test_the_census_reads_the_root_and_the_manifest_it_was_given(tmp_path, monkeypatch):
+    """รอยต่อ — `ROOT` กับ `WATCHED` ของที่นี่ต้องเดินไปถึงตัวอ่านจริง
 
-    `skill-mirrors-portable-gates` ถูกถอดจริงตอนปิดขั้น 6 (commit 9c9c8f1) และ
-    ไม่ได้ถูกใส่กลับ · ถ้าตัวอ่านชี้ราก repo ผิด หรือ regex ของกอง `gate` เลิก
-    ทำงาน ข้อนี้จะเงียบทันที
+    **ปลอมประวัติเอง ไม่อ่านประวัติจริง** — รุ่นแรกของเทสต์นี้ยืนยันว่า gate ที่ถูก
+    ถอดตอนปิดขั้น 6 ต้องโผล่ในสำมะโน ซึ่งเขียวบนเครื่องและ**แดงบน CI** เพราะ
+    checkout ของ CI ตื้น ประวัติจึงไปไม่ถึง commit นั้น · เทสต์ที่ผลขึ้นกับสิ่งที่
+    เครื่องบังเอิญมี ต้องปลอม input เอง (กติกาใน CLAUDE.md)
     """
+    subprocess.run(["git", "init", "-q", "-b", "main", str(tmp_path)], check=True, timeout=60)  # noqa: S603, S607
+    for args in (
+        ["config", "user.email", "nobody@example.invalid"],
+        ["config", "user.name", "Nobody"],
+    ):
+        subprocess.run(["git", *args], cwd=tmp_path, check=True, timeout=60)  # noqa: S603, S607
+
+    rows = "gates:\n  - id: alpha\n  - id: beta\n"
+    for body, subject in (
+        (rows, "feat: two gates"),
+        (rows.replace("  - id: beta\n", ""), "chore: drop beta"),
+    ):
+        (tmp_path / "gates.yaml").write_text(body, encoding="utf-8")
+        subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True, timeout=60)  # noqa: S607
+        subprocess.run(["git", "commit", "-q", "-m", subject], cwd=tmp_path, check=True, timeout=60)  # noqa: S603, S607
+
+    monkeypatch.setattr(removals_census, "ROOT", tmp_path)
     found, _edits = removals_census.census("1.year")
 
-    assert "skill-mirrors-portable-gates" in [item for _c, _s, item in found["gate"]]
+    assert set(found) == set(removals_census.WATCHED), "ทุกกองที่ประกาศต้องอยู่ในคำตอบ"
+    assert [item for _c, _s, item in found["gate"]] == ["beta"]
 
 
 def test_the_report_carries_this_project_s_own_closing_note(capsys):
