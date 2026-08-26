@@ -74,9 +74,15 @@ SCRIPTS_COVERAGE = ROOT / ".cov-scripts.json"
 # **คัดลอกจากขั้นตอนจริงใน `ci.yml` ไม่ใช่จากความจำ** — รุ่นก่อนหน้าไล่ชื่อไฟล์เทสต์
 # ไว้ตรง ๆ สามชื่อ และสองในสามไม่มีอยู่บนดิสก์แล้ว · คำแนะนำที่พาไปสู่คำสั่งที่รันไม่ได้
 # แย่กว่าไม่มีคำแนะนำ เพราะคนอ่านจะเชื่อว่าตัวเองทำอะไรผิด
+#
+# **`COVERAGE_PROCESS_START` ไม่ใช่ของประดับ** — สคริปต์ที่เทสต์ยิงผ่าน subprocess
+# (รูปที่ repo นี้บังคับเองว่าดีกว่า) ไม่ถูกนับเลยถ้าไม่มีมัน · รุ่นก่อนหน้าของ
+# hint นี้ไม่มี แล้ววันที่มีคนเชื่อมันจริง ๆ ก็วัดได้ 57.96 ขณะที่ด่านซึ่งตัดสิน
+# วัดได้ 61.67 — คำสั่งที่ต่างจากด่านหนึ่งตัวแปร คือคำสั่งที่ตอบคนละคำถาม
 SCRIPTS_COVERAGE_HINT = (
     " (ดู job `test` ใน ci.yml) · บนเครื่องรัน:\n"
     "  files=$(grep -lE 'from scripts[. ]|^import scripts|/ \"scripts\"' tests/*.py)\n"
+    "  COVERAGE_PROCESS_START=.coveragerc-scripts \\\n"
     "  COVERAGE_FILE=/tmp/coverage-scripts pipenv run pytest -q --no-header $files \\\n"
     "    --cov=scripts --cov-config=.coveragerc-scripts \\\n"
     "    --cov-report=json:.cov-scripts.json --cov-fail-under=0\n"
@@ -128,7 +134,12 @@ RATCHETS = {
     "interrogate": ratchets.Ratchet("interrogate", owned_by_a_tool=True),
     "mypy_strict_modules": ratchets.Ratchet("mypy_strict_modules", slack=0.0),
     "enforced_prohibitions": ratchets.Ratchet("enforced_prohibitions", slack=0.0),
-    "scripts_coverage": ratchets.Ratchet("scripts_coverage"),
+    # **ระยะ 2 จุด ไม่ใช่ 1** — ตัวเลขนี้สั่นตามเครื่องที่วัด: ชุดเดียวกัน 424 เทสต์
+    # วัดได้ 61.67 บน runner ของ CI และ 60.70 บนเครื่อง dev ในวันเดียวกัน เพราะ
+    # สคริปต์บางตัวเดินเส้นทางที่ขึ้นกับเครื่องมือที่ติดตั้งอยู่ · ระยะ 1 จุดทำให้
+    # ต้องเลือกระหว่าง "แดงบน CI" กับ "แดงบนเครื่อง" ซึ่งอย่างหลังคือสิ่งที่ทำให้
+    # คนเลิกรันด่านก่อนเปิด PR (วัดเอง 2026-08-26 · ขั้น 3c)
+    "scripts_coverage": ratchets.Ratchet("scripts_coverage", slack=2.0),
     **{name: ratchets.Ratchet(name, kind=ratchets.REMOVAL_GUARD) for name in REMOVAL_GUARDS},
     **{name: ratchets.Ratchet(name, kind=ratchets.CEILING) for name in CEILINGS},
 }
