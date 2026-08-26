@@ -160,14 +160,18 @@ def test_the_sync_sees_every_place_a_number_drifted(mini):
     """หกที่ที่การทดลองของรอบ 25 วัดว่าแดงจริง ต้องถูกมองเห็นครบ
 
     สี่ที่เป็นจำนวน ADR (`README.md` สองบรรทัด · `CONTRIBUTING.md` · `CHANGELOG.md`) ·
-    สองที่เป็นจำนวน gate (`รวม N gate` กับบรรทัดสัดส่วน pillar) · สี่ที่เป็นจำนวน
+    สองที่เป็นจำนวน gate (`รวม N gate` กับบรรทัดสัดส่วน pillar) · **สามที่**เป็นจำนวน
     รอบ audit ซึ่งรวมบัตรประจำตัวสองใบที่ Zenodo อ่านไปตีพิมพ์ (ADR 0072) · และสามที่
     เป็นจำนวนกฎ baseline ที่ส่งออก (`README.md` สองบรรทัด · `ROADMAP-INFRA.md`)
     ซึ่งเพิ่มเข้ามาตอน audit รอบ 26 หลังจากต้องไล่แก้ด้วยมือครบทั้งสามที่
+
+    **เคยเป็นสิบสาม** — ที่สี่ของกอง audit ถูกถอดเมื่อ 2026-08-26 เพราะมันชี้เข้าไป
+    ใน *เครื่องหมายคำพูดที่ยกข้อความจากเว็บ badge มา* ไม่ใช่ประโยคของเราเอง ·
+    ตัวซิงก์ที่แก้คำพูดนั้น คือตัวที่ลบหลักฐานของค่าที่ค้างอยู่ข้างนอกทิ้ง
     """
     found = sync_counts.drift()
 
-    assert len(found) == 13, f"ควรเจอครบสิบสามที่ แต่เจอ {[i.place.path for i in found]}"
+    assert len(found) == 12, f"ควรเจอครบสิบสองที่ แต่เจอ {[i.place.path for i in found]}"
     assert {item.place.path.rsplit("/", 1)[-1] for item in found} == {
         "README.md",
         "CONTRIBUTING.md",

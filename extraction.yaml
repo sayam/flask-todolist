@@ -48,7 +48,7 @@ files:
   - {path: scripts/whats_pending.py, decision: stay, reason: อ่านหัวข้อภาษาไทยของเอกสารที่นี่ — กลไกที่พกไปได้บางเกินกว่าจะคุ้ม (ทบทวน 2026-08-26 · ขั้น 3d ย้ายแค่ removals_census กับ sync_counts)}
   - {path: scripts/sync_counts.py, decision: stay, reason: adapter เหนือ `verifiable_gates.advertised` — `TARGETS` กับตัวนับเป็นของที่นี่ (ขั้น 3d)}
   - {path: scripts/red_streak_census.py, decision: stay, reason: adapter เหนือ `verifiable_gates.red_streak_census` (ขั้น 3b)}
-  - {path: scripts/rerun_census.py, decision: move, stage: 5, reason: "**ยังไม่ย้าย** — พกไปได้เต็มตัว (อ่านประวัติ CI ล้วน) แต่ขั้น 3d ไม่ได้ทำ · ค้างอยู่จริง ไม่ใช่คำตัดสินว่าไม่ย้าย"}
+  - {path: scripts/rerun_census.py, decision: stay, reason: "adapter เหนือ `verifiable_gates.rerun_census` — ถ้อยคำไทยของรายงานเป็นของที่นี่ (ขั้น 5 · **ตัวสุดท้ายของแผนถอด** 2026-08-26)"}
   - {path: scripts/schedule_census.py, decision: stay, reason: adapter เหนือ `verifiable_gates.schedule_census` (ขั้น 3b)}
   - {path: scripts/audit_posture.py, decision: stay, reason: adapter เหนือ `verifiable_gates.posture`+`check_names` — ทะเบียนธงกับถ้อยคำเป็นของที่นี่ (ขั้น 3e)}
   - {path: scripts/gh.py, decision: stay, reason: shim ที่ต่อ path ให้ vendor — ยังมีผู้ใช้ที่นี่ (`sync_counts`) (ขั้น 3b)}

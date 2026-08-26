@@ -272,3 +272,79 @@ def test_the_measurement_adapter_still_runs_from_the_path_people_type(tmp_path) 
 
     assert done.returncode == 0, f"ล้มด้วย: {done.stderr[-400:]}"
     assert json_module.loads(output.read_text(encoding="utf-8")) == []
+
+
+# ----------------------------------------------- สำมะโนของที่ถูก rerun (ขั้น 5 · ตัวสุดท้าย)
+#
+# คำตัดสินทั้งชุด (ใครพัง · อะไรถูก rerun จนหาย · ชื่อ check ที่ต้องแปลงกลับ) ถูก
+# ทดสอบสองทิศที่ vg แล้ว · รอยต่อที่เหลือให้พิสูจน์ที่นี่มีสองอย่าง: **ถ้อยคำ**
+# (adapter ที่ลืมส่ง `MESSAGES` จะพิมพ์อังกฤษโดยไม่มีอะไรแดง) และ **ราก**
+# (adapter ที่ชี้ผิดจะรายงานว่าไม่มี job ไหนเคยแดง ซึ่งอ่านเหมือน "ไม่มีอะไรพัง")
+
+
+def _runs(tmp_path: pathlib.Path, records: list[dict]) -> str:
+    path = tmp_path / "runs.json"
+    path.write_text(json.dumps(records), encoding="utf-8")
+    return str(path)
+
+
+def test_the_rerun_census_adapter_reports_in_this_repos_language(tmp_path, capsys) -> None:
+    """ตัวเลขที่ถูกต้องในภาษาที่คนอ่านไม่ออก คือรายงานที่ไม่มีใครอ่าน"""
+    from scripts import rerun_census as adapter
+
+    hidden = [
+        {
+            "id": 1,
+            "attempt": 2,
+            "failures": [{"attempt": 1, "job": "dast", "step": "ZAP", "message": "FAIL-NEW"}],
+        }
+    ]
+
+    assert adapter.main(["--input", _runs(tmp_path, hidden), "--max-hidden", "0"]) == 1
+
+    printed = capsys.readouterr()
+    assert "ล้มแล้วถูก rerun จนหายไป    : 1" in printed.out, printed.out
+    assert "ซ่อน 1" in printed.out, "ของที่ซ่อนอยู่ต้องเด่นกว่าของที่ทุกคนเห็นอยู่แล้ว"
+    assert "ของเรา" in printed.out, "ชื่อชั้นยังเป็นค่าเครื่อง — ไม่ได้ถูกแปลตอนพิมพ์"
+    assert "เพดาน 0" in printed.err, printed.err
+
+
+def test_the_rerun_census_adapter_reads_this_repos_workflows(tmp_path, capsys) -> None:
+    """หน้าต่างเปล่าแปลว่าทุก job ของ repo นี้ต้องโผล่ในรายการที่ไม่เคยแดง"""
+    from scripts import rerun_census as adapter
+
+    assert adapter.main(["--input", _runs(tmp_path, []), "--never-red"]) == 0
+    out = capsys.readouterr().out
+
+    # สามชื่อจากสามไฟล์ — adapter ต้อง glob ทั้งไดเรกทอรี ไม่ใช่อ่านไฟล์เดียว
+    # (job `posture` ย้ายจาก `scorecard.yml` ไป `posture.yml` เมื่อ 2026-08-27
+    # ตัวที่อ่านไฟล์เดียวจึงเคยเขียวได้ทั้งที่มองไม่เห็นครึ่งหนึ่งของ repo)
+    assert "dialects" in out, "adapter มองไม่เห็น ci.yml ของ repo นี้"
+    assert "posture" in out, "adapter มองไม่เห็น posture.yml ของ repo นี้"
+    assert "scorecard" in out, "adapter มองไม่เห็น scorecard.yml ของ repo นี้"
+
+
+def test_the_rerun_census_adapter_maps_a_matrix_name_back(tmp_path, capsys) -> None:
+    """`dialect (mysql-8)` ต้องถูกนับเป็น `dialects` — ไม่งั้นรายงานฉบับเดียวขัดกันเอง
+
+    ฝั่งที่นับความล้มเหลวอ่าน *ชื่อ check* จาก API ส่วนฝั่ง "ไม่เคยแดง" อ่าน *ไอดี*
+    จากไฟล์ workflow ของที่นี่ — สองฝั่งนี้จะแมตช์กันได้ก็ต่อเมื่อ adapter ชี้ราก
+    ที่มี `ci.yml` ตัวจริงอยู่
+    """
+    from scripts import rerun_census as adapter
+
+    matrix = [
+        {
+            "id": 2,
+            "attempt": 1,
+            "failures": [
+                {"attempt": 1, "job": "dialect (mysql-8)", "step": "pytest", "message": "assert"}
+            ],
+        }
+    ]
+
+    assert adapter.main(["--input", _runs(tmp_path, matrix), "--never-red"]) == 0
+    out = capsys.readouterr().out
+
+    assert "    dialects: 1" in out, out
+    assert "dialects" not in out.split("ไม่แดงเลยในหน้าต่างนี้")[1], "job ที่เพิ่งล้มยังถูกรายงานว่าไม่เคยแดง"
