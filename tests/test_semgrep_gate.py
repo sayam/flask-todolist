@@ -9,6 +9,7 @@
 สิ่งที่ตรวจได้โดยไม่ต้องรัน semgrep จริง (ซึ่งต้องต่อเน็ตและใช้เวลาเป็นนาที)
 """
 
+import json
 import pathlib
 import re
 
@@ -91,3 +92,50 @@ def test_the_test_suite_itself_is_in_scope():
     }
     assert "tests" not in entries, "`tests/` ถูกตัดออกจากการสแกนอีกแล้ว"
     assert CHECKER.is_file(), "ไม่มี scripts/check_semgrep.py"
+
+
+# ---------------------------------- รอยต่อกับตัวตัดสินที่ย้ายไป vg (ADR 0077 · ขั้น 4)
+#
+# ตรรกะสองทิศอยู่ที่ `verifiable_gates.scan_coverage` แล้ว (6 มิวเทชันแดงที่นั่น)
+# ที่เหลือให้พิสูจน์ที่นี่คือ **สิ่งที่เป็นของ repo นี้**: "โค้ดของเรา" คืออะไร
+# และข้อความที่คนอ่าน CI ของที่นี่เห็น
+
+
+def test_the_declared_skips_reach_the_reader():
+    """`.semgrepignore` ต้องเดินไปถึงตัวคำนวณเซต ไม่ใช่ถูกอ่านแล้วทิ้ง
+
+    ส่งไม่ถึงเมื่อไหร่ เซตที่คาดหวังจะกว้างกว่าความจริง แล้วด่านจะแดงทุกครั้ง
+    ด้วยไฟล์ที่ตั้งใจไม่สแกน — ซึ่งจบลงด้วยการที่มีคนปิดด่านทิ้ง
+    """
+    from scripts import check_semgrep
+
+    skipped = check_semgrep.ignored_prefixes()
+    assert skipped, ".semgrepignore ไม่มีบรรทัดไหนเลย — เทสต์นี้กัดอะไรไม่ได้"
+
+    expected = check_semgrep.expected_files()
+    assert expected, "เซตที่ควรสแกนว่างเปล่า"
+    for prefix in skipped:
+        assert not any(path.startswith(f"{prefix}/") for path in expected), (
+            f"{prefix}/ ประกาศว่าไม่ต้องสแกน แต่ยังอยู่ในเซตที่คาดหวัง"
+        )
+
+
+def test_the_report_speaks_the_language_of_this_repository(tmp_path, capsys):
+    """ถ้อยคำเป็นของที่นี่ ไม่ใช่ของกลไก — คนที่อ่าน CI ของ repo นี้อ่านไทย
+
+    **เดินผ่าน `main()` ไม่ใช่เรียกตัวตัดสินตรง ๆ** — รุ่นแรกของเทสต์นี้ส่ง
+    `MESSAGES` เข้าไปเอง จึงยังเขียวตอนที่ `main()` เลิกส่งมัน ซึ่งเป็นจุดเดียว
+    ที่การส่งนั้นเกิดขึ้นจริง
+    """
+    from scripts import check_semgrep
+
+    report = tmp_path / "semgrep.json"
+    report.write_text(
+        json.dumps({"time": {"rules": []}, "paths": {"scanned": []}, "results": [], "errors": []}),
+        encoding="utf-8",
+    )
+
+    assert check_semgrep.main(str(report)) == 1
+    said = capsys.readouterr().err
+    assert "ไม่มีกฎถูกใช้เลย" in said
+    assert ".semgrepignore" in said

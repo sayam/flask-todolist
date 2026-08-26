@@ -13,6 +13,9 @@
 ที่ตั้งไว้ลอย ๆ — เพราะเลขขั้นต่ำจับ "หายไปทั้งก้อน" ได้ แต่จับ "หายไปหนึ่ง
 ไดเรกทอรี" ไม่ได้ ซึ่งเป็นอาการของบั๊กจริงที่เจอ
 
+**กลไกอยู่ที่ verifiable-gates แล้ว** (ADR 0077 · ขั้น 4) — `verifiable_gates.scan_coverage`
+เทียบเซตที่สแกนกับเซตที่ควรสแกน · ที่นี่เหลือว่า "โค้ดของเรา" คืออะไรและถ้อยคำ
+
 ใช้: `semgrep scan ... --json --time --output รายงาน.json` แล้ว
 `pipenv run python scripts/check_semgrep.py รายงาน.json`
 **ต้องมี `--time`** ไม่งั้น `time.rules` ว่าง แล้วด่านนี้จะแดง (ตั้งใจ —
@@ -25,15 +28,25 @@ from __future__ import annotations
 
 import json
 import pathlib
-import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "vendor" / "verifiable-gates" / "src"))
 
-# **เพดานเวลาของคำสั่งที่เรายิงออกไป** (audit รอบ 11 · ADR 0067) — `subprocess.run`
-# ที่ไม่มี `timeout=` รอตลอดกาล ซึ่งกลายเป็น job ที่ไม่มีวันจบเมื่อรันใน CI
-GIT_TIMEOUT_SECONDS = 60  # `git ls-files` บนเครื่อง
+from verifiable_gates import scan_coverage  # noqa: E402 — ต้องต่อ path ให้ vendor ก่อน import
+
 SEMGREPIGNORE = ROOT / ".semgrepignore"
+
+# ถ้อยคำของที่นี่ — กลไกอยู่ที่ vg ส่วนคนที่อ่าน CI ของ repo นี้อ่านไทย
+MESSAGES = {
+    "no_rules": "ไม่มีกฎถูกใช้เลย — ลืม `--time` หรือ config โหลดไม่ขึ้น",
+    "errors": "semgrep รายงาน error {count} ข้อ: {sample}",
+    "skipped_rules": "มีกฎถูกข้าม {count} ข้อ",
+    "missed": (
+        "ไฟล์ที่ควรถูกสแกนแต่ไม่ถูกสแกน {count} ไฟล์: {sample}\n"
+        "   ถ้าตั้งใจไม่สแกน ให้ประกาศใน .semgrepignore — ไม่ใช่ปล่อยให้หายเงียบ ๆ"
+    ),
+}
 
 
 def ignored_prefixes() -> list[str]:
@@ -43,8 +56,7 @@ def ignored_prefixes() -> list[str]:
     ถ้าวันหนึ่งมีคนใส่ glob ลงไป ตัวนี้จะคำนวณเซตที่คาดหวังผิด — เขียนกำกับไว้
     ในไฟล์นั้นแล้วว่าให้คงรูปแบบง่ายไว้
     """
-    lines = SEMGREPIGNORE.read_text(encoding="utf-8").splitlines()
-    return [line.strip().rstrip("/") for line in lines if line.strip() and not line.startswith("#")]
+    return scan_coverage.skipped_prefixes(SEMGREPIGNORE)
 
 
 def expected_files() -> set[str]:
@@ -53,16 +65,7 @@ def expected_files() -> set[str]:
     ใช้ `git ls-files` เพราะมันตอบคำถามว่า "โค้ดของเรามีอะไรบ้าง" ได้ตรงกว่า
     การเดินดิสก์ — ของที่ไม่ได้ commit ไม่ใช่โค้ดที่ CI ควรรับผิดชอบ
     """
-    listed = subprocess.run(
-        ["git", "ls-files", "*.py"],  # noqa: S607 — git จาก PATH เหมือน scripts/lint_commits.py
-        cwd=ROOT,
-        capture_output=True,
-        text=True,
-        check=True,
-        timeout=GIT_TIMEOUT_SECONDS,
-    ).stdout.split()
-    prefixes = tuple(f"{prefix}/" for prefix in ignored_prefixes())
-    return {path for path in listed if not path.startswith(prefixes)}
+    return scan_coverage.expected_files(ROOT, "*.py", ignored_prefixes())
 
 
 def main(report_path: str) -> int:
@@ -88,20 +91,16 @@ def main(report_path: str) -> int:
     )
     print(f"finding: {len(report['results'])} · error: {len(report['errors'])}")
 
-    problems: list[str] = []
-    if not rules:
-        problems.append("ไม่มีกฎถูกใช้เลย — ลืม `--time` หรือ config โหลดไม่ขึ้น")
-    if report["errors"]:
-        problems.append(f"semgrep รายงาน error {len(report['errors'])} ข้อ: {report['errors'][:3]}")
-    if report.get("skipped_rules"):
-        problems.append(f"มีกฎถูกข้าม {len(report['skipped_rules'])} ข้อ")
-
-    missed = sorted(expected - scanned)
-    if missed:
-        problems.append(
-            f"ไฟล์ที่ควรถูกสแกนแต่ไม่ถูกสแกน {len(missed)} ไฟล์: {missed[:10]}\n"
-            "   ถ้าตั้งใจไม่สแกน ให้ประกาศใน .semgrepignore — ไม่ใช่ปล่อยให้หายเงียบ ๆ"
-        )
+    problems = scan_coverage.problems(
+        scan_coverage.Report(
+            scanned=scanned,
+            rules=len(rules),
+            errors=list(report["errors"]),
+            skipped_rules=list(report.get("skipped_rules") or []),
+        ),
+        expected,
+        MESSAGES,
+    )
 
     for finding in report["results"]:
         start = finding["start"]["line"]

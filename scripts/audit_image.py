@@ -5,6 +5,9 @@ pip-audit ครอบไลบรารี python ทุกชั้นแล�
 ซึ่ง SBOM บันทึกไว้เฉย ๆ โดยไม่มีใครอ่าน — มี SBOM ไม่เท่ากับมีคนสแกน
 (ผล audit governance 2026-08-16 — ADR 0054)
 
+**กลไกอยู่ที่ verifiable-gates แล้ว** (ADR 0077 · ขั้น 4) — `verifiable_gates.advisories`
+อ่านรายงานและตัดสินสองทิศ · ที่นี่เหลือทะเบียนกับถ้อยคำ
+
 สคริปต์นี้อ่าน**รายงาน JSON ของ trivy** (job `image` เป็นคนรันตัวสแกน
 เพราะ image อยู่ที่นั่น — เครื่อง dev ไม่มี container runtime ตาม P5-09)
 แล้วตัดสินแบบเดียวกับ `audit_pins.py` ทุกประการ:
@@ -34,13 +37,16 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "vendor" / "verifiable-gates" / "src"))
+
+from verifiable_gates import advisories  # noqa: E402 — ต้องต่อ path ให้ vendor ก่อน import
+
 ACCEPTED = ROOT / "deploy" / "accepted-image-advisories.txt"
 
 
 def accepted_advisories() -> set[str]:
     """ID ที่ประเมินแล้วว่ารับไว้ — บรรทัดว่างและคอมเมนต์ไม่นับ"""
-    lines = ACCEPTED.read_text(encoding="utf-8").splitlines()
-    return {line.strip() for line in lines if line.strip() and not line.startswith("#")}
+    return set(advisories.accepted(ACCEPTED))
 
 
 def findings(report: dict) -> dict[str, str]:
@@ -50,15 +56,7 @@ def findings(report: dict) -> dict[str, str]:
     อ่านทุกแถวที่อยู่ในรายงานโดยไม่กรองซ้ำ เพราะตัวกรองสองที่คือตัวกรอง
     ที่วันหนึ่งจะไม่ตรงกันเอง (หลักเดียวกับขอบเขต semgrep ที่ประกาศที่เดียว)
     """
-    rows: dict[str, str] = {}
-    for result in report.get("Results") or []:
-        for vuln in result.get("Vulnerabilities") or []:
-            vid = vuln["VulnerabilityID"]
-            pkg = vuln.get("PkgName", "?")
-            fixed = vuln.get("FixedVersion") or "?"
-            severity = vuln.get("Severity", "?")
-            rows[vid] = f"{pkg} ({severity}, fix: {fixed})"
-    return rows
+    return advisories.from_trivy(report)
 
 
 def main() -> int:
