@@ -93,30 +93,33 @@ def test_at_least_one_promise_is_shorter_than_the_platform_silence_window(gates)
     ทั้ง repo — พอมีข้อหนึ่งที่พาคนกลับมาทันเวลา cron ก็ไม่ถูกปิด แล้วคำสัญญา
     ที่ยาวกว่าของข้ออื่นก็ยังทำได้จริงตามเดิม · **แต่ถ้าไม่มีข้อสั้นสักข้อ ทุกข้อ
     กลายเป็นสัญญาที่ทำไม่ได้พร้อมกัน** เพราะเครื่องที่จะรายงานถูกปิดไปก่อน
+
+    **นับรวมทั้ง repo ไม่ใช่ต่อไฟล์ (แก้ 2026-08-27)** — เดิมจัดกลุ่มตามไฟล์ ซึ่ง
+    ให้คำตอบเดียวกันตราบใดที่มีไฟล์ที่พึ่ง cron อยู่ไฟล์เดียว · วันที่ `posture`
+    ถูกแยกออกจาก `scorecard.yml` ความต่างก็โผล่ทันที: `scorecard.yml` เหลือคำสัญญา
+    365 วันตัวเดียวแล้วแดง ทั้งที่ไม่มีอะไรแย่ลงเลย · **ADR 0074 ตัดสินไว้เองแล้ว**
+    ในหัวข้อ "ทางที่ไม่ได้เลือก" ว่า *"นาฬิกาที่กำลังพูดถึงเป็นนาฬิกาเดียวของทั้ง
+    repo ไม่ใช่นาฬิกาต่อ gate"* และ *"กฎ 60 วันของ GitHub ปิด schedule **ทุกไฟล์**
+    ใน repo นั้นพร้อมกัน ไม่ใช่ทีละไฟล์"* — การจัดกลุ่มต่อไฟล์จึงเป็นการถามคำถาม
+    ที่แพลตฟอร์มไม่ได้ถาม และให้ความแดงที่แก้ไม่ได้ด้วยอะไรที่มีความหมาย
     """
     owner = _cron_only_jobs()
-    promises: dict[str, list[tuple[str, int]]] = {}
-    for gate in gates:
-        watcher = gate.get("watched_by")
-        job = (gate.get("enforced_by") or {}).get("job")
-        if not watcher or job not in owner:
-            continue
-        promises.setdefault(owner[job], []).append((gate["id"], int(watcher["within_days"])))
+    promises = [
+        (gate["id"], int(gate["watched_by"]["within_days"]))
+        for gate in gates
+        if gate.get("watched_by") and (gate.get("enforced_by") or {}).get("job") in owner
+    ]
+    assert promises, (
+        f"มี workflow ที่พึ่ง cron ({sorted(set(owner.values()))}) แต่ไม่มี gate ไหน "
+        "ทั้งอ้าง job ในนั้นและมี `watched_by` — ไม่มีคำสัญญาให้วัดแล้ว"
+    )
 
-    too_slow = []
-    for name, rows in sorted(promises.items()):
-        gate_id, shortest = min(rows, key=lambda row: row[1])
-        if shortest >= PLATFORM_SILENCE_DAYS:
-            too_slow.append(
-                f"{name}: คำสัญญาที่สั้นที่สุดคือ {shortest} วัน ({gate_id}) "
-                f"แต่ GitHub ปิด schedule ให้ repo ที่เงียบครบ {PLATFORM_SILENCE_DAYS} วัน — "
-                "ผู้เฝ้าจะมาถึงหลังจากเครื่องที่มันเฝ้าถูกปิดไปแล้ว"
-            )
-
-    assert not too_slow, (
-        "คำสัญญาที่ยาวกว่าหน้าต่างเงียบของแพลตฟอร์ม:\n  "
-        + "\n  ".join(too_slow)
-        + "\nแก้ที่ `watched_by.within_days` พร้อมกับแถวใน docs/SECURITY-CADENCE.md "
+    gate_id, shortest = min(promises, key=lambda row: row[1])
+    assert shortest < PLATFORM_SILENCE_DAYS, (
+        f"คำสัญญาที่สั้นที่สุดของ repo คือ {shortest} วัน ({gate_id}) แต่ GitHub ปิด "
+        f"schedule ให้ repo ที่เงียบครบ {PLATFORM_SILENCE_DAYS} วัน — "
+        "ผู้เฝ้าจะมาถึงหลังจากเครื่องที่มันเฝ้าถูกปิดไปแล้ว\n"
+        "แก้ที่ `watched_by.within_days` พร้อมกับแถวใน docs/SECURITY-CADENCE.md "
         "ที่มันอ้าง — ตัวเลขที่สั้นลงโดยไม่มีแถวรองรับ `tests/test_gates.py` จับได้ (ADR 0074)"
     )
 

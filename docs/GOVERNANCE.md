@@ -26,7 +26,7 @@
   · **ไม่แดงเพราะไม่มีใครแตะ** ต่างจาก **ไม่แดงทั้งที่แก้ตลอด** คนละคำตอบคนละขั้ว
   · ทางที่อนุญาตคือย้าย*ตอนรัน*ทีละตัวพร้อมเหตุผล ไม่ใช่ถอดด่าน
 - **ท่าทีฝั่ง GitHub ถูกเครื่องตรวจแล้ว** (ADR 0061) — job `posture` ใน
-  `scorecard.yml` เรียก `scripts/audit_posture.py` เทียบ branch protection ·
+  `posture.yml` เรียก `scripts/audit_posture.py` เทียบ branch protection ·
   required check สองทิศ (job ที่รันบน PR ต้องถูกบังคับ **และ** ห้ามมี context ผี) ·
   auto-merge · `sha_pinning_required` กับสิ่งที่ ADR 0053 กับ SECURITY-CADENCE
   ประกาศไว้ · **อ่าน API ไม่ได้ = แดง (exit 2) ไม่ใช่ข้าม** ทั้งกรณีสิทธิ์ไม่พอ

@@ -1142,7 +1142,10 @@ def test_the_identity_map_reads_the_real_workflows():
 
     assert "dialects" in ids
     assert by_name.get("dialect") == "dialects", "job ที่ตั้ง name: ต่างจากไอดี ต้องถูกแม็ป"
-    assert "posture" in by_path[".github/workflows/scorecard.yml"]
+    # `posture` ย้ายมาไฟล์ของตัวเองเมื่อ 2026-08-27 (ADR 0061 โน้ต) — ข้อนี้ยัง
+    # ถามคำถามเดิม: แม็ปอ่าน path จริงจากดิสก์ ไม่ใช่จากรายการที่ลอกไว้
+    assert "posture" in by_path[".github/workflows/posture.yml"]
+    assert "scorecard" in by_path[".github/workflows/scorecard.yml"]
 
 
 # --------------------- หน้าเดียวที่ตอบว่า "อะไรค้าง" (audit r13 · ข้อ 4)

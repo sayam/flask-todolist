@@ -21,8 +21,13 @@ request · linear history · ห้าม force push** — และ `docs/SECUR
 
 ## คำตัดสิน
 
-1. **job `posture`** (อยู่ใน `scorecard.yml` เพราะ trigger ตรงกันพอดี —
-   `branch_protection_rule` ยิงทันทีที่กฎของ branch เปลี่ยน) เรียก
+1. **job `posture`** (อยู่ใน `.github/workflows/posture.yml` — **โน้ต
+   2026-08-27**: เดิมอยู่ใน `scorecard.yml` เพราะ trigger ตรงกันพอดี แต่เมื่อ
+   job นี้แดง run ของทั้งไฟล์เป็น `failure` แล้วหน้า Security ขึ้นว่า
+   *"Scorecard is reporting errors"* ทั้งที่ Scorecard สำเร็จทุกรอบ — สถานะ
+   tool ของ code scanning อ่านจากสุขภาพของ run ไม่ใช่จากผลวิเคราะห์ · trigger
+   ยกมาครบทั้ง `push: main` · `branch_protection_rule` · `schedule` ·
+   `workflow_dispatch`) เรียก
    `scripts/audit_posture.py` ซึ่งเทียบสามแหล่ง:
    - **required check สองทิศ** — job ที่รันบน PR ทุกตัวต้องถูกบังคับ (ยกเว้นที่
      ประกาศไว้พร้อมเหตุผล) **และ** รายการบังคับต้องไม่มีชื่อผี (context ที่ไม่มี

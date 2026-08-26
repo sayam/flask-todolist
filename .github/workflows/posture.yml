@@ -1,0 +1,89 @@
+# ท่าทีฝั่งแพลตฟอร์ม — ADR 0061 (ย้ายออกจาก `scorecard.yml` เมื่อ 2026-08-27)
+#
+# **ทำไมเป็นไฟล์ของตัวเอง**: เดิม job นี้อยู่ใน `scorecard.yml` เพราะ trigger
+# ตรงกันพอดี · ผลข้างเคียงที่เพิ่งวัดได้คือ **ความล้มเหลวของ job นี้ทำให้ run
+# ของทั้งไฟล์เป็น `failure` แล้วหน้า Security ขึ้นว่า "Scorecard is reporting
+# errors"** ทั้งที่ Scorecard เองสำเร็จทุกรอบ — ป้ายที่ชี้ผิดตัวคือป้ายที่ทำให้
+# คนไล่ผิดที่ และในกรณีนี้มันชี้ไปที่เครื่องมือภายนอกที่เราแก้อะไรไม่ได้เลย
+# (วัดจริง 2026-08-26: `posture` แดงด้วย `ModuleNotFoundError` → configuration
+# ทั้งสามของ Scorecard ขึ้น "Workflow runs failing" พร้อมกัน)
+#
+# trigger ยกมาครบชุดเดิม — `push: main` (ความล้มเหลวของงานตามรอบที่ไม่มีใครเห็น
+# คือความล้มเหลวที่เงียบ) · `branch_protection_rule` (ยิงทันทีที่กฎของ branch
+# เปลี่ยน ซึ่งคือวินาทีที่เราอยากรู้ว่ามันยังตรงกับ ADR 0053 ไหม) ·
+# `schedule` รายสัปดาห์ **ต้องยกมาด้วย** เพราะสองสำมะโนที่เป็นสเต็ปของ job นี้
+# ต้องเดินต่อในช่วงที่ไม่มีใคร push · `workflow_dispatch` สำหรับยืนยัน
+# `POSTURE_TOKEN` ใบใหม่โดยไม่ต้องรอเหตุการณ์
+#
+# **ไม่อยู่ในรายการ required status check โดยตั้งใจ** — ไม่รันบน pull request
+# (หลักเดียวกับ scorecard — และตัวมันเองเป็นคนตรวจว่ารายการนั้นครบ) ·
+# ผลที่ตามมาคือ **การแก้ไฟล์นี้พิสูจน์ตัวเองใน PR ไม่ได้** ต้องดูผลบน main
+name: posture
+
+on:
+  workflow_dispatch:
+  branch_protection_rule:
+  schedule:
+    # ทุกวันจันทร์ · เลขนาทีสุ่มไว้ ไม่ให้ไปกองกับ cron ของคนอื่นที่ต้นชั่วโมง
+    # (คนละนาทีกับ `scorecard.yml` เพราะตอนนี้เป็นคนละไฟล์แล้ว)
+    - cron: "43 5 * * 1"
+  push:
+    branches: [main]
+
+permissions: read-all
+
+jobs:
+  posture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      # อ่าน alert ของ code scanning ได้ด้วย GITHUB_TOKEN ของ job เอง (ADR 0061
+      # โน้ต 2026-08-18 · audit รอบ 10 ข้อ 3) — **ไม่ต้องขยาย scope ของ PAT**
+      # สิทธิ์ที่ยืมได้ต่อ run ถูกกว่าสิทธิ์ถาวรที่ผูกกับบัญชีคนเสมอ
+      security-events: read
+      # อ่านประวัติ run ของ workflow (audit รอบ 10 ข้อ 2) — **บล็อก `permissions:`
+      # ของ job ทับค่าระดับ workflow ทั้งก้อน** `read-all` ข้างบนจึงไม่ตกมาถึงที่นี่
+      actions: read
+      # **ไม่มี `administration` ในรายการ scope ของ GITHUB_TOKEN** — เคยประกาศไว้
+      # ที่นี่แล้วทำให้ทั้งไฟล์ไม่ start ("workflow file issue") ตั้งแต่วันที่เพิ่ม
+      # job นี้ จนกว่าจะจับได้ในอีกวัน · สิทธิ์อ่าน branch protection ให้ผ่าน
+      # `POSTURE_TOKEN` ซึ่งเป็น fine-grained PAT (Administration: read) เท่านั้น
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # **ต้องมี** — `audit_posture.py`/`red_streak_census.py`/`schedule_census.py`
+          # import `verifiable_gates` จาก `vendor/verifiable-gates/src` (ADR 0078)
+          # ไม่มีบรรทัดนี้ = `ModuleNotFoundError` ตั้งแต่สเต็ปแรก · ทุก job ใน
+          # `ci.yml` มีครบ แต่ job นี้อยู่คนละไฟล์จึงถูกลืมตอนย้ายกฎเข้า submodule
+          # · **แดงบน main เท่านั้น** เพราะ job นี้ไม่รันบน pull request โดยตั้งใจ
+          submodules: true
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - run: pip install --require-hashes -r pins/pipenv/requirements.txt
+        timeout-minutes: 5
+      - run: pipenv sync --dev
+        timeout-minutes: 5
+      - name: ท่าทีของ repo ต้องตรงกับที่ ADR 0053 ประกาศ
+        run: pipenv run python scripts/audit_posture.py
+        env:
+          # ไม่มี PAT = สคริปต์อ่าน API ไม่ได้แล้ว **แดง (exit 2) ไม่ใช่ข้าม**
+          # ตามที่ ADR 0061 กำหนดไว้ — ด่านที่เงียบตอนอ่านไม่ได้ คือด่านที่รายงาน
+          # ว่าท่าทีถูกต้องทั้งที่ไม่เคยอ่านอะไรเลย · วิธีออก token อยู่ใน
+          # docs/OPERATIONS.md
+          GH_TOKEN: ${{ secrets.POSTURE_TOKEN || secrets.GITHUB_TOKEN }}
+          # token คนละใบสำหรับคำถามคนละชั้น — ท่าทีต้องใช้ PAT ส่วน alert ใช้ของ job
+          GH_TOKEN_ALERTS: ${{ secrets.GITHUB_TOKEN }}
+      - name: คำสัญญาของผู้เฝ้าต้องทำได้จริง
+        run: pipenv run python scripts/red_streak_census.py
+        env:
+          # อ่านประวัติ run บน main — `actions: read` ที่ job ขอไว้ข้างบน
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: ตารางเวลาที่ประกาศไว้ต้องยังยิงอยู่จริง
+        run: pipenv run python scripts/schedule_census.py
+        env:
+          # อ่านประวัติ run ของ workflow — `GITHUB_TOKEN` ของ job พอแล้ว
+          # ด้วย `actions: read` ที่ job ขอไว้ข้างบน ไม่ต้องใช้ PAT
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

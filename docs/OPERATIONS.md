@@ -733,13 +733,13 @@ branch protection ไม่ได้** — สิทธิ์ Administration ไ
 **ยืนยันว่าสิทธิ์พอโดยไม่ต้องรอ PR ใบถัดไป** — workflow มี `workflow_dispatch`:
 
 ```
-gh workflow run scorecard.yml
-gh run watch "$(gh run list --workflow scorecard.yml --limit 1 --json databaseId --jq '.[0].databaseId')"
+gh workflow run posture.yml
+gh run watch "$(gh run list --workflow posture.yml --limit 1 --json databaseId --jq '.[0].databaseId')"
 ```
 
 **token หมดอายุแล้วต้องต่อ** — ใบแรกออก 2026-08-18 หมด **2026-11-16** (มีแถวทวง
 ใน `docs/SECURITY-CADENCE.md` ที่ครบกำหนดก่อนหนึ่งสัปดาห์) · ออกใบใหม่ด้วยขั้นตอน
-เดิม แทนค่าใน secret เดิม แล้ว `gh workflow run scorecard.yml` เพื่อยืนยัน
+เดิม แทนค่าใน secret เดิม แล้ว `gh workflow run posture.yml` เพื่อยืนยัน
 
 **ไม่มี token = job แดง ไม่ใช่ job ที่ข้าม** (ADR 0061 ข้อ 3) — ด่านที่เงียบตอน
 อ่านไม่ได้ คือด่านที่รายงานว่าท่าทีถูกต้องทั้งที่ไม่เคยอ่านอะไรเลย · token หมดอายุ
