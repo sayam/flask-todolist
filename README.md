@@ -140,8 +140,8 @@ and measured:
 |---|---|
 | [`gates.yaml`](gates.yaml) | an index of every gate, verified **in both directions** — every CI job must have a gate, and every test file must belong to exactly one gate. A gate may only cite an ASVS requirement whose own evidence points back at it |
 | [`vendor/verifiable-gates/rules.yaml`](https://github.com/sayam/verifiable-gates/blob/main/rules.yaml) | the rules themselves — 79 framework-agnostic baseline rules plus the app-type agreements — and since [ADR 0078](docs/adr/0078-the-rules-move-to-verifiable-gates.md) they live **there**, not here. This repository holds their *enforcement*: which test file, which job, which step. A test compares the two in both directions, so neither the wording nor the citation can drift — including the direction that matters most, that every rule the catalogue publishes really is enforced here |
-| [`vendor/verifiable-gates`](https://github.com/sayam/verifiable-gates) | the enforcement half, now its own project and consumed here as a submodule pinned by SHA ([ADR 0077](docs/adr/0077-consume-verifiable-gates-as-a-submodule.md)). CI proves on every push that it installs into an empty repo **and** that this repo passes the scanners it ships |
-| [`docs/comparison/`](docs/comparison/) | does any of it change the code that actually gets written? One spec, three arms of five generated apps, one measurement battery — including the finding that a plain "review your own work once" pass closes about three quarters of the gap |
+| [`vendor/verifiable-gates`](https://github.com/sayam/verifiable-gates) | the portable machinery, now its own project and consumed here as a submodule pinned by SHA ([ADR 0077](docs/adr/0077-consume-verifiable-gates-as-a-submodule.md)) — the scanners, the doctor, the fail-fix harness, and since the extraction finished on 2026-08-26 the governance, supply-chain and research checkers as well. What stays here is the *register* each of them reads and the Thai prose it prints; the scripts under `scripts/` are thin adapters on the same paths as before, each with a seam test. CI proves on every push that it installs into an empty repo **and** that this repo passes the scanners it ships |
+| [`docs/comparison/`](https://github.com/sayam/verifiable-gates/tree/main/docs/comparison) | does any of it change the code that actually gets written? One spec, three arms of five generated apps, one measurement battery — including the finding that a plain "review your own work once" pass closes about three quarters of the gap. The experiment now lives **with the project it makes claims about**, published in English with the Thai originals kept beside it; [what is left here](docs/comparison/) is a frozen development log of how it was run |
 
 ## Documentation
 
@@ -301,13 +301,19 @@ export และวัดผลแล้ว:
   บวกข้อตกลงระดับตัวแอป ทุกข้อพกกับดักที่ให้กำเนิดมันมาด้วย · repo นี้ถือ *การบังคับ* ของกฎเหล่านั้น (ไฟล์เทสต์ · job · step)
   และมีด่านเทียบสองทิศไม่ให้ถ้อยคำหรือคำอ้างอิงเพี้ยนจากกัน — รวมทิศที่สำคัญที่สุด
   คือ **กฎทุกข้อที่คลังเผยแพร่ ต้องมีตัวบังคับอยู่ที่นี่จริง**
-- [`vendor/verifiable-gates`](https://github.com/sayam/verifiable-gates) — ฝั่งบังคับใช้ ย้ายไปเป็น repo ของตัวเองแล้ว (ADR 0077)
-  (scan 9 ตัวที่ใช้ stdlib ล้วน + doctor + installer + **ดัชนี `gates.yaml`
-  ตั้งต้น** — ADR 0071) · CI พิสูจน์ทุก push ว่าติดตั้งลง repo เปล่าได้จริง
-  **และ repo นี้ผ่าน overlay ของตัวเอง**
-- [`docs/comparison/`](docs/comparison/) — แล้วมันเปลี่ยนโค้ดที่เขียนออกมาจริงไหม
-  spec เดียว 3 แขน แขนละ 5 แอป วัดด้วยชุดเดียวกัน — รวมถึงผลที่ว่า **การสั่งให้
-  "ทบทวนงานตัวเองหนึ่งรอบ" เฉย ๆ ปิดช่องว่างไปได้ราวสามในสี่**
+- [`vendor/verifiable-gates`](https://github.com/sayam/verifiable-gates) — **กลไกที่พกไปได้**
+  ย้ายไปเป็น repo ของตัวเองแล้ว (ADR 0077) — scan 9 ตัวที่ใช้ stdlib ล้วน +
+  doctor + installer + **ดัชนี `gates.yaml` ตั้งต้น** (ADR 0071) และตั้งแต่การถอด
+  จบเมื่อ 2026-08-26 ก็รวมตัวตรวจ governance · supply chain · เครื่องมือวิจัยด้วย
+  · **ที่นี่เหลือ *ทะเบียน* ที่แต่ละตัวอ่าน กับ *ถ้อยคำไทย* ที่มันพิมพ์** ส่วน
+  สคริปต์ใน `scripts/` เป็น adapter บาง ๆ บนพาธเดิมทุกตัว พร้อมเทสต์รอยต่อของมันเอง
+  · CI พิสูจน์ทุก push ว่าติดตั้งลง repo เปล่าได้จริง **และ repo นี้ผ่าน overlay ของตัวเอง**
+- [`docs/comparison/` ของ vg](https://github.com/sayam/verifiable-gates/tree/main/docs/comparison)
+  — แล้วมันเปลี่ยนโค้ดที่เขียนออกมาจริงไหม spec เดียว 3 แขน แขนละ 5 แอป
+  วัดด้วยชุดเดียวกัน — รวมถึงผลที่ว่า **การสั่งให้ "ทบทวนงานตัวเองหนึ่งรอบ"
+  เฉย ๆ ปิดช่องว่างไปได้ราวสามในสี่** · การทดลองย้ายไปอยู่**ที่เดียวกับข้ออ้าง
+  ที่มันหนุน**แล้ว (ฉบับเผยแพร่ภาษาอังกฤษ ต้นฉบับไทยเก็บคู่กัน) ·
+  [ที่เหลือที่นี่](docs/comparison/) เป็นบันทึกการพัฒนาที่ freeze แล้ว
 
 ## เอกสาร
 

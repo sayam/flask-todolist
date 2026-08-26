@@ -6,9 +6,12 @@
 This agreement is between you (the "Contributor") and the copyright holder of
 this project, Sayam Sriphua (the "Maintainer"). It applies to contributions
 that touch the **governance core** of this repository — `scripts/`,
-`gates.yaml`, `docs/comparison/`, and their tests — which is being
-extracted into its own project, [`verifiable-gates`](https://github.com/sayam/verifiable-gates), under Apache-2.0
-([ADR 0075 §6](docs/adr/0075-thesis-track-freeze-effort-and-ceilings.md)).
+`gates.yaml`, `docs/comparison/`, and their tests — which was extracted into its
+own project, [`verifiable-gates`](https://github.com/sayam/verifiable-gates),
+under Apache-2.0
+([ADR 0075 §6](docs/adr/0075-thesis-track-freeze-effort-and-ceilings.md),
+completed 2026-08-26). What is left here are the registers and the adapters that
+read them, and a contribution to those can still follow the machinery across.
 Changes to the application itself (`app/`, `migrations/`, its tests) need no CLA
 and stay under AGPL-3.0-or-later exactly as before.
 
@@ -50,8 +53,9 @@ are needed.
 ข้อตกลงนี้อยู่ระหว่างคุณ ("ผู้ร่วมพัฒนา") กับผู้ถือลิขสิทธิ์ของโปรเจกต์นี้ คือ
 สยาม ศรีพั่ว ("ผู้ดูแล") มีผลกับสิ่งที่คุณส่งซึ่งแตะ**แกน governance** ของ repo —
 `scripts/` · `gates.yaml` · `docs/comparison/` และเทสต์
-ของพวกนั้น — ซึ่งกำลังถูกถอดไปเป็นโปรเจกต์ `verifiable-gates` ภายใต้ Apache-2.0
-(ADR 0075 ข้อ 6) · การแก้ตัวแอป (`app/` · `migrations/` · เทสต์ของแอป) ไม่ต้องมี CLA
+ของพวกนั้น — ซึ่งถูกถอดไปเป็นโปรเจกต์ `verifiable-gates` ภายใต้ Apache-2.0 แล้ว
+(ADR 0075 ข้อ 6 · เสร็จ 2026-08-26) · ที่เหลือที่นี่คือทะเบียนกับ adapter ที่อ่านมัน
+ซึ่งสิ่งที่คุณส่งเข้ามาก็ยังตามกลไกข้ามไปที่นั่นได้ · การแก้ตัวแอป (`app/` · `migrations/` · เทสต์ของแอป) ไม่ต้องมี CLA
 และอยู่ใต้ AGPL-3.0-or-later เหมือนเดิม
 
 **สิ่งที่คุณยังถือ** — ลิขสิทธิ์ในทุกสิ่งที่คุณเขียนยังเป็นของคุณ ไม่มีการโอน

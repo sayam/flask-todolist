@@ -114,23 +114,25 @@
   · ข้อห้ามชื่อไลบรารี framework ในกฎสากล ถูกบังคับที่ vg ตั้งแต่ตอนพิมพ์ลงคลัง
   · แผ่นกฎที่ agent อ่านได้ vg เรนเดอร์จากคลังของมันเอง — ที่นี่ไม่ถือสำเนาอีก
 - `vendor/verifiable-gates` (ADR 0077) — enforcement ของกฎสากลสำหรับโปรเจกต์อื่น: scan
-  checker 9 ตัว (stdlib ล้วน) + `gates_doctor.py` + `install.py` (copy ตาม
-  manifest `overlay.json` — ไม่ครบ = ล้มดัง) + **`preflight.py`** (ADR 0063 —
-  สำเนาที่ต้องตรงกับ `scripts/preflight.py` **ไบต์ต่อไบต์** แก้ตัวไหนแล้ว `cp` ทับ
-  อีกตัวเสมอ) + **`gates.yaml` ตั้งต้น** (ADR 0071 — ทะเบียนที่กฎชนิด `suite` อีก
-  83 ข้อพิงอยู่ ส่งไปพร้อมด่านที่บังคับสองทิศในปลายทาง) · job `scaffold` พิสูจน์ทุก
-  push ว่า import ลง repo เปล่าได้จริง **และ repo นี้ผ่าน scan ของ overlay ตัวเอง**
-  (dogfood — `scaffold.json` ที่รากคือ config นั้น) · เพิ่ม portable gate ต้องเพิ่ม
-  entry ใน `overlay.json` ด้วย ไม่งั้น `tests/test_overlay.py` แดง
+  checker 9 ตัว (stdlib ล้วน) + `gates_doctor.py` + `install.py` (copy ตาม manifest
+  `overlay.json` — ไม่ครบ = ล้มดัง) + **`preflight.py`** (ADR 0063 — **ตัวจริงอยู่
+  ที่นั่นตัวเดียวแล้ว** ไม่ใช่สำเนาคู่อีกต่อไป · `scripts/preflight.py` เป็น adapter)
+  + **`gates.yaml` ตั้งต้น** (ADR 0071 — ทะเบียนที่กฎชนิด `suite` อีก 83 ข้อพิงอยู่
+  ส่งไปพร้อมด่านที่บังคับสองทิศในปลายทาง) · job `scaffold` พิสูจน์ทุก push ว่า import
+  ลง repo เปล่าได้จริง **และ repo นี้ผ่าน scan ของ overlay ตัวเอง** (dogfood —
+  `scaffold.json` ที่รากคือ config นั้น) · เพิ่ม portable gate ต้องเพิ่ม entry ใน
+  `overlay.json` ไม่งั้น `tests/test_overlay.py` แดง
+- **ตัวตรวจ governance/supply chain/วิจัย ย้ายไปที่นั่นครบแล้ว** (ADR 0077 ขั้น 3–5 · ปิด
+  2026-08-26) · **ที่นี่เหลือ adapter ที่ถือ *ทะเบียน* กับ *ถ้อยคำไทย* ส่วน *กลไก* อยู่ที่ vg**
+  · `tests/test_vendored_tooling.py` พิสูจน์ *รอยต่อ* ไม่ใช่คำตัดสิน · ทะเบียน: `extraction.yaml`
 - `docs/GATES-ASVS.md` — crosswalk gate ↔ ASVS **generate มา ห้ามแก้ด้วยมือ**
   (`scripts/build_gates_crosswalk.py`) derive จากหลักฐานใน `ASVS.md` ผ่าน
   partition ของ `gates.yaml` — บอกด้วยว่าแถวไหนผ่านด้วยด่านที่รันทุก push
   และแถวไหนผ่านด้วยเหตุผล/เอกสารเท่านั้น (ความเชื่อมั่นคนละระดับ)
-- `docs/comparison/` — การทดลองว่ากฎที่ export ออกไป **เปลี่ยนโค้ดที่ถูกเขียนจริง
-  ไหม**: spec กลางหนึ่งชุด (ห้ามแก้ถ้อยคำ ถ้าแก้ต้องวัดใหม่ทั้งชุด) · 3 แขน แขนละ
-  5 แอป · battery เดียวกัน · `tests/test_asvs_probe.py` **บังคับว่าตัวเลขในรายงาน
-  ต้องตรงกับ JSON** และรายงานต้องบันทึกโมเดล+วันที่+spec · **probe ถูกตรวจสองทิศ
-  ด้วย fixture สามสำนวน** — เคยลงโทษโครงที่ *ดีกว่า* มาแล้วสี่ครั้ง
+- **การทดลองว่ากฎที่ export ไปเปลี่ยนโค้ดจริงไหม ย้ายไป `docs/comparison/` ของ vg แล้ว**
+  (ขั้น 5) พร้อมตัววัดและด่าน — หลักฐานอยู่ที่เดียวกับข้ออ้าง · ด่านที่นั่นบังคับว่ารายงานต้องตรง
+  กับ JSON และต้องมีโมเดล+วันที่+spec · **probe ตรวจสองทิศด้วย fixture สามสำนวน** เคยลงโทษ
+  โครงที่ *ดีกว่า* สี่ครั้ง · ที่นี่เหลือบันทึกที่ freeze ยกเว้น `effort-log.csv` (ADR 0075)
 
 - **กฎที่เครื่องตรวจได้ ต้องมีเครื่อง** (audit รอบ 14–15) —
   `tests/test_declared_prohibitions.py` ถือกฎกับตัวตรวจไว้ด้วยกัน สองทิศ (ละเมิด =

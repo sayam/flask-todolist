@@ -173,7 +173,7 @@
   (ADR 0065 — ไฟล์นี้มีเพดาน) · ที่นั่นมี: ดัชนี `gates.yaml` และการบังคับสองทิศ ·
   `proved_by`/`UNPROVEN` · `layer`/`pillar`/`severity`+`watched_by` · `guards:` ·
   ท่าทีฝั่ง GitHub (`audit_posture.py`) · สำมะโนความล้มเหลวและตารางเวลา ·
-  ขอบเขต semgrep และ `docs/comparison/`
+  ขอบเขต semgrep · และ `docs/comparison/` ที่ย้ายไป vg แล้ว (ADR 0077 ขั้น 5)
   · **สามข้อที่ผิดบ่อยที่สุด และต้องรู้ก่อนแตะอะไรก็ตามในนั้น**:
   **(1)** เพิ่มไฟล์เทสต์ใหม่ต้องลงทะเบียนใน `gates.yaml` ไม่งั้นแดง ·
   **(2)** `docs/GATES-ASVS.md` **generate มา ห้ามแก้ด้วยมือ** — แก้ที่ `gates.yaml` ·
@@ -1145,8 +1145,9 @@ log ขึ้น "Running upgrade" ครบทุกตัว exit code เป�
 **อะไรเปลี่ยนไป**: `gates.yaml` เป็นดัชนี gate ที่ตรวจสองทิศ · แผ่นกฎ
 generate จากทะเบียน · `verifiable-gates` เอากฎไปบังคับที่โปรเจกต์อื่นได้
 และ repo นี้ dogfood ตัวเองทุก push · ทุก plugin ประกาศ `migration` class ที่มี
-ตัวเลขวัดหนุน · `scripts/run_gates.py` เป็น fail-fix loop · และ `docs/comparison/`
-วัดว่าทั้งหมดนี้เปลี่ยนโค้ดจริงไหม
+ตัวเลขวัดหนุน · `scripts/run_gates.py` เป็น fail-fix loop · และการทดลองที่วัดว่า
+ทั้งหมดนี้เปลี่ยนโค้ดจริงไหม (**ย้ายไป `docs/comparison/` ของ vg แล้ว** พร้อม
+ตัววัด — ADR 0077 ขั้น 5 · ที่นี่เหลือบันทึกการพัฒนาที่ freeze แล้ว)
 
 **ผลของการวัดนั้นกลับมาแก้ความเชื่อของเราเอง**: การสั่งให้ agent "ทบทวนงาน
 ตัวเองหนึ่งรอบ" เฉย ๆ ปิดช่องว่างด้านความปลอดภัยไปได้ ~3 ใน 4 ของที่ scaffolding

@@ -226,7 +226,9 @@ sqlfluff → เมื่อ migration ซับซ้อนขึ้น (Phase 
 เครื่องมือสำเร็จรูป แต่เป็นของที่เขียนเอง: `gates.yaml` (ดัชนี gate ตรวจสองทิศ)
 · `verifiable-gates` เป็นเจ้าของคลังกฎและเรนเดอร์แผ่นกฎเอง (ADR 0078) · bundle ส่งออก 14 ไฟล์: scan 9 ตัว stdlib
 ล้วน + ดัชนี `gates.yaml` ตั้งต้น สำหรับโปรเจกต์อื่น) · `scripts/run_gates.py` (fail-fix loop) ·
-`scripts/measure_generated.py` + `scripts/asvs_probe.py` (วัดผลของ scaffolding)
+`verifiable_gates.measure_apps` + `verifiable_gates.asvs_probe` (วัดผลของ
+scaffolding — **อยู่ที่ vg แล้ว** ตั้งแต่ ADR 0077 ขั้น 5 · ที่นี่เหลือ adapter
+ที่พาธเดิมเรียกได้)
 · **เหตุผลที่ไม่ใช้เครื่องมือสำเร็จรูปแทน**: กฎที่ต้องบังคับเป็นข้อตกลงเฉพาะ
 โปรเจกต์ (soft delete, service layer ไม่รู้จัก HTTP, ตารางขึ้นต้น `tdl_`)
 ซึ่งไม่มี linter ไหนรู้จัก · รายละเอียดอยู่ใน [`ROADMAP-INFRA.md`](ROADMAP-INFRA.md)

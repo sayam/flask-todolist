@@ -106,7 +106,9 @@ proxy เชื่อ header ตามจำนวนชั้นที่ปร
 ประกาศชั้นของตัวเอง: baseline และ business ถูกเผยแพร่ผ่านคลังกฎของ vg
 · internal ไม่ export (`ADR 0042`) · ตัวบังคับสำหรับโปรเจกต์อื่นคือ
 `vendor/verifiable-gates` (ADR 0077) ซึ่ง dogfood กับ repo นี้เองทุก push · ผลลัพธ์ถูกวัดจริง
-ด้วยการทดลองสามแขนใน `docs/comparison/` · วินัยการพัฒนาโดยละเอียดอยู่ใน
+ด้วยการทดลองสามแขนซึ่งย้ายไปอยู่กับ vg แล้ว (`docs/comparison/` ของ repo นั้น
+— ADR 0077 ขั้น 5 · ที่นี่เหลือบันทึกการพัฒนาที่ freeze แล้ว)
+· วินัยการพัฒนาโดยละเอียดอยู่ใน
 `docs/DEVELOPMENT.md` และ `CONTRIBUTING.md` · งาน UI มีเอกสารตัวตนของตัวเอง
 ที่ `docs/DESIGN.md` (โหมดต่อหน้า + refine/redesign)
 

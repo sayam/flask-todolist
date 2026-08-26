@@ -366,7 +366,7 @@ you wrote — there is no copyright assignment.
 `gates.yaml`, `docs/comparison/`, their tests — sign
 [`CLA.md`](CLA.md) before merge** — one line in the pull request description. It
 grants the maintainer the right to relicense that contribution, because the core
-is being extracted into [`verifiable-gates`](https://github.com/sayam/verifiable-gates) under Apache-2.0 (ADR 0075 §6); the
+was extracted into [`verifiable-gates`](https://github.com/sayam/verifiable-gates) under Apache-2.0 (ADR 0075 §6, completed 2026-08-26) and what is left here can still follow it across; the
 project itself stays under an OSI-approved licence. **Changes to the app itself
 need no CLA** — that part of ADR 0070 still holds. This
 reverses an earlier, published decision to have no CLA; the reasons are in
@@ -522,7 +522,7 @@ generate ทั้งหมดสร้างใหม่จาก source ที
 
 **PR ที่แตะแกน governance (`scripts/` · `gates.yaml` ·
 `docs/comparison/` และเทสต์ของพวกนั้น) ต้องลงนาม [`CLA.md`](CLA.md) ก่อน merge** —
-บรรทัดเดียวในคำอธิบาย PR · เพราะแกนนั้นกำลังถูกถอดไปเป็น `verifiable-gates` ภายใต้
-Apache-2.0 (ADR 0075 ข้อ 6) · **แก้ตัวแอปไม่ต้องมี CLA** — ส่วนนั้นของ ADR 0070 ยังจริง · นี่กลับคำตัดสินเดิมที่
+บรรทัดเดียวในคำอธิบาย PR · เพราะแกนนั้นถูกถอดไปเป็น `verifiable-gates` ภายใต้
+Apache-2.0 แล้ว (ADR 0075 ข้อ 6 · เสร็จ 2026-08-26) และของที่เหลือที่นี่ยังตามไปได้ · **แก้ตัวแอปไม่ต้องมี CLA** — ส่วนนั้นของ ADR 0070 ยังจริง · นี่กลับคำตัดสินเดิมที่
 เคยประกาศว่า "ไม่มี CLA" — เหตุผลอยู่ใน ADR 0076 (แทนที่ ADR 0070 ข้อ 4) ·
 `Signed-off-by:` ทุก commit (DCO) ยังต้องมี — DCO รับรองความเป็นผู้เขียน CLA ให้สิทธิ์
