@@ -41,6 +41,7 @@ from scripts import (
     whats_pending,
     workflows,
 )
+from scripts import workflows as gha
 
 
 class Case(typing.NamedTuple):
@@ -540,9 +541,21 @@ HEALTHY = {
 ON_PR = {"lint", "test"}
 
 
+def _audit(state, claim=None):
+    """ทุกทิศที่ `main()` เดิน รวมเป็นคำตอบเดียว
+
+    ตัวตัดสินถูกแยกเป็นสองตัวตอนขั้น 3e (ธง/เลขที่โฆษณา กับ required check สามทิศ)
+    — คำถามของเทสต์ยังเป็นคำถามเดิม: "ท่าทีที่เลื่อนแบบนี้ถูกจับไหม" จึงต้องถาม
+    ทั้งสองตัว ไม่ใช่ตัวใดตัวหนึ่ง
+    """
+    return audit_posture.compare(state, 2, claim) + audit_posture.check_problems(
+        state, ON_PR, ON_PR | set(audit_posture.EXEMPT)
+    )
+
+
 def test_posture_passes_when_the_platform_matches_what_we_declared():
     """ทิศ "ผ่านเมื่อควรผ่าน" — ท่าทีที่ตรงทุกข้อต้องไม่มีเสียงบ่น"""
-    assert audit_posture.compare(HEALTHY, ON_PR, 2, (2, 2)) == []
+    assert _audit(HEALTHY, (2, 2)) == []
 
 
 @pytest.mark.parametrize(
@@ -572,7 +585,70 @@ def test_posture_passes_when_the_platform_matches_what_we_declared():
 )
 def test_posture_catches_every_way_the_platform_can_drift(change, why):
     """ทุกทางที่ท่าทีจะเลื่อนต้องแดง — ไม่ใช่แค่กรณีที่นึกถึงตอนเขียน"""
-    assert audit_posture.compare({**HEALTHY, **change}, ON_PR, 2, None), why
+    assert _audit({**HEALTHY, **change}), why
+
+
+def test_the_two_check_readers_are_not_swapped():
+    """ "ชื่อที่ขึ้นบน PR" กับ "ทุกชื่อที่ repo ผลิตได้" ตอบคนละคำถาม
+
+    สลับกันเมื่อไหร่ ด่านจะเรียกร้องให้บังคับ job ที่ไม่เคยรันบน PR — ซึ่งทำให้
+    PR รอ check ที่ไม่มีวันมา · ทั้งสองตัวอ่านจาก workflow จริงของ repo นี้
+    จึงพิสูจน์รอยต่อได้โดยไม่ต้องปลอมอะไร
+    """
+    workflows = gha.all_workflows(audit_posture.WORKFLOWS)
+    on_pr = audit_posture.pull_request_checks(workflows)
+    everything = audit_posture.all_checks(workflows)
+
+    assert on_pr < everything, "สองตัวนี้ตอบเหมือนกัน = ตัวใดตัวหนึ่งถูกสลับ"
+    assert "scorecard" in everything - on_pr, "job ที่รันตามรอบต้องอยู่ในเซตกว้างเท่านั้น"
+
+
+def test_only_the_settings_declared_unreadable_become_notes():
+    """อ่านได้แล้วหาย = แพลตฟอร์มหรือ token เปลี่ยน — ห้ามกลืนเป็นเรื่องปกติ
+
+    ถ้าทุกฟิลด์ถูกส่งเข้าไปเป็น "อ่านไม่ได้" ได้หมด คำตอบที่สามจะกลืนคำตอบที่หนึ่ง
+    แล้วธงที่ถูกปิดจริงจะกลายเป็นหมายเหตุที่ไม่มีใครทำอะไรต่อ
+    """
+    readable = [name for name, s in audit_posture.DECLARED_SETTINGS.items() if s.readable]
+    assert readable, "ไม่มีธงที่อ่านได้เลย — เทสต์นี้กัดอะไรไม่ได้"
+
+    notes = audit_posture.unreadable({**HEALTHY, readable[0]: None})
+
+    assert all(readable[0] not in note for note in notes), (
+        f"{readable[0]} อ่านได้ตามที่ประกาศ แต่ถูกรายงานเป็นหมายเหตุ"
+    )
+
+
+def test_the_audit_reads_this_repository_s_own_workflows(tmp_path, monkeypatch, capsys):
+    """รอยต่อของ `main()` — ไม่อ่าน workflow เลย แปลว่า required check ทุกตัวกลายเป็นผี
+
+    และ "ผี" คืออาการที่ไม่มีอะไรแดง PR แค่ไม่ merge — ด่านที่รายงานอาการนั้น
+    ผิด ๆ จะพาคนไปถอด required check ที่ถูกต้องออก
+    """
+    real = sorted(audit_posture.pull_request_checks(gha.all_workflows(audit_posture.WORKFLOWS)))
+    state = tmp_path / "state.json"
+    state.write_text(
+        json.dumps({"required_checks": real, "alerts": [], "description": ""}), encoding="utf-8"
+    )
+    monkeypatch.setattr(audit_posture, "best_practices", dict)
+
+    audit_posture.main(["--input", str(state)])
+
+    assert "ไม่มี job ไหนสร้างได้" not in capsys.readouterr().err, (
+        "check ที่มี job สร้างได้จริง ถูกรายงานว่าเป็นผี — แปลว่าตัวอ่าน workflow ไม่ได้อ่านอะไร"
+    )
+
+    # **ทิศตรงข้ามในเทสต์เดียวกัน** — ข้อความที่หายไปพิสูจน์ได้สองอย่าง: ตัวอ่าน
+    # ทำงาน หรือไม่มีใครเรียกตัวตัดสินเลย · ต้องแยกสองอย่างนี้ออกจากกัน
+    state.write_text(
+        json.dumps({"required_checks": [*real, "ผี"], "alerts": [], "description": ""}),
+        encoding="utf-8",
+    )
+    audit_posture.main(["--input", str(state)])
+
+    assert "ไม่มี job ไหนสร้างได้" in capsys.readouterr().err, (
+        "บังคับ check ที่ไม่มีอยู่แล้วเงียบ — ตัวตัดสินสามทิศไม่ได้ถูกเรียกจาก main"
+    )
 
 
 def test_posture_tells_off_apart_from_invisible(capsys):
@@ -586,22 +662,22 @@ def test_posture_tells_off_apart_from_invisible(capsys):
     """
     invisible = {**HEALTHY, "allow_auto_merge": None}
 
-    assert audit_posture.compare(invisible, ON_PR, 2, None) == [], (
-        "ฟิลด์ที่ token อ่านไม่ได้ ต้องไม่ถูกนับเป็นท่าทีที่ผิด"
-    )
+    assert audit_posture.compare(invisible, 2, None) == [], "ฟิลด์ที่ token อ่านไม่ได้ ต้องไม่ถูกนับเป็นท่าทีที่ผิด"
     assert audit_posture.unreadable(invisible), "แต่ต้องรายงานว่ามองไม่เห็น ไม่ใช่เงียบ"
     assert audit_posture.unreadable(HEALTHY) == [], "อ่านได้แล้วต้องไม่มีหมายเหตุค้าง"
 
 
 def test_posture_catches_a_document_that_advertises_the_wrong_count():
     """เลข "required NN จาก MM" ในเอกสารต้องตรงกับของจริง ไม่ใช่กับตอนที่เขียน"""
-    assert audit_posture.compare(HEALTHY, ON_PR, 2, (26, 29))
+    assert audit_posture.compare(HEALTHY, 2, (26, 29))
 
 
 def test_posture_lets_the_declared_exemptions_through():
     """job ที่ไม่รันบน PR ต้องไม่ถูกนับว่าหลุด — แต่ต้องประกาศพร้อมเหตุผลที่เดียว"""
     assert "release-sign" in audit_posture.EXEMPT
-    assert audit_posture.compare(HEALTHY, ON_PR | {"release-sign"}, 3, None) == []
+    produced = ON_PR | set(audit_posture.EXEMPT)
+
+    assert audit_posture.check_problems(HEALTHY, ON_PR, produced) == []
 
 
 def test_posture_refuses_to_pass_when_it_cannot_read(monkeypatch, capsys):
@@ -710,15 +786,17 @@ def test_the_alert_register_on_disk_is_readable_and_reasoned():
 def test_unrequired_checks_pass_when_every_one_of_them_is_declared():
     """ทิศ "ผ่านเมื่อควรผ่าน" — ของที่ประกาศไว้แล้วต้องไม่มีเสียงบ่น"""
     produced = {"lint", "test"} | set(audit_posture.EXEMPT)
+    state = {"required_checks": ["lint", "test"]}
 
-    assert audit_posture.unrequired_problems(produced, {"lint", "test"}) == []
+    assert audit_posture.check_problems(state, {"lint", "test"}, produced) == []
 
 
 def test_an_undeclared_unrequired_check_is_red():
     """job ใหม่ที่ไม่ถูกบังคับและไม่มีใครประกาศ = ด่านที่ล้มเงียบได้ทั้งวัน"""
     produced = {"lint", "test", "job-ใหม่"} | set(audit_posture.EXEMPT)
+    state = {"required_checks": ["lint", "test"]}
 
-    problems = audit_posture.unrequired_problems(produced, {"lint", "test"})
+    problems = audit_posture.check_problems(state, {"lint", "test"}, produced)
 
     assert problems, "job ใหม่ที่ไม่มีใครประกาศต้องถูกจับ"
     assert "job-ใหม่" in problems[0], "ข้อความต้องบอกว่าตัวไหน ไม่ใช่แค่ว่ามีปัญหา"
@@ -726,7 +804,7 @@ def test_an_undeclared_unrequired_check_is_red():
 
 def test_a_declared_exemption_that_names_nothing_is_red():
     """ทิศที่เงียบเสมอ — ยกเว้น job ที่ถูกลบไปแล้ว ไม่มีอะไรฟ้องถ้าไม่ตรวจทิศนี้"""
-    assert audit_posture.unrequired_problems({"lint"}, {"lint"}), (
+    assert audit_posture.check_problems({"required_checks": ["lint"]}, {"lint"}, {"lint"}), (
         "EXEMPT ทั้งชุดไม่ตรงกับ job ไหนเลย แต่ตัวตรวจเงียบ"
     )
 
@@ -734,8 +812,9 @@ def test_a_declared_exemption_that_names_nothing_is_red():
 def test_matrix_checks_are_matched_by_their_job_name():
     """`dialect (mysql-8)` ต้องนับเป็น job `dialect` ไม่ใช่ชื่อแปลกที่ไม่มีในทะเบียน"""
     produced = {"dialect (mysql-8)", "dialect (mariadb-11)"} | set(audit_posture.EXEMPT)
+    state = {"required_checks": ["dialect (mysql-8)"]}
 
-    assert audit_posture.unrequired_problems(produced, {"dialect (mysql-8)"}), (
+    assert audit_posture.check_problems(state, produced, produced), (
         "แถว matrix ที่หลุดจากรายการบังคับต้องถูกจับ"
     )
 
@@ -1789,9 +1868,9 @@ def test_every_merge_setting_declares_a_value_and_a_reason():
     assert audit_posture.MERGE_SETTINGS, "ทะเบียน merge setting ว่าง"
 
     for flag, declared in audit_posture.MERGE_SETTINGS.items():
-        want, why = declared
-        assert isinstance(want, bool), f"{flag} ไม่ได้ประกาศค่าที่ควรเป็น"
-        assert len(why) > 20, f"{flag} มีค่าแต่ไม่มีเหตุผลที่อ่านแล้วตัดสินได้: {why!r}"
+        assert isinstance(declared.want, bool), f"{flag} ไม่ได้ประกาศค่าที่ควรเป็น"
+        assert len(declared.why) > 20, f"{flag} มีค่าแต่ไม่มีเหตุผลที่ตัดสินได้: {declared.why!r}"
+        assert not declared.readable, f"{flag} ถูกประกาศว่าอ่านได้ — แล้วมันจะไม่มีหมายเหตุ"
 
 
 def test_the_note_for_an_unreadable_setting_says_what_it_should_be():
@@ -1808,7 +1887,7 @@ def test_a_readable_merge_setting_that_drifted_is_a_problem_not_a_note():
     """อ่านได้แล้วผิด = ปัญหา · อ่านไม่ได้ = หมายเหตุ — สองอย่างนี้ห้ามสลับกัน"""
     drifted = {**HEALTHY, "delete_branch_on_merge": False}
 
-    assert audit_posture.compare(drifted, ON_PR, 2, None), "อ่านได้แล้วผิด ต้องเป็นปัญหา"
+    assert audit_posture.compare(drifted, 2, None), "อ่านได้แล้วผิด ต้องเป็นปัญหา"
     assert audit_posture.unreadable(drifted) == [], "อ่านได้แล้วต้องไม่มีหมายเหตุค้าง"
 
 
