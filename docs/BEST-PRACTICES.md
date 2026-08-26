@@ -5,8 +5,8 @@
 badge ถูกทบทวนเป็นรอบ และคำตอบที่ไม่มีที่มาคือคำตอบที่เขียนใหม่ทุกครั้ง
 (หลักเดียวกับ [ASVS.md](ASVS.md))
 
-> **เหลือช่องเดียวบนเว็บที่ยังค้าง** (`governance_justification` — 72 ADR ขณะที่
-> ของจริงคือ 78) ดูหัวข้อ "ค่าที่เก็บอยู่บนเว็บจริง" (ตรวจกับ API แล้ว ไม่ใช่จากความจำ)
+> **ทุกช่องบนเว็บตรงกับของบนดิสก์แล้ว** (ยืนยันกับ API 2026-08-26T16:48Z —
+> ไม่ใช่จากความจำ) ดูหัวข้อ "ค่าที่เก็บอยู่บนเว็บจริง"
 
 **สถานะ: badge อยู่ระดับ SILVER (100% · `achieved_silver_at`
 2026-08-16T14:45Z — verify จาก API)**
@@ -314,7 +314,7 @@ curl -s https://www.bestpractices.dev/projects/14085.json > badge.json
 | `floss_license_osi_justification` | อ้าง ADR 0070 ที่แทน ADR 0038 | ถูกต้อง — บันทึกไว้กันเข้าใจผิดว่าเป็นของค้าง |
 | `crypto_working_justification` · `crypto_weaknesses_justification` | อ้างเลขรุ่นของไลบรารี (1.4.1) | คงไว้ — เป็นเลขรุ่นของ dependency ไม่ใช่ของแอป |
 | `contribution_justification` | "…must pass **27** required status checks…" | **แก้แล้ว 2026-08-22 โดยเจ้าของ** — เดิมเขียน 26 ขณะที่ของจริงคือ 27 และช่องอื่นบนเว็บเดียวกัน (`contribution_requirements_justification` · `test_continuous_integration_justification` · `two_person_review_justification`) เขียน 27 ถูกแล้ว ทั้งสามช่อง — ใบเดียวกันขัดกันเองได้เพราะไม่มีอะไรอ่านคู่ |
-| `governance_justification` | "…all decisions recorded as ADRs (**72** to date)…" | **ค้างอีกแล้ว** — ของจริงคือ **78** (`ls docs/adr/0*.md \| wc -l`) · เคยค้างที่ 58 แล้วแก้เป็น 72 เมื่อ 2026-08-22 · **ช่องนี้เป็นช่องเดียวที่ยังค้างอยู่บนเว็บ** (ยืนยัน 2026-08-26) |
+| `governance_justification` | "…all decisions recorded as ADRs (**78** to date)…" | **แก้แล้ว 2026-08-26 โดยเจ้าของ** — ตรงกับ `ls docs/adr/0*.md \| wc -l` · **ช่องนี้ค้างมาสองรอบ** (58 → 72 → 78) ซึ่งเป็นเลขที่ขยับเองทุกครั้งที่ merge ADR ใหม่ · `governance` เป็นเกณฑ์ของ **silver** (Basics → Project oversight · MUST · บังคับมี URL) สถานะ Met ตลอด การแก้นี้จึงเป็นเรื่องความถูกต้องของข้อความ ไม่ใช่ของสถานะ |
 | `test_most_justification` · `test_statement_coverage80_justification` | "Coverage gate fail_under = **97**" | **แก้แล้ว 2026-08-26 โดยเจ้าของ** — เดิมเขียน 96 ขณะที่ `pyproject.toml` เป็น 97 มาตั้งแต่ ratchet ขยับ · ตรงกับ `test_statement_coverage90_justification` บนเว็บเดียวกันแล้ว |
 | `test_statement_coverage90_justification` · `test_branch_coverage80_justification` | 97.17% · 93.96% (1,058/1,126) | **ยังห่างของวันนี้เท่าเดิม** (97.18% · 93.98% — 1,062/1,130 · วัดซ้ำ 2026-08-26) · ช่องพวกนี้เขียนว่า "measured on the current tree" จึงเป็นภาพถ่าย ไม่ใช่คำสัญญา — แก้ตอนรอบ release ถัดไปพอ |
 | `description` | "… v2.2.0 … **114** machine-checked gates, **78** ADRs, **27** recorded governance audits …" | **แก้แล้ว 2026-08-26 โดยเจ้าของ** — ตรงกับ `scripts/sync_counts.py --about` เป๊ะทั้งสามเลข · ก่อนหน้านั้นค้างที่ 112 gate · 72 ADR ขณะที่ช่อง About ของ repo ถูกซิงก์ไปแล้ว · เคย **ตรงกันสามที่ (2026-08-23)** — เว็บ badge · ช่อง About ของ repo · และของบนดิสก์ (`gates.yaml` · `docs/adr/` · [AUDIT-LOG.md](AUDIT-LOG.md)) — แล้วห่างอีกครั้งภายในสามวัน ซึ่งเป็นคำตอบของ audit รอบ 24 ที่ชัดที่สุด: ฝั่ง About มี `ci:posture` อ่านคู่ให้ตั้งแต่ ADR 0072 จึง*รู้ตัว* ส่วนฝั่งเว็บ badge ไม่มีใครอ่านคู่เลย |
