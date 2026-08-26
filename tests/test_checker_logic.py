@@ -1273,10 +1273,17 @@ def test_a_register_line_that_no_longer_matches_is_red():
 
 
 def test_the_reader_understands_pip_audit_output():
-    """อ่านรูปที่ `pip-audit --format=json` คืนมาจริง ไม่ใช่รูปที่เราคิดเอง"""
+    """อ่านรูปที่ `pip-audit --format=json` คืนมาจริง ไม่ใช่รูปที่เราคิดเอง
+
+    **ID คือกุญแจของทะเบียน ส่วนคำอธิบายเป็นบรรทัดให้คนอ่าน** — ยืนยัน ID แบบเป๊ะ
+    และยืนยันว่าคำอธิบายบอกชื่อ package · รายงานที่ขาดฟิลด์รายละเอียดต้องไม่ทำให้
+    ด่านที่จะจับ advisory นั้นล้มไปทั้งใบ (เจอจริงตอนขั้น 4: ตัวอ่านของ vg เข้ม
+    กับ `version` จนรายงานที่ไม่มีฟิลด์นั้นทำให้ทั้งตัวตรวจพัง)
+    """
     found = audit_plugin_deps.advisories([REPORT, {"dependencies": []}])
 
-    assert found == {"GHSA-aaaa": "cryptography"}
+    assert set(found) == {"GHSA-aaaa"}
+    assert "cryptography" in found["GHSA-aaaa"]
 
 
 def test_the_register_on_disk_is_readable():

@@ -22,6 +22,9 @@ critical ต้องแก้ภายใน **7 วันนับจากว
 ID ที่อยู่ในทะเบียนแต่ไม่โผล่แล้ว = แดงเหมือนกัน (การยกเว้นเงียบเสมอเมื่อของที่
 ยกเว้นหายไป — และรายการที่ไม่มีใครถอดจะกลายเป็นตัวปิดของจริงในวันหนึ่ง)
 
+**กลไกอยู่ที่ verifiable-gates แล้ว** (ADR 0077 · ขั้น 4) — ที่นี่เหลือทะเบียน
+กับถ้อยคำ ซึ่งสามทางที่ปลดได้เป็นคำตัดสินของ ADR 0025 ไม่ใช่ของกลไก
+
 ใช้:
     pip-audit --no-deps -r req-<category>.txt --format=json --output found-<category>.json
     python3 scripts/audit_plugin_deps.py found-*.json
@@ -37,45 +40,45 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "vendor" / "verifiable-gates" / "src"))
+
+from verifiable_gates import advisories as vg  # noqa: E402 — ต้องต่อ path ให้ vendor ก่อน import
+
 ACCEPTED = ROOT / "app" / "plugins" / "accepted-advisories.txt"
+
+# ถ้อยคำของที่นี่ — สามทางที่ปลดได้เป็นของ ADR 0025 ไม่ใช่ของกลไก
+MESSAGES = {
+    "unjudged": (
+        "{id} ({detail}) ยังไม่ถูกตัดสิน — อัปเกรด · ถอด plugin ด้วย DISABLED_PLUGINS "
+        "(ADR 0025 บอกว่านี่คือคำตอบที่เร็วที่สุด) · หรือเขียนบรรทัดใน "
+        "app/plugins/accepted-advisories.txt พร้อมเหตุผล"
+    ),
+    "stale": ("{id} อยู่ในทะเบียนแต่ไม่โผล่ในผลอีกแล้ว — ถอดบรรทัดออก (การยกเว้นเงียบเสมอเมื่อของที่ยกเว้นหายไป)"),
+}
 
 
 def accepted_advisories() -> set[str]:
-    """ID ที่ประเมินแล้วว่ารับไว้ — เหตุผลอยู่ใน `docs/SECURITY-CADENCE.md`"""
+    """ID ที่ประเมินแล้วว่ารับไว้ — เหตุผลอยู่ใน `docs/SECURITY-CADENCE.md`
+
+    **ทะเบียนที่ยังไม่มีไฟล์ = ยังไม่มีใครยกเว้นอะไร** ต่างจากทะเบียนอื่นของ repo นี้
+    ที่ไฟล์หายแล้วต้องดัง — ที่นี่ plugin อาจยังไม่มีไลบรารีที่ต้องตัดสินเลยสักตัว
+    """
     if not ACCEPTED.is_file():
         return set()
-    return {
-        line.split("#", 1)[0].strip()
-        for line in ACCEPTED.read_text(encoding="utf-8").splitlines()
-        if line.strip() and not line.lstrip().startswith("#")
-    }
+    return set(vg.accepted(ACCEPTED))
 
 
 def advisories(reports: list[dict]) -> dict[str, str]:
     """ID → ชื่อ package ที่มันอยู่ · อ่านจากผล `pip-audit --format=json`"""
     found: dict[str, str] = {}
     for report in reports:
-        for dependency in report.get("dependencies", []):
-            for vuln in dependency.get("vulns", []):
-                if vuln.get("id"):
-                    found[str(vuln["id"])] = str(dependency.get("name", "?"))
+        found.update(vg.from_pip_audit(report))
     return found
 
 
 def problems(found: dict[str, str], accepted: set[str]) -> list[str]:
     """สองทิศ — ของใหม่ที่ยังไม่มีใครตัดสิน และการยกเว้นที่หมดอายุไปแล้ว"""
-    lines = [
-        f"{advisory} (ใน {package}) ยังไม่ถูกตัดสิน — อัปเกรด · ถอด plugin ด้วย "
-        "DISABLED_PLUGINS (ADR 0025 บอกว่านี่คือคำตอบที่เร็วที่สุด) · หรือเขียน "
-        "บรรทัดใน app/plugins/accepted-advisories.txt พร้อมเหตุผล"
-        for advisory, package in sorted(found.items())
-        if advisory not in accepted
-    ]
-    lines += [
-        f"{advisory} อยู่ในทะเบียนแต่ไม่โผล่ในผลอีกแล้ว — ถอดบรรทัดออก (การยกเว้นเงียบเสมอเมื่อของที่ยกเว้นหายไป)"
-        for advisory in sorted(accepted - set(found))
-    ]
-    return lines
+    return vg.problems(found, dict.fromkeys(accepted, ""), MESSAGES)
 
 
 def main(argv: list[str] | None = None) -> int:

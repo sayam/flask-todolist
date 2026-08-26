@@ -18,6 +18,9 @@ advisory บอกจึงทำไม่ได้จนกว่า upstream �
 ปิดของจริงโดยไม่มีใครรู้ ที่นี่จึงตรวจสองทิศ: **เจอของที่ไม่ได้ยกเว้น = แดง**
 และ **ยกเว้นของที่ไม่เจอแล้ว = แดง**
 
+**กลไกอยู่ที่ verifiable-gates แล้ว** (ADR 0077 · ขั้น 4) — `verifiable_gates.advisories`
+อ่านรายงานทั้งสองรูปและตัดสินสองทิศ · ที่นี่เหลือว่าจะรันตัวไหนกับไฟล์ล็อกไหน
+
 รันเองบนเครื่อง: `PYTHONPATH=. pipenv run python scripts/audit_pins.py`
 
 บทบาท: decider — ตัดสินผ่าน/ไม่ผ่าน — หลักฐานคือเทสต์ที่ฝังความผิดแล้วต้องจับได้ · ของสะอาดต้องไม่ถูกจับ
@@ -31,6 +34,9 @@ import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "vendor" / "verifiable-gates" / "src"))
+
+from verifiable_gates import advisories  # noqa: E402 — ต้องต่อ path ให้ vendor ก่อน import
 
 # **เพดานเวลาของคำสั่งที่เรายิงออกไป** (audit รอบ 11 · ADR 0067) — `subprocess.run`
 # ที่ไม่มี `timeout=` รอตลอดกาล และเครื่องมือพวกนี้รันอยู่ใน job ของ CI ผลคือ
@@ -42,16 +48,7 @@ ACCEPTED = PINS / "accepted-advisories.txt"
 
 def accepted_advisories() -> set[str]:
     """ID ที่ประเมินแล้วว่ารับไว้ — บรรทัดว่างและคอมเมนต์ไม่นับ"""
-    lines = ACCEPTED.read_text(encoding="utf-8").splitlines()
-    return {line.strip() for line in lines if line.strip() and not line.startswith("#")}
-
-
-def _fixes(vuln: dict[str, list[str]]) -> str:
-    """รุ่นที่แก้แล้ว — **"ยังไม่มี" ต่างจาก "มีแต่เราขยับไม่ได้" อย่างสิ้นเชิง**
-
-    ข้อแรกคือรอ upstream ข้อหลังคือมีทางออกอยู่แล้วแต่มีอะไรขวางอยู่ที่ฝั่งเรา
-    """
-    return ", ".join(vuln["fix_versions"]) or "ยังไม่มี"
+    return set(advisories.accepted(ACCEPTED))
 
 
 def _run(command: list[str], where: pathlib.Path, tool: str) -> str:
@@ -88,12 +85,7 @@ def audit_pip(lock: pathlib.Path) -> dict[str, str]:
     ถึงจะรู้ได้ว่ารายการยกเว้นยังตรงกับความจริงอยู่ไหม
     """
     command = [sys.executable, "-m", "pip_audit", "--no-deps", "--format", "json", "-r", lock.name]
-    report = json.loads(_run(command, lock.parent, "pip-audit"))
-    return {
-        vuln["id"]: f"{dep['name']}=={dep['version']} (fix: {_fixes(vuln)})"
-        for dep in report["dependencies"]
-        for vuln in dep.get("vulns", [])
-    }
+    return advisories.from_pip_audit(json.loads(_run(command, lock.parent, "pip-audit")))
 
 
 def audit_npm(project: pathlib.Path) -> dict[str, str]:
@@ -110,23 +102,7 @@ def audit_npm(project: pathlib.Path) -> dict[str, str]:
     if "vulnerabilities" not in report:
         print(f"npm audit ไม่ได้คืนรายงานที่อ่านได้ที่ {project}", file=sys.stderr)
         raise SystemExit(2)
-
-    return {
-        _advisory_id(via): f"{via['name']}{via['range']} ({via['severity']})"
-        for entry in report["vulnerabilities"].values()
-        for via in entry["via"]
-        if isinstance(via, dict)
-    }
-
-
-def _advisory_id(via: dict[str, str]) -> str:
-    """GHSA จาก URL ของ advisory — ตกกลับไปที่ URL เต็มถ้ารูปแบบเปลี่ยน
-
-    **ห้ามใช้ `source` ที่เป็นเลข** มันเป็นไอดีภายในของ registry ซึ่งอ้างถึง
-    จากที่อื่นไม่ได้ และคนอ่านรายการยกเว้นจะไม่มีทางรู้ว่ามันคือเรื่องอะไร
-    """
-    _, marker, tail = via.get("url", "").partition("/advisories/")
-    return tail if marker and tail else via.get("url", via["name"])
+    return advisories.from_npm_audit(report)
 
 
 def main() -> int:
