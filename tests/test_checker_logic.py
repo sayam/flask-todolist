@@ -823,6 +823,40 @@ def test_the_strict_list_is_counted_from_the_files_that_exist():
     assert counted < len(modules), "นับได้เท่าจำนวนโมดูลทั้งหมด = pattern ไม่ได้ถูกใช้กรองเลย"
 
 
+def test_the_enhancements_of_a_plugin_stay_outside_the_count(tmp_path):
+    """`exclude` ของ mypy ตัดชั้นนี้ทิ้งอยู่แล้ว — ตัวนับต้องตัดตาม
+
+    **วันนี้การถอดชั้นนี้ออกยังไม่เปลี่ยนตัวเลข** เพราะ pattern ใน strict list
+    ตอนนี้เป็น `app.plugins` เฉย ๆ ซึ่งกวาดไม่ถึง · เทสต์ที่วัดจากของจริงจึงเขียว
+    ไม่ว่าค่าคงที่จะเป็นอะไร — พิสูจน์ที่ต้นไม้สังเคราะห์แทน โดยใช้ **ค่าคงที่ตัวจริง
+    ของ repo นี้** เพื่อให้การพิมพ์ผิดหรือการถอด `enhancements` ออกแดงทันที
+
+    ที่ต้องกันไว้คือวันที่มีคนเปลี่ยนเป็น `app.plugins.*`: พื้นจะเริ่มขยับตาม
+    **การวางไดเรกทอรี** แทนความเข้มของ type check — วางส่วนเสริมเพิ่มหนึ่งตัวแล้ว
+    ratchet แดง โดยไม่มีใครแตะโค้ดที่ถูกตรวจสักบรรทัด
+    """
+    assert list(check_ratchets.APP.rglob("enhancements")), (
+        "ไม่มีชั้นส่วนเสริมบนดิสก์แล้ว — ถ้าถอดทิ้งจริง ค่าคงที่นี้ต้องถูกถอดตาม"
+    )
+    (tmp_path / "pyproject.toml").write_text(
+        '[tool.mypy]\n[[tool.mypy.overrides]]\nmodule = ["app.*"]\ndisallow_untyped_defs = true\n',
+        encoding="utf-8",
+    )
+    for name in ("app/tz.py", "app/plugins/auth/totp/enhancements/qr/provide.py"):
+        path = tmp_path / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("", encoding="utf-8")
+
+    counted = check_ratchets.measure.strict_modules(
+        tmp_path,
+        tmp_path / "pyproject.toml",
+        tmp_path / "app",
+        skip_parts=check_ratchets.STRICT_SKIP_PARTS,
+    )
+
+    assert counted == 1, "ตัวนับเห็นส่วนเสริมด้วย — พื้นจะขยับตามการวางไดเรกทอรี ไม่ใช่ตามความเข้ม"
+
+
 def test_a_strict_list_that_shrank_is_red():
     """ทิศที่ไม่มีเครื่องมือตัวไหนบังคับให้ — ถอดโมดูลออกจากลิสต์ต้องแดง"""
     found = check_ratchets.problems({"mypy_strict_modules": 34.0}, {"mypy_strict_modules": 33.0})
@@ -878,8 +912,19 @@ def test_the_register_of_enforced_prohibitions_only_grows():
 
 
 def test_the_prohibition_count_is_read_from_the_register_not_a_number_in_a_doc():
-    """นับจากทะเบียนจริงใน `tests/test_declared_prohibitions.py` ไม่ใช่จากเอกสาร"""
-    assert check_ratchets.enforced_prohibitions() >= 8
+    """นับจากทะเบียนจริงใน `tests/test_declared_prohibitions.py` ไม่ใช่จากเอกสาร
+
+    **เทียบกับทะเบียนตัวจริงที่ import เข้ามา ไม่ใช่กับขอบล่างหลวม ๆ** — เกณฑ์
+    แบบ `>= 8` เขียวเท่ากันหมดไม่ว่าตัวอ่านจะคืน 14 หรือคืนค่าคงที่ 99 (ลองแล้ว:
+    เปลี่ยนตัวอ่านเป็น `return 99` ชุดเทสต์ยังเขียวทั้งชุด)
+
+    ตัวอ่านจริง**ไม่ import** ไฟล์นั้น (มันถูกเรียกจาก job ที่ไม่มี pytest) ส่วน
+    ที่นี่ import ได้ — สองทางที่ไปถึงตัวเลขเดียวกันคือสิ่งที่ทำให้เทสต์นี้พิสูจน์อะไรได้
+    """
+    from tests.test_declared_prohibitions import RULES
+
+    assert check_ratchets.enforced_prohibitions() == len(RULES)
+    assert len(RULES) >= 8, "ทะเบียนหดต่ำกว่าที่ audit รอบ 14–15 ปิดไว้"
 
 
 # ------------------------ การถอดต้องเป็นคำตัดสิน (ADR 0069 · audit r16 · ข้อ 1–2)
@@ -1755,27 +1800,34 @@ def test_a_readable_merge_setting_that_drifted_is_a_problem_not_a_note():
 #
 # ทุก ratchet ในไฟล์นี้เดินขึ้น · กองนี้เดินลง และนั่นคือเหตุผลที่มันต้องมีตรรกะ
 # ของตัวเอง: "ของจริงต่ำกว่าที่ประกาศ" เป็น**ข่าวดี**ที่ต้องบันทึก ไม่ใช่การถอย
+#
+# **ตรรกะสองทิศอยู่ที่ verifiable-gates แล้ว** (ADR 0077 · ขั้น 3c — 7 มิวเทชันแดง)
+# ที่เหลือให้พิสูจน์ที่นี่คือ *ทะเบียนกับถ้อยคำ*: ชื่อพวกนี้ถูกประกาศเป็นเพดานจริงไหม
+# และข้อความที่ออกมาบอกที่ที่ต้องไปแก้ของ repo นี้ถูกไหม
 
 
-def test_a_new_suppression_is_a_decision_not_a_side_effect():
-    """เกินเพดาน = แดง พร้อมบอกว่าต้องไปขยับที่ไหน"""
-    found = check_ratchets._ceiling_problems("suppressions", 99, 100)
+@pytest.mark.parametrize("name", check_ratchets.CEILINGS)
+def test_a_new_suppression_is_a_decision_not_a_side_effect(name):
+    """เกินเพดาน = แดง พร้อมบอกว่าต้องไปขยับที่ไหน — ทุกชื่อในกองนี้"""
+    found = check_ratchets.problems({name: 99.0}, {name: 100.0})
 
-    assert found, "เพิ่มข้อยกเว้นแล้วต้องแดง"
+    assert found, f"{name}: เพิ่มข้อยกเว้นแล้วต้องแดง"
     assert "ceilings" in found[0], "แดงแล้วแต่ไม่ได้บอกว่าต้องไปแก้ที่ไหน"
 
 
-def test_a_freed_slot_must_be_recorded_not_left_open():
+@pytest.mark.parametrize("name", check_ratchets.CEILINGS)
+def test_a_freed_slot_must_be_recorded_not_left_open(name):
     """ลดลงแล้วไม่ลดเพดานตาม = ที่ว่างถูกถมกลับเงียบ ๆ (ทิศที่คนลืมเสมอ)"""
-    found = check_ratchets._ceiling_problems("suppressions", 99, 90)
+    found = check_ratchets.problems({name: 99.0}, {name: 90.0})
 
-    assert found, "ของจริงลดลงแล้วเพดานต้องตามลงมา"
+    assert found, f"{name}: ของจริงลดลงแล้วเพดานต้องตามลงมา"
     assert "90" in found[0], "ต้องบอกตัวเลขใหม่ที่ควรเป็น"
 
 
-def test_a_ceiling_that_matches_reality_is_silent():
+@pytest.mark.parametrize("name", check_ratchets.CEILINGS)
+def test_a_ceiling_that_matches_reality_is_silent(name):
     """ทิศ "ผ่านเมื่อควรผ่าน" — ตัวตรวจที่ดังกับของปกติจะถูกปิดเสียง"""
-    assert check_ratchets._ceiling_problems("suppressions", 99, 99) == []
+    assert check_ratchets.problems({name: 99.0}, {name: 99.0}) == []
 
 
 def test_the_counter_reads_real_files():
@@ -1792,20 +1844,32 @@ def test_the_counter_reads_real_files():
 HASH = "#"
 
 
-@pytest.mark.parametrize(
-    ("line", "is_suppression", "has_reason"),
-    [
-        (f"x = 1  {HASH} noqa: F401", True, False),
-        (f"x = 1  {HASH} noqa: F401 นำเข้าเพื่อผูก event ไม่ได้ใช้ชื่อ", True, True),
-        (f"x = 1  {HASH} type: ignore[arg-type]", True, False),
-        (f"x = 1  {HASH} type: ignore[arg-type] ไลบรารีไม่มี stub", True, True),
-        (f"x = 1  {HASH} คอมเมนต์ธรรมดา", False, False),
-        ("x = 1", False, False),
-    ],
-)
-def test_the_reason_is_judged_apart_from_the_rule_code(line, is_suppression, has_reason):
-    """ "ปิดกฎไหน" กับ "ทำไม" เป็นคนละคำถาม — ยอดรวมพิสูจน์ข้อนี้ไม่ได้"""
-    assert check_ratchets.classify_suppression(line) == (is_suppression, has_reason)
+def test_the_scan_covers_this_repository_s_own_layers():
+    """ขอบเขตที่สแกนเป็นของ repo นี้ — ตัวจำแนกรายบรรทัดพิสูจน์แล้วที่ vg
+
+    ที่นี่พิสูจน์ว่า**ขอบเขตถูก**: ทั้งสามชั้นที่ประกาศไว้ต้องมีของถูกนับจริง
+    ขอบเขตที่พิมพ์ผิดชั้นใดชั้นหนึ่งจะยังคืนเลขบวก แล้วเพดานจะเฝ้าของน้อยกว่าที่คิด
+    โดยไม่มีอะไรฟ้อง
+
+    เรียกตัวอ่านผ่าน `check_ratchets.measure` ไม่ใช่ import ตรง — ไฟล์นี้จึงไม่
+    ต้องพึ่งว่า path ของ vendor ถูกต่อไว้แล้วตอนมันถูก import เอง
+    """
+    for pattern in check_ratchets.SUPPRESSION_SOURCES:
+        counts = check_ratchets.measure.suppression_counts(
+            check_ratchets.ROOT, (pattern,), check_ratchets.SUPPRESSION_SKIP
+        )
+        assert counts["suppressions"] > 0, f"{pattern}: ไม่มีอะไรถูกนับเลย — ขอบเขตนี้ตายแล้ว"
+
+
+def test_the_generated_file_stays_out_of_the_count():
+    """`app/sun_data.py` generate มา — บรรทัดในนั้นไม่ใช่คำตัดสินของใคร"""
+    with_it = check_ratchets.measure.suppression_counts(
+        check_ratchets.ROOT, check_ratchets.SUPPRESSION_SOURCES
+    )
+    without_it = check_ratchets.suppression_counts()
+
+    assert without_it["suppressions"] <= with_it["suppressions"]
+    assert "sun_data.py" in check_ratchets.SUPPRESSION_SKIP
 
 
 # ------------- หน้าที่สร้างมาให้เลิกนับด้วยมือ ต้องไม่มีเลขที่นับด้วยมือ (audit r21 ข้อ 3)
