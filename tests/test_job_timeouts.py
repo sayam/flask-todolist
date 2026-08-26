@@ -141,7 +141,8 @@ def test_every_command_we_shell_out_to_declares_a_timeout():
 # ควรตั้งใหม่ครั้งเดียวตอนนั้น แทนการขยับทุกขั้น (หลักเดียวกับ scripts_coverage)
 # 9 → 8 (ขั้น 3c): ตัววัดของ `check_ratchets` ย้ายไป vg พร้อมการเรียก `coverage`
 # กับ `interrogate` ซึ่งเป็นจุดเดียวในไฟล์นั้น
-CALLS_FLOOR = 8
+# 8 → 7 (ขั้น 3d): `_git` ของ `removals_census` ย้ายตามไป
+CALLS_FLOOR = 7
 
 
 def test_the_scan_actually_finds_the_calls_it_claims_to_check():
