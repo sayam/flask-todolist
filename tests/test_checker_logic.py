@@ -22,6 +22,7 @@ import ast
 import json
 import pathlib
 import re
+import shutil
 import subprocess
 import typing
 
@@ -1248,12 +1249,19 @@ def test_the_census_reads_the_root_and_the_manifest_it_was_given(tmp_path, monke
     checkout ของ CI ตื้น ประวัติจึงไปไม่ถึง commit นั้น · เทสต์ที่ผลขึ้นกับสิ่งที่
     เครื่องบังเอิญมี ต้องปลอม input เอง (กติกาใน CLAUDE.md)
     """
-    subprocess.run(["git", "init", "-q", "-b", "main", str(tmp_path)], check=True, timeout=60)  # noqa: S603, S607
-    for args in (
-        ["config", "user.email", "nobody@example.invalid"],
-        ["config", "user.name", "Nobody"],
-    ):
-        subprocess.run(["git", *args], cwd=tmp_path, check=True, timeout=60)  # noqa: S603, S607
+
+    binary = shutil.which("git")
+    assert binary, "เทสต์นี้อ่านประวัติจริงจึงต้องมี git"
+
+    def git(*args: str) -> None:
+        """คำสั่ง git ของเทสต์นี้ผ่านที่เดียว — ไม่ใช่ห้าบรรทัดที่ปิดกฎเดียวกันห้าครั้ง"""
+        subprocess.run(  # noqa: S603 — path จาก shutil.which · argv คงที่ · ปลายทางคือ tmp_path
+            [binary, *args], cwd=tmp_path, check=True, timeout=60
+        )
+
+    git("init", "-q", "-b", "main")
+    git("config", "user.email", "nobody@example.invalid")
+    git("config", "user.name", "Nobody")
 
     rows = "gates:\n  - id: alpha\n  - id: beta\n"
     for body, subject in (
@@ -1261,8 +1269,8 @@ def test_the_census_reads_the_root_and_the_manifest_it_was_given(tmp_path, monke
         (rows.replace("  - id: beta\n", ""), "chore: drop beta"),
     ):
         (tmp_path / "gates.yaml").write_text(body, encoding="utf-8")
-        subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True, timeout=60)  # noqa: S607
-        subprocess.run(["git", "commit", "-q", "-m", subject], cwd=tmp_path, check=True, timeout=60)  # noqa: S603, S607
+        git("add", "-A")
+        git("commit", "-q", "-m", subject)
 
     monkeypatch.setattr(removals_census, "ROOT", tmp_path)
     found, _edits = removals_census.census("1.year")
