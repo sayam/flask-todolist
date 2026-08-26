@@ -144,9 +144,12 @@ def test_every_command_we_shell_out_to_declares_a_timeout():
 # 8 → 7 (ขั้น 3d): `_git` ของ `removals_census` ย้ายตามไป
 # 7 → 6 (ขั้น 4): `git ls-files` ของ `check_semgrep` ย้ายตามไปกับตัวคำนวณเซต
 # 6 → 4 (ขั้น 5): ตัวสั่งงาน battery กับ probe ของการทดลองย้ายไป vg พร้อมการเรียก
-# checker และตัวสแกนภายนอก · **นี่คือพื้นสุดท้ายของสายถอด** — ตัวที่เหลือคือของ
-# ที่ตัดสินแล้วว่าอยู่ที่นี่ ไม่ใช่ของที่รอย้าย
-CALLS_FLOOR = 4
+# checker และตัวสแกนภายนอก
+# **4 → 2 (ขั้น 5 · ตัวสุดท้าย)**: `rerun_census` ย้ายไป vg พาการเรียกสองจุดไปด้วย
+# (`gh api` ของสำมะโน และ `gh api …/logs` ที่มีเพดานเวลาของตัวเอง) · **นี่คือพื้น
+# สุดท้ายของสายถอดจริง ๆ** — สองจุดที่เหลืออยู่ใน `audit_pins` กับ `audit_posture`
+# ซึ่งเป็น adapter ที่ยิงคำสั่งเองด้วยเหตุผลของมัน ไม่ใช่ของที่รอย้าย
+CALLS_FLOOR = 2
 
 
 def test_the_scan_actually_finds_the_calls_it_claims_to_check():

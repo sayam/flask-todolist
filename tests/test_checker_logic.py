@@ -37,7 +37,6 @@ from scripts import (
     check_ratchets,
     check_semgrep,
     removals_census,
-    rerun_census,
     whats_pending,
     workflows,
 )
@@ -279,146 +278,6 @@ OUTAGE_RUN = {
 }
 
 
-def test_the_census_sees_the_failure_a_rerun_erased(tmp_path, capsys):
-    """ทิศ "แดงเมื่อควรแดง" ของตัวนับ: ของที่หายจาก `gh run list` ต้องยังถูกนับ"""
-    rerun_census.main(["--input", _records(tmp_path, [HIDDEN_RUN, VISIBLE_RUN, GREEN_RUN])])
-
-    printed = capsys.readouterr().out
-    assert "ล้มแล้วถูก rerun จนหายไป    : 1" in printed, printed
-    assert "dast" in printed, printed
-    assert "ซ่อน 1" in printed, printed
-
-
-def test_the_census_reports_zero_on_a_clean_stretch(tmp_path, capsys):
-    """ทิศ "ผ่านเมื่อควรผ่าน" — ช่วงที่ไม่มีอะไรแดงต้องไม่ถูกรายงานว่ามีของซ่อน"""
-    assert rerun_census.main(["--input", _records(tmp_path, [GREEN_RUN, GREEN_RUN])]) == 0
-    printed = capsys.readouterr().out
-    assert "ล้มแล้วถูก rerun จนหายไป    : 0" in printed, printed
-
-
-def test_the_census_separates_the_platforms_failures_from_ours(tmp_path):
-    """429 ตอนโหลด action ไม่ใช่ flake ของด่านเรา — ปนกันแล้วเกณฑ์ flake ถูกมลพิษ"""
-    summary = rerun_census.census([PLATFORM_RUN, HIDDEN_RUN])
-
-    assert summary["failures_by_class"] == {"platform": 1, "ของเรา": 1}
-
-
-def test_the_census_reads_the_message_not_the_name_of_the_step(tmp_path, capsys):
-    """**D1 ของ audit r8** — 503 ของ GitHub ที่ล้มใน action ต้องไม่ถูกอ่านว่าเป็นของเรา
-
-    ฉบับแรกแยกคลาสด้วยชื่อ step อย่างเดียว (`Set up job`) · วันที่ GitHub ล่มจริง
-    `codeql` ล้มสี่ครั้งที่ step `Run github/codeql-action/init@…` แล้วถูกนับเป็น
-    "ของเรา" ทั้งสี่ — เกณฑ์ flake ของด่านเราจึงสุกงอมด้วยเรื่องที่เราแก้ไม่ได้
-    """
-    assert rerun_census.classify(OUTAGE_RUN["failures"][0]) == rerun_census.PLATFORM
-
-    summary = rerun_census.census([OUTAGE_RUN])
-    assert summary["failures_by_class"] == {"platform": 1}
-
-
-def test_the_census_refuses_to_guess_that_a_failure_is_ours(tmp_path):
-    """ที่จำแนกไม่ได้ต้องออกทาง `ต้องอ่านเอง` — **ห้ามตกไปอยู่ "ของเรา" เงียบ ๆ**
-
-    สองรูปที่ตัดสินด้วยเครื่องไม่ได้: ไม่มี annotation ให้อ่านเลย · และล้มใน action
-    ของคนอื่นโดยไม่มีร่องรอยว่าฝั่งไหนพัง (เซิร์ฟเวอร์ของเขา หรือ config ของเรา)
-    """
-    silent = _fail("stack", "docker compose up", "")
-    third_party = _fail("image", "Run docker/build-push-action@v6", "buildx failed")
-
-    assert rerun_census.classify(silent) == rerun_census.UNKNOWN
-    assert rerun_census.classify(third_party) == rerun_census.UNKNOWN
-
-    summary = rerun_census.census([{"id": 7, "attempt": 1, "failures": [silent, third_party]}])
-    assert summary["failures_by_class"] == {"ต้องอ่านเอง": 2}
-
-
-def test_the_census_does_not_read_our_own_status_codes_as_an_outage(tmp_path):
-    """ทิศตรงข้าม: เลขสถานะที่*เราเอง* assert ไว้ ไม่ใช่หลักฐานว่าโลกพัง
-
-    `/readyz` ของแอปนี้ตอบ 503 โดยตั้งใจ และเทสต์ของมัน assert เลขนั้นตรง ๆ —
-    ตัวจำแนกที่จับ "503" ลอย ๆ จะย้ายความล้มเหลวของเราไปอยู่ฝั่งแพลตฟอร์ม
-    ซึ่งเป็นความผิดพลาดทิศเดียวกับที่ r8 จับได้ แค่กลับด้าน
-    """
-    ours = _fail("test", "pipenv run pytest", "assert 200 == 503\nE  where 503 = resp.status_code")
-
-    assert rerun_census.classify(ours) == rerun_census.OURS
-
-
-def test_the_census_tells_the_reader_what_it_could_not_classify(tmp_path, capsys):
-    """ชั้น `ต้องอ่านเอง` ที่ไม่ถูกพิมพ์ออกมา คือชั้นที่ไม่มีใครไปอ่าน"""
-    rerun_census.main(
-        [
-            "--input",
-            _records(
-                tmp_path,
-                [
-                    {
-                        "id": 8,
-                        "attempt": 1,
-                        "failures": [
-                            _fail("stack", "docker compose up", ""),
-                        ],
-                    }
-                ],
-            ),
-        ]
-    )
-
-    printed = capsys.readouterr().out
-    assert "ต้องอ่านเอง" in printed, printed
-    assert "OPERATIONS.md" in printed, printed
-
-
-def test_the_census_fails_when_hidden_failures_pass_the_ceiling(tmp_path):
-    """ใช้เป็นด่านตอนทบทวนตามรอบได้ — เพดานที่ไม่มีทางแดงคือเพดานที่ไม่ได้ตั้ง"""
-    path = _records(tmp_path, [HIDDEN_RUN, GREEN_RUN])
-
-    assert rerun_census.main(["--input", path, "--max-hidden", "1"]) == 0
-    assert rerun_census.main(["--input", path, "--max-hidden", "0"]) == 1
-
-
-def test_the_census_notices_a_workflow_that_never_started(tmp_path):
-    """**จุดบอดของ audit r9** — run ที่ล้มโดยมี 0 job หายไปจากสำมะโนทั้งใบ
-
-    ของจริงที่ซ่อนอยู่ใต้จุดบอดนี้: `scorecard.yml` ล้มทุก run ข้ามวันรวมบน main
-    เพราะประกาศ scope ที่ `GITHUB_TOKEN` ไม่มี → job `posture` (ADR 0061) ไม่เคย
-    รันเลยสักครั้ง และไม่มีใครเห็นเพราะมันไม่ใช่ required check
-    """
-    run = {"id": 9, "conclusion": "failure", "run_attempt": 1, "name": "scorecard.yml"}
-
-    made = rerun_census.startup_failure(run, [])
-
-    assert len(made) == 1, "run ที่ล้มโดยไม่มี job ล้ม ต้องถูกบันทึกไว้หนึ่งรายการ"
-    assert "scorecard.yml" in made[0]["job"], "ต้องบอกได้ว่า workflow ไหนไม่ได้ start"
-    assert rerun_census.classify(made[0]) == rerun_census.OURS
-    assert (
-        rerun_census.census([{"id": 9, "attempt": 1, "failures": made}])["runs_failed_visible"] == 1
-    )
-
-
-def test_the_census_does_not_invent_failures_that_did_not_happen(tmp_path):
-    """ทิศตรงข้าม — run ที่เขียว และ run ที่มี job ล้มอยู่แล้ว ต้องไม่ถูกเติมของปลอม"""
-    real = [_fail("test", "pytest", "assert 1 == 2")]
-
-    assert rerun_census.startup_failure({"conclusion": "success"}, []) == []
-    assert rerun_census.startup_failure({"conclusion": "failure"}, real) == real
-
-
-def test_the_census_counts_a_run_once_no_matter_how_many_jobs_failed(tmp_path):
-    """หนึ่ง run ที่แดงห้า job คือความล้มเหลวหนึ่งครั้ง — ไม่งั้นสถิติเอียงตามขนาด matrix"""
-    crowded = {
-        "id": 5,
-        "attempt": 1,
-        "failures": [
-            {"attempt": 1, "job": "stack", "step": "TLS"},
-            {"attempt": 1, "job": "siem", "step": "loki"},
-            {"attempt": 1, "job": "dast", "step": "ZAP"},
-        ],
-    }
-
-    assert rerun_census.census([crowded])["runs_failed_visible"] == 1
-
-
 # ------------------------------------------------- เก็บหลักฐานจากความแดงจริง
 #
 # audit r9 ข้อ 1 — `UNPROVEN` 76 ตัวนั่งอยู่ที่เพดานพอดีและไม่มีอะไรทวงให้หด
@@ -443,74 +302,6 @@ GATES_FIXTURE = [
         "proved_by": [{"kind": "mutation", "ref": "pr/1"}],
     },
 ]
-
-
-def test_the_window_is_as_wide_as_it_was_asked_to_be(monkeypatch):
-    """`per_page` ของ GitHub ตันที่ 100 — ขอ 200 แล้วได้ 100 เงียบ ๆ
-
-    แถว cadence สองแถวสั่ง `--limit 200` · ถ้าตัวนับไม่ไล่หน้า หน้าต่างที่วัดจริง
-    จะแคบกว่าที่เอกสารบอกครึ่งหนึ่งโดยไม่มีอะไรฟ้อง — ซึ่งคือรูปเดียวกับที่ตัวนับ
-    ใบนี้ถูกสร้างมาเพื่อปิด (สถิติที่มองไม่เห็นบางส่วนของความจริง)
-    """
-    pages: list[str] = []
-
-    def fake(path: str) -> dict:
-        pages.append(path)
-        page = int(path.split("&page=")[1])
-        return {"workflow_runs": [{"id": page * 1000 + i} for i in range(100)] if page <= 2 else []}
-
-    monkeypatch.setattr(rerun_census, "_gh", fake)
-
-    runs = rerun_census._recent_runs(150)
-
-    assert len(runs) == 150, f"ขอ 150 ได้ {len(runs)} — หน้าต่างแคบกว่าที่สั่ง"
-    assert len(pages) == 2, f"ต้องไล่สองหน้า ไม่ใช่ {len(pages)}"
-    assert "per_page=100&page=1" in pages[0]
-
-
-def test_the_harvester_reads_which_test_files_went_red(tmp_path):
-    """หลักฐานอยู่ใน log ของ job ไม่ใช่ใน annotation — annotation บอกแค่ exit code"""
-    found = rerun_census.failing_tests(LOG_WITH_FAILURES)
-
-    assert found == {"tests/test_gates.py", "tests/test_audit.py"}
-    assert rerun_census.failing_tests("1362 passed in 360.37s") == set()
-
-
-def test_the_harvester_proposes_evidence_only_for_gates_that_lack_it(tmp_path):
-    """เสนอเฉพาะที่ยังไม่มีหลักฐาน — ที่มีแล้วไม่ต้องการเพิ่ม และเสนอ ไม่ใช่เขียนให้"""
-    record = {
-        "id": 4242,
-        "attempt": 1,
-        "failures": [
-            {
-                **_fail("test", "pipenv run pytest", "Process completed with exit code 1."),
-                "tests": ["tests/test_gates.py", "tests/test_audit.py"],
-            }
-        ],
-    }
-
-    proposals = rerun_census.evidence_proposals([record], GATES_FIXTURE)
-
-    assert [p["gate"] for p in proposals] == ["gates-index-two-way"], (
-        "gate ที่มี proved_by อยู่แล้วต้องไม่ถูกเสนอซ้ำ และ gate ที่ยังไม่มีต้องถูกเสนอ"
-    )
-    assert proposals[0]["run"] == 4242, "ต้องชี้ run ที่เป็นหลักฐานได้"
-
-
-def test_the_harvester_ignores_failures_that_are_not_ours(tmp_path):
-    """503 ของ GitHub ไม่ใช่หลักฐานว่าด่านของเราจับอะไรได้ (ADR 0064)"""
-    outage = {
-        "id": 7,
-        "attempt": 1,
-        "failures": [
-            {
-                **_fail("test", "Run github/codeql-action/init@v3", "HTTP 503 from api.github.com"),
-                "tests": ["tests/test_gates.py"],
-            }
-        ],
-    }
-
-    assert rerun_census.evidence_proposals([outage], GATES_FIXTURE) == []
 
 
 # ------------------------------------------------------------- platform posture
@@ -690,25 +481,6 @@ def test_posture_refuses_to_pass_when_it_cannot_read(monkeypatch, capsys):
 
     assert audit_posture.main([]) == 2
     assert "ห้ามแปลงกรณีนี้เป็นการข้ามเงียบ ๆ" in capsys.readouterr().err
-
-
-def test_the_census_names_the_jobs_that_never_went_red():
-    """ครึ่งแรกของคำถาม "ด่านนี้ยังคุ้มไหม" — job ที่ไม่โผล่ในสถิติเลยต้องถูกเรียกชื่อ
-
-    ADR 0062: ด่าน real-service ที่ไม่เคยแดงจะถูกตัดสินด้วยข้อมูลสองชั้น (ไม่แดง
-    + โค้ดที่มันคุ้มไม่ถูกแตะ) ไม่ใช่ด้วยความรู้สึกว่ามันแพง
-    """
-    summary = rerun_census.census([HIDDEN_RUN, VISIBLE_RUN])
-    defined = {"dast", "test", "vault", "sso"}
-
-    assert rerun_census.jobs_never_red(summary, defined) == ["sso", "vault"]
-
-
-def test_the_census_counts_a_rerun_job_as_having_gone_red():
-    """job ที่แดงแล้วถูก rerun **ไม่ใช่** job ที่ไม่เคยแดง — กับดักที่ D1 เพิ่งปิด"""
-    summary = rerun_census.census([HIDDEN_RUN])
-
-    assert rerun_census.jobs_never_red(summary, {"dast", "vault"}) == ["vault"]
 
 
 # ------------------------------------------ alert บนหน้า Security (audit r10 · ข้อ 3)
@@ -1073,81 +845,6 @@ MATRIX_FAILURE = {
 }
 
 
-def test_a_check_name_is_resolved_back_to_its_job_id():
-    """ชื่อที่ API คืนมา ต้องถูกแปลงกลับเป็นไอดีก่อนนับ"""
-    summary = rerun_census.census([MATRIX_FAILURE], {"dialect": "dialects"})
-
-    assert "dialects" in summary["jobs"], "ชื่อ check ไม่ได้ถูกแปลงกลับเป็นไอดี job"
-    assert "dialect" not in summary["jobs"]
-
-
-def test_the_two_halves_of_the_report_cannot_contradict_each_other():
-    """job ที่นับความล้มเหลวไว้ ต้องไม่โผล่ในรายการ "ไม่เคยแดง" ของรายงานเดียวกัน"""
-    summary = rerun_census.census([MATRIX_FAILURE], {"dialect": "dialects"})
-    never = rerun_census.jobs_never_red(summary, {"dialects", "lint"})
-
-    assert "dialects" not in never, "รายงานขัดกับตัวเอง"
-    assert never == ["lint"]
-
-
-def test_without_the_map_the_old_bug_is_visible():
-    """ทิศที่พิสูจน์ว่าแม็ปคือสิ่งที่แก้ — ไม่ส่งแม็ปแล้วบั๊กเดิมกลับมาทันที"""
-    summary = rerun_census.census([MATRIX_FAILURE])
-
-    assert rerun_census.jobs_never_red(summary, {"dialects"}) == ["dialects"], (
-        "ถ้าไม่มีแม็ป job ที่ล้มจริงจะยังถูกรายงานว่าไม่เคยแดง"
-    )
-
-
-def test_a_name_that_cannot_be_resolved_is_reported_loudly():
-    """ชื่อที่แปลงกลับไม่ได้ = ชื่อที่จะตกไปฝั่ง "ไม่เคยแดง" เงียบ ๆ"""
-    summary = rerun_census.census(
-        [
-            {
-                "id": 12,
-                "attempt": 1,
-                "failures": [{"attempt": 1, "job": "job-ที่ไม่รู้จัก", "step": "s", "message": "m"}],
-            }
-        ]
-    )
-
-    assert rerun_census.unresolved_labels(summary, {"lint"}) == ["job-ที่ไม่รู้จัก"]
-
-
-def test_a_workflow_that_never_started_is_not_counted_as_a_strange_name():
-    """run ที่ไม่ได้ start ถูกตั้งชื่อด้วย path โดยตั้งใจ — ไม่ใช่ชื่อที่แปลงพลาด"""
-    summary = rerun_census.census(
-        [
-            {
-                "id": 13,
-                "attempt": 1,
-                "failures": [
-                    {
-                        "attempt": 1,
-                        "job": ".github/workflows/scorecard.yml — ไม่ได้ start",
-                        "step": "",
-                        "message": "workflow file issue",
-                    }
-                ],
-            }
-        ]
-    )
-
-    assert rerun_census.unresolved_labels(summary, {"lint"}) == []
-
-
-def test_the_identity_map_reads_the_real_workflows():
-    """แม็ปต้องอ่านจากไฟล์จริง — matrix ที่เปลี่ยนชื่อ `name:` ต้องยังตามได้"""
-    ids, by_name, by_path = rerun_census.job_identity()
-
-    assert "dialects" in ids
-    assert by_name.get("dialect") == "dialects", "job ที่ตั้ง name: ต่างจากไอดี ต้องถูกแม็ป"
-    # `posture` ย้ายมาไฟล์ของตัวเองเมื่อ 2026-08-27 (ADR 0061 โน้ต) — ข้อนี้ยัง
-    # ถามคำถามเดิม: แม็ปอ่าน path จริงจากดิสก์ ไม่ใช่จากรายการที่ลอกไว้
-    assert "posture" in by_path[".github/workflows/posture.yml"]
-    assert "scorecard" in by_path[".github/workflows/scorecard.yml"]
-
-
 # --------------------- หน้าเดียวที่ตอบว่า "อะไรค้าง" (audit r13 · ข้อ 4)
 #
 # ตัวนี้เป็น *ของอ่าน* ไม่ใช่ด่าน — มันไม่เก็บสถานะของตัวเองเลย · เทสต์จึงพิสูจน์
@@ -1445,6 +1142,15 @@ PROVEN_ELSEWHERE = {
             "ตัววัดของการทดลองย้ายไป `verifiable-gates` ขั้น 5 พร้อมเทสต์ที่กางแอปคู่หนึ่ง "
             "(ละเมิดครบ / ทำครบ) แล้วบังคับว่าทุกข้อต้องแยกสองตัวนั้นออกจากกันได้ — "
             "ที่นี่พิสูจน์ *รอยต่อ*: พาธเดิมยัง export ตัวจริง ไม่ใช่ชื่อที่พ้องกัน"
+        ),
+    ),
+    "rerun_census": (
+        "tests/test_vendored_tooling.py",
+        (
+            "ตัวนับย้ายไป `verifiable-gates` ขั้น 5 พร้อมเทสต์ 58 ตัวที่ตรวจสองทิศ "
+            "(5 มิวเทชันแดง รวมข้อที่อ่านชื่อ step ก่อนข้อความ) — ที่นี่พิสูจน์ *รอยต่อ*: "
+            "**ถ้อยคำ** ที่ adapter ส่งเข้าไป และ **ราก** ที่มันชี้ ซึ่งชี้ผิดแล้วรายงาน "
+            "ว่าไม่มี job ไหนเคยแดง อ่านเหมือน 'ไม่มีอะไรพัง'"
         ),
     ),
     "n1_smoke": (
