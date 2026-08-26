@@ -139,7 +139,9 @@ def test_every_command_we_shell_out_to_declares_a_timeout():
 # 10 → 9 (ขั้น 3b): `schedule_census` · `red_streak_census` · `gh` ย้ายไป vg
 # พร้อมการเรียกของมัน · เมื่อขั้น 3d/3e จบ ตัวเลขนี้จะเหลือน้อยกว่านี้อีก และ
 # ควรตั้งใหม่ครั้งเดียวตอนนั้น แทนการขยับทุกขั้น (หลักเดียวกับ scripts_coverage)
-CALLS_FLOOR = 9
+# 9 → 8 (ขั้น 3c): ตัววัดของ `check_ratchets` ย้ายไป vg พร้อมการเรียก `coverage`
+# กับ `interrogate` ซึ่งเป็นจุดเดียวในไฟล์นั้น
+CALLS_FLOOR = 8
 
 
 def test_the_scan_actually_finds_the_calls_it_claims_to_check():
