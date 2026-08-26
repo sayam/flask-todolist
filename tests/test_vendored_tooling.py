@@ -220,3 +220,55 @@ def test_the_helper_adapters_still_serve_the_scripts_that_have_not_moved():
     assert gh.api is real_gh.api
     assert workflows.WORKFLOW_DIR == ROOT / ".github" / "workflows"
     assert "ci.yml" in workflows.all_workflows(), "ตัวห่อไม่ได้ชี้ workflow ของ repo นี้"
+
+
+def test_the_probe_adapter_reaches_the_real_instrument(tmp_path, capsys) -> None:
+    """ตัววัดของการทดลองย้ายไป vg แล้ว — ที่นี่พิสูจน์ว่า *พาธเดิมยังเดินไปถึงตัวจริง*
+
+    คำตัดสินทั้งสิบข้อถูกทดสอบสองทิศที่ vg (แอปที่ละเมิดครบ / ทำครบ ต้องแยก
+    ออกจากกันได้ทุกข้อ) · รอยต่อที่ยังไม่มีใครตรวจคือ adapter ที่ export ชื่อ
+    ผิดตัว ซึ่งอ่านเหมือนใช้ได้จนกว่าจะมีคนเรียกจริง
+    """
+    from scripts import asvs_probe as adapter
+
+    real = adapter.asvs_probe
+    assert (ROOT / "vendor") in pathlib.Path(real.__file__ or "").parents
+    assert adapter.probe is real.probe
+    assert adapter.CHECKS is real.CHECKS, "adapter ถือรายการข้อคนละชุดกับตัวจริง"
+
+    (tmp_path / "app").mkdir()
+    (tmp_path / "run.py").write_text("from app import create_app\n", encoding="utf-8")
+    (tmp_path / "app" / "__init__.py").write_text(
+        'SECRET_KEY = "hardcoded-secret-value"\n', encoding="utf-8"
+    )
+
+    answers = adapter.probe(tmp_path)
+
+    assert set(answers) == set(adapter.CHECKS), "ตอบไม่ครบทุกข้อที่ประกาศไว้"
+    assert answers["V6.4.1-secret-not-hardcoded"] is False, "เดินไปไม่ถึงตัวตัดสินจริง"
+    assert capsys.readouterr().out == "", "ตัววัดไม่ควรพิมพ์อะไรตอนถูกเรียกเป็นไลบรารี"
+
+
+def test_the_measurement_adapter_still_runs_from_the_path_people_type(tmp_path) -> None:
+    """ตัวสั่งงาน battery ถูกเรียกด้วยพาธนี้ในเอกสารและใน session ของ agent
+
+    ป้อนรากที่ไม่มีแอปเลย: ต้องได้ผลว่างพร้อมบอกว่าไม่มีอะไรให้วัด — ซึ่งพิสูจน์ว่า
+    มันเดินถึงตัวจริงและเขียนไฟล์ผลออกมาได้ · **ตัวเลขที่มันนับถูกทดสอบที่ vg**
+    """
+    import json as json_module
+    import subprocess
+    import sys
+
+    script = ROOT / "scripts" / "measure_generated.py"
+    output = tmp_path / "result.json"
+    done = subprocess.run(  # noqa: S603 — คำสั่งคงที่ + interpreter ของ venv เดียวกัน
+        [sys.executable, str(script), str(tmp_path), "--output", str(output)],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=120,
+        cwd=ROOT,
+    )
+
+    assert done.returncode == 0, f"ล้มด้วย: {done.stderr[-400:]}"
+    assert json_module.loads(output.read_text(encoding="utf-8")) == []
