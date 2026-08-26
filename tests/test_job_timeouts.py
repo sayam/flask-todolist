@@ -143,7 +143,10 @@ def test_every_command_we_shell_out_to_declares_a_timeout():
 # กับ `interrogate` ซึ่งเป็นจุดเดียวในไฟล์นั้น
 # 8 → 7 (ขั้น 3d): `_git` ของ `removals_census` ย้ายตามไป
 # 7 → 6 (ขั้น 4): `git ls-files` ของ `check_semgrep` ย้ายตามไปกับตัวคำนวณเซต
-CALLS_FLOOR = 6
+# 6 → 4 (ขั้น 5): ตัวสั่งงาน battery กับ probe ของการทดลองย้ายไป vg พร้อมการเรียก
+# checker และตัวสแกนภายนอก · **นี่คือพื้นสุดท้ายของสายถอด** — ตัวที่เหลือคือของ
+# ที่ตัดสินแล้วว่าอยู่ที่นี่ ไม่ใช่ของที่รอย้าย
+CALLS_FLOOR = 4
 
 
 def test_the_scan_actually_finds_the_calls_it_claims_to_check():

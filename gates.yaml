@@ -410,10 +410,10 @@ gates:
           (ทิศสุดท้ายกันไม่ให้ด่านผ่านเพราะไม่มีอะไรให้ตรวจ)
 
   - id: comparison-instrument-verified
-    title: ตัววัดของการทดลองต้องแยกแอปที่ทำครบออกจากแอปที่ละเมิดได้ทุกข้อ
+    title: บันทึกของสายวิทยานิพนธ์ต้องครบทุกวันที่มี commit และทะเบียนการถอดต้องตรง
     kind: test
     severity: blocking
-    enforced_by: {job: test, tests: [tests/test_asvs_probe.py, tests/test_effort_log.py, tests/test_extraction_manifest.py]}
+    enforced_by: {job: test, tests: [tests/test_effort_log.py, tests/test_extraction_manifest.py]}
     standard: []
     requires: []
     portable: false
@@ -422,8 +422,13 @@ gates:
     born_from: >-
       ตัวเลขที่ใช้ตัดสินว่า "วิธีทำงานแบบหนึ่งดีกว่าอีกแบบ" มีค่าเท่ากับความสามารถ
       ในการแยกแยะของเครื่องมือที่วัดมัน — probe ที่ตอบผ่านให้ทุกแอปจะรายงานว่า
-      ไม่มีความต่าง ซึ่งเป็นข้อสรุปที่ผิดโดยไม่มีอะไรฟ้อง จึงต้องกางแอปคู่หนึ่ง
-      (ละเมิดครบ/ทำครบ) แล้วบังคับว่าทุกข้อต้องแยกสองตัวนั้นออกจากกันได้
+      ไม่มีความต่าง ซึ่งเป็นข้อสรุปที่ผิดโดยไม่มีอะไรฟ้อง
+
+      **ตัว probe กับการทดลองย้ายไป verifiable-gates แล้ว** (ADR 0077 · ขั้น 5)
+      พร้อมเทสต์ที่กางแอปคู่หนึ่งบังคับให้ทุกข้อแยกสองตัวนั้นออกจากกันได้ ·
+      ที่นี่เหลือสองอย่างที่เป็นของ repo นี้จริง ๆ: **บันทึกเวลาของสายวิทยานิพนธ์**
+      ซึ่งเป็นบันทึกของผู้วิจัยไม่ใช่หลักฐานของ vg (ADR 0075) และ **ทะเบียนของที่ถอด
+      ออกไปแล้ว** ซึ่งต้องยังชี้ของที่มีอยู่จริงทั้งสองทิศ
 
     proved_by:
       - kind: mutation
@@ -817,7 +822,6 @@ gates:
       tests:
         - tests/test_script_roles.py
         - tests/test_generated_tables.py
-        - tests/test_measure_generated.py
     standard: []
     requires: []
     portable: true
