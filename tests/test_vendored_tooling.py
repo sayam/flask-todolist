@@ -155,3 +155,68 @@ def test_the_issue_handoff_adapter_exports_the_real_label():
 
     assert adapter.LABEL == real.LABEL
     assert adapter.problems is real.problems
+
+
+# ---------------------------------------------------- ตัวอ่านที่ย้ายไปขั้น 3b
+#
+# ห้าโมดูลย้ายไป `verifiable-gates` แล้วและถูกทดสอบสองทิศที่นั่น (มิวเทชัน 24 จุด)
+# · ที่นี่พิสูจน์ **รอยต่อ** — adapter ชี้รากของ repo นี้จริงไหม
+#
+# `gh` กับ `workflows` ยังมี adapter อยู่เพราะ `audit_posture` (3e) และ
+# `sync_counts` (3d) ยัง `import` มันตรง ๆ · สองไฟล์นั้นย้ายเมื่อไหร่ adapter หายตาม
+
+
+def test_the_skeleton_adapter_reads_this_repos_files(capsys):
+    """ทางที่คนกับ agent เรียกจริง — ชี้ไฟล์ของ repo นี้แล้วต้องได้พื้นผิวจริง"""
+    from scripts import skeleton as adapter
+
+    assert adapter.main(["app/theme.py"]) == 0
+    out = capsys.readouterr().out
+    assert "def resolve_mode" in out, "อ่านไฟล์ของ repo นี้ไม่เจอพื้นผิวที่มีอยู่จริง"
+
+
+def test_the_schedule_census_adapter_points_at_this_repos_root(tmp_path, capsys):
+    """adapter ที่ชี้รากผิดจะรายงานว่าไม่มีตารางเวลาเลย ซึ่งอ่านเหมือน 'ไม่มีอะไรต้องเฝ้า'
+
+    ป้อนประวัติเปล่าเข้าไป ตัวสำมะโนจึงต้องรายงานว่าทุกตารางไม่เคยยิง — ซึ่ง
+    *พิสูจน์ว่ามันอ่าน workflow ของ repo นี้เจอจริง* · สิ่งที่รอยต่อต้องพิสูจน์
+    คือมันมองเห็นของที่นี่ ไม่ใช่คำตัดสิน (คำตัดสินถูกทดสอบสองทิศที่ vg แล้ว)
+    """
+    from scripts import schedule_census as adapter
+
+    state = tmp_path / "state.json"
+    state.write_text('{"last_scheduled_run": {}}', encoding="utf-8")
+
+    code = adapter.main(["--input", str(state)])
+    captured = capsys.readouterr()
+
+    assert code == 1, "ประวัติเปล่าแล้วยังผ่าน — แปลว่ามันไม่เห็น workflow ของที่นี่เลย"
+    assert "nothing to watch" not in captured.out, "adapter มองไม่เห็น workflow ของ repo นี้"
+    assert "dependabot" in captured.out, "ไม่ได้อ่าน .github/dependabot.yml ของ repo นี้"
+    assert ".yml:" in captured.err, "แดงแล้วแต่ไม่ได้บอกว่า workflow ไหน"
+
+
+def test_the_red_streak_adapter_points_at_this_repos_registry(tmp_path, capsys):
+    """ตัววัดต้องเห็น `gates.yaml` ของที่นี่ ไม่งั้นจะไม่มีคำสัญญาไหนถูกวัดเลย"""
+    from scripts import red_streak_census as adapter
+
+    runs = tmp_path / "runs.json"
+    runs.write_text("[]", encoding="utf-8")
+
+    assert adapter.main(["--input", str(runs)]) == 0
+    out = capsys.readouterr().out
+    assert "0 watched workflows" not in out, "adapter มองไม่เห็นทะเบียนของ repo นี้"
+
+
+def test_the_helper_adapters_still_serve_the_scripts_that_have_not_moved():
+    """`audit_posture` กับ `sync_counts` ยัง import สองตัวนี้ตรง ๆ — ต้องใช้ได้เหมือนเดิม"""
+    import sys
+
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import gh
+    import workflows
+    from verifiable_gates import gh as real_gh
+
+    assert gh.api is real_gh.api
+    assert workflows.WORKFLOW_DIR == ROOT / ".github" / "workflows"
+    assert "ci.yml" in workflows.all_workflows(), "ตัวห่อไม่ได้ชี้ workflow ของ repo นี้"
