@@ -34,11 +34,8 @@ from scripts import (
     audit_posture,
     check_ratchets,
     check_semgrep,
-    red_streak_census,
     removals_census,
     rerun_census,
-    schedule_census,
-    skeleton,
     whats_pending,
     workflows,
 )
@@ -741,73 +738,7 @@ def test_matrix_checks_are_matched_by_their_job_name():
     )
 
 
-# --------------------------------- ตารางเวลาที่หยุดยิง (ADR 0064 ชั้นถัดไป · audit r10)
-#
-# "ไม่มี run เลย" หน้าตาเหมือน "ไม่มี run ไหนแดง" เป๊ะในทุกเครื่องมือที่เรามี —
-# `rerun_census.py` นับจากสิ่งที่ *เกิดขึ้น* ไม่ใช่สิ่งที่ *ควรเกิด*
-
-WEEKLY = {"scorecard.yml": schedule_census.WEEK}
 NOW = "2026-08-18T09:00:00+00:00"
-
-
-@pytest.mark.parametrize(
-    ("cron", "hours", "why"),
-    [
-        ("27 5 * * 1", schedule_census.WEEK, "ตรึงวันในสัปดาห์ = ทุกสัปดาห์"),
-        ("0 3 1 * *", schedule_census.MONTH, "ตรึงวันที่ = ทุกเดือน"),
-        ("17 3 * * *", schedule_census.DAY, "ตรึงชั่วโมง = ทุกวัน"),
-        ("*/5 * * * *", schedule_census.HOUR, "ไม่ตรึงอะไรหยาบกว่านาที = ทุกชั่วโมง"),
-    ],
-)
-def test_the_period_of_a_cron_line_is_read_from_its_coarsest_field(cron, hours, why):
-    """รอบต้องอ่านจาก cron จริง ไม่ใช่เดาจากชื่อ workflow"""
-    assert schedule_census.period_hours(cron) == hours, why
-
-
-def test_a_schedule_that_still_fires_on_time_is_quiet():
-    """ทิศ "ผ่านเมื่อควรผ่าน" — ยิงเมื่อวานแล้วต้องไม่มีเสียงบ่น"""
-    last = {"scorecard.yml": "2026-08-17T05:41:19+00:00"}
-
-    assert schedule_census.problems(WEEKLY, last, NOW, 2) == []
-
-
-def test_a_schedule_that_never_fired_is_red():
-    """ประกาศ cron แล้วไม่เคยยิงเลย = workflow ที่ถูกปฏิเสธทั้งไฟล์ (เกิดจริงมาแล้ว)"""
-    found = schedule_census.problems(WEEKLY, {"scorecard.yml": None}, NOW, 2)
-
-    assert found, "cron ที่ไม่เคยยิงเลยต้องแดง"
-    assert "ไม่เคยมี run" in found[0]
-
-
-def test_a_schedule_that_stopped_firing_is_red():
-    """หยุดยิงกลางทางคือความเงียบที่หน้าตาเหมือนความสำเร็จ"""
-    stale = {"scorecard.yml": "2026-07-01T05:41:19+00:00"}
-
-    assert schedule_census.problems(WEEKLY, stale, NOW, 2), "เงียบมา 48 วันแต่ตัวตรวจไม่ว่าอะไร"
-
-
-def test_the_tolerance_is_a_multiple_of_the_declared_period():
-    """cron รายสัปดาห์ที่ยิงเมื่อ 10 วันก่อน ยังอยู่ในเกณฑ์ 2 เท่า แต่ตกเกณฑ์ 1 เท่า"""
-    last = {"scorecard.yml": "2026-08-08T05:41:19+00:00"}
-
-    assert schedule_census.problems(WEEKLY, last, NOW, 2) == []
-    assert schedule_census.problems(WEEKLY, last, NOW, 1), "เกณฑ์ที่แคบลงต้องจับได้"
-
-
-def test_the_declared_schedules_on_disk_are_readable():
-    """อ่านจาก workflow จริงได้ — ไม่ใช่แค่ fixture ในเทสต์ที่อ่านได้"""
-    declared = schedule_census.declared_schedules()
-
-    assert declared, "ไม่เห็น cron สักตัวใน .github/workflows — ตัวดึงพังหรือ workflow เปลี่ยนรูป"
-    assert all(hours > 0 for hours in declared.values())
-
-
-def test_dependabot_is_reported_as_something_no_machine_can_check():
-    """ของที่ตรวจด้วยเครื่องไม่ได้ ต้องถูกเรียกว่าอย่างนั้น ไม่ใช่ถูกเดาไปข้างใดข้างหนึ่ง"""
-    ecosystems = schedule_census.dependabot_ecosystems()
-
-    assert ecosystems, "dependabot.yml ประกาศรอบไว้แต่ตัวรายงานไม่เห็น"
-    assert all("weekly" in line or "daily" in line or "monthly" in line for line in ecosystems)
 
 
 # ------------------------- `within_days` ทำได้จริงไหม (ADR 0066 → วัดได้ในรอบ 11)
@@ -822,66 +753,6 @@ def _run(path, stamp, conclusion, name="ชื่ออะไรก็ได้"
 
 
 WATCHED = ".github/workflows/scorecard.yml"
-
-
-def test_a_red_streak_is_measured_from_first_failure_to_next_success():
-    runs = [
-        _run(WATCHED, "2026-08-17T16:30:00+00:00", "failure"),
-        _run(WATCHED, "2026-08-17T23:00:00+00:00", "failure"),
-        _run(WATCHED, "2026-08-18T06:49:00+00:00", "success"),
-    ]
-
-    assert red_streak_census.longest_red_hours(runs)[WATCHED] == pytest.approx(14.3, abs=0.1)
-
-
-def test_runs_are_grouped_by_path_not_by_name():
-    """run ที่ GitHub ปฏิเสธทั้งไฟล์ถูกตั้งชื่อด้วย *path* — รวมด้วยชื่อจะตัดประวัติเป็นสองก้อน
-
-    ฉบับแรกของการวัดนี้พลาดตรงนี้จริง: ได้ 2.2 ชม. แทนที่จะเป็น 14.6
-    """
-    runs = [
-        _run(WATCHED, "2026-08-17T16:30:00+00:00", "failure", name=WATCHED),
-        _run(WATCHED, "2026-08-18T06:49:00+00:00", "success", name="scorecard"),
-    ]
-
-    measured = red_streak_census.longest_red_hours(runs)
-
-    assert list(measured) == [WATCHED], "ชื่อที่ต่างกันต้องไม่ทำให้กลายเป็นสอง workflow"
-    assert measured[WATCHED] > 14
-
-
-def test_a_streak_that_has_not_ended_yet_still_counts():
-    """ความแดงที่ยังไม่จบคือความแดงที่ยาวที่สุดเสมอเมื่อมองจากตอนนี้"""
-    runs = [
-        _run(WATCHED, "2026-08-10T00:00:00+00:00", "failure"),
-        _run(WATCHED, "2026-08-18T00:00:00+00:00", "failure"),
-    ]
-
-    assert red_streak_census.longest_red_hours(runs)[WATCHED] == pytest.approx(192.0, abs=0.1)
-
-
-def test_a_promise_that_reality_beats_is_quiet():
-    """ทิศ "ผ่านเมื่อควรผ่าน" — แดง 14 ชม. ใต้คำสัญญา 7 วัน ต้องไม่มีเสียงบ่น"""
-    assert red_streak_census.problems({WATCHED: 7}, {WATCHED: 14.6}) == []
-
-
-def test_a_promise_reality_cannot_keep_is_red():
-    """สัญญาว่าเห็นภายใน 1 วัน แต่ความแดงยืนอยู่ 3 วัน = สัญญาเกินกว่าที่ทำได้"""
-    found = red_streak_census.problems({WATCHED: 1}, {WATCHED: 72.0})
-
-    assert found, "คำสัญญาที่ทำไม่ได้ต้องแดง"
-    assert "เลิกสัญญาเกินจริง" in found[0]
-
-
-def test_workflows_that_also_block_are_left_out_of_the_comparison():
-    """`ci.yml` มี job ที่บล็อกปนอยู่ — ผลของ run เป็นของทั้งไฟล์ จึงวัดตัวที่ถูกเฝ้าไม่ได้
-
-    เขียวที่ไม่ได้แปลว่าอะไร แย่กว่าไม่วัด
-    """
-    promised = red_streak_census.promised_days()
-
-    assert ".github/workflows/ci.yml" not in promised
-    assert ".github/workflows/scorecard.yml" in promised, "ไฟล์ที่ทุก job ถูกเฝ้าต้องถูกวัด"
 
 
 # ------------------------------- ratchet ต้องไม่ลอยต่ำกว่าของจริง (ADR 0068 · audit r12)
@@ -1400,6 +1271,22 @@ PROVEN_ELSEWHERE = {
             "เหมือน `lint_commits` — ตรรกะอยู่ใน vendor (5 มิวเทชันแดง) ส่วนที่นี่ "
             "พิสูจน์ว่า job `lint` เรียกพาธนี้แล้วถึงตัวจริง และบริบทจาก env "
             "ยังถูกอ่านเหมือนเดิม"
+        ),
+    ),
+    "schedule_census": (
+        "tests/test_vendored_tooling.py",
+        (
+            "ตรรกะย้ายไป `verifiable-gates` ขั้น 3b และถูกทดสอบสองทิศที่นั่น "
+            "(5 มิวเทชันแดง) — ที่นี่พิสูจน์ *รอยต่อ*: ป้อนประวัติเปล่าแล้วต้องแดง "
+            "ซึ่งพิสูจน์ว่า adapter อ่าน workflow กับ dependabot.yml ของที่นี่เจอจริง"
+        ),
+    ),
+    "red_streak_census": (
+        "tests/test_vendored_tooling.py",
+        (
+            "เหมือน `schedule_census` — ตรรกะอยู่ใน vendor (5 มิวเทชันแดง) ส่วนที่นี่ "
+            "พิสูจน์ว่า adapter ชี้ทั้งรากและ `gates.yaml` ของ repo นี้ ไม่งั้นจะไม่มี "
+            "คำสัญญาไหนถูกวัดเลยแล้วรายงานว่าผ่าน"
         ),
     ),
     "n1_smoke": (
@@ -1991,195 +1878,6 @@ async def fetch(url: str) -> str:
     """ดึงของ"""
     return url
 '''
-
-
-def test_the_surface_is_signatures_not_bodies():
-    """สิ่งที่ผู้เรียกต้องรู้คือ signature — body คือรายละเอียดที่ยังไม่ต้องการ"""
-    found = [item.signature for item in skeleton.symbols(SAMPLE)]
-
-    assert "def open_one(name: str, count: int=3) -> bool" in found
-    assert "class Thing(Base)" in found
-    assert "async def fetch(url: str) -> str" in found
-    assert not any("helper" in line for line in found), "body หลุดขึ้นมาบนพื้นผิว"
-
-
-def test_private_names_are_off_the_surface_unless_asked():
-    """`_hidden` ไม่ใช่สิ่งที่ผู้เรียกจากข้างนอกเรียกได้ — แต่บางครั้งก็อยากเห็น"""
-    public = [item.signature for item in skeleton.symbols(SAMPLE)]
-    everything = [item.signature for item in skeleton.symbols(SAMPLE, private=True)]
-
-    assert not any("_hidden" in line for line in public)
-    assert any("_hidden" in line for line in everything)
-    assert any("_inner" in line for line in everything), "method ส่วนตัวก็ต้องโผล่ด้วย"
-
-
-def test_decorators_are_part_of_the_surface():
-    """`@property` เปลี่ยนวิธีเรียกของผู้เรียก จึงเป็นพื้นผิว ไม่ใช่รายละเอียด"""
-    found = [item.signature for item in skeleton.symbols(SAMPLE)]
-
-    assert "@property" in found
-
-
-def test_methods_sit_one_level_under_their_class():
-    """ความลึกคือข้อมูล — `label` เป็นของ `Thing` ไม่ใช่ของโมดูล"""
-    found = {item.signature: item.depth for item in skeleton.symbols(SAMPLE)}
-
-    assert found["class Thing(Base)"] == 0
-    assert found["def label(self) -> str"] == 1
-
-
-def test_the_summary_is_the_first_line_only():
-    """ที่เหลือของ docstring คือรายละเอียดที่คนถาม *จะเรียกอะไร* ยังไม่ต้องการ"""
-    found = {item.signature: item.summary for item in skeleton.symbols(SAMPLE)}
-
-    assert found["def open_one(name: str, count: int=3) -> bool"] == "ทำอะไรสักอย่าง"
-
-
-def test_the_report_says_how_much_it_saved(tmp_path):
-    """ตัวเลขท้ายไม่ใช่ของแถม — มันคือเหตุผลที่เครื่องมือนี้มีอยู่"""
-    path = tmp_path / "sample.py"
-    text = skeleton.render(path, SAMPLE)
-
-    assert str(path) in text
-    assert "โมดูลตัวอย่าง — บรรทัดแรกเท่านั้นที่ถูกหยิบ" in text
-    assert "ส่วนนี้ไม่ควรโผล่บนพื้นผิว" not in text, "docstring ทั้งก้อนหลุดขึ้นมา"
-    assert "สัญลักษณ์" in text
-    assert "บรรทัด" in text
-
-
-def test_the_line_count_matches_what_is_printed(tmp_path):
-    """เลขที่รายงานต้องเท่ากับบรรทัดที่พิมพ์จริง ไม่งั้นมันเป็นเลขโฆษณา"""
-    text = skeleton.render(tmp_path / "sample.py", SAMPLE)
-    claimed = int(re.search(r"· (\d+) จาก", text).group(1))
-
-    assert claimed == len(text.splitlines())
-
-
-def test_the_file_length_matches_what_other_tools_count(tmp_path):
-    """**ตัวส่วนก็ต้องตรง ไม่ใช่แค่ตัวเศษ** — เทสต์ข้างบนตรวจแค่ครึ่งเดียวมาตลอด
-
-    `count("\n") + 1` เกินไปหนึ่งบรรทัดเสมอสำหรับไฟล์ที่ลงท้ายด้วยขึ้นบรรทัดใหม่
-    ซึ่งคือไฟล์ Python แทบทุกไฟล์ — และไฟล์บรรทัดเดียวรายงานได้ถึง 150%
-    (ultrareview ของ PR #189 · mutation ของเราไม่เคยแตะตัวส่วนเลย)
-    """
-    text = skeleton.render(tmp_path / "sample.py", SAMPLE)
-    claimed = int(re.search(r"จาก (\d+) บรรทัด", text).group(1))
-
-    assert claimed == len(SAMPLE.splitlines())
-
-
-def test_a_file_too_small_to_shrink_says_so_instead_of_printing_a_riddle(tmp_path):
-    """**เทสต์ตัวนี้เคยอ้างในคำอธิบายว่าคุมเรื่องเปอร์เซ็นต์ แต่ assert แค่ตัวส่วน**
-
-    ของเดิมเขียนว่า "เลขที่เกิน 100% คือการโฆษณาที่ขัดตัวเอง" แล้วตรวจว่า
-    `จาก 1 บรรทัด` เท่านั้น — ผลคือ `3 จาก 1 บรรทัด (300%)` ผ่านฉลุยมาตลอด
-    (ultrareview ของ PR #197 · คลาสเดียวกับด่านสีธีมที่ตรวจเฉพาะค่าที่เป็น hex อยู่แล้ว)
-
-    คำตัดสินที่ตามมาคือ **เลขไม่ผิด คนอ่านต่างหากที่ไม่มีใครแปลให้**: รายงานมีพื้น
-    ตายตัวสองบรรทัด ไฟล์ที่สั้นกว่านั้นย่อไม่ได้จริง ๆ และนั่นคือคำตอบที่เครื่องมือ
-    มีไว้ตอบ · ที่นี่จึงตรวจ *ทั้งสองฝั่ง* ของเส้น ไม่ใช่ฝั่งเดียว
-    """
-    tiny = skeleton.render(tmp_path / "one.py", "VALUE = 1\n")
-    assert int(re.search(r"จาก (\d+) บรรทัด", tiny).group(1)) == 1
-    assert int(re.search(r"\((\d+)%\)", tiny).group(1)) > 100, (
-        f"ไฟล์บรรทัดเดียวย่อไม่ได้ แต่รายงานว่าย่อได้: {tiny}"
-    )
-    assert "อ่านทั้งไฟล์เร็วกว่า" in tiny, f"เลขเกิน 100% แต่ไม่มีใครแปลให้: {tiny}"
-
-    roomy = skeleton.render(tmp_path / "roomy.py", SAMPLE)
-    assert int(re.search(r"\((\d+)%\)", roomy).group(1)) < 100, roomy
-    assert "อ่านทั้งไฟล์เร็วกว่า" not in roomy, f"ไฟล์ที่ย่อได้จริงถูกบอกว่าอ่านทั้งไฟล์เร็วกว่า: {roomy}"
-
-
-def test_each_symbol_carries_its_one_line_summary(tmp_path):
-    """docstring บรรทัดแรกต้องถูก *แสดง* ไม่ใช่แค่ถูกคำนวณแล้วทิ้ง
-
-    ฉบับแรกเก็บ `summary` ไว้ในทุก `Symbol` แล้วไม่เคย render เลย — เทสต์ที่มีอยู่
-    ตรวจว่ามัน *ถูกคำนวณ* ถูกต้อง จึงเขียวทั้งที่ผู้ใช้ไม่เคยเห็นมัน
-    (ultrareview ของ PR #189)
-    """
-    text = skeleton.render(tmp_path / "sample.py", SAMPLE)
-
-    assert "ทำอะไรสักอย่าง" in text, "docstring ของฟังก์ชันไม่ได้ถูกแสดง"
-    assert "ของชิ้นหนึ่ง" in text, "docstring ของ class ไม่ได้ถูกแสดง"
-    assert "ส่วนนี้ไม่ควรโผล่บนพื้นผิว" not in text, "เอา docstring มาทั้งก้อน"
-
-
-def test_a_file_that_is_not_utf8_is_reported_not_crashed(tmp_path, capsys):
-    """`UnicodeDecodeError` สืบทอดจาก `ValueError` ไม่ใช่ `OSError`
-
-    ไฟล์ที่ระบบอ่านได้แต่ถอดรหัสไม่ได้จึงหลุด except แล้วพ่น traceback ใส่หน้า
-    คนใช้ โดยไม่บอกว่าไฟล์ไหน — และตอนสแกนทั้งไดเรกทอรีมันฆ่าทั้งชุด
-    (ultrareview ของ PR #189)
-    """
-    path = tmp_path / "latin.py"
-    path.write_bytes(b"# -*- coding: latin-1 -*-\ndef foo(x='\xe9'): pass\n")
-
-    assert skeleton.main([str(path)]) == 1
-    assert "อ่าน" in capsys.readouterr().err
-
-
-def test_a_file_with_no_surface_says_so(tmp_path):
-    """ไฟล์ที่มีแต่ค่าคงที่ ต้องบอกว่าไม่มีอะไร ไม่ใช่พิมพ์หัวเปล่า ๆ"""
-    text = skeleton.render(tmp_path / "empty.py", "VALUE = 1\n")
-
-    assert "ไม่มีสัญลักษณ์บนพื้นผิว" in text
-
-
-def test_the_command_reads_a_real_file(tmp_path, capsys):
-    """เส้นทางที่คนใช้จริง — รับ path แล้วพิมพ์ออก stdout"""
-    path = tmp_path / "sample.py"
-    path.write_text(SAMPLE, encoding="utf-8")
-
-    assert skeleton.main([str(path)]) == 0
-    assert "def open_one" in capsys.readouterr().out
-
-
-def test_a_directory_is_read_in_a_stable_order(tmp_path, capsys):
-    """ผลลัพธ์ต้องซ้ำได้ ไม่งั้นเอาไป diff อะไรไม่ได้เลย"""
-    for name in ("b.py", "a.py"):
-        (tmp_path / name).write_text(SAMPLE, encoding="utf-8")
-
-    assert skeleton.main([str(tmp_path)]) == 0
-    out = capsys.readouterr().out
-    assert out.index("a.py") < out.index("b.py")
-
-
-def test_a_file_that_cannot_be_parsed_fails_loudly(tmp_path, capsys):
-    """แยกวิเคราะห์ไม่ได้ = บอกว่าไฟล์ไหน ไม่ใช่พิมพ์ traceback ใส่หน้าคนใช้"""
-    path = tmp_path / "broken.py"
-    path.write_text("def (", encoding="utf-8")
-
-    assert skeleton.main([str(path)]) == 1
-    assert "แยกวิเคราะห์ไม่ได้" in capsys.readouterr().err
-
-
-def test_a_missing_file_is_reported_not_crashed(tmp_path, capsys):
-    assert skeleton.main([str(tmp_path / "ไม่มีอยู่.py")]) == 1
-    assert "อ่าน" in capsys.readouterr().err
-
-
-def test_an_empty_directory_is_reported(tmp_path, capsys):
-    assert skeleton.main([str(tmp_path)]) == 1
-    assert "ไม่มีไฟล์" in capsys.readouterr().err
-
-
-def test_rendering_a_file_parses_it_exactly_once(tmp_path, monkeypatch):
-    """งานหลักของเครื่องมือนี้คือการ parse — ทำสองครั้งต่อไฟล์คือจ่ายสองเท่า
-
-    ข้อนี้ไม่มีพฤติกรรมต่างให้จับ (ผลลัพธ์เหมือนกันเป๊ะ) จึงต้องปักด้วยจำนวนครั้ง
-    ที่เรียก · ฉบับแรกเรียกสองครั้ง: หนึ่งครั้งใน `symbols()` และอีกครั้งเพื่ออ่าน
-    docstring ของโมดูล — มองไม่เห็นตอนอ่านไฟล์เดียว แต่ตอนสแกนทั้งไดเรกทอรีคือ
-    การจ่ายซ้ำทุกไฟล์ ซึ่งขัดกับเหตุผลที่เครื่องมือนี้ไม่มี index
-    (ultrareview ของ PR #189)
-    """
-    calls = []
-    real = skeleton.ast.parse
-    monkeypatch.setattr(skeleton.ast, "parse", lambda *a, **k: (calls.append(1), real(*a, **k))[1])
-
-    skeleton.render(tmp_path / "sample.py", SAMPLE)
-
-    assert len(calls) == 1, f"parse {len(calls)} ครั้งต่อไฟล์ — ควรเป็นครั้งเดียว"
 
 
 # ------------- คีย์ซ้ำใน workflow: Python ยอมรับ GitHub ปฏิเสธ (ขั้น 2e · ADR 0077)
