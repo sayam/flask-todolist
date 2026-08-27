@@ -291,7 +291,10 @@ v2.1.0 · **นี่คือแถวสุดท้ายในทะเบ�
 `build_reproducible` ถูกตอบ (และ `dco` ของ silver ขยับเป็น Met) · ที่เหลือเป็นรายการที่*ตัดสินแล้ว* ไม่ใช่รายการที่ยังไม่ได้ดู
 (ดูรายการที่ยังไม่ Met ท้ายหัวข้อถัดไป)
 
-## ค่าที่เก็บอยู่บนเว็บจริง (ดึงจาก API เมื่อ 2026-08-26)
+## ค่าที่เก็บอยู่บนเว็บจริง (ดึงจาก API เมื่อ 2026-08-26 · **ทวนซ้ำ 2026-08-27**)
+
+> ทวนซ้ำ 2026-08-27: `updated_at` ของ API ยังเป็น `2026-08-26T16:48:17Z`
+> **ไม่มีอะไรขยับตั้งแต่รอบที่แล้ว** ค่าทุกช่องด้านล่างจึงยังตรง
 
 **เว็บเป็นแหล่งจริง ไฟล์นี้เป็นใบตอบ** — รายการนี้จึงไม่ได้มาจากการอ่านไฟล์นี้
 แต่มาจากการดึงคำตอบที่เก็บอยู่จริงมาเทียบ:
@@ -336,7 +339,7 @@ curl -s https://www.bestpractices.dev/projects/14085.json > badge.json
 เป็นคำตอบที่จริงบางส่วนเสมอ **วิธีเดียวที่จบคือไล่เทียบทีละที่กับของบนดิสก์**
 ไม่ใช่เทียบกับความจำว่าแก้ไปแล้วหรือยัง
 
-### เกณฑ์ที่ยังไม่ Met (อ่านจาก API ตรง ๆ ไม่ใช่จากความจำ — 2026-08-26)
+### เกณฑ์ที่ยังไม่ Met (อ่านจาก API ตรง ๆ ไม่ใช่จากความจำ — 2026-08-26 · **ทวนซ้ำ 2026-08-27 ไม่เปลี่ยน**)
 
 - **`?` (ยังไม่ตอบ)** — **ไม่เหลือแล้วในชุด metal** ทั้ง passing/silver/gold
   ตอบครบทุกข้อ · ที่ยังเป็น `?` มีแต่ชุด `OSPS-*` ซึ่งเป็นกรอบคนละใบ
@@ -405,7 +408,7 @@ ossf/best-practices-badge: **L1 24 · L2 19 · L3 21 รวม 64** (หน้�
 **ทั้ง 24 ข้ออยู่ในกลุ่มเดียวบนเว็บ** (`General → Controls`) เรียงตามลำดับนี้พอดี
 
 
-## ชุด baseline — ระดับ baseline-2 (19 ข้อ · ผ่านครบบนดิสก์แล้ว · รอกรอกบนเว็บ)
+## ชุด baseline — ระดับ baseline-2 (19 ข้อ · **กรอกครบแล้ว เว็บตอบ 100%**)
 
 จำนวนข้อมาจากไฟล์เกณฑ์ทางการ `criteria/baseline_criteria.yml` · อยู่กลุ่มเดียว
 (`General → Controls`) เหมือน baseline-1 และเรียงตามลำดับนี้พอดี
@@ -465,21 +468,27 @@ ossf/best-practices-badge: **L1 24 · L2 19 · L3 21 รวม 64** (หน้�
 และถูกตัดออกจากการเฉลี่ย พอมองเห็นได้จริงมันเข้าสูตรที่ 3/10 — สามในสี่คำเตือน
 ต้องมีผู้ดูแลคนที่สอง (ADR 0053) ส่วนข้อที่สี่ `up-to-date branches` ปิดไว้โดยตั้งใจ
 
-## ชุด baseline — ระดับ baseline-3 (21 ข้อ · ตอบได้ 18 · ค้าง 3)
+## ชุด baseline — ระดับ baseline-3 (21 ข้อ · **Met 20 · ค้าง 1** — เว็บตอบ 95%)
 
 **ระดับนี้ยังไปไม่ถึงด้วยเหตุผลเชิงโครงสร้างหนึ่งข้อ** — `OSPS-QA-07.01` ต้องมี
 **คนที่ไม่ใช่ผู้เขียนอนุมัติก่อน merge** ซึ่งเป็นไปไม่ได้กับโปรเจกต์ผู้ดูแลคนเดียว ·
 [ADR 0053](adr/0053-solo-maintainer-sod-compensating-controls.md) บันทึกมาตรการ
 ชดเชยและเงื่อนไขที่ทำให้ข้อนี้เปลี่ยนไว้แล้ว (วันที่มีผู้ร่วมพัฒนาประจำคนที่สอง)
 
-อีกสองข้อเป็น **งานจริงที่ทำได้ ไม่ใช่ข้อจำกัด**:
+**อีกสองข้อที่เคยค้าง ปิดไปแล้วทั้งคู่** (ยืนยันกับ API เมื่อ 2026-08-27):
 
-- `OSPS-SA-03.02` — ยังไม่มี **threat model + attack surface analysis** ของเส้นทาง
-  โค้ดสำคัญ (ทะเบียนความเสี่ยงกับ ASVS/ISO ที่มีอยู่เป็นคนละชนิดของงาน)
-- `OSPS-VM-04.02` — เหตุผลของ CVE ที่ไม่กระทบเราอยู่ในทะเบียนร้อยแก้วที่ CI ตรวจ
-  สองทิศแล้ว แต่**ยังไม่ได้ออกเป็น VEX** ที่เครื่องอ่านได้
+- ~~`OSPS-SA-03.02`~~ ✅ **Met** — [THREAT-MODEL.md](THREAT-MODEL.md) เขียนแล้ว
+  (threat model + attack surface analysis ของเส้นทางโค้ดสำคัญ ซึ่งเป็นงานคนละ
+  ชนิดกับทะเบียนความเสี่ยงและ ASVS/ISO ที่มีอยู่ก่อน)
+- ~~`OSPS-VM-04.02`~~ ✅ **Met** — `docs/vex.openvex.json` ออกเป็น OpenVEX ที่
+  เครื่องอ่านได้แล้ว generate จากทะเบียนเดียวกับที่ CI ตรวจสองทิศ
+  (`scripts/build_vex.py` · `tests/test_vex.py`)
 
-ที่เหลือ 18 ข้อตอบได้ทั้งหมด (17 Met · 1 N/A) — ระหว่างเตรียมใบตอบนี้ได้ปิดช่องว่าง
+**เหลือค้างข้อเดียวคือ `OSPS-QA-07.01`** ซึ่งเป็นข้อจำกัดเชิงโครงสร้าง ·
+`OSPS-BR-01.02` ที่เว็บแสดงเป็น Unmet ถูก retire ตั้งแต่ v2026.02.19 จึงไม่นับ
+(20/21 = 95.2%)
+
+ที่เหลือตอบได้ทั้งหมด — ระหว่างเตรียมใบตอบนี้ได้ปิดช่องว่าง
 เอกสารสี่ที่ไปด้วย: นโยบายความลับใน [OPERATIONS.md](OPERATIONS.md) · นโยบายทบทวน
 ก่อนให้สิทธิ์ที่สูงขึ้นใน `CONTRIBUTING.md` · ตารางรุ่นที่รองรับใน `SECURITY.md`
 (ค้างอยู่ที่ v1.x ทั้งที่รุ่นจริงคือ v2.2.0) · และประโยคที่บอกว่าเมื่อไหร่รุ่นหนึ่ง
@@ -509,9 +518,10 @@ ossf/best-practices-badge: **L1 24 · L2 19 · L3 21 รวม 64** (หน้�
 | `OSPS-VM-06.01` | Met | SAST findings follow the same documented thresholds as other vulnerabilities in docs/SECURITY-CADENCE.md (critical 7 / high 30 / medium 90 days from awareness), and every alert that stays open must carry its reasoning in .github/accepted-code-scanning-alerts.txt, which CI checks in both directions. |
 | `OSPS-VM-06.02` | Met | Every change runs CodeQL (Python and JavaScript), semgrep with a proven scan scope, and gitleaks as required checks; a finding blocks the pull request unless it is declared with its reasoning in .github/accepted-code-scanning-alerts.txt, and a declaration that no longer matches a real alert fails the build too. |
 
-**ที่ยังต้องทำด้วยมือ**: ล็อกอินที่ <https://www.bestpractices.dev/en/projects/14085>
-แล้วสลับไปแท็บชุด baseline · กรอกตามตารางนี้ · ครบ 100% เมื่อไหร่ได้ badge
-`baseline-1` แล้วค่อยเพิ่มรูปลง `README.md`
+**กรอกครบแล้วทั้งสามชุด baseline** (2026-08-22/23) — `baseline-1` และ
+`baseline-2` ได้ 100% · `baseline-3` ค้าง `OSPS-QA-07.01` ข้อเดียวซึ่งต้องมีคนที่
+สองถึงจะปิดได้ · ฟอร์มอยู่ที่ <https://www.bestpractices.dev/en/projects/14085>
+แท็บชุด baseline
 
 ## ทบทวน 2026-08-14 (หลังปิดเฟส 8–12)
 
