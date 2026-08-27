@@ -59,6 +59,15 @@ jobs:
           # `ci.yml` มีครบ แต่ job นี้อยู่คนละไฟล์จึงถูกลืมตอนย้ายกฎเข้า submodule
           # · **แดงบน main เท่านั้น** เพราะ job นี้ไม่รันบน pull request โดยตั้งใจ
           submodules: true
+          # **ต้องมี** — `schedule_census.py` แยก "แพลตฟอร์มปฏิเสธ cron นี้" ออกจาก
+          # "ไฟล์เพิ่งถูกเพิ่มเมื่อวาน แล้วรอบแรกยังไม่ถึง" ด้วยการอ่านคอมมิตที่
+          # เพิ่มไฟล์ workflow · `actions/checkout` clone ตื้น (depth 1) เป็นค่า
+          # เริ่มต้น ซึ่ง `git log --diff-filter=A` รายงานว่า **ทุกไฟล์** ถูกเพิ่ม
+          # โดย graft commit → ทุก workflow ดูเหมือนเพิ่งเกิด → ผ่อนผันให้หมด
+          # ซึ่งคือ free pass ที่ฟังก์ชันนั้นมีไว้ปฏิเสธ · vg เลยเข้มไว้ก่อนเมื่อ
+          # เจอ clone ตื้น (`rev-parse --is-shallow-repository`) — ปลอดภัย แต่
+          # แปลว่า **ขาดบรรทัดนี้แล้วการผ่อนผันไม่มีผลบน CI เลย**
+          fetch-depth: 0
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
