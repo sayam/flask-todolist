@@ -10,6 +10,14 @@
 # · 5 เครื่องมือวิจัย) · เมื่อขั้นนั้นเสร็จ รายการ move ของขั้นนั้นต้องหายไปจากไฟล์นี้
 # พร้อมไฟล์ (ไฟล์นี้หดลงเรื่อย ๆ จนเหลือแต่ stay/split แล้วถูกถอดในขั้น 6)
 #
+# **ตรวจ 2026-08-28: ข้อบนยังไม่จริงสำหรับขั้น 4 กับ 5** — ทั้งสองขั้นถูกประกาศว่าปิด
+# (`e79e851` · `543ac3b` · `ef169b6` และ ADR 0075 ที่เขียนว่า "ที่นี่เหลือทะเบียนกับ
+# adapter") แต่ยังมี **5 แถว `move` ที่ไฟล์อยู่ที่นี่เต็มตัว ไม่ใช่ adapter** และไม่มี
+# module คู่ใน `vendor/verifiable-gates/src/verifiable_gates/` · แถวเหล่านั้นถูกเขียน
+# ใหม่ให้บอกตรง ๆ ว่าค้าง แทนที่จะปล่อยให้อ่านเหมือนคำตัดสินที่ทำไปแล้ว —
+# `tests/test_extraction_manifest.py` จับไม่ได้โดยนิยาม เพราะมันตรวจว่า "ทุกไฟล์ถูก
+# ตัดสิน" กับ "ไม่ชี้ไฟล์ผี" ซึ่งแถว `move` ที่ยังไม่ทำผ่านทั้งสองทิศ
+#
 # วัดจริง 2026-08-25: scripts 33 ตัว import กันเอง 2 คู่ · CI เรียก scripts 14 จุด ·
 # overlay ส่งออก 14 ไฟล์ · เทสต์ที่เอ่ยถึง scripts/overlays/skill 29 ไฟล์
 
@@ -61,16 +69,16 @@ files:
   - {path: scripts/audit_pins.py, decision: stay, reason: adapter เหนือ `verifiable_gates.advisories` — ไฟล์ล็อกกับถ้อยคำเป็นของที่นี่ (ขั้น 4)}
   - {path: scripts/audit_image.py, decision: stay, reason: adapter เหนือ `verifiable_gates.advisories` (ขั้น 4)}
   - {path: scripts/audit_plugin_deps.py, decision: stay, reason: adapter เหนือ `verifiable_gates.advisories` — สามทางที่ปลดได้เป็นของ ADR 0025 (ขั้น 4)}
-  - {path: scripts/build_vex.py, decision: move, stage: 4, reason: OpenVEX จากทะเบียนยกเว้น — อ่าน path ของ todolist 6 จุด ต้อง parametrize}
-  - {path: scripts/build_eol_table.py, decision: move, stage: 4, reason: ตาราง EOL ของ runtime — ไม่รู้จักแอป}
+  - {path: scripts/build_vex.py, decision: move, stage: 4, reason: "**ยังไม่ย้าย** — OpenVEX จากทะเบียนยกเว้น · ขั้น 4 ปิดตัวอื่นไปเมื่อ 2026-08-26 (`e79e851`) แต่ตัวนี้ไม่ได้ไปด้วย · ที่นี่ยังถือตัวเต็ม 185 บรรทัด และไม่มี module คู่ใน `vendor/verifiable-gates` · ต้อง parametrize path ของทะเบียนสามแฟ้มกับ URL ของ repo ก่อน · **ค้างอยู่จริง ไม่ใช่คำตัดสินว่าไม่ย้าย**"}
+  - {path: scripts/build_eol_table.py, decision: move, stage: 4, reason: "**ยังไม่ย้าย** — ตาราง EOL ของ runtime ไม่รู้จักแอป (71 บรรทัด · `PRODUCTS` เป็นที่เดียวที่ผูกกับปลายทาง) · ไม่มี module คู่ใน `vendor/verifiable-gates` · **ค้างอยู่จริง ไม่ใช่คำตัดสินว่าไม่ย้าย**"}
   - {path: scripts/check_semgrep.py, decision: stay, reason: adapter เหนือ `verifiable_gates.scan_coverage` — ขอบเขตของ 'โค้ดของเรา' เป็นของที่นี่ (ขั้น 4)}
-  - {path: scripts/secret_scan_history.sh, decision: move, stage: 4, reason: สแกนความลับในประวัติ git — ไม่รู้จักแอป}
+  - {path: scripts/secret_scan_history.sh, decision: move, stage: 4, reason: "**ยังไม่ย้าย** — สแกนความลับในประวัติ git ไม่รู้จักแอป (48 บรรทัด) · **ค้างอยู่จริง ไม่ใช่คำตัดสินว่าไม่ย้าย**"}
 
   # ---------------------------------------------------------------- scripts — เครื่องมือวิจัย (ขั้น 5)
   - {path: scripts/asvs_probe.py, decision: stay, reason: adapter เหนือ `verifiable_gates.asvs_probe` (ขั้น 5)}
   - {path: scripts/measure_generated.py, decision: stay, reason: adapter เหนือ `verifiable_gates.measure_apps` (ขั้น 5)}
-  - {path: scripts/build_asvs_worksheet.py, decision: move, stage: 5, reason: สร้าง worksheet จากมาตรฐานที่ตรึง — todolist เก็บเฉพาะคำตัดสินใน docs/ASVS.md}
-  - {path: scripts/build_gates_crosswalk.py, decision: move, stage: 5, reason: crosswalk gate↔ASVS generate — เป็นของ registry}
+  - {path: scripts/build_asvs_worksheet.py, decision: move, stage: 5, reason: "**ยังไม่ย้าย** — สร้าง worksheet จากมาตรฐานที่ตรึง (todolist เก็บเฉพาะคำตัดสินใน `docs/ASVS.md`) · ขั้น 5 ปิดตัวอื่นไปเมื่อ 2026-08-26 (`543ac3b`) แต่ตัวนี้ไม่ได้ไปด้วย · ที่นี่ยังถือตัวเต็ม 179 บรรทัด และ vg มีแต่ `asvs_probe` ไม่มีตัวสร้าง worksheet — แถว `tests/test_asvs.py` ข้างล่างที่เขียนว่าจะเรียกจาก vendor หลังขั้น 5 จึงยังไม่จริง · **ค้างอยู่จริง ไม่ใช่คำตัดสินว่าไม่ย้าย**"}
+  - {path: scripts/build_gates_crosswalk.py, decision: move, stage: 5, reason: "**ยังไม่ย้าย** — crosswalk gate↔ASVS generate เป็นของ registry ซึ่งอยู่ที่ vg แล้ว · ที่นี่ยังถือตัวเต็ม 143 บรรทัด และไม่มี module คู่ใน `vendor/verifiable-gates` · **ค้างอยู่จริง ไม่ใช่คำตัดสินว่าไม่ย้าย**"}
 
   # ---------------------------------------------------------------- overlays/ + skill/ (ขั้น 2 — ย้ายทั้งก้อน)
 
@@ -93,7 +101,7 @@ files:
 
   # ---------------------------------------------------------------- tests/ ที่เอ่ยถึงของในขอบเขต
   - {path: tests/conftest.py, decision: stay, reason: fixture ของแอป — เอ่ยถึง scripts แค่ในคอมเมนต์}
-  - {path: tests/test_effort_log.py, decision: move, stage: 5, reason: ตามไฟล์ข้อมูล}
+  - {path: tests/test_effort_log.py, decision: stay, reason: "**เปลี่ยนคำตัดสิน 2026-08-28** — เหตุผลเดิมคือ 'ตามไฟล์ข้อมูล' แต่ `effort-log.csv` ถูกเปลี่ยนเป็น `stay` ไปแล้วเมื่อ 2026-08-26 (บันทึกของผู้วิจัย ไม่ใช่หลักฐานของ vg) · เทสต์ย้ายออกจากไฟล์ที่มันอ่านไม่ได้ และสิ่งที่มันบังคับคือ ADR 0075 ซึ่งเป็นกติกาของที่นี่"}
   - {path: tests/test_checker_logic.py, decision: split, stage: 3, reason: unit test ของตัวตรวจแต่ละตัวไปกับตัวตรวจ · assertion ที่ผูกกับตัวเลข/ทะเบียนของ todolist อยู่}
   - {path: tests/test_script_roles.py, decision: split, stage: 3, reason: ทะเบียนบทบาทของ scripts — ตัวตรวจไป · แถวของ scripts ที่ stay 13 ตัวอยู่}
   - {path: tests/test_external_surface.py, decision: split, stage: 3, reason: logic ของ audit_posture ไป · ทะเบียนผิวนอกของ todolist อยู่}
