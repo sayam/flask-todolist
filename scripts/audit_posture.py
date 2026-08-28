@@ -49,13 +49,16 @@ import typing
 import urllib.error
 import urllib.request
 
-# pyyaml มากับ dev tools และไม่มี stub — เหตุผลเดียวกับ build_gates_crosswalk.py
-import yaml  # type: ignore[import-untyped]
-
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "vendor" / "verifiable-gates" / "src"))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
-from verifiable_gates import check_names, posture  # noqa: E402 — ต้องต่อ path ให้ vendor ก่อน import
+import sync_counts  # noqa: E402 — ทะเบียนใบเดียวของสิ่งที่ช่อง About โฆษณา (ต่อ path ให้ scripts/ ก่อน)
+from verifiable_gates import (  # noqa: E402 — ต้องต่อ path ให้ vendor ก่อน import
+    advertised,
+    check_names,
+    posture,
+)
 from verifiable_gates import workflows as gha  # noqa: E402 — ตัวอ่าน workflow ตัวเดียวของโปรเจกต์
 
 # **เพดานเวลาของคำสั่งที่เรายิงออกไป** (audit รอบ 11 · ADR 0067) — `subprocess.run`
@@ -64,11 +67,6 @@ from verifiable_gates import workflows as gha  # noqa: E402 — ตัวอ่�
 NETWORK_TIMEOUT_SECONDS = 60  # หนึ่งคำขอไป GitHub API
 WORKFLOWS = ROOT / ".github" / "workflows"
 CADENCE = ROOT / "docs" / "SECURITY-CADENCE.md"
-AUDIT_LOG = ROOT / "docs" / "AUDIT-LOG.md"
-GATES_FILE = ROOT / "gates.yaml"
-ADR_DIR = ROOT / "docs" / "adr"
-# แถวของทะเบียนรอบ audit — ขึ้นต้นด้วยเลขรอบ (รูปเดียวกับ tests/test_audit_log.py)
-AUDIT_ROW = re.compile(r"^\|\s*(\d+)\s*\|", re.MULTILINE)
 ALERT_REGISTER = ROOT / ".github" / "accepted-code-scanning-alerts.txt"
 
 # **alert อ่านด้วย token คนละใบกับท่าที** — `POSTURE_TOKEN` เป็น fine-grained PAT
@@ -344,22 +342,6 @@ def claimed_counts() -> tuple[int, int] | None:
     return (int(found.group(1)), int(found.group(2))) if found else None
 
 
-def advertised_counts(required: int) -> dict[str, int]:
-    """เลขทุกตัวที่ช่อง About โฆษณา — นับจากดิสก์หรือจากท่าทีจริงได้ทั้งหมด (ADR 0072)
-
-    ทะเบียนนี้คือคำประกาศว่า *ช่องนั้นโฆษณาอะไรอยู่* — ถอดวลีไหนออกจากช่อง About
-    ต้องมาถอดที่นี่ด้วย ซึ่งเป็นคำตัดสินที่มีคนรีวิว ต่างจากการหายไปเงียบ ๆ
-    """
-    gates = yaml.safe_load(GATES_FILE.read_text(encoding="utf-8"))["gates"]
-    audits = AUDIT_ROW.findall(AUDIT_LOG.read_text(encoding="utf-8"))
-    return {
-        "machine-checked gates": len(gates),
-        "ADRs": len(list(ADR_DIR.glob("0*.md"))),
-        "recorded governance audits": len(audits),
-        "required checks": required,
-    }
-
-
 def description_problems(description: str | None, required: int) -> list[str]:
     """คำโฆษณาบนช่อง About ต้องบอกรุ่นปัจจุบัน **และเลขทุกตัวต้องนับจากของจริงได้**
 
@@ -369,32 +351,33 @@ def description_problems(description: str | None, required: int) -> list[str]:
 
     ฉบับแรกตรวจแค่เลขรุ่น เพราะ "เลขอื่นไม่มีสัญญาว่าจะอยู่ในรูปไหน" —
     **audit รอบ 24 พบว่าเหตุผลนั้นหมดอายุไปแล้ว**: ทั้งสี่เลขมีแหล่งนับที่เป็น
-    ทะเบียนจริงหมด (`gates.yaml` · `docs/adr/` · `docs/AUDIT-LOG.md` ที่เพิ่งเกิด
-    · และรายการ required check ที่ตัวตรวจนี้ถืออยู่แล้ว) · เลขที่นับได้แต่ไม่มี
-    ใครนับ คือเลขที่ค้างจนกว่าจะมีคนบังเอิญสังเกต — ซึ่งตอน v2.2.0 คือสามที่พร้อมกัน
+    ทะเบียนจริงหมด · เลขที่นับได้แต่ไม่มีใครนับ คือเลขที่ค้างจนกว่าจะมีคน
+    บังเอิญสังเกต — ซึ่งตอน v2.2.0 คือสามที่พร้อมกัน
+
+    **กลไกกับทะเบียนไม่ได้อยู่ที่นี่แล้ว (2026-08-28)** — การเทียบคือ
+    `advertised.field_drift` ของ vg ตัวเดียวกับที่ตัวซิงก์ใช้ และรายการว่าช่องนั้น
+    โฆษณาอะไรคือ `sync_counts.about_expectations()` ใบเดียว · ก่อนหน้านี้ฟังก์ชันนี้
+    เขียน regex เทียบเองและถือรายการของตัวเอง ซึ่งนับ ADR คนละวิธีกับตัวซิงก์ —
+    วันที่ใบหนึ่งเปลี่ยนวิธีนับ ตัวซิงก์จะยิงเลขที่ด่านปฏิเสธ · ที่นี่เหลือแค่
+    ถ้อยคำ กับ `required` ซึ่งมาจาก branch protection จริงและนับจากดิสก์ไม่ได้
     """
     if description is None:
         return []
-    version = (ROOT / "app" / "__init__.py").read_text(encoding="utf-8")
-    found = re.search(r'__version__ = "([^"]+)"', version)
-    if not found:
-        return ["อ่าน __version__ จาก app/__init__.py ไม่ได้"]
-    current = found.group(1)
-
     problems = []
-    if f"v{current}" not in description:
-        problems.append(
-            f"ช่อง About ของ repo ไม่ได้บอกรุ่นปัจจุบัน (v{current}) — ตอนนี้เขียนว่า: {description[:90]!r}"
-        )
-    for phrase, want in advertised_counts(required).items():
-        said = re.search(rf"(\d+) {re.escape(phrase)}", description)
-        if said is None:
+    for what, said, want in advertised.field_drift(
+        description, sync_counts.about_expectations(required)
+    ):
+        if what == "รุ่น":
             problems.append(
-                f"ช่อง About เลิกโฆษณา {phrase!r} แล้ว — ถ้าตั้งใจถอด ให้ถอดออกจาก "
-                "advertised_counts() ในคอมมิตเดียวกัน ไม่งั้นด่านนี้เฝ้าของที่ไม่มีอยู่"
+                f"ช่อง About ของ repo ไม่ได้บอกรุ่นปัจจุบัน (v{want}) — ตอนนี้เขียนว่า: {description[:90]!r}"
             )
-        elif int(said.group(1)) != want:
-            problems.append(f"ช่อง About บอก {said.group(1)} {phrase} แต่ของจริงคือ {want}")
+        elif said == advertised.MISSING:
+            problems.append(
+                f"ช่อง About เลิกโฆษณา {what!r} แล้ว — ถ้าตั้งใจถอด ให้ถอดออกจาก "
+                "ABOUT_NUMBERS ใน scripts/sync_counts.py ในคอมมิตเดียวกัน ไม่งั้นด่านนี้เฝ้าของที่ไม่มีอยู่"
+            )
+        else:
+            problems.append(f"ช่อง About บอก {said} {what} แต่ของจริงคือ {want}")
     return problems
 
 

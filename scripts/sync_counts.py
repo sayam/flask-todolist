@@ -197,16 +197,32 @@ ABOUT_NUMBERS = {
 }
 
 
-def about_expectations() -> list[advertised.Expectation]:
-    """สิ่งที่ช่อง About ต้องพูดให้ตรง — รุ่นหนึ่งข้อ กับเลขที่นับจากดิสก์ได้"""
+def about_expectations(required: int | None = None) -> list[advertised.Expectation]:
+    """สิ่งที่ช่อง About ต้องพูดให้ตรง — รุ่นหนึ่งข้อ กับเลขที่นับจากดิสก์ได้
+
+    **นี่คือทะเบียนใบเดียวของสิ่งที่ช่อง About โฆษณา** — `scripts/audit_posture.py`
+    (ด่านที่ตัดสินทุก push) กับ `--about` ของไฟล์นี้ (ตัวซิงก์) อ่านรายการเดียวกัน
+    · ก่อน 2026-08-28 แต่ละฝั่งถือรายการของตัวเองและนับ ADR คนละวิธี
+    (`glob("0*.md")` กับ `name[:4].isdigit()`) — สองใบที่ไม่มีอะไรบังคับให้ตรงกัน
+    คือที่ที่สองที่ ADR 0039 ห้าม
+
+    `required` คือจำนวน required check จาก branch protection จริง — นับจากดิสก์
+    ไม่ได้ จึงเป็นของด่านเท่านั้น: ตัวซิงก์ไม่ส่งมา และรายการก็ไม่มีข้อนั้น
+    (`_sync_about` บอกไว้ตรง ๆ ว่าไม่แตะ)
+    """
     real, _gates = measured()
-    return [
+    found = [
         advertised.Expectation("รุ่น", r"v(\d[\w.+-]*)", current_version()),
         *(
             advertised.Expectation(phrase, rf"(\d+) {re.escape(phrase)}", real[key])
             for phrase, key in ABOUT_NUMBERS.items()
         ),
     ]
+    if required is not None:
+        found.append(
+            advertised.Expectation("required checks", r"(\d+) required checks", str(required))
+        )
+    return found
 
 
 def about_drift(description: str) -> list[tuple[str, str, str]]:
