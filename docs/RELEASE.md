@@ -14,7 +14,10 @@
 4. PR → `gh pr merge N --rebase --delete-branch --auto` (**ทางเดียว — ADR
    0053 ไม่มี bypass** · auto-merge ให้ GitHub ตัดสินตอน 27 check ครบ)
 5. tag แบบ annotated บน merge commit → push tag → job `n-1` ขยับ anchor เอง
-6. `gh release create` พร้อม notes — **ไม่ต้องแนบ SBOM เอง**: `release.yml`
+6. `gh release create` พร้อม notes — **ชื่อ release และ notes เป็นภาษาอังกฤษ**
+   (คำสั่งเจ้าของ 2026-08-28 — v2.1.0/v2.2.0 หลุดเป็นไทย ไม่แก้ย้อนหลัง · หน้า release
+   เป็นผิวสาธารณะที่คนนอกเห็นก่อน README · CHANGELOG อังกฤษด้วยเหตุผลเดียวกัน)
+   · **ไม่ต้องแนบ SBOM เอง**: `release.yml`
    (ADR 0058) generate + เซ็น + แนบให้ตอน publish · รอ workflow จบแล้ว
    ยืนยันจำนวน asset (SBOM 8 + bundle ลายเซ็น 8) และหน้า release ตอบ 200
 7. อัปเดตช่อง About ของ repo — **สองช่อง ไม่ใช่ช่องเดียว**:
