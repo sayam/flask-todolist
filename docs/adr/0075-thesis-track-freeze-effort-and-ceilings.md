@@ -63,11 +63,19 @@
    `evidence-freeze-1` จึงยังไม่ต้องย้ายด้วยเหตุผลเดิม · ที่ผิดคือคำว่า "ปิดครบ"
    · **ตัดสินซ้ำวันเดียวกัน**: อ่านห้าตัวด้วยเกณฑ์ของขั้น 3d ("กลไกที่เหลือหลังหัก
    ของเฉพาะ repo หนาพอไหม" ไม่ใช่ "พกได้ไหม") — **3 กลับเป็น `stay`** (`build_vex` ·
-   `build_eol_table` · `secret_scan_history.sh`) · **2 ยังย้าย** เป็นคู่
-   (`build_asvs_worksheet` + `build_gates_crosswalk`) · เหตุผลรายตัวอยู่ใน
-   `extraction.yaml` · และการไล่ 17 แถว "adapter" ด้วย AST พบว่า `audit_posture`
-   มีกลไก ~200 บรรทัดที่ซ้ำกับ vg (ไล่หน้า API · เทียบช่อง About) ซึ่งเป็นงาน
-   *ลบ* ไม่ใช่ย้าย — บันทึกไว้ที่แถวนั้นจนกว่าจะทำ
+   `build_eol_table` · `secret_scan_history.sh`) · **2 ย้ายเป็นคู่ในวันเดียวกัน**
+   (`build_asvs_worksheet` + `build_gates_crosswalk` → vg #32 · ที่นี่ #261 เหลือ
+   adapter ที่ผล generate ตรงไบต์ต่อไบต์) · เหตุผลรายตัวอยู่ใน `extraction.yaml`
+   · และการไล่ 17 แถว "adapter" ด้วย AST พบว่า `audit_posture` มีกลไก ~200 บรรทัด
+   ที่ซ้ำกับ vg — **ลบไปแล้วสองก้อนในวันเดียวกัน**: เทียบช่อง About → ทะเบียนใบเดียว
+   ผ่าน `advertised.field_drift` (#259) · ไล่หน้า API → `gh.api_pages`/`token_env`
+   ที่ vg (#31 · #260 — `posture` บน main เขียวหลัง merge = ทำงานกับ GitHub จริง)
+   · เหลือก้อนเดียวที่เป็นของที่นี่จริง (badge/bestpractices ผูก project 14085)
+
+   **ปิดวัน 2026-08-28**: `extraction.yaml` ไม่เหลือแถว `move` — แผนถอดตามข้อ 6
+   ปิดจริงในโค้ด ไม่ใช่ในคำประกาศ · ratchet ที่ขยับตามในวันเดียว: `suppressions`
+   88 → 89 · ไม่มีเหตุผล 34 → 32 · `scripts_coverage` 54 → 56 (ขึ้นครั้งแรกของสายถอด
+   เพราะ adapter ถูกเทสต์เดินผ่านขณะที่ตัวเต็มเดิมไม่มีเทสต์แตะ) · `CALLS_FLOOR` 2 → 1
 3. **เพดานบนของ gate**: `[tool.todolist.ceilings].gates_ceiling` = 116 ตอนตั้งใบนี้
    (**ตอนนี้ 114** — ลดสองครั้งตาม ADR 0077/0078 เมื่อ gate ที่ไม่มีอะไรให้บังคับ
    ที่นี่แล้วตามของไป vg · เหตุผลรายครั้งอยู่ในคอมเมนต์ของ `pyproject.toml`) —
