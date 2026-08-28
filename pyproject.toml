@@ -323,7 +323,11 @@ scripts_coverage = 54
 # 88 → 87 (2026-08-28): `audit_posture` เลิกยิง `gh` เอง — ลูปไล่หน้ากับการยืม token
 # ย้ายเข้า `gh.api_pages()`/`token_env` ของ vg (#31) · S603 บรรทัดสุดท้ายของไฟล์นั้น
 # หายไปพร้อม `_request` · ที่ vg มี S603 ใบเดียวสำหรับทุกผู้เรียก
-suppressions = 87
+# 87 → 89 (ขั้น 5 ส่วนสุดท้าย): `build_asvs_worksheet` กับ `build_gates_crosswalk`
+# กลายเป็น adapter — สามบรรทัด E402 ใหม่ **มีเหตุผลกำกับทุกบรรทัด** (ราคาคงที่ต่อ
+# adapter ตามที่บันทึกไว้ข้างบน) หัก `import yaml # type: ignore` เปล่า ๆ ของ crosswalk
+# ที่หายไปเพราะ registry ของ vg เป็นคนอ่าน `gates.yaml` แล้ว = สุทธิ +2
+suppressions = 89
 # ในจำนวนนั้น กี่บรรทัดที่ไม่มีข้อความบอกเหตุผลต่อท้าย
 # 48 → 43 ด้วยเหตุผลเดียวกัน
 # 40 → 37 (ขั้น 3b): ตัวอ่านกับสำมะโนที่ย้ายไป verifiable-gates พาบรรทัดที่ปิด
@@ -337,7 +341,9 @@ suppressions = 87
 # `audit_posture` หายไปพร้อมทะเบียน About ใบที่สอง — ด่านอ่านทะเบียนของ `sync_counts`
 # แทนการนับเอง จึงไม่ต้องอ่าน `gates.yaml` อีก · บรรทัด `import sync_counts` ที่มาแทน
 # มีเหตุผลกำกับ เพดาน `suppressions` จึงไม่ขยับ (88 เท่าเดิม)
-suppressions_without_reason = 33
+# 33 → 32 (ขั้น 5 ส่วนสุดท้าย): `import yaml  # type: ignore[import-untyped]` เปล่า ๆ
+# ของ `build_gates_crosswalk` หายไปพร้อมโค้ดที่อ่าน `gates.yaml` เอง
+suppressions_without_reason = 32
 # แถวใน docs/EXTERNAL-SURFACE.md ที่ยอมรับตรง ๆ ว่ายังไม่มีใครเทียบกับของจริง
 # (ADR 0072) — วัดตอนตั้งเพดาน 2026-08-22 · ผิวนอกโตทุกครั้งที่ GitHub เพิ่ม
 # setting ใหม่ และของใหม่เกิดมาไม่มีเจ้าของเสมอ
