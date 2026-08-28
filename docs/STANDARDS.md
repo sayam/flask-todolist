@@ -224,7 +224,7 @@ sqlfluff → เมื่อ migration ซับซ้อนขึ้น (Phase 
 
 **เครื่องมือที่เฟส 8–12 เพิ่มเข้ามา** — ไม่ได้อยู่ในรายการสำรวจเดิมเพราะมันไม่ใช่
 เครื่องมือสำเร็จรูป แต่เป็นของที่เขียนเอง: `gates.yaml` (ดัชนี gate ตรวจสองทิศ)
-· `verifiable-gates` เป็นเจ้าของคลังกฎและเรนเดอร์แผ่นกฎเอง (ADR 0078) · bundle ส่งออก 14 ไฟล์: scan 9 ตัว stdlib
+· `verifiable-gates` เป็นเจ้าของคลังกฎและเรนเดอร์แผ่นกฎเอง (ADR 0078) · bundle ส่งออก 16 ไฟล์ (`overlay.json`): scan 9 ตัว stdlib
 ล้วน + ดัชนี `gates.yaml` ตั้งต้น สำหรับโปรเจกต์อื่น) · `scripts/run_gates.py` (fail-fix loop) ·
 `verifiable_gates.measure_apps` + `verifiable_gates.asvs_probe` (วัดผลของ
 scaffolding — **อยู่ที่ vg แล้ว** ตั้งแต่ ADR 0077 ขั้น 5 · ที่นี่เหลือ adapter

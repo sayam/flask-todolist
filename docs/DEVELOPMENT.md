@@ -39,6 +39,8 @@
 
 ## เครื่องมือประจำ (ดูคำสั่งเต็มใน `CLAUDE.md` และ `CONTRIBUTING.md`)
 
+- clone แล้วต้อง `git submodule update --init` ก่อน — `scripts/preflight.py` และ hook
+  commit-msg import จาก `vendor/verifiable-gates` (pin อ่านอย่างเดียว — GOVERNANCE.md)
 - ก่อนเปิด PR: `pipenv run python scripts/preflight.py` — เดินด่านของ job `lint`
   กับ `test` บนเครื่อง โดยอ่านคำสั่งจาก workflow ทุกไฟล์เอง (ADR 0060/0063 — job
   ที่เดินประกาศใน `scaffold.json` คีย์ `preflight_jobs`)

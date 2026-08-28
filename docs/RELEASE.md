@@ -38,6 +38,9 @@
      `https://github.com/sayam/flask-todolist/releases/latest` **ถาวรแล้ว**
      (2026-08-16) — มัน redirect ไปรุ่นล่าสุดเอง ห้ามเปลี่ยนกลับเป็น URL
      ของ tag ใดตายตัว ขั้นตอนนี้จึงเหลือแค่ตรวจว่าค่ายังถูก
+8. ยืนยันว่า `vendor/verifiable-gates` ชี้ commit ที่อยู่บน vg `main` (ห้ามชี้นอก
+   main — [GOVERNANCE.md](GOVERNANCE.md)) และใส่ SHA/tag ของ vg ที่ pin ลง release
+   notes — รุ่นที่ไม่บอกว่าแยกจากอะไร คือรุ่นที่ทำซ้ำไม่ได้ (เริ่ม v2.3.0 ↔ vg v0.1.0)
 
 ## งานที่ผูกกับรุ่นถัดไป (ตั้งแต่ v1.5.0)
 

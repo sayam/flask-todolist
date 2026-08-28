@@ -46,7 +46,7 @@ v2.1.0 · **นี่คือแถวสุดท้ายในทะเบ�
 
 | เกณฑ์ | ตอบ | หลักฐาน |
 |---|---|---|
-| `description_good` MUST | ผ่าน | `README.md` ย่อหน้าแรกบอกว่าเป็นอะไรและแก้ปัญหาอะไร · ช่อง About ของ repo เติมแล้ว (อัปเดตตามรุ่น — ล่าสุด v2.2.0) |
+| `description_good` MUST | ผ่าน | `README.md` ย่อหน้าแรกบอกว่าเป็นอะไรและแก้ปัญหาอะไร · ช่อง About ของ repo เติมแล้ว (อัปเดตตามรุ่น — ล่าสุด v2.3.0) |
 | `interact` MUST | ผ่าน | `README.md` มีวิธีติดตั้ง/รัน · `CONTRIBUTING.md` มีวิธีเสนอการเปลี่ยนแปลง · Issues เปิดอยู่ |
 | `contribution` MUST | ผ่าน | `CONTRIBUTING.md` — อธิบายว่าใช้ PR, ต้องผ่าน 27 required check (จาก 30 check — scorecard, `posture` และ job ของ workflow release ไม่รันบน PR จึงไม่บังคับ), merge ด้วย rebase, และกติกาลงทะเบียนไฟล์เทสต์ใน `gates.yaml` |
 | `contribution_requirements` SHOULD | ผ่าน | `CONTRIBUTING.md` — Conventional Commits (หัว ≤72), ruff/mypy, **กติกา mutation test ของเทสต์ใหม่** |
@@ -68,9 +68,9 @@ v2.1.0 · **นี่คือแถวสุดท้ายในทะเบ�
 | `repo_track` MUST | ผ่าน | git |
 | `repo_interim` MUST | ผ่าน | commit ระหว่างทางอยู่ครบบน `main` ไม่ใช่แค่ของที่ release |
 | `repo_distributed` SUGGESTED | ผ่าน | git |
-| `version_unique` MUST | ผ่าน | ทุกรุ่นมี tag ไม่ซ้ำ — v1.0.0 ถึง v2.2.0 |
+| `version_unique` MUST | ผ่าน | ทุกรุ่นมี tag ไม่ซ้ำ — v1.0.0 ถึง v2.3.0 |
 | `version_semver` SUGGESTED | ผ่าน | SemVer · นิยามของ 1.0.0 บันทึกไว้ใน `docs/ROADMAP.md` |
-| `version_tags` SUGGESTED | ผ่าน | git tag ทุกรุ่น (v1.0.0 ถึง v2.2.0) |
+| `version_tags` SUGGESTED | ผ่าน | git tag ทุกรุ่น (v1.0.0 ถึง v2.3.0) |
 | `release_notes` MUST | ผ่าน | `CHANGELOG.md` (Keep a Changelog) ผูกกับ `app.__version__` และมีเทสต์คุม |
 | `release_notes_vulns` MUST | ผ่าน | **v1.5.0 คือรุ่นแรกที่แก้ CVE และ notes ระบุครบทั้งเจ็ด** (cryptography 45.0.7→50.0.0) — ตามที่นโยบายใน `docs/SECURITY-CADENCE.md` สัญญาไว้ |
 
@@ -310,8 +310,8 @@ curl -s https://www.bestpractices.dev/projects/14085.json > badge.json
 |---|---|---|
 | `license` | `AGPL-3.0-or-later` | **กรอกแล้ว** — ตรงกับ ADR 0070 |
 | `homepage_url` | `https://github.com/sayam/flask-todolist` | **กรอกแล้ว** (ช่องเมทาดาทา) · **ไม่มี *เกณฑ์* ชื่อนี้ให้ตอบ** — `homepage_url_status` เป็นคอลัมน์ legacy ของเขาที่ค้างค่า `?` ไว้เฉย ๆ (ดูท้ายหัวข้อนี้) |
-| `version_unique_justification` · `version_tags_justification` | "v1.0.0 through v2.2.0" | **ตรงกับ tag จริง** |
-| `maintained_justification` | "latest release v2.2.0 (2026-08-21)" | **ตรงกับรุ่นล่าสุด** |
+| `version_unique_justification` · `version_tags_justification` | "v1.0.0 through v2.3.0" | **ตรงกับ tag จริง** |
+| `maintained_justification` | "latest release v2.3.0 (2026-08-28)" | **ตรงกับรุ่นล่าสุด** |
 | `release_notes_vulns_justification` | ชี้ v1.5.0 (CVE เจ็ดใบของ `cryptography`) | **คงไว้ถูกแล้ว** — v2.2.0 ไม่ได้แก้ CVE ของของที่ ship จริง (`util-linux` เป็นการ*รับไว้*) |
 | `test_continuous_integration_justification` | "27 checks on every push" | ตรงกับ required check ปัจจุบัน (27 จาก 30) |
 | `floss_license_osi_justification` | อ้าง ADR 0070 ที่แทน ADR 0038 | ถูกต้อง — บันทึกไว้กันเข้าใจผิดว่าเป็นของค้าง |
@@ -430,7 +430,7 @@ ossf/best-practices-badge: **L1 24 · L2 19 · L3 21 รวม 64** (หน้�
 | เกณฑ์ | ตอบ | ข้อความที่วางลงฟอร์มได้เลย (อังกฤษ) |
 |---|---|---|
 | `OSPS-AC-04.01` | Met | The repository default for GITHUB_TOKEN is read-only (default_workflow_permissions=read, and workflows cannot approve pull requests); every job additionally declares its own permissions block. OpenSSF Scorecard scores Token-Permissions 10/10. |
-| `OSPS-BR-02.01` | Met | Every release carries a unique SemVer git tag (v1.0.0 through v2.2.0); the version is also asserted in app/__init__.py and a test fails if the tag, the code and CHANGELOG.md disagree. |
+| `OSPS-BR-02.01` | Met | Every release carries a unique SemVer git tag (v1.0.0 through v2.3.0); the version is also asserted in app/__init__.py and a test fails if the tag, the code and CHANGELOG.md disagree. |
 | `OSPS-BR-04.01` | Met | CHANGELOG.md follows Keep a Changelog with a section per release, and release notes repeat it. Releases that fix published CVEs name them explicitly — v1.5.0 lists all seven cryptography advisories. |
 | `OSPS-BR-05.01` | Met | Dependencies are ingested with standard tooling only: pipenv with a hash-pinned Pipfile.lock for the application, pip --require-hashes for CI tools under pins/, and npm ci for the JavaScript tooling. A test fails the build if any workflow installs without hashes. |
 | `OSPS-BR-06.01` | Met | Every asset attached to a release is signed keyless with cosign/sigstore — each SBOM ships with its .sigstore.json bundle — and the build carries SLSA provenance verified with gh attestation verify before the assets are published (ADR 0058). Note: GitHub's auto-generated source archives and the git tags themselves are not separately signed; ADR 0058 records that decision and the condition for revisiting it. |
