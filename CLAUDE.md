@@ -180,6 +180,7 @@
   **(3)** **ตัวกฎสากลอยู่ที่ `rules.yaml` ของ submodule `vendor/verifiable-gates`
   แล้ว ไม่ใช่ที่นี่** (ADR 0078) · ที่นี่ถือแค่*การบังคับ* · กฎสากลข้อใหม่เริ่มที่
   vg ก่อน แล้วค่อยเพิ่มแถวที่นี่ (`tests/test_rule_catalogue_agreement.py` เทียบสองทิศ)
+  · **submodule อ่านอย่างเดียว — พัฒนา vg ที่ clone แยก** (GOVERNANCE.md)
 - `pins/` — **ล็อกไฟล์ของเครื่องมือที่ CI ติดตั้งเอง** (pipenv, pip, semgrep, pa11y-ci)
   ไม่ใช่ dependency ของแอป (ของแอปอยู่ใน `Pipfile.lock`) · ทุก `pip install` ใน
   workflow และ `Dockerfile` ต้องเป็น `--require-hashes -r pins/<ชื่อ>/requirements.txt`
