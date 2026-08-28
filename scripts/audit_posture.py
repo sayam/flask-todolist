@@ -39,13 +39,9 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import pathlib
 import re
-import shutil
-import subprocess
 import sys
-import typing
 import urllib.error
 import urllib.request
 
@@ -57,14 +53,15 @@ import sync_counts  # noqa: E402 — ทะเบียนใบเดียว�
 from verifiable_gates import (  # noqa: E402 — ต้องต่อ path ให้ vendor ก่อน import
     advertised,
     check_names,
+    gh,
     posture,
 )
 from verifiable_gates import workflows as gha  # noqa: E402 — ตัวอ่าน workflow ตัวเดียวของโปรเจกต์
 
-# **เพดานเวลาของคำสั่งที่เรายิงออกไป** (audit รอบ 11 · ADR 0067) — `subprocess.run`
-# ที่ไม่มี `timeout=` รอตลอดกาล และเครื่องมือพวกนี้รันอยู่ใน job ของ CI ผลคือ
-# `gh` ที่ไม่ตอบกลายเป็น job ที่กินเพดานของ job ไปทั้งก้อนโดยไม่ทำอะไรเลย
-NETWORK_TIMEOUT_SECONDS = 60  # หนึ่งคำขอไป GitHub API
+# **เพดานเวลาของคำขอที่เรายิงออกไปเอง** (audit รอบ 11 · ADR 0067) — ใช้กับใบตอบ
+# badge ที่อ่านผ่าน `urllib` ตรง ๆ · ส่วนคำถามถึง GitHub วิ่งผ่าน `gh` ของ vg ซึ่ง
+# ประกาศเพดานของตัวเอง (`gh.NETWORK_TIMEOUT_SECONDS`) — เพดานอยู่กับคนที่ยิง
+NETWORK_TIMEOUT_SECONDS = 60
 WORKFLOWS = ROOT / ".github" / "workflows"
 CADENCE = ROOT / "docs" / "SECURITY-CADENCE.md"
 ALERT_REGISTER = ROOT / ".github" / "accepted-code-scanning-alerts.txt"
@@ -74,7 +71,6 @@ ALERT_REGISTER = ROOT / ".github" / "accepted-code-scanning-alerts.txt"
 # ต้องการ `security-events: read` ซึ่ง `GITHUB_TOKEN` ของ job ขอเองได้ฟรี —
 # ขยาย scope ของ PAT เพื่ออ่าน alert คือการจ่ายสิทธิ์ถาวรให้ของที่ยืมได้ต่อ run
 ALERTS_ENV = "GH_TOKEN_ALERTS"
-PAGE_SIZE = 100
 
 # job ที่ไม่ต้องอยู่ในรายการ required — พร้อมเหตุผลที่ต้องอ่านได้จากที่นี่ที่เดียว
 EXEMPT = {
@@ -98,54 +94,6 @@ BRANCH_FLAGS = {
 MATRIX_REF = re.compile(r"\$\{\{\s*matrix\.([a-zA-Z0-9_.]+)\s*\}\}")
 # "required check **27 จาก 29**" — เลขที่เอกสารโฆษณา ต้องตรงกับของจริงทั้งคู่
 CLAIM = re.compile(r"required check \*\*(\d+) จาก (\d+)\*\*")
-
-
-def _request(path: str, token_env: str | None = None) -> typing.Any:
-    """ถาม GitHub API — แยกไว้จุดเดียวให้เทสต์ปลอมได้ และให้ข้อผิดพลาดสิทธิ์ดังพอ
-
-    `token_env` ชี้ตัวแปรที่ถือ token ของ *คำถามนั้น* — ไม่ตั้งหรือไม่มีค่าก็ตกกลับ
-    ไปใช้ token เริ่มต้นของ `gh` ซึ่งคือสิ่งที่เกิดตอนรันบนเครื่องผู้ดูแล
-    """
-    binary = shutil.which("gh")
-    if not binary:
-        raise RuntimeError("ไม่มี gh บนเครื่องนี้ — ตัวตรวจนี้ต้องถาม GitHub API ผ่านมัน")
-    env = None
-    borrowed = os.environ.get(token_env or "")
-    if borrowed:
-        env = {**os.environ, "GH_TOKEN": borrowed, "GITHUB_TOKEN": borrowed}
-    result = subprocess.run(  # noqa: S603 — path มาจาก shutil.which และ argument เป็นของเราเอง
-        [binary, "api", path],
-        capture_output=True,
-        text=True,
-        check=False,
-        env=env,
-        timeout=NETWORK_TIMEOUT_SECONDS,
-    )
-    if result.returncode != 0:
-        raise PermissionError(f"อ่าน {path} ไม่ได้: {result.stderr.strip()}")
-    return json.loads(result.stdout)
-
-
-def _gh(path: str) -> dict:
-    """คำตอบที่เป็น object เดียว"""
-    return dict(_request(path))
-
-
-def _gh_pages(path: str, token_env: str | None = None) -> list[dict]:
-    """คำตอบที่เป็นรายการ — **ไล่ทีละหน้า** เพราะ `per_page` ของ GitHub ตันที่ 100
-
-    audit รอบ 9 เจอมาแล้วว่าการขอเกิน 100 ได้ 100 มาเงียบ ๆ ตัวตรวจที่อ่านหน้าเดียว
-    จึงประกาศว่า "ไม่มี alert ค้าง" ได้ทั้งที่ใบที่ 101 ค้างอยู่
-    """
-    rows: list[dict] = []
-    page = 1
-    while True:
-        joiner = "&" if "?" in path else "?"
-        batch = _request(f"{path}{joiner}per_page={PAGE_SIZE}&page={page}", token_env)
-        rows.extend(batch)
-        if len(batch) < PAGE_SIZE:
-            return rows
-        page += 1
 
 
 # ตัวแปลง workflow → ชื่อ check อยู่ที่ verifiable-gates แล้ว (ADR 0077 · ขั้น 3e)
@@ -447,11 +395,15 @@ def best_practices() -> dict | None:
 
 def fetch() -> dict:
     """รวมท่าทีจากสี่ endpoint ให้เป็นก้อนเดียวที่ตัวตัดสินอ่านได้"""
-    protection = _gh("repos/:owner/:repo/branches/main/protection")
-    repo = _gh("repos/:owner/:repo")
-    actions = _gh("repos/:owner/:repo/actions/permissions")
-    workflow = _gh("repos/:owner/:repo/actions/permissions/workflow")
-    alerts = _gh_pages("repos/:owner/:repo/code-scanning/alerts?state=all", ALERTS_ENV)
+    # **ถามผ่าน wrapper ของ vg** (2026-08-28) — ที่นี่เคยถือ `_request`/`_gh_pages`
+    # ของตัวเอง ซึ่งเป็นสำเนาที่สามของลูปไล่หน้าเดียวกับ census สองตัวใน vg ·
+    # บทเรียนรอบ 9 (หน้าเดียวเงียบ ๆ ทั้งที่ใบที่ 101 ค้าง) ตอนนี้อยู่ที่ที่ทุกปลายทาง
+    # ได้รับ · `token_env` ยืม token เฉพาะคำถาม alert — ท่าทีใช้ของ `gh` เอง (PAT)
+    protection = gh.api("repos/:owner/:repo/branches/main/protection")
+    repo = gh.api("repos/:owner/:repo")
+    actions = gh.api("repos/:owner/:repo/actions/permissions")
+    workflow = gh.api("repos/:owner/:repo/actions/permissions/workflow")
+    alerts = gh.api_pages("repos/:owner/:repo/code-scanning/alerts?state=all", token_env=ALERTS_ENV)
     return {
         "alerts": alerts,
         "required_checks": (protection.get("required_status_checks") or {}).get("contexts", []),
