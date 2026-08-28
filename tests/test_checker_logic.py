@@ -1458,7 +1458,13 @@ def _about(**counts: int) -> str:
         encoding="utf-8"
     )
     current = re.search(r'__version__ = "([^"]+)"', source).group(1)
-    real = {**audit_posture.advertised_counts(REQUIRED_NOW), **counts}
+    # อ่านจากทะเบียนใบเดียวที่ด่านอ่าน — ถ้าเทสต์ถือรายการของตัวเอง มันจะเป็นใบที่สาม
+    real = {
+        expected.label: int(expected.want)
+        for expected in audit_posture.sync_counts.about_expectations(REQUIRED_NOW)
+        if expected.label != "รุ่น"
+    }
+    real.update(counts)
     said = " · ".join(f"{value} {phrase}" for phrase, value in real.items())
     return f"… v{current} (AGPL-3.0): {said}"
 
