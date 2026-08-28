@@ -149,7 +149,11 @@ def test_every_command_we_shell_out_to_declares_a_timeout():
 # (`gh api` ของสำมะโน และ `gh api …/logs` ที่มีเพดานเวลาของตัวเอง) · **นี่คือพื้น
 # สุดท้ายของสายถอดจริง ๆ** — สองจุดที่เหลืออยู่ใน `audit_pins` กับ `audit_posture`
 # ซึ่งเป็น adapter ที่ยิงคำสั่งเองด้วยเหตุผลของมัน ไม่ใช่ของที่รอย้าย
-CALLS_FLOOR = 2
+# **2 → 1 (2026-08-28)**: "พื้นสุดท้าย" ข้างบนอยู่ได้สองวัน — `audit_posture` เลิกยิง `gh`
+# เองเมื่อลูปไล่หน้ากับการยืม token ย้ายเข้า `gh.api_pages()`/`token_env` ของ vg (#31)
+# · ที่เหลือจุดเดียวคือ `audit_pins` (pip-audit/npm audit เป็นคำสั่งของ CI ที่นี่จริง ๆ)
+# · พื้นนี้จะเป็น 0 ไม่ได้ตราบที่ยังมี adapter ที่ต้องยิงเครื่องมือภายนอกเอง
+CALLS_FLOOR = 1
 
 
 def test_the_scan_actually_finds_the_calls_it_claims_to_check():
