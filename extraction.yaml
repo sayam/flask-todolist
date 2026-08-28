@@ -12,11 +12,11 @@
 # คำตัดสิน*ว่าอะไรอยู่ที่นี่เพราะอะไร (ไม่ใช่ถูกถอดในขั้น 6 ตามที่เคยเขียน — การถอดทะเบียน
 # ที่ยังมีคนอ่านคือคำตัดสินตาม ADR 0069 ไม่ใช่ผลข้างเคียงของแผนที่จบ)
 #
-# **ตรวจ 2026-08-28: ข้อบนยังไม่จริงสำหรับขั้น 4 กับ 5** — ทั้งสองขั้นถูกประกาศว่าปิด
+# **ประวัติ — ตรวจเช้า 2026-08-28 พบว่าขั้น 4 กับ 5 ยังไม่ปิดจริง** ทั้งที่ถูกประกาศว่าปิด
 # (`e79e851` · `543ac3b` · `ef169b6` และ ADR 0075 ที่เขียนว่า "ที่นี่เหลือทะเบียนกับ
-# adapter") แต่ยังมี **5 แถว `move` ที่ไฟล์อยู่ที่นี่เต็มตัว ไม่ใช่ adapter** และไม่มี
-# module คู่ใน `vendor/verifiable-gates/src/verifiable_gates/` · แถวเหล่านั้นถูกเขียน
-# ใหม่ให้บอกตรง ๆ ว่าค้าง แทนที่จะปล่อยให้อ่านเหมือนคำตัดสินที่ทำไปแล้ว —
+# adapter"): ตอนนั้นยังมี **5 แถว `move` ที่ไฟล์อยู่ที่นี่เต็มตัว ไม่ใช่ adapter** และไม่มี
+# module คู่ใน vg · แถวเหล่านั้นถูกเขียนใหม่ให้บอกตรง ๆ ว่าค้าง แล้วถูกตัดสินซ้ำจนหมด
+# ในวันเดียวกัน (ย่อหน้าถัดไป) —
 # `tests/test_extraction_manifest.py` จับไม่ได้โดยนิยาม เพราะมันตรวจว่า "ทุกไฟล์ถูก
 # ตัดสิน" กับ "ไม่ชี้ไฟล์ผี" ซึ่งแถว `move` ที่ยังไม่ทำผ่านทั้งสองทิศ
 #
@@ -68,7 +68,7 @@ files:
   - {path: scripts/whats_pending.py, decision: stay, reason: อ่านหัวข้อภาษาไทยของเอกสารที่นี่ — กลไกที่พกไปได้บางเกินกว่าจะคุ้ม (ทบทวน 2026-08-26 · ขั้น 3d ย้ายแค่ removals_census กับ sync_counts)}
   - {path: scripts/sync_counts.py, decision: stay, reason: adapter เหนือ `verifiable_gates.advertised` — `TARGETS` กับตัวนับเป็นของที่นี่ (ขั้น 3d)}
   - {path: scripts/red_streak_census.py, decision: stay, reason: adapter เหนือ `verifiable_gates.red_streak_census` (ขั้น 3b)}
-  - {path: scripts/rerun_census.py, decision: stay, reason: "adapter เหนือ `verifiable_gates.rerun_census` — ถ้อยคำไทยของรายงานเป็นของที่นี่ (ขั้น 5 · **ตัวสุดท้ายของแผนถอด** 2026-08-26)"}
+  - {path: scripts/rerun_census.py, decision: stay, reason: "adapter เหนือ `verifiable_gates.rerun_census` — ถ้อยคำไทยของรายงานเป็นของที่นี่ (ขั้น 5 · 2026-08-26 — ตัวสุดท้ายของขั้น 5 หลัก · ส่วนสุดท้ายของขั้น 5 ปิด 2026-08-28)"}
   - {path: scripts/schedule_census.py, decision: stay, reason: adapter เหนือ `verifiable_gates.schedule_census` (ขั้น 3b)}
   - {path: scripts/audit_posture.py, decision: stay, reason: "adapter เหนือ `verifiable_gates.posture`+`check_names`+`gh` — ทะเบียนธงกับถ้อยคำเป็นของที่นี่ (ขั้น 3e) · **ตรวจ 2026-08-28** ด้วย AST พบกลไก ~200 บรรทัดที่คำอ้างเดิมไม่ครอบ สามก้อน — **ปิดไปแล้วสอง**: (ก) ลูปไล่หน้า API ซ้ำกับ vg สองที่ → ยุบเป็น `gh.api_pages()`+`token_env` ที่ vg (#31) แล้วที่นี่ลบ `_request`/`_gh_pages` · (ข) `description_problems` ซ้ำกับ `advertised.field_drift` และทะเบียน About มีสองใบ → ลบแล้วเรียกของ vg ผ่าน `sync_counts.about_expectations()` ใบเดียว · **เหลือ** (ค) badge/bestpractices ~50 บรรทัดผูกกับ project 14085 = ของที่นี่จริง — ไม่ย้าย"}
   - {path: scripts/gh.py, decision: stay, reason: shim ที่ต่อ path ให้ vendor — ยังมีผู้ใช้ที่นี่ (`sync_counts`) (ขั้น 3b)}
@@ -107,7 +107,7 @@ files:
   - {path: docs/comparison/effort-log.csv, decision: stay, reason: "**เปลี่ยนคำตัดสิน 2026-08-26**: เป็นบันทึกของ *ผู้วิจัย* ไม่ใช่หลักฐานของ vg · `tests/test_effort_log.py` ยังบังคับที่นี่ (ADR 0075)"}
 
   # ---------------------------------------------------------------- ไฟล์ governance ที่ราก
-  - {path: gates.yaml, decision: split, stage: 6, reason: แถว baseline/business (94) เป็นทะเบียนตั้งต้นของ vg · แถว internal (21) + แถวที่พูดถึงแอปอยู่ที่นี่ — ถอดออกต้องผ่าน ADR ตามพื้น/เพดาน}
+  - {path: gates.yaml, decision: split, stage: 6, reason: แถว baseline/business (93 — เดิม 94 ก่อน ADR 0078 ถอด `skill-mirrors-portable-gates`) เป็นทะเบียนตั้งต้นของ vg · แถว internal (21) + แถวที่พูดถึงแอปอยู่ที่นี่ — ถอดออกต้องผ่าน ADR ตามพื้น/เพดาน}
   - {path: scaffold.json, decision: stay, reason: config ของ instantiation นี้ — คือสิ่งที่ปลายทางทุกแห่งมีของตัวเอง}
   - {path: CLA.md, decision: stay, reason: CLA ของ repo นี้ — vg มีฉบับของตัวเองแล้ว}
 

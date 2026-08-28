@@ -156,6 +156,9 @@ gates:
 
 ## Phase 9 — แยก skill + overlay ✅ (2026-08-14 · PR #13/#14/#15)
 
+**`SKILL.md` · `overlays/flask/` · `scripts/build_skill.py` ที่เฟสนี้สร้าง ย้ายไป verifiable-gates
+แล้วทั้งชุด** (ADR 0077 · ADR 0078 — vg เรนเดอร์แผ่นกฎจากคลังของมันเอง) · ข้างล่างคือบันทึกตอนทำ
+
 **สถานะ: เฟส 9 เสร็จทั้งเฟส (2026-08-14)** — required checks ณ วันนั้น 24 ตัวรวม `scaffold` (เลขสด: ดู SECURITY-CADENCE) — `SKILL.md` **generate ทั้งใบ** จาก
 portable gate (ตอนนั้น 58 กฎ · ปัจจุบัน 79) ไม่ใช่เขียนมือ: กฎ = `title` บทเรียน = `born_from`
 ของคนมีที่เดียวคือหลักปฏิบัติกลาง 5 ข้อใน PREAMBLE ของ generator ·

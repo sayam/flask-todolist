@@ -122,7 +122,7 @@
   ลง repo เปล่าได้จริง **และ repo นี้ผ่าน scan ของ overlay ตัวเอง** (dogfood —
   `scaffold.json` ที่รากคือ config นั้น) · เพิ่ม portable gate ต้องเพิ่ม entry ใน
   `overlay.json` ไม่งั้น `tests/test_overlay.py` แดง
-- **ตัวตรวจ governance/supply chain/วิจัย ย้ายไปที่นั่นครบแล้ว** (ADR 0077 ขั้น 3–5 · ปิด 2026-08-26) · **ที่นี่เหลือ adapter ที่ถือ *ทะเบียน* กับ *ถ้อยคำไทย* ส่วน *กลไก* อยู่ที่ vg**
+- **ตัวตรวจ governance/supply chain/วิจัย ย้ายไปที่นั่นครบแล้ว** (ADR 0077 ขั้น 3–5 · ปิด 2026-08-28) · **ที่นี่เหลือ adapter ที่ถือ *ทะเบียน* กับ *ถ้อยคำไทย* ส่วน *กลไก* อยู่ที่ vg**
   · `tests/test_vendored_tooling.py` พิสูจน์ *รอยต่อ* ไม่ใช่คำตัดสิน · ทะเบียน: `extraction.yaml`
   · **หลังปิด (2026-08-28) submodule = pin อ่านอย่างเดียว** — พัฒนา vg ที่ clone แยก · merge ที่ vg main ก่อน แล้วรับผ่าน Dependabot `gitsubmodule` · ห้ามชี้ SHA นอก vg main
 - `docs/GATES-ASVS.md` — crosswalk gate ↔ ASVS **generate มา ห้ามแก้ด้วยมือ**

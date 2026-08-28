@@ -18,7 +18,25 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ## [Unreleased]
 
+_Nothing yet._
+
+## [2.3.0] — 2026-08-28
+
+The release that marks the point where the governance core separates from this
+repository. Everything below landed while [`verifiable-gates`](https://github.com/sayam/verifiable-gates)
+was being extracted (ADR 0075 §6 · ADR 0077 · ADR 0078); its own first release,
+`v0.1.0`, is cut on the same day. Nothing in the `/api/v1` contract, the CLI, or
+the schema changes.
+
 ### Changed
+
+- **The extraction is closed and `vendor/verifiable-gates` is a read-only pin.**
+  `extraction.yaml` records nothing left to move (0 to move · 58 stay · 13
+  split); the 22 scripts that import `verifiable_gates` are adapters holding this
+  project's registers and Thai wording. From here the submodule is developed in
+  its own checkout and advanced through Dependabot's `gitsubmodule` bumps —
+  never pointed at a commit that is not on that repository's `main`
+  (`docs/GOVERNANCE.md`).
 
 - **The commit gate and the newcomer-issue gate moved to `verifiable-gates`**
   (extraction stage 3a — ADR 0077). `scripts/lint_commits.py` and
@@ -1727,7 +1745,8 @@ work; the reasoning for each decision lives in the 78 records in
 - WCAG 2.2 AA, checked both by a structural test suite and by pa11y-ci driving a
   real Chromium over dark mode, an alternate theme, and Thai.
 
-[Unreleased]: https://github.com/sayam/flask-todolist/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/sayam/flask-todolist/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/sayam/flask-todolist/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/sayam/flask-todolist/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/sayam/flask-todolist/compare/v2.0.2...v2.1.0
 [2.0.2]: https://github.com/sayam/flask-todolist/compare/v2.0.1...v2.0.2

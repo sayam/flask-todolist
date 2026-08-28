@@ -29,7 +29,7 @@ implementation) ของ scaffolding ที่ import เข้า project อ�
 | ชั้น | คืออะไร | ผูกกับ framework? |
 | :--- | :--- | :--- |
 | **Policy** | นิยาม gate ทั้งหมดเป็น machine-readable ไฟล์เดียว: gate id → มาตรฐานอ้างอิง (ข้อ ASVS) → คำสั่งตรวจ → เกณฑ์ผ่าน | ไม่ — portable 100% |
-| **Skill / Overlay** | SKILL.md แกนกลาง (กฎสากล) + overlay ต่อ framework ที่มี enforcement script และ CI template ของภาษาตัวเอง | overlay ผูก, แกนกลางไม่ผูก |
+| **Skill / Overlay** | SKILL.md แกนกลาง (กฎสากล — ADR 0078: vg เรนเดอร์จากคลังของมันเอง ที่นี่ไม่มีสำเนา) + overlay ต่อ framework ที่มี enforcement script และ CI template ของภาษาตัวเอง | overlay ผูก, แกนกลางไม่ผูก |
 | **Reference implementation** | repo นี้ — หลักฐานว่า gate ทั้งหมดผ่านได้จริงบนแอปจริง พร้อมตัวเลขวัดจริง | ผูก (Flask) โดยตั้งใจ |
 
 หลักการแบ่งชั้น: **abstraction อยู่ที่ชั้น policy ไม่ใช่ชั้น runtime**
@@ -56,7 +56,7 @@ Python/Flask — overlay ของ framework อื่นเขียน enforce
 `CLAUDE.md` ปัจจุบันคือ proto-skill อยู่แล้ว (บันทึกกับดักทุกอันที่เคยตกไป)
 แตกเป็น:
 
-- `SKILL.md` แกนกลาง: กฎสากล (logic ไม่รู้จัก protocol, delete = soft-delete
+- `SKILL.md` แกนกลาง (อยู่ที่ vg แล้ว — ADR 0078): กฎสากล (logic ไม่รู้จัก protocol, delete = soft-delete
   เท่านั้น, ทุก write ถูก audit, เทสต์ใหม่ต้องพิสูจน์ว่าจับของจริงได้,
   plugin dependency แยก category) — เขียนโดย**ไม่เอ่ยชื่อ library ของ Flask**
 - `verifiable-gates` (เดิม `overlays/flask/` — ADR 0077): enforcement เฉพาะทาง — AST scan, pipenv category rule,
