@@ -18,6 +18,15 @@
 # `tests/test_extraction_manifest.py` จับไม่ได้โดยนิยาม เพราะมันตรวจว่า "ทุกไฟล์ถูก
 # ตัดสิน" กับ "ไม่ชี้ไฟล์ผี" ซึ่งแถว `move` ที่ยังไม่ทำผ่านทั้งสองทิศ
 #
+# **ตัดสินซ้ำ 2026-08-28 (เจ้าของ)**: ห้าตัวนั้นถูกอ่านทีละไฟล์ด้วยเกณฑ์เดียวกับที่ใช้กับ
+# `whats_pending` ตอนขั้น 3d — *กลไกที่เหลือหลังหักของเฉพาะ repo ออก หนาพอที่ปลายทางอื่น
+# จะได้อะไรไหม* ไม่ใช่แค่ "พกไปได้ไหม" · ผล: **3 กลับเป็น `stay`** (`build_vex` ·
+# `build_eol_table` · `secret_scan_history.sh`) · **2 ยังเป็น `move`** เป็นคู่
+# (`build_asvs_worksheet` + `build_gates_crosswalk` — parser ตาราง ASVS ซ้ำกันสองไฟล์และ
+# vg ไม่รู้จัก worksheet เลย) · และการไล่ 17 แถว "adapter" ด้วย AST (def ไหนมอบงานให้ vg
+# def ไหนตรรกะที่นี่ล้วน) พบว่า 14 บางจริง · 2 หนาเพราะทะเบียนของ todolist หนา (ถูกต้อง)
+# · 1 (`audit_posture`) มีกลไกค้างที่คำอ้างเดิมไม่ได้พูดถึง — แถวนั้นถูกเขียนใหม่ให้ครบ
+#
 # วัดจริง 2026-08-25: scripts 33 ตัว import กันเอง 2 คู่ · CI เรียก scripts 14 จุด ·
 # overlay ส่งออก 14 ไฟล์ · เทสต์ที่เอ่ยถึง scripts/overlays/skill 29 ไฟล์
 
@@ -58,7 +67,7 @@ files:
   - {path: scripts/red_streak_census.py, decision: stay, reason: adapter เหนือ `verifiable_gates.red_streak_census` (ขั้น 3b)}
   - {path: scripts/rerun_census.py, decision: stay, reason: "adapter เหนือ `verifiable_gates.rerun_census` — ถ้อยคำไทยของรายงานเป็นของที่นี่ (ขั้น 5 · **ตัวสุดท้ายของแผนถอด** 2026-08-26)"}
   - {path: scripts/schedule_census.py, decision: stay, reason: adapter เหนือ `verifiable_gates.schedule_census` (ขั้น 3b)}
-  - {path: scripts/audit_posture.py, decision: stay, reason: adapter เหนือ `verifiable_gates.posture`+`check_names` — ทะเบียนธงกับถ้อยคำเป็นของที่นี่ (ขั้น 3e)}
+  - {path: scripts/audit_posture.py, decision: stay, reason: "adapter เหนือ `verifiable_gates.posture`+`check_names` — ทะเบียนธงกับถ้อยคำเป็นของที่นี่ (ขั้น 3e) · **ตรวจ 2026-08-28: คำว่า adapter ครอบแค่ครึ่งไฟล์** (541 บรรทัด · ตรรกะที่นี่ล้วน ~200) — สามก้อนที่ vg ยังไม่มี: (ก) `_gh_pages` ไล่หน้า API ซึ่ง**ซ้ำกับลูปใน vg `rerun_census._recent_runs` และ `red_streak_census._fetch`** → ควรยุบเป็น `gh.api_pages()` + `token_env` ที่ vg · (ข) `description_problems` **ซ้ำกับ `advertised.field_drift`** ที่ `sync_counts` ใช้อยู่ และทำให้ทะเบียน About มีสองใบ (`advertised_counts` vs `ABOUT_NUMBERS`) ที่ไม่มีอะไรบังคับให้ตรงกัน → ควรลบแล้วเรียกของ vg · (ค) badge/bestpractices ~50 บรรทัดผูกกับ project 14085 = ของที่นี่จริง · (ก)(ข) เป็นงานลบโค้ดซ้ำ ไม่ใช่ย้าย — บันทึกไว้ที่นี่จนกว่าจะทำ"}
   - {path: scripts/gh.py, decision: stay, reason: shim ที่ต่อ path ให้ vendor — ยังมีผู้ใช้ที่นี่ (`sync_counts`) (ขั้น 3b)}
   - {path: scripts/workflows.py, decision: stay, reason: shim ที่ต่อ path ให้ vendor — ยังมีผู้ใช้ที่นี่ (สองไฟล์เทสต์) (ขั้น 3b)}
   - {path: scripts/lint_commits.py, decision: stay, reason: adapter บาง ๆ เหนือตัวตัดสินใน vendor — hook `commit-msg` กับ job `commit-lint` เรียกพาธนี้ (ADR 0077 ขั้น 3a)}
@@ -69,10 +78,10 @@ files:
   - {path: scripts/audit_pins.py, decision: stay, reason: adapter เหนือ `verifiable_gates.advisories` — ไฟล์ล็อกกับถ้อยคำเป็นของที่นี่ (ขั้น 4)}
   - {path: scripts/audit_image.py, decision: stay, reason: adapter เหนือ `verifiable_gates.advisories` (ขั้น 4)}
   - {path: scripts/audit_plugin_deps.py, decision: stay, reason: adapter เหนือ `verifiable_gates.advisories` — สามทางที่ปลดได้เป็นของ ADR 0025 (ขั้น 4)}
-  - {path: scripts/build_vex.py, decision: move, stage: 4, reason: "**ยังไม่ย้าย** — OpenVEX จากทะเบียนยกเว้น · ขั้น 4 ปิดตัวอื่นไปเมื่อ 2026-08-26 (`e79e851`) แต่ตัวนี้ไม่ได้ไปด้วย · ที่นี่ยังถือตัวเต็ม 185 บรรทัด และไม่มี module คู่ใน `vendor/verifiable-gates` · ต้อง parametrize path ของทะเบียนสามแฟ้มกับ URL ของ repo ก่อน · **ค้างอยู่จริง ไม่ใช่คำตัดสินว่าไม่ย้าย**"}
-  - {path: scripts/build_eol_table.py, decision: move, stage: 4, reason: "**ยังไม่ย้าย** — ตาราง EOL ของ runtime ไม่รู้จักแอป (71 บรรทัด · `PRODUCTS` เป็นที่เดียวที่ผูกกับปลายทาง) · ไม่มี module คู่ใน `vendor/verifiable-gates` · **ค้างอยู่จริง ไม่ใช่คำตัดสินว่าไม่ย้าย**"}
+  - {path: scripts/build_vex.py, decision: stay, reason: "**เปลี่ยนคำตัดสิน 2026-08-28** (เดิม move ขั้น 4 · ค้างมาตั้งแต่ `e79e851`) — อ่านโค้ดแล้วของ todolist ถอดไม่ออก: `REGISTERS` ผูกทะเบียน 3 แฟ้มกับสถานะ/เหตุผล OpenVEX ของแต่ละแฟ้ม · `PACKAGE` regex อ่านร้อยแก้วไทย `— ของ `pkg`` ใน SECURITY-CADENCE · `IMAGE_ACTION` พูดถึง base image ของเรา · `@id`/`tooling` เป็น URL ของ repo — เหตุผลเดิมเองก็บอกว่า 'ต้อง parametrize 6 จุด' ซึ่งคือย้ายซอง JSON ~30 บรรทัดแล้วทิ้ง config ~150 ไว้ที่นี่ · กลไกที่พกไปได้บางเกินกว่าจะคุ้ม (เกณฑ์เดียวกับ `whats_pending`)"}
+  - {path: scripts/build_eol_table.py, decision: stay, reason: "**เปลี่ยนคำตัดสิน 2026-08-28** (เดิม move ขั้น 4) — พกได้ทั้งตัว (71 บรรทัด · เฉพาะ `PRODUCTS` กับ path ผูกปลายทาง) แต่กลไกที่เหลือคือ `fetch()`+`verify()` ~40 บรรทัดที่ไม่มีปลายทางที่สองต้องการ · 'ไม่รู้จักแอป' ตอบว่าพกได้ ไม่ได้ตอบว่าคุ้ม — เกณฑ์เดียวกับ `whats_pending` · กลับมาพิจารณาเมื่อมีโปรเจกต์ที่สองที่ตรึงตาราง EOL"}
   - {path: scripts/check_semgrep.py, decision: stay, reason: adapter เหนือ `verifiable_gates.scan_coverage` — ขอบเขตของ 'โค้ดของเรา' เป็นของที่นี่ (ขั้น 4)}
-  - {path: scripts/secret_scan_history.sh, decision: move, stage: 4, reason: "**ยังไม่ย้าย** — สแกนความลับในประวัติ git ไม่รู้จักแอป (48 บรรทัด) · **ค้างอยู่จริง ไม่ใช่คำตัดสินว่าไม่ย้าย**"}
+  - {path: scripts/secret_scan_history.sh, decision: stay, reason: "**เปลี่ยนคำตัดสิน 2026-08-28** (เดิม move ขั้น 4) — 48 บรรทัดที่เป็นข้อความไทยเกือบทั้งหมด (vg เป็นอังกฤษล้วน) ห่อ `gitleaks git --log-opts=--all` บรรทัดเดียว + กับดัก `$?` · **vg ไม่มีไฟล์ `.sh` เลยสักไฟล์** การย้ายคือเปิดภาษาที่สองให้ vg เพื่อหนึ่งบรรทัดที่พกได้ · เป็น runbook glue ของ SECURITY-CADENCE ที่นี่"}
 
   # ---------------------------------------------------------------- scripts — เครื่องมือวิจัย (ขั้น 5)
   - {path: scripts/asvs_probe.py, decision: stay, reason: adapter เหนือ `verifiable_gates.asvs_probe` (ขั้น 5)}
