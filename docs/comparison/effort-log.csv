@@ -25,3 +25,4 @@ date,minutes,track,kind,note
 2026-08-29,20,thesis,governance,ตั้ง environment พัฒนาหลังแยก vg: vg-dev.sh (tmux 3 pane · venv ไม่ใช่ pipenv) · clone แยกสำหรับ Cursor ที่ projects/cursor/verifiable-gates (venv ของตัวเอง · identity noreply) · สาม environment ลง memory
 2026-08-30,60,thesis,review,vg re-audit 25 rounds (R1-R27 minus r5/r19) on v0.1.5: 25 reports, live probes, mutant sweep 23/23, removals 14
 2026-08-30,60,thesis,governance,vg fixes from the re-audit: PRs #68-#79 (release pins, scanner shapes, changelog foot, timeout mapping, CLA example, DECISIONS row, roles, script<->manifest, pins .in<->.txt) + live flip #71
+2026-08-30,40,thesis,governance,ร่าง prompt re-audit vg 25 รอบจาก todolist r1–r27 (ตัด r5/r19/PDPA · ฝัง operation: ตัวเลขสด · grep ยืนยัน "ไม่มี" · ปลูกความผิดใน worktree · DCO/CLA/no-trailer · ห้ามเพิ่ม gate) · พบ vg ขยับ 40 commit ที่ session นี้ไม่เห็น · reset Cursor clone ตรง origin คง _analysis/ ผ่าน info/exclude · memory
