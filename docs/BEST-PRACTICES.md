@@ -283,7 +283,7 @@ v2.1.0 · **นี่คือแถวสุดท้ายในทะเบ�
 
 | เกณฑ์ | ชนิด | ต้องมีอะไรก่อน |
 |---|---|---|
-| `small_tasks` | MUST (ต้องมี URL) | **ตอบได้แล้ว** — issue [#186](https://github.com/sayam/flask-todolist/issues/186) เปิดอยู่และติดป้าย `good first issue` (ตอนเขียนแถวนี้ครั้งแรก repo มี 0 issue) · **ตอบ Met บนเว็บแล้ว 2026-08-26** |
+| `small_tasks` | MUST (ต้องมี URL) | **ตอบได้แล้ว** — issue [#186](https://github.com/sayam/flask-todolist/issues/186) เปิดอยู่และติดป้าย `good first issue` (ตอนเขียนแถวนี้ครั้งแรก repo มี 0 issue) · **ตอบ Met บนเว็บแล้ว 2026-08-26** · หลักฐานในคำตอบขยับ 2026-08-29 จาก `tests/test_issue_handoff.py` (ย้ายไป vg) เป็น `scripts/check_issue_handoff.py` + `tests/test_vendored_tooling.py` |
 | `build_reproducible` | MUST (ต้องมี URL) | ทุกอย่างถูกตรึงแล้ว (`Pipfile.lock` มี hash · `pins/` ใช้ `--require-hashes` · base image ตรึง digest) แต่ **ยังไม่เคยพิสูจน์ว่า build ซ้ำได้ผลไบต์ต่อไบต์** — ตอบ Met โดยไม่วัดคือสิ่งที่โปรเจกต์นี้ห้ามตัวเองมาตลอด · **ตอบ Unmet บนเว็บแล้ว 2026-08-26** พร้อมเหตุผลนี้ |
 
 **ตอบไปแล้ว และผลออกมาตามที่ประเมินไว้** — gold ขยับจาก 26% เป็น **57%**
@@ -291,7 +291,7 @@ v2.1.0 · **นี่คือแถวสุดท้ายในทะเบ�
 `build_reproducible` ถูกตอบ (และ `dco` ของ silver ขยับเป็น Met) · ที่เหลือเป็นรายการที่*ตัดสินแล้ว* ไม่ใช่รายการที่ยังไม่ได้ดู
 (ดูรายการที่ยังไม่ Met ท้ายหัวข้อถัดไป)
 
-## ค่าที่เก็บอยู่บนเว็บจริง (ดึงจาก API เมื่อ 2026-08-26 · **ทวนซ้ำ 2026-08-27**)
+## ค่าที่เก็บอยู่บนเว็บจริง (ดึงจาก API เมื่อ 2026-08-26 · **ทวนซ้ำ 2026-08-27 · และ 2026-08-29 หลัง v2.3.0**)
 
 > ทวนซ้ำ 2026-08-27: `updated_at` ของ API ยังเป็น `2026-08-26T16:48:17Z`
 > **ไม่มีอะไรขยับตั้งแต่รอบที่แล้ว** ค่าทุกช่องด้านล่างจึงยังตรง
@@ -320,7 +320,7 @@ curl -s https://www.bestpractices.dev/projects/14085.json > badge.json
 | `governance_justification` | "…all decisions recorded as ADRs (**78** to date)…" | **แก้แล้ว 2026-08-26 โดยเจ้าของ** — ตรงกับ `ls docs/adr/0*.md \| wc -l` · **ช่องนี้ค้างมาสองรอบ** (58 → 72 → 78) ซึ่งเป็นเลขที่ขยับเองทุกครั้งที่ merge ADR ใหม่ · `governance` เป็นเกณฑ์ของ **silver** (Basics → Project oversight · MUST · บังคับมี URL) สถานะ Met ตลอด การแก้นี้จึงเป็นเรื่องความถูกต้องของข้อความ ไม่ใช่ของสถานะ |
 | `test_most_justification` · `test_statement_coverage80_justification` | "Coverage gate fail_under = **97**" | **แก้แล้ว 2026-08-26 โดยเจ้าของ** — เดิมเขียน 96 ขณะที่ `pyproject.toml` เป็น 97 มาตั้งแต่ ratchet ขยับ · ตรงกับ `test_statement_coverage90_justification` บนเว็บเดียวกันแล้ว |
 | `test_statement_coverage90_justification` · `test_branch_coverage80_justification` | 97.17% · 93.96% (1,058/1,126) | **ยังห่างของวันนี้เท่าเดิม** (97.18% · 93.98% — 1,062/1,130 · วัดซ้ำ 2026-08-26) · ช่องพวกนี้เขียนว่า "measured on the current tree" จึงเป็นภาพถ่าย ไม่ใช่คำสัญญา — แก้ตอนรอบ release ถัดไปพอ |
-| `description` | "… v2.2.0 … **114** machine-checked gates, **78** ADRs, **27** recorded governance audits …" (ช่อง About ของ repo ขยับเป็น v2.3.0 แล้ว 2026-08-28 ด้วย `sync_counts --about --write` · ฝั่งเว็บ badge ยังรอกรอก) | **แก้แล้ว 2026-08-26 โดยเจ้าของ** — ตรงกับ `scripts/sync_counts.py --about` เป๊ะทั้งสามเลข · ก่อนหน้านั้นค้างที่ 112 gate · 72 ADR ขณะที่ช่อง About ของ repo ถูกซิงก์ไปแล้ว · เคย **ตรงกันสามที่ (2026-08-23)** — เว็บ badge · ช่อง About ของ repo · และของบนดิสก์ (`gates.yaml` · `docs/adr/` · [AUDIT-LOG.md](AUDIT-LOG.md)) — แล้วห่างอีกครั้งภายในสามวัน ซึ่งเป็นคำตอบของ audit รอบ 24 ที่ชัดที่สุด: ฝั่ง About มี `ci:posture` อ่านคู่ให้ตั้งแต่ ADR 0072 จึง*รู้ตัว* ส่วนฝั่งเว็บ badge ไม่มีใครอ่านคู่เลย |
+| `description` | "… v2.3.0 … **114** machine-checked gates, **78** ADRs, **27** recorded governance audits …" (เว็บ badge · ช่อง About ของ repo · และดิสก์ **ตรงกันสามที่อีกครั้ง 2026-08-29** — About ขยับด้วย `sync_counts --about --write` วันออกรุ่น · เว็บ badge เจ้าของกรอกเช้าถัดมา แล้วดึง JSON เทียบทั้ง 7 ช่องที่ผูกกับรุ่น ไม่เหลือ `v2.2.0` ที่ไหน) | **แก้แล้ว 2026-08-26 โดยเจ้าของ** — ตรงกับ `scripts/sync_counts.py --about` เป๊ะทั้งสามเลข · ก่อนหน้านั้นค้างที่ 112 gate · 72 ADR ขณะที่ช่อง About ของ repo ถูกซิงก์ไปแล้ว · เคย **ตรงกันสามที่ (2026-08-23)** — เว็บ badge · ช่อง About ของ repo · และของบนดิสก์ (`gates.yaml` · `docs/adr/` · [AUDIT-LOG.md](AUDIT-LOG.md)) — แล้วห่างอีกครั้งภายในสามวัน ซึ่งเป็นคำตอบของ audit รอบ 24 ที่ชัดที่สุด: ฝั่ง About มี `ci:posture` อ่านคู่ให้ตั้งแต่ ADR 0072 จึง*รู้ตัว* ส่วนฝั่งเว็บ badge ไม่มีใครอ่านคู่เลย |
 
 **สี่แถวบนนี้เพิ่มตอน audit รอบ 24** — คำถามของรอบคือ *ใครเทียบของที่อยู่นอกรีโป
 กับของจริง* และคำตอบสำหรับใบตอบ badge คือ **ไม่มีใคร นอกจากรอบตรวจ 12 เดือน** ·
