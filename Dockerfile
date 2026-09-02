@@ -25,7 +25,7 @@
 # บนเครื่องคนละ arch · ทั้งสองชั้นต้องเป็น digest เดียวกัน (`tests/test_dockerfile_pinning.py`)
 #
 # ---------------------------------------------------------------- ชั้น build
-FROM python:3.13-slim@sha256:7e3a6aca9d74f93cca21a91d86a8dad8c34749afd5b4a98ee481c9c47b9f5ed4 AS builder
+FROM python:3.13-slim@sha256:9d2e5553305c7c7b0097999bb17187c69b921ccd6bc9d40e4bb5ebe652c00285 AS builder
 
 # ไม่เขียน .pyc และไม่ buffer stdout/stderr — log ต้องออกทันทีไม่ใช่ตอน buffer เต็ม
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -68,7 +68,7 @@ ENV PIPENV_VENV_IN_PROJECT=1
 RUN pipenv verify && pipenv sync --categories="packages deploy ${PLUGIN_CATEGORIES}"
 
 # ---------------------------------------------------------------- ชั้นที่รันจริง
-FROM python:3.13-slim@sha256:7e3a6aca9d74f93cca21a91d86a8dad8c34749afd5b4a98ee481c9c47b9f5ed4 AS runtime
+FROM python:3.13-slim@sha256:9d2e5553305c7c7b0097999bb17187c69b921ccd6bc9d40e4bb5ebe652c00285 AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
