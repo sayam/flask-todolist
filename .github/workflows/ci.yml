@@ -464,6 +464,15 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
+          cache: pipenv
+      # ตัวตัดสินอยู่ใน `vendor/verifiable-gates` และ package นั้น import `yaml`
+      # ตั้งแต่บรรทัดแรกของ `__init__` (vg 0.10.0) — python เปล่าของ runner จึงล้ม
+      # ด้วย `ModuleNotFoundError` ก่อนจะได้อ่าน commit สักใบ · ใช้ environment
+      # เดียวกับ hook `commit-msg` บนเครื่อง ซึ่งรันคำสั่งเดียวกันผ่าน pipenv
+      - run: pip install --require-hashes -r pins/pipenv/requirements.txt
+        timeout-minutes: 5
+      - run: pipenv sync --dev
+        timeout-minutes: 5
       - name: conventional commits (เฉพาะ commit ที่เพิ่มเข้ามาจริง)
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
@@ -471,14 +480,14 @@ jobs:
             # **เทียบกับ head ของ PR ไม่ใช่ HEAD** — บน pull_request ตัว HEAD คือ
             # merge commit ที่ GitHub สร้างให้ ซึ่งข้อความเป็น "Merge ... into ..."
             # และจะตกด่าน Conventional Commits ทุกใบทั้งที่ไม่ใช่ commit ของใคร
-            python scripts/lint_commits.py \
+            pipenv run python scripts/lint_commits.py \
               --range "origin/${{ github.base_ref }}..${{ github.event.pull_request.head.sha }}"
           else
             BEFORE="${{ github.event.before }}"
             if git cat-file -e "$BEFORE" 2>/dev/null; then
-              python scripts/lint_commits.py --range "$BEFORE..${{ github.sha }}"
+              pipenv run python scripts/lint_commits.py --range "$BEFORE..${{ github.sha }}"
             else
-              python scripts/lint_commits.py --range "${{ github.sha }}~1..${{ github.sha }}"
+              pipenv run python scripts/lint_commits.py --range "${{ github.sha }}~1..${{ github.sha }}"
             fi
           fi
 

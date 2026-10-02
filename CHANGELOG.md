@@ -18,6 +18,26 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ## [Unreleased]
 
+### Changed
+
+- **`vendor/verifiable-gates` moves from v0.1.0 (`9ff00d2`) to v0.10.0 (`b2183e7`)**, the
+  current tip of its `main`. Three things in this repository follow it:
+  - Four rule titles in `gates.yaml` take the catalogue's new wording, which no longer
+    names this project's tools: `a11y-real-browser`, `alerts-fire-for-real`,
+    `dialect-discipline`, `purge-timer-real-systemd`. The rule ids, their enforcement
+    and the 92-rule total are unchanged.
+  - The `commit-lint` job installs the pinned environment and runs the linter through
+    `pipenv`, as the local `commit-msg` hook already does. The package now imports
+    `yaml` on load, so the runner's bare Python failed with `ModuleNotFoundError`
+    before reading a commit.
+  - Two seam tests feed a history that holds something. The red-streak and rerun
+    censuses now refuse an empty history (exit 2) rather than report it as a pass:
+    `tests/test_vendored_tooling.py::test_the_red_streak_adapter_points_at_this_repos_registry`
+    and `::test_the_rerun_census_adapter_reads_this_repos_workflows`. The first also
+    asserts a positive signal (a non-zero count of watched workflows): a registry
+    with no promises answers exit 0, which the previous assertion could not tell
+    from a registry that was read.
+
 ### Security
 
 - **Advisory sweep of 2026-10-02.** Every lock in the repository was moved off the

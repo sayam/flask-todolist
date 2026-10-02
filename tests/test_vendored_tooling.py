@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import pathlib
+import re
 from typing import TYPE_CHECKING
 
 from scripts import preflight, run_gates
@@ -197,15 +198,31 @@ def test_the_schedule_census_adapter_points_at_this_repos_root(tmp_path, capsys)
 
 
 def test_the_red_streak_adapter_points_at_this_repos_registry(tmp_path, capsys):
-    """ตัววัดต้องเห็น `gates.yaml` ของที่นี่ ไม่งั้นจะไม่มีคำสัญญาไหนถูกวัดเลย"""
+    """ตัววัดต้องเห็น `gates.yaml` ของที่นี่ ไม่งั้นจะไม่มีคำสัญญาไหนถูกวัดเลย
+
+    ป้อน run ที่สำเร็จหนึ่งใบ ไม่ใช่ประวัติเปล่า — ตัววัดปฏิเสธประวัติเปล่าด้วย
+    exit 2 (สำมะโนที่มองไม่เห็นอะไรต้องไม่รายงานว่าคำสัญญาถูกรักษา)
+
+    **ยืนยันด้วยสัญญาณบวก ไม่ใช่ด้วยการไม่เจอข้อความ**: ทะเบียนที่ไม่มีคำสัญญาเลย
+    ตอบ exit 0 พร้อมประโยค "nothing to measure" — adapter ที่ชี้ทะเบียนผิดจึงเขียว
+    ได้ ถ้าเทสต์ถามแค่ว่าไม่มีข้อความใดข้อความหนึ่ง
+    """
     from scripts import red_streak_census as adapter
 
     runs = tmp_path / "runs.json"
-    runs.write_text("[]", encoding="utf-8")
+    green = {
+        "path": ".github/workflows/posture.yml",
+        "created_at": "2026-10-01T05:43:00+00:00",
+        "conclusion": "success",
+    }
+    runs.write_text(json.dumps([green]), encoding="utf-8")
 
     assert adapter.main(["--input", str(runs)]) == 0
     out = capsys.readouterr().out
-    assert "0 watched workflows" not in out, "adapter มองไม่เห็นทะเบียนของ repo นี้"
+    assert "nothing to measure" not in out, "adapter มองไม่เห็นคำสัญญาในทะเบียนของ repo นี้"
+    watched = re.search(r"\((\d+) watched workflows\)", out)
+    assert watched, out
+    assert int(watched.group(1)) > 0, "adapter มองไม่เห็นทะเบียนของ repo นี้"
 
 
 def test_the_helper_adapters_still_serve_the_scripts_that_have_not_moved():
@@ -310,10 +327,16 @@ def test_the_rerun_census_adapter_reports_in_this_repos_language(tmp_path, capsy
 
 
 def test_the_rerun_census_adapter_reads_this_repos_workflows(tmp_path, capsys) -> None:
-    """หน้าต่างเปล่าแปลว่าทุก job ของ repo นี้ต้องโผล่ในรายการที่ไม่เคยแดง"""
+    """หน้าต่างที่ไม่มีอะไรล้ม แปลว่าทุก job ของ repo นี้ต้องโผล่ในรายการที่ไม่เคยแดง
+
+    หน้าต่างต้องมี run อย่างน้อยหนึ่งใบ — ตัวสำมะโนปฏิเสธหน้าต่างเปล่าด้วย exit 2
+    เพราะหน้าต่างที่ไม่มีใครมองผ่าน ไม่ใช่หน้าต่างที่สะอาด
+    """
     from scripts import rerun_census as adapter
 
-    assert adapter.main(["--input", _runs(tmp_path, []), "--never-red"]) == 0
+    clean = [{"id": 1, "attempt": 1, "failures": []}]
+
+    assert adapter.main(["--input", _runs(tmp_path, clean), "--never-red"]) == 0
     out = capsys.readouterr().out
 
     # สามชื่อจากสามไฟล์ — adapter ต้อง glob ทั้งไดเรกทอรี ไม่ใช่อ่านไฟล์เดียว

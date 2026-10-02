@@ -172,7 +172,7 @@ gates:
       รุ่นถัดไป drop ทิ้งเงียบ ๆ ทั้งที่ทุก SELECT พึ่งมัน
 
   - id: dialect-discipline
-    title: คอลัมน์เวลาใช้ UTCDateTime (รวมใน migration) · String ระบุความยาว · เขียนครั้งเดียวรันได้สามยี่ห้อ
+    title: คอลัมน์เวลาเก็บเป็น UTC เต็มความละเอียด (รวมใน migration) · คอลัมน์ข้อความระบุความยาว · เขียนครั้งเดียวรันได้ทุกยี่ห้อที่โปรเจกต์รองรับ
     kind: test
     severity: blocking
     enforced_by: {job: test, tests: [tests/test_dialect_parity.py, tests/test_db_backend.py, tests/test_migration_lint.py]}
@@ -1643,7 +1643,7 @@ gates:
           ในประโยคที่บอกอาการอยู่แล้ว จึงเขียวทั้งที่ทางออกหายไป)
 
   - id: a11y-real-browser
-    title: pa11y + Chromium จริง สแกนรวมโหมดมืด ธีมเสริม และภาษาไทย
+    title: ตรวจการเข้าถึงในเบราว์เซอร์จริงหลัง CSS ทำงาน ครบทุกธีมและทุกภาษาที่แอปมี
     kind: job
     severity: blocking
     enforced_by: {job: a11y}
@@ -1837,7 +1837,7 @@ gates:
     born_from: ""
 
   - id: alerts-fire-for-real
-    title: กฎแจ้งเตือนใน Loki ruler ต้องดังจริงเมื่อยิงเหตุการณ์ใส่ ไม่ใช่แค่ stack ขึ้น
+    title: กฎแจ้งเตือนต้องดังจริงเมื่อยิงเหตุการณ์ที่มันเฝ้าใส่ stack ไม่ใช่แค่มีกฎอยู่ตอน stack ขึ้น
     kind: job
     severity: blocking
     enforced_by: {job: siem}
@@ -1922,7 +1922,7 @@ gates:
           (รอบนั้นตัดสินว่าเป็น flake และ rerun ผ่าน)
 
   - id: purge-timer-real-systemd
-    title: งานลบข้อมูลพ้นระยะติดตั้งบน scheduler จริง (ที่นี่ systemd) และความล้มเหลวมองเห็นได้
+    title: งานลบข้อมูลพ้นระยะติดตั้งบน scheduler จริง และความล้มเหลวมีคนมองเห็น ไม่ใช่แค่ exit code
     kind: job
     severity: blocking
     enforced_by: {job: purge-timer}
