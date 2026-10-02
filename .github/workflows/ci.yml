@@ -41,7 +41,7 @@ jobs:
     # สิ่งเดียวกันเลย — โดยเฉพาะกับข้อที่ปิดหนี้เรื่องโควตาที่นับแยกต่อ process
     services:
       redis:
-        image: redis:7@sha256:91d0f7e8c748ec7a4c2b4fb2c4f84edab794dd91d01e095e38dc906db9d684ab
+        image: redis:7@sha256:c6eabf748fc7a61dbb5a705c78bcf3d6377b1127a97d0ce965c11c44ba46896f
         ports:
           - 6379:6379
         options: >-
@@ -141,7 +141,7 @@ jobs:
             scheme: mysql+pymysql
             ping: mysqladmin
           - name: mariadb-11
-            image: mariadb:11@sha256:24e76fcec8c003a0362d0dd53f4806e7e79458d7fdeaf47437760e19496f5a9c
+            image: mariadb:11@sha256:79d59758afc91b89b120b0a8904d637f5a3b3e1c4900f29b740d6d46c72fef68
             scheme: mariadb+pymysql
             ping: mariadb-admin
     services:

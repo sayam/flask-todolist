@@ -37,6 +37,11 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
     asserts a positive signal (a non-zero count of watched workflows): a registry
     with no promises answers exit 0, which the previous assertion could not tell
     from a registry that was read.
+- **Stack images move together.** `mariadb:11` and `redis:7` take the digests Dependabot
+  proposed, in the compose files *and* in the service containers of `ci.yml`. The
+  `docker-compose` ecosystem does not read workflow files, so its pull request moved
+  two of the four places and failed
+  `tests/test_stack_image_pinning.py::test_the_same_image_is_pinned_to_one_digest_everywhere`.
 
 ### Security
 
