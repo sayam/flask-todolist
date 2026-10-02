@@ -18,7 +18,30 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
 
 ## [Unreleased]
 
-_Nothing yet._
+### Security
+
+- **Advisory sweep of 2026-10-02.** Every lock in the repository was moved off the
+  versions the `security`, `plugin-audit` and `image` jobs had started to refuse; no
+  application code changed.
+  - `Pipfile.lock`: `urllib3` 2.7.0 → 2.8.0 (develop and `plugin-secrets-vault`),
+    `virtualenv` 21.7.4 → 21.7.16 with `python-discovery` 1.6.1 (develop), and
+    `pyjwt` 2.13.0 → 2.15.1 (`plugin-cache-redis`).
+  - `pins/pipenv`: `virtualenv` 21.7.16. `pins/semgrep`: `urllib3` 2.8.0, and `semgrep`
+    1.174.0 → 1.179.0 — the first release that accepts a fixed `pyjwt` (2.15.1);
+    every earlier one pins `pyjwt~=2.13.0`.
+  - `pins/pa11y`: `brace-expansion` 1.1.21, `ip-address` 10.7.2, `js-yaml` 4.3.2,
+    `undici` 6.29.0.
+  - Base image digest moved to the `python:3.13-slim` build of 2026-10-01, which
+    closes 15 of the 16 OS-layer CVEs reported (`perl-base`, `libsqlite3-0`, `gzip`,
+    `openssl-provider-legacy`, `libpcre2-8-0`) and the previously accepted
+    CVE-2026-14456, whose exception is removed.
+- **Three advisories are accepted with a recorded reason** in
+  `docs/SECURITY-CADENCE.md`, because no upgrade reaches them: CVE-2026-103111
+  (`libpcre2-8-0`; Debian's fix is not in the upstream image yet),
+  GHSA-7pqw-9j4j-h8q3 (`extract-zip`; no fixed release exists) and
+  GHSA-c475-qrg2-pj4r (`basic-ftp`; the fix is a major version `get-uri` does not
+  allow). The last two are CI tooling under `pins/pa11y` and are in no released
+  artefact. `docs/vex.openvex.json` is regenerated to match.
 
 ## [2.3.0] — 2026-08-28
 
