@@ -42,6 +42,9 @@ not breaking — see [ADR 0018](docs/adr/0018-api-v1-contract-and-versioning.md)
   `docker-compose` ecosystem does not read workflow files, so its pull request moved
   two of the four places and failed
   `tests/test_stack_image_pinning.py::test_the_same_image_is_pinned_to_one_digest_everywhere`.
+- **Actions**: `hadolint/hadolint-action` v3.4.0 → v3.5.0, `grafana/setup-k6-action`
+  v1.2.1 → v1.2.2, `github/codeql-action` (`init`, `analyze`, `upload-sarif`) v4.37.8 →
+  v4.38.2. Each commit SHA was checked against the tag it claims.
 
 ### Security
 
