@@ -4,6 +4,6 @@
   "private": true,
   "description": "pa11y-ci ที่ job a11y ใช้ — ตรึงทั้งต้นไม้ไว้ใน package-lock.json",
   "dependencies": {
-    "pa11y-ci": "4.1.1"
+    "pa11y-ci": "5.0.0"
   }
 }
