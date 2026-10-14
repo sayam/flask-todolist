@@ -21,10 +21,12 @@ filelock==3.32.2 \
 packaging==26.3 \
     --hash=sha256:94edc256424af38762eb31306eed28beb9f0efc50a8837492c9d6fd6004aed79 \
     --hash=sha256:d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c
-    # via pipenv
-pipenv==2026.8.0 \
-    --hash=sha256:8da889c636a8cab59a435c1366f30d252ecee465372341eb8cd4da43b055ad9d \
-    --hash=sha256:ff0e3d61bfdb3d19ea1d912dfdfd62c9e5521fcc63e525de6a63818db8b4451f
+    # via
+    #   pipenv
+    #   virtualenv
+pipenv==2026.9.0 \
+    --hash=sha256:06f02a52a237ef36add9623d7f4c42739488e639b235301ed89a66ee4e8e56da \
+    --hash=sha256:7df4cfe029225de234071a65888c80d2b92f6c04e01923ab8d4bf0112af3509b
     # via -r requirements.in
 platformdirs==4.11.2 \
     --hash=sha256:3a2ae5fca3520a01ab1be8b45613537f52ddf5b5f6f53d88233892dfbf0cd82d \
@@ -34,9 +36,9 @@ python-discovery==1.6.1 \
     --hash=sha256:cf87d3627dfb4412437fdd5b13eae402607722998d21567993aedbc59b23c15e \
     --hash=sha256:d43fcdef879fe795352bd13ccf8d185ba5a9f86f36cfcd00529f596e737442b3
     # via virtualenv
-virtualenv==21.7.16 \
-    --hash=sha256:752fd5d5352502fbd794422983eed65a249fc6f4685c5e2122fd6052e6477a11 \
-    --hash=sha256:d3fcf6954a07121c2b61efcb96419e2f40b3718d558998f13a7314e32cc42723
+virtualenv==21.14.7 \
+    --hash=sha256:3769219a308c5d2f093e7729621ad12a6346b5767a7ec4338414e2a0fb0c526b \
+    --hash=sha256:5f427d56f39eb7e7447d641dd4b7ab1e9c92793f498f35f26da2e4972c5546ae
     # via pipenv
 
 # The following packages are considered to be unsafe in a requirements file:
